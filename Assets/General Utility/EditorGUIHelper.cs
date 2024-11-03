@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -33,6 +35,7 @@ public static class EditorGUIHelper
     {
         fontStyle = FontStyle.Bold,
         fontSize = 14,
+        contentOffset = new Vector2(5f, 0f)
     };
 
     public static GUIStyle centeredLabel = new GUIStyle()
@@ -114,7 +117,7 @@ public static class EditorGUIHelper
 
     #region Lists
 
-    public static bool FoldoutObjectList<T>(bool open, IList<T> list, GUIContent label, bool allowSceneObjects, bool showNull = false) where T : Object
+    public static bool FoldoutObjectList<T>(bool open, IList<T> list, GUIContent label, bool allowSceneObjects, bool showNull = false) where T : UnityEngine.Object
     {
         open = EditorGUILayout.Foldout(open, label, true);
         if (open)
@@ -122,20 +125,20 @@ public static class EditorGUIHelper
             EditorGUI.indentLevel++;
             foreach (var item in list)
             {
-                if (showNull || item != null) EditorGUILayout.ObjectField(item, typeof(Object), allowSceneObjects);
+                if (showNull || item != null) EditorGUILayout.ObjectField(item, typeof(UnityEngine.Object), allowSceneObjects);
             }
             EditorGUI.indentLevel--;
         }
 
         return open;
     }
-    public static void ObjectList<T>(IList<T> list, GUIContent label, bool allowSceneObjects, bool showNull = false) where T : Object
+    public static void ObjectList<T>(IList<T> list, GUIContent label, bool allowSceneObjects, bool showNull = false) where T : UnityEngine.Object
     {
         EditorGUILayout.LabelField(label);
         EditorGUI.indentLevel++;
         foreach (var item in list)
         {
-            if (showNull || item != null) EditorGUILayout.ObjectField(item, typeof(Object), allowSceneObjects);
+            if (showNull || item != null) EditorGUILayout.ObjectField(item, typeof(UnityEngine.Object), allowSceneObjects);
         }
         EditorGUI.indentLevel--;
     }
@@ -172,11 +175,11 @@ public static class EditorGUIHelper
         return value;
     }
 
-    public static void FolderPicker(SerializedProperty property)
+    public static void FolderPicker(SerializedProperty property, Action onChange = null)
     {
-        FolderPicker(property, new GUIContent(property.displayName));
+        FolderPicker(property, new GUIContent(property.displayName), onChange);
     }
-    public static void FolderPicker(SerializedProperty property, GUIContent label)
+    public static void FolderPicker(SerializedProperty property, GUIContent label, Action onChange = null)
     {
         Rect rect = EditorGUILayout.GetControlRect(false, 20f);
 
@@ -200,6 +203,7 @@ public static class EditorGUIHelper
                 else absPath = "";
                 property.stringValue = absPath;
                 property.serializedObject.ApplyModifiedProperties();
+                onChange?.Invoke();
             }
             GUIUtility.ExitGUI();
         }

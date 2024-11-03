@@ -4,7 +4,6 @@ using UnityEngine;
 using System;
 using System.Linq;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine.UIElements;
@@ -76,7 +75,7 @@ namespace Dhs5.Utility.Settings
 
 #if UNITY_EDITOR
 
-        internal string GetPath()
+        internal string Editor_GetPath()
         {
             return GetPath(GetType());
         }
@@ -271,7 +270,7 @@ namespace Dhs5.Utility.Settings
 
         protected SerializedProperty p_script;
 
-        protected string[] m_excludedProperties;
+        protected List<string> m_excludedProperties;
 
         #endregion
 
@@ -283,7 +282,7 @@ namespace Dhs5.Utility.Settings
 
             p_script = serializedObject.FindProperty("m_Script");
 
-            m_excludedProperties = new string[]
+            m_excludedProperties = new()
             {
                 p_script.propertyPath,
             };
@@ -297,7 +296,7 @@ namespace Dhs5.Utility.Settings
         {
             serializedObject.Update();
 
-            DrawPropertiesExcluding(serializedObject, m_excludedProperties);
+            DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
 
             serializedObject.ApplyModifiedProperties();
         }

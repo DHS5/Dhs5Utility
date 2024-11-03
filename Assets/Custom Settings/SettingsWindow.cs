@@ -108,7 +108,7 @@ namespace Dhs5.Utility.Settings
             for (int i = 0; i < m_settings.Length; i++)
             {
                 m_names[i] = m_settings[i].name.Contains("Settings") ? m_settings[i].name.Replace("Settings", "") : m_settings[i].name;
-                m_paths[i] = m_settings[i].GetPath().Replace("Project/", "");
+                m_paths[i] = m_settings[i].Editor_GetPath().Replace("Project/", "");
                 m_options[i] = i;
             }
         }
