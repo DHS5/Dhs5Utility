@@ -1,13 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 using System;
 using System.Linq;
 
+
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEngine.UIElements;
 using System.Reflection;
+using System.IO;
 #endif
 
 namespace Dhs5.Utility.Settings
@@ -17,7 +19,7 @@ namespace Dhs5.Utility.Settings
         #region Instance
 
         private static Dictionary<Type, BaseSettings> _instances = new();
-        public static BaseSettings GetInstance(Type type)
+        internal static BaseSettings GetInstance(Type type)
         {
             if (!type.IsSubclassOf(typeof(BaseSettings))) return null;
 
@@ -31,16 +33,55 @@ namespace Dhs5.Utility.Settings
                     instance = list[0] as BaseSettings;
                     _instances[type] = instance;
                 }
+#if UNITY_EDITOR
                 else
                 {
                     instance = CreateInstance(type) as BaseSettings;
+
+                    if (!Directory.Exists(Application.dataPath + "/Resources/Settings"))
+                    {
+                        if (!Directory.Exists(Application.dataPath + "/Resources"))
+                        {
+                            Directory.CreateDirectory(Application.dataPath + "/Resources");
+                        }
+                        Directory.CreateDirectory(Application.dataPath + "/Resources/Settings");
+                    }
+
                     AssetDatabase.CreateAsset(instance, "Assets/Resources/Settings/" + type.Name + ".asset");
                     AssetDatabase.SaveAssets();
                 }
+#endif
             }
 
             return instance;
         }
+
+        internal static BaseSettings[] GetAllInstances() => GetAllInstances(GetAllChildTypes());
+        internal static BaseSettings[] GetAllInstances(Func<Type, bool> predicate) => GetAllInstances(GetAllChildTypes(t => predicate.Invoke(t)));
+        private static BaseSettings[] GetAllInstances(Type[] childTypes)
+        {
+            BaseSettings[] settings = new BaseSettings[childTypes.Length];
+
+            for (int i = 0; i < settings.Length; i++)
+            {
+                settings[i] = GetInstance(childTypes[i]);
+            }
+
+            return settings;
+        }
+
+        #endregion
+
+        #region Editor Utility
+
+#if UNITY_EDITOR
+
+        internal string GetPath()
+        {
+            return GetPath(GetType());
+        }
+
+#endif
 
         #endregion
 
@@ -65,7 +106,7 @@ namespace Dhs5.Utility.Settings
             }
             return false;
         }
-        public static string GetPath(Type type)
+        internal static string GetPath(Type type)
         {
             if (TryGetAttribute(type, out var attribute))
             {
@@ -73,7 +114,7 @@ namespace Dhs5.Utility.Settings
             }
             return "Null path";
         }
-        public static SettingsScope GetScope(Type type)
+        internal static SettingsScope GetScope(Type type)
         {
             if (TryGetAttribute(type, out var attribute))
             {
@@ -82,16 +123,18 @@ namespace Dhs5.Utility.Settings
             return SettingsScope.Project;
         }
 
-        //public static SettingsProvider GetCustomSettingsProvider()
-        //{
-        //    return new CustomSettingsProvider<T>();
-        //}
-
         private static Type[] GetAllChildTypes()
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseSettings)) && !t.IsAbstract)
+                .Where(t => t.IsSubclassOf(typeof(BaseSettings)) && !t.IsAbstract && TryGetAttribute(t, out _))
+                .ToArray();
+        }
+        private static Type[] GetAllChildTypes(Func<Type, bool> predicate)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .Where(t => t.IsSubclassOf(typeof(BaseSettings)) && !t.IsAbstract && TryGetAttribute(t, out _) && predicate.Invoke(t))
                 .ToArray();
         }
         [SettingsProviderGroup]
@@ -109,7 +152,7 @@ namespace Dhs5.Utility.Settings
         #region Instance
         
         private static T _instance;
-        public static T Instance
+        public static T I
         {
             get
             {
@@ -128,17 +171,29 @@ namespace Dhs5.Utility.Settings
         #endregion
     }
 
+    #region Settings Provider
+
 #if UNITY_EDITOR
-    public class CustomSettingsProvider : SettingsProvider //where T : CustomSettings<T>
+    public class CustomSettingsProvider : SettingsProvider
     {
+        #region Members
+
         private Type m_type;
         private BaseSettings m_settings;
         private Editor m_editor;
+
+        #endregion
+
+        #region Constructor
 
         public CustomSettingsProvider(Type type) : base(BaseSettings.GetPath(type), BaseSettings.GetScope(type))
         {
             m_type = type;
         }
+
+        #endregion
+
+        #region Activation Behaviour
 
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
@@ -149,13 +204,120 @@ namespace Dhs5.Utility.Settings
             }
         }
 
+        #endregion
+
+        #region GUI
+
         public override void OnGUI(string searchContext)
         {
             if (m_editor != null)
             {
+                //EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
+                //EditorGUILayout.Space(10f);
+
                 m_editor.OnInspectorGUI();
             }
         }
+
+        public override void OnTitleBarGUI()
+        {
+            if (!EditorIsBaseSettingsEditor(out var editor)
+                || !editor.OnTitleBarGUI())
+            {
+                base.OnTitleBarGUI(); // No override
+            }
+        }
+        public override void OnFooterBarGUI()
+        {
+            if (!EditorIsBaseSettingsEditor(out var editor)
+                || !editor.OnFooterBarGUI())
+            {
+                base.OnFooterBarGUI(); // No override
+            }
+        }
+
+        #endregion
+
+
+        #region Utility
+
+        private bool EditorIsBaseSettingsEditor(out BaseSettingsEditor editor)
+        {
+            if (m_editor is BaseSettingsEditor e)
+            {
+                editor = e;
+                return true;
+            }
+            editor = null;
+            return false;
+        }
+
+        #endregion
     }
 #endif
+
+    #endregion
+
+    #region Base Settings Editor
+
+#if UNITY_EDITOR
+
+    [CustomEditor(typeof(BaseSettings), editorForChildClasses:true)]
+    public class BaseSettingsEditor : Editor
+    {
+        #region Members
+
+        protected BaseSettings m_settings;
+
+        protected SerializedProperty p_script;
+
+        protected string[] m_excludedProperties;
+
+        #endregion
+
+        #region Core Behaviour
+
+        protected virtual void OnEnable()
+        {
+            m_settings = (BaseSettings)target;
+
+            p_script = serializedObject.FindProperty("m_Script");
+
+            m_excludedProperties = new string[]
+            {
+                p_script.propertyPath,
+            };
+        }
+
+        #endregion
+
+        #region GUI
+
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            DrawPropertiesExcluding(serializedObject, m_excludedProperties);
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        /// <returns>True if you want to override the title bar GUI</returns>
+        public virtual bool OnTitleBarGUI()
+        {
+            return false;
+        }
+        
+        /// <returns>True if you want to override the footer bar GUI</returns>
+        public virtual bool OnFooterBarGUI()
+        {
+            return false;
+        }
+
+        #endregion
+    }
+
+#endif
+
+    #endregion
 }
