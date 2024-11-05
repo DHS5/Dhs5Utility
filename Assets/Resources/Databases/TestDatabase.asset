@@ -12,9 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bdbaf45e58474c48ad984c77273d19e, type: 3}
   m_Name: TestDatabase
   m_EditorClassIdentifier: 
-  m_folderName: Assets/Database
+  m_folderName: Assets/Settings
   m_folderContent:
-  - {fileID: 11500000, guid: 72f5cef3da37f4341a0f4e0713beac0c, type: 3}
-  - {fileID: 11500000, guid: 88cbac8c307704841b1854e91e14e79d, type: 3}
-  - {fileID: 11500000, guid: 3982272080f4ad04da5447cfa44f903f, type: 3}
-  - {fileID: 11500000, guid: 2efa99d465c750a48ab4e4c0bd504efd, type: 3}
+  - {fileID: 11400000, guid: a6560a915ef98420e9faacc1c7438823, type: 2}
+  - {fileID: 11400000, guid: 18dc0cd2c080841dea60987a38ce93fa, type: 2}
+  - {fileID: 11400000, guid: e634585d5c4544dd297acaee93dc2beb, type: 2}
+  - {fileID: 11400000, guid: e1260c1148f6143b28bae5ace5e9c5d1, type: 2}
+  - {fileID: 11400000, guid: c40be3174f62c4acf8c1216858c64956, type: 2}
+  - {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd, type: 2}
+  - {fileID: 11400000, guid: 707360a9c581a4bd7aa53bfeb1429f71, type: 2}
+  - {fileID: 11400000, guid: d0e2fc18fe036412f8223b3b3d9ad574, type: 2}
