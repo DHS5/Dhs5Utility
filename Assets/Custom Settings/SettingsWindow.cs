@@ -41,6 +41,10 @@ namespace Dhs5.Utility.Settings
         {
             GetSettings();
         }
+        private void OnDisable()
+        {
+            ClearEditors();
+        }
 
         #endregion
 
@@ -123,6 +127,19 @@ namespace Dhs5.Utility.Settings
 
             m_editors[settings] = Editor.CreateEditor(settings);
             return m_editors[settings];
+        }
+        private void ClearEditors()
+        {
+            if (m_editors != null)
+            {
+                foreach (var editor in m_editors.Values)
+                {
+                    if (editor != null)
+                    {
+                        DestroyImmediate(editor);
+                    }
+                }
+            }
         }
 
         #endregion

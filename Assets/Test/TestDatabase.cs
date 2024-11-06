@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[Database("Test/First", typeof(ScriptableObject))]
+[Database("Test/First", typeof(TestScript))]
 public class TestDatabase : FileDatabase<TestDatabase>
 {
     

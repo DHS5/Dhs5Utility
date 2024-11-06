@@ -75,6 +75,18 @@ namespace Dhs5.Utility.Databases
             }
         }
 
+        protected override bool Editor_OnDeleteElementAtIndex(int index)
+        {
+            if (index >= 0 
+                && index < m_folderContent.Count
+                && BaseDatabase.IsAssetDeletableFromCode(m_folderContent[index]))
+            {
+                BaseDatabase.DeleteAsset(m_folderContent[index], true);
+                return true;
+            }
+            return false;
+        }
+
 #endif
 
         #endregion
@@ -115,6 +127,8 @@ namespace Dhs5.Utility.Databases
 
             m_excludedProperties.Add(p_folderName.propertyPath);
             m_excludedProperties.Add(p_folderContent.propertyPath);
+
+            m_currentFolderName = p_folderName.stringValue;
         }
 
         #endregion
@@ -124,18 +138,20 @@ namespace Dhs5.Utility.Databases
         protected override void OnGUI()
         {
             DrawDefault();
-
+            
             OnDatabaseInformationsGUI();
-
+            
             EditorGUILayout.Space(10f);
-
-            Rect dataListWindow = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
-            OnDatabaseContentListWindowGUI(new Rect(dataListWindow.x + 10f, dataListWindow.y, dataListWindow.width - 20f, dataListWindow.height));
-
+            
+            Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
+            dataListWindowRect.x += 10f;
+            dataListWindowRect.width -= 20f;
+            OnDatabaseContentListWindowGUI(dataListWindowRect, refreshButton:true, addButton:true, deleteButtons:true);
+            
             EditorGUILayout.Space(5f);
             Separator(2f, Color.white);
             EditorGUILayout.Space(10f);
-
+            
             DisplayCurrentDatabaseContentListSelection();
         }
 
@@ -167,6 +183,21 @@ namespace Dhs5.Utility.Databases
             base.OnDatabaseContentChanged();
 
             DatabaseContentListSelectionIndex = -1;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        protected override bool OnCreateNewData(out UnityEngine.Object obj)
+        {
+            return CreateNewData(FolderName + "/New", out obj);
+        }
+        protected override void OnAddNewDataToDatabase(Object obj)
+        {
+            base.OnAddNewDataToDatabase(obj);
+
+            EditorGUIUtility.PingObject(obj);
         }
 
         #endregion

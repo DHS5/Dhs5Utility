@@ -38,6 +38,10 @@ namespace Dhs5.Utility.Databases
         {
             GetDatabases();
         }
+        private void OnDisable()
+        {
+            ClearEditors();
+        }
 
         #endregion
 
@@ -120,6 +124,19 @@ namespace Dhs5.Utility.Databases
 
             m_editors[database] = Editor.CreateEditor(database);
             return m_editors[database];
+        }
+        private void ClearEditors()
+        {
+            if (m_editors != null)
+            {
+                foreach (var editor in m_editors.Values)
+                {
+                    if (editor != null)
+                    {
+                        DestroyImmediate(editor);
+                    }
+                }
+            }
         }
 
         #endregion

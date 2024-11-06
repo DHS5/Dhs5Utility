@@ -202,6 +202,15 @@ namespace Dhs5.Utility.Settings
                 m_editor = Editor.CreateEditor(m_settings);
             }
         }
+        public override void OnDeactivate()
+        {
+            base.OnDeactivate();
+
+            if (m_editor != null)
+            {
+                GameObject.DestroyImmediate(m_editor);
+            }
+        }
 
         #endregion
 

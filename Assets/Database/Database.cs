@@ -70,9 +70,11 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Editor Utility
+        #region Instance Editor Methods
 
 #if UNITY_EDITOR
+
+        #region Instance Attribute
 
         internal string Editor_GetPath()
         {
@@ -86,25 +88,75 @@ namespace Dhs5.Utility.Databases
             if (HasDataType(GetType(), out var type))
             {
                 Type elementType = element.GetType();
-                return elementType == type || elementType.IsSubclassOf(type);
+
+                // Scriptable
+                if (type == typeof(ScriptableObject) || type.IsSubclassOf(typeof(ScriptableObject)))
+                {
+                    return elementType == type || elementType.IsSubclassOf(type);
+                }
+                // Game Object
+                if (type == typeof(GameObject))
+                {
+                    return elementType == type;
+                }
+                // Component
+                if (type == typeof(Component) || type.IsSubclassOf(typeof(Component)))
+                {
+                    return element is GameObject go && go.TryGetComponent(type, out _);
+                }
+
+                return false;
             }
             return true;
         }
+
+        #endregion
+
+        #region Instance Content Management
 
         internal virtual IEnumerable<UnityEngine.Object> Editor_GetDatabaseContent()
         {
             yield return null;
         }
 
+        internal bool Editor_DeleteElementAtIndex(int index)
+        {
+            if (Editor_OnDeleteElementAtIndex(index))
+            {
+                Editor_DatabaseContentChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+        protected virtual bool Editor_OnDeleteElementAtIndex(int index)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Callbacks
+
+        internal event Action Editor_DatabaseContentChanged;
+
+        internal virtual void Editor_ShouldRecomputeDatabaseContent()
+        {
+            Editor_DatabaseContentChanged?.Invoke();
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssetIfDirty(this);
+        }
+
+        #endregion
+
 #endif
 
         #endregion
 
-        #region Editor Functions
+        #region Static Editor Functions
 
 #if UNITY_EDITOR
 
-        #region Statics
+        #region Attributes & Child Types
 
         private static Dictionary<Type, DatabaseAttribute> _attributes = new();
         protected static bool TryGetAttribute(Type type, out DatabaseAttribute attribute)
@@ -159,14 +211,146 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Callbacks
+        #region Data Creation & Deletion Utility
 
-        internal event Action Editor_DatabaseContentChanged;
+        #region Creation
 
-        internal virtual void Editor_ShouldRecomputeDatabaseContent()
+        public static UnityEngine.Object CreateAssetOfType(Type type, string path)
         {
-            Editor_DatabaseContentChanged?.Invoke();
+            if (type.IsSubclassOf(typeof(ScriptableObject)))
+            {
+                return CreateScriptableAsset(type, path);
+            }
+            else if (type.IsSubclassOf(typeof(Component)))
+            {
+                return CreatePrefabWithComponent(type, path);
+            }
+            else if (type == typeof(GameObject))
+            {
+                return CreateEmptyPrefab(path);
+            }
+            return null;
         }
+
+        // --- Scriptable ---
+        public static ScriptableObject CreateScriptableAsset(Type type, string path)
+        {
+            if (!path.EndsWith(".asset")) path += ".asset";
+            path = AssetDatabase.GenerateUniqueAssetPath(path);
+            var obj = ScriptableObject.CreateInstance(type);
+            AssetDatabase.CreateAsset(obj, path);
+            AssetDatabase.SaveAssetIfDirty(obj);
+            return obj;
+        }
+        public static T CreateScriptableAsset<T>(string path) where T : ScriptableObject
+        {
+            if (!path.EndsWith(".asset")) path += ".asset";
+            path = AssetDatabase.GenerateUniqueAssetPath(path);
+            var obj = ScriptableObject.CreateInstance<T>();
+            AssetDatabase.CreateAsset(obj, path);
+            AssetDatabase.SaveAssetIfDirty(obj);
+            return obj;
+        }
+
+        // --- Prefab ---
+        public static GameObject CreateEmptyPrefab(string path)
+        {
+            if (!path.EndsWith(".prefab")) path += ".prefab";
+            path = AssetDatabase.GenerateUniqueAssetPath(path);
+            var template = new GameObject();
+            var obj = PrefabUtility.SaveAsPrefabAsset(template, path, out var success);
+            DestroyImmediate(template);
+            if (success)
+            {
+                EditorUtility.FocusProjectWindow();
+                Selection.activeObject = obj;
+                EditorWindow.focusedWindow.SendEvent(new Event() { keyCode = KeyCode.F2, type = EventType.KeyDown });
+                return obj;
+            }
+            return null;
+        }
+        public static Component CreatePrefabWithComponent(Type behaviourType, string path)
+        {
+            var obj = CreateEmptyPrefab(path);
+            if (obj != null && !behaviourType.IsAbstract)
+            {
+                var component = obj.AddComponent(behaviourType);
+                PrefabUtility.SavePrefabAsset(obj);
+                return component;
+            }
+            return null;
+        }
+
+        #endregion
+
+        #region Deletion
+
+        public static bool IsAssetDeletableFromCode(UnityEngine.Object obj)
+        {
+            return obj != null;
+        }
+
+        /// <summary>
+        /// Deletes an asset permanently, CAN'T UNDO
+        /// </summary>
+        public static void DeleteAsset(UnityEngine.Object obj, bool needValidation)
+        {
+            if (obj == null) return;
+
+            if (!needValidation
+                    || EditorUtility.DisplayDialog(
+                        "Delete asset permanently ?",
+                        "Are you sure you want to delete " + obj.name + " permanently ?",
+                        "Yes", "Cancel"))
+            {
+                if (obj is GameObject)
+                {
+                    DeletePrefab(obj);
+                }
+                else
+                {
+                    DestroyImmediate(obj, true);
+                }
+            }
+        }
+        /// <summary>
+        /// Deletes a nested asset, records undo operation
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="needValidation"></param>
+        public static void DeleteNestedAsset(UnityEngine.Object obj, bool needValidation)
+        {
+            if (obj == null) return;
+
+            if (obj is GameObject)
+            {
+                Debug.LogError("Can't destroy prefab asset, Unity doesn't permit it at all..");
+                return;
+            }
+
+            if (!needValidation
+                    || EditorUtility.DisplayDialog(
+                        "Delete asset ?",
+                        "Are you sure you want to delete " + obj.name + " ?",
+                        "Yes", "Cancel"))
+            {
+                Undo.SetCurrentGroupName("Delete asset " + obj.name);
+                int undoGroup = Undo.GetCurrentGroup();
+
+                Undo.DestroyObjectImmediate(obj);
+
+                Undo.CollapseUndoOperations(undoGroup);
+            }
+        }
+
+        private static void DeletePrefab(UnityEngine.Object obj)
+        {
+            EditorUtility.FocusProjectWindow();
+            Selection.activeObject = obj;
+            EditorWindow.focusedWindow.SendEvent(EditorGUIUtility.CommandEvent("Delete"));
+        }
+
+        #endregion
 
         #endregion
 
@@ -227,6 +411,9 @@ namespace Dhs5.Utility.Databases
         protected int DatabaseContentListSelectionIndex { get; set; } = -1;
         protected Vector2 DatabaseContentListWindowScrollPos { get; set; }
         protected float DatabaseContentListElementHeight { get; set; } = 20f;
+        protected float DatabaseContentListElementPingButtonWidth { get; set; } = 30f;
+        protected float DatabaseContentListElementDeleteButtonWidth { get; set; } = 30f;
+        protected float DatabaseContentListButtonsHeight { get; set; } = 20f;
 
         // Database Element Display
         private Dictionary<UnityEngine.Object, Editor> m_editors = new();
@@ -240,9 +427,9 @@ namespace Dhs5.Utility.Databases
         {
             m_database = (BaseDatabase)target;
             m_database.Editor_DatabaseContentChanged += OnDatabaseContentChanged;
-
+            
             p_script = serializedObject.FindProperty("m_Script");
-
+            
             m_excludedProperties = new()
             {
                 p_script.propertyPath,
@@ -250,6 +437,8 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void OnDisable()
         {
+            ClearEditors();
+
             m_database.Editor_DatabaseContentChanged -= OnDatabaseContentChanged;
         }
 
@@ -259,7 +448,7 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnDatabaseContentChanged()
         {
-            m_databaseContentList = m_database.Editor_GetDatabaseContent().ToList();
+            GetDatabaseContent();
         }
 
         #endregion
@@ -272,6 +461,8 @@ namespace Dhs5.Utility.Databases
 
             OnGUI();
 
+            OnEventReceived(Event.current);
+
             serializedObject.ApplyModifiedProperties();
         }
 
@@ -282,6 +473,20 @@ namespace Dhs5.Utility.Databases
         protected void DrawDefault()
         {
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
+        }
+
+        protected virtual void OnEventReceived(Event e)
+        {
+            if (e.type == EventType.KeyUp)
+            {
+                if (e.keyCode == KeyCode.Delete)
+                {
+                    if (TryDeleteCurrentSelection())
+                    {
+                        e.Use();
+                    }
+                }
+            }
         }
 
         #endregion
@@ -311,11 +516,29 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Database Content
+
+        protected virtual void GetDatabaseContent()
+        {
+            ClearEditors();
+            m_databaseContentList = m_database.Editor_GetDatabaseContent().ToList();
+        }
+
+        protected void GetDatabaseContentIfNull()
+        {
+            if (m_databaseContentList == null)
+            {
+                GetDatabaseContent();
+            }
+        }
+
+        #endregion
+
         #region Database Content List
 
         protected void ForceDatabaseContentRefresh() { m_database.Editor_ShouldRecomputeDatabaseContent(); }
 
-        protected UnityEngine.Object GetDatabaseContentListAtIndex(int index)
+        protected virtual UnityEngine.Object GetDatabaseContentListAtIndex(int index)
         {
             if (index >= 0 && index < DatabaseContentListCount)
             {
@@ -324,10 +547,12 @@ namespace Dhs5.Utility.Databases
             return null;
         }
 
-        protected virtual void OnDatabaseContentListWindowGUI(Rect rect)
+        protected virtual void OnDatabaseContentListWindowGUI(Rect rect, bool refreshButton = false, bool addButton = false, bool deleteButtons = false)
         {
-            float refreshButtonHeight = 20f;
-            Rect listRect = new Rect(rect.x, rect.y, rect.width, rect.height - refreshButtonHeight);
+            GetDatabaseContentIfNull();
+
+            bool hasAtLeastOneButton = refreshButton || addButton;
+            Rect listRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? DatabaseContentListButtonsHeight : 0f));
             EditorGUI.DrawRect(listRect, EditorGUIHelper.transparentBlack01);
 
             bool needScrollRect = DatabaseContentListCount * DatabaseContentListElementHeight > listRect.height;
@@ -339,7 +564,7 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(0, 0, viewRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
                 {
-                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentListAtIndex(i));
+                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentListAtIndex(i), deleteButtons);
                     dataRect.y += DatabaseContentListElementHeight;
                 }
 
@@ -350,23 +575,40 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(listRect.x, listRect.y, listRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
                 {
-                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentListAtIndex(i));
+                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentListAtIndex(i), deleteButtons);
                     dataRect.y += DatabaseContentListElementHeight;
                 }
             }
 
-            // Refresh Button
-            Rect refreshButtonRect = new Rect(rect.x, rect.y + rect.height - refreshButtonHeight, rect.width, refreshButtonHeight);
-            if (GUI.Button(refreshButtonRect, new GUIContent(EditorGUIHelper.RefreshIcon) { text = "Refresh" }))
+            if (hasAtLeastOneButton)
             {
-                ForceDatabaseContentRefresh();
+                if (refreshButton)
+                {
+                    // Refresh Button
+                    Rect refreshButtonRect = new Rect(rect.x, rect.y + rect.height - DatabaseContentListButtonsHeight, rect.width * (addButton ? 0.5f : 1f), DatabaseContentListButtonsHeight);
+                    if (GUI.Button(refreshButtonRect, new GUIContent(EditorGUIHelper.RefreshIcon) { text = "Refresh" }))
+                    {
+                        ForceDatabaseContentRefresh();
+                    }
+                }
+                if (addButton)
+                {
+                    // Add Button
+                    Rect addButtonRect = new Rect(rect.x + (refreshButton ? rect.width * 0.5f : 0f), rect.y + rect.height - DatabaseContentListButtonsHeight, rect.width * (refreshButton ? 0.5f : 1f), DatabaseContentListButtonsHeight);
+                    if (GUI.Button(addButtonRect, new GUIContent(EditorGUIHelper.AddIcon) { text = "Add" }))
+                    {
+                        CreateNewData();
+                    }
+                }
             }
         }
-        protected virtual void OnDatabaseContentListElementGUI(Rect rect, int index, UnityEngine.Object element)
+        protected virtual void OnDatabaseContentListElementGUI(Rect rect, int index, UnityEngine.Object element, bool deleteButton)
         {
             bool selected = DatabaseContentListSelectionIndex == index;
+            deleteButton = deleteButton && BaseDatabase.IsAssetDeletableFromCode(element); 
 
-            if (GUI.Button(rect, GUIContent.none, new GUIStyle()))
+            Rect elementRect = new Rect(rect.x + DatabaseContentListElementPingButtonWidth, rect.y, rect.width - DatabaseContentListElementPingButtonWidth - (deleteButton ? DatabaseContentListElementDeleteButtonWidth : 0f), rect.height);
+            if (GUI.Button(elementRect, GUIContent.none, new GUIStyle()))
             {
                 if (selected)
                 {
@@ -384,42 +626,102 @@ namespace Dhs5.Utility.Databases
             
             OnDatabaseContentListElementBackgroundGUI(rect, index, selected, element);
 
+            Rect pingButtonRect = new Rect(rect.x, rect.y, DatabaseContentListElementPingButtonWidth, rect.height);
+            if (GUI.Button(pingButtonRect, EditorGUIHelper.CanSeeIcon))
+            {
+                EditorUtility.FocusProjectWindow();
+                EditorGUIUtility.PingObject(element);
+            }
+
+            if (element == null)
+            {
+                OnDatabaseContentListNullElementGUI(elementRect, index, selected);
+                return;
+            }
             switch (element)
             {
-                case null:
-                    OnDatabaseContentListNullElementGUI(rect, index, element); break;
                 case GameObject go:
-                    OnDatabaseContentListGameObjectElementGUI(rect, index, selected, go); break;
+                    OnDatabaseContentListGameObjectElementGUI(elementRect, index, selected, go); break;
                 case ScriptableObject so:
-                    OnDatabaseContentListScriptableObjectElementGUI(rect, index, selected, so); break;
+                    OnDatabaseContentListScriptableObjectElementGUI(elementRect, index, selected, so); break;
                 default:
-                    OnDatabaseContentListOtherObjectElementGUI(rect, index, selected, element); break;
+                    OnDatabaseContentListOtherObjectElementGUI(elementRect, index, selected, element); break;
+            }
+
+            if (deleteButton)
+            {
+                Rect deleteButtonRect = new Rect(rect.x + rect.width - DatabaseContentListElementDeleteButtonWidth, rect.y, DatabaseContentListElementDeleteButtonWidth, rect.height);
+                OnDatabaseContentListElementDeleteButtonGUI(deleteButtonRect, index, selected, element);
             }
         }
         protected virtual void OnDatabaseContentListElementBackgroundGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
         {
-            EditorGUI.DrawRect(rect, selected ? Color.grey : (index % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04));
+            Rect backgroundRect = new Rect(rect.x + 2f, rect.y, rect.width - 4f, rect.height);
+            EditorGUI.DrawRect(backgroundRect, selected ? Color.grey : (index % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04));
         }
 
         protected virtual void OnDatabaseContentListNullElementGUI(Rect rect, int index, bool selected)
         {
-            Rect labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f, rect.height);
-            EditorGUI.LabelField(labelRect, "Null");
+            ForceDatabaseContentRefresh();
         }
         protected virtual void OnDatabaseContentListGameObjectElementGUI(Rect rect, int index, bool selected, GameObject element)
         {
-            Rect labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f, rect.height);
-            EditorGUI.LabelField(labelRect, element.name);
+            string elementName = element.name;
+            Texture2D elementTexture = AssetPreview.GetAssetPreview(element);
+            if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
+
+            if (element.TryGetComponent(out IDatabaseElement elem))
+            {
+                if (elem.HasDatabaseElementName(out var newName)) elementName = newName;
+                if (elem.HasDatabaseElementTexture(out var newTexture)) elementTexture = newTexture;
+            }
+
+            OnDatabaseContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);
         }
         protected virtual void OnDatabaseContentListScriptableObjectElementGUI(Rect rect, int index, bool selected, ScriptableObject element)
         {
-            Rect labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f, rect.height);
-            EditorGUI.LabelField(labelRect, element.name);
+            string elementName = element.name;
+            Texture2D elementTexture = AssetPreview.GetAssetPreview(element);
+            if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
+
+            if (element is IDatabaseElement elem)
+            {
+                if (elem.HasDatabaseElementName(out var newName)) elementName = newName;
+                if (elem.HasDatabaseElementTexture(out var newTexture)) elementTexture = newTexture;
+            }
+
+            OnDatabaseContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);
         }
         protected virtual void OnDatabaseContentListOtherObjectElementGUI(Rect rect, int index, bool selected, UnityEngine.Object obj)
         {
-            Rect labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f, rect.height);
-            EditorGUI.LabelField(labelRect, obj.name);
+            OnDatabaseContentListElementWithNameAndTextureGUI(rect, index, selected, obj, obj.name, AssetPreview.GetMiniThumbnail(obj));
+        }
+
+        protected virtual void OnDatabaseContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name, Texture2D texture)
+        {
+            bool hasTexture = texture != null;
+            if (hasTexture)
+            {
+                Rect textureRect = new Rect(rect.x + 5f, rect.y + 1f, rect.height - 2f, rect.height - 2f);
+                GUI.DrawTexture(textureRect, texture, ScaleMode.ScaleToFit);
+            }
+
+            Rect labelRect = new Rect(rect.x + 5f + (hasTexture ? 5f + rect.height : 0f), rect.y, rect.width - 5f - (hasTexture ? 5f + rect.height : 0f), rect.height);
+            EditorGUI.LabelField(labelRect, name);
+        }
+
+        protected virtual void OnDatabaseContentListElementDeleteButtonGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
+        {
+            if (element != null)
+            {
+                Color guiBackgroundColor = GUI.backgroundColor;
+                GUI.backgroundColor = Color.red;
+                if (GUI.Button(rect, EditorGUIHelper.DeleteIcon))
+                {
+                    OnTryDeleteDatabaseElementAtIndex(index);
+                }
+                GUI.backgroundColor = guiBackgroundColor;
+            }
         }
 
 
@@ -430,6 +732,18 @@ namespace Dhs5.Utility.Databases
 
         #region Editor Handling
 
+        protected void ClearEditors()
+        {
+            if (m_editors != null)
+            {
+                foreach (var editor in m_editors.Values)
+                {
+                    if (editor != null && editor.serializedObject.targetObject != null)
+                        DestroyImmediate(editor);
+                }
+                m_editors.Clear();
+            }
+        }
         protected Editor GetOrCreateEditorFor(UnityEngine.Object element)
         {
             if (m_editors.TryGetValue(element, out Editor editor)
@@ -438,10 +752,28 @@ namespace Dhs5.Utility.Databases
                 return editor;
             }
 
-            editor = CreateEditor(element);
-            m_editors[element] = editor;
+            editor = CreateEditorFor(element);
+            if (editor != null)
+            {
+                m_editors[element] = editor;
+            }
             return editor;
         }
+        protected virtual Editor CreateEditorFor(UnityEngine.Object element)
+        {
+            if (element is GameObject go)
+            {
+                if (BaseDatabase.HasDataType(m_database.GetType(), out Type dataType)
+                    && dataType.IsSubclassOf(typeof(Component))
+                    && go.TryGetComponent(dataType, out Component component))
+                {
+                    return CreateEditor(component);
+                }
+                return CreateEditor(go.transform);
+            }
+            return CreateEditor(element);
+        }
+
         protected bool ShowElementEditorIfPossible(UnityEngine.Object element)
         {
             if (element == null) return false;
@@ -508,7 +840,17 @@ namespace Dhs5.Utility.Databases
 
         #region Data Creation
 
-        protected virtual bool CreateNewData(string path)
+        protected bool CreateNewData()
+        {
+            if (OnCreateNewData(out var obj))
+            {
+                OnAddNewDataToDatabase(obj);
+                return true;
+            }
+            return false;
+        }
+        protected virtual bool OnCreateNewData(out UnityEngine.Object obj) { throw new NotImplementedException(); }
+        protected virtual bool CreateNewData(string path, out UnityEngine.Object obj)
         {
             if (BaseDatabase.HasDataType(m_database.GetType(), out Type dataType))
             {
@@ -516,35 +858,58 @@ namespace Dhs5.Utility.Databases
 
                 if (dataType.IsSubclassOf(typeof(ScriptableObject)))
                 {
-                    return OnCreateNewScriptableObject(path, dataType);
+                    obj = OnCreateNewScriptableObject(path, dataType);
+                    return obj != null;
                 }
-                if (dataType.IsSubclassOf(typeof(MonoBehaviour)))
+                else if (dataType.IsSubclassOf(typeof(Component)))
                 {
-                    return OnCreateNewMonoBehaviour(path, dataType);
+                    obj = OnCreateNewPrefabWithComponent(path, dataType);
+                    return obj != null;
                 }
-                if (dataType == typeof(GameObject))
+                else if (dataType == typeof(GameObject))
                 {
-                    return OnCreateNewEmptyPrefab(path);
+                    obj = OnCreateNewEmptyPrefab(path);
+                    return obj != null;
                 }
             }
+            obj = null;
             return false;
         }
 
-        protected virtual bool OnCreateNewEmptyPrefab(string path)
+        protected virtual GameObject OnCreateNewEmptyPrefab(string path)
         {
-            PrefabUtility.SaveAsPrefabAsset(null, path, out var success);
-            return success;
+            return BaseDatabase.CreateEmptyPrefab(path);
         }
-        protected virtual bool OnCreateNewMonoBehaviour(string path, Type behaviourType)
+        protected virtual Component OnCreateNewPrefabWithComponent(string path, Type componentType)
         {
+            return BaseDatabase.CreatePrefabWithComponent(componentType, path);
+        }
+        protected virtual ScriptableObject OnCreateNewScriptableObject(string path, Type scriptableType)
+        {
+            return BaseDatabase.CreateScriptableAsset(scriptableType, path);
+        }
+
+        protected virtual void OnAddNewDataToDatabase(UnityEngine.Object obj)
+        {
+            m_database.Editor_ShouldRecomputeDatabaseContent();
+        }
+
+        #endregion
+
+        #region Data Deletion
+
+        protected bool TryDeleteCurrentSelection()
+        {
+            if (DatabaseContentListSelectionIndex != -1)
+            {
+                OnTryDeleteDatabaseElementAtIndex(DatabaseContentListSelectionIndex);
+                return true;
+            }
             return false;
         }
-        protected virtual bool OnCreateNewScriptableObject(string path, Type scriptableType)
+        protected virtual void OnTryDeleteDatabaseElementAtIndex(int index)
         {
-            var obj = ScriptableObject.CreateInstance(scriptableType);
-            AssetDatabase.CreateAsset(obj, path);
-            AssetDatabase.SaveAssets();
-            return true;
+            m_database.Editor_DeleteElementAtIndex(index);
         }
 
         #endregion
