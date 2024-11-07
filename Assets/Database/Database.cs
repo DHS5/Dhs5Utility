@@ -83,7 +83,7 @@ namespace Dhs5.Utility.Databases
 
         protected virtual bool Editor_IsElementValid(UnityEngine.Object element)
         {
-            if (element == null) return false;
+            if (element == null || element == this) return false;
 
             if (HasDataType(GetType(), out var type))
             {
@@ -133,10 +133,6 @@ namespace Dhs5.Utility.Databases
             throw new NotImplementedException();
         }
 
-        #endregion
-
-        #region Callbacks
-
         internal event Action Editor_DatabaseContentChanged;
 
         internal virtual void Editor_ShouldRecomputeDatabaseContent()
@@ -145,6 +141,13 @@ namespace Dhs5.Utility.Databases
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssetIfDirty(this);
         }
+
+        /// <summary>
+        /// Callback triggered when a new element has been created for the database<br></br>
+        /// At this moment, the database content has already been recomputed so the element is already in it
+        /// </summary>
+        /// <param name="element"></param>
+        internal virtual void Editor_OnNewElementCreated(UnityEngine.Object element) { }
 
         #endregion
 
@@ -238,8 +241,11 @@ namespace Dhs5.Utility.Databases
             if (!path.EndsWith(".asset")) path += ".asset";
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var obj = ScriptableObject.CreateInstance(type);
-            AssetDatabase.CreateAsset(obj, path);
-            AssetDatabase.SaveAssetIfDirty(obj);
+            if (obj != null)
+            {
+                AssetDatabase.CreateAsset(obj, path);
+                AssetDatabase.SaveAssetIfDirty(obj);
+            }
             return obj;
         }
         public static T CreateScriptableAsset<T>(string path) where T : ScriptableObject
@@ -247,8 +253,31 @@ namespace Dhs5.Utility.Databases
             if (!path.EndsWith(".asset")) path += ".asset";
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var obj = ScriptableObject.CreateInstance<T>();
-            AssetDatabase.CreateAsset(obj, path);
-            AssetDatabase.SaveAssetIfDirty(obj);
+            if (obj != null)
+            {
+                AssetDatabase.CreateAsset(obj, path);
+                AssetDatabase.SaveAssetIfDirty(obj);
+            }
+            return obj;
+        }
+        public static ScriptableObject CreateScriptableAndAddToAsset(Type type, UnityEngine.Object asset)
+        {
+            var obj = ScriptableObject.CreateInstance(type);
+            if (obj != null)
+            {
+                AssetDatabase.AddObjectToAsset(obj, AssetDatabase.GetAssetPath(asset));
+                AssetDatabase.SaveAssets();
+            }
+            return obj;
+        }
+        public static T CreateScriptableAndAddToAsset<T>(UnityEngine.Object asset) where T : ScriptableObject
+        {
+            var obj = ScriptableObject.CreateInstance<T>();
+            if (obj != null)
+            {
+                AssetDatabase.AddObjectToAsset(obj, AssetDatabase.GetAssetPath(asset));
+                AssetDatabase.SaveAssets();
+            }
             return obj;
         }
 
@@ -316,26 +345,24 @@ namespace Dhs5.Utility.Databases
         /// <summary>
         /// Deletes a nested asset, records undo operation
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="obj">Object to delete</param>
+        /// <param name="asset">Asset in which the object is nested</param>
         /// <param name="needValidation"></param>
-        public static void DeleteNestedAsset(UnityEngine.Object obj, bool needValidation)
+        public static void DeleteNestedAsset(UnityEngine.Object obj, UnityEngine.Object asset, bool needValidation)
         {
-            if (obj == null) return;
-
-            if (obj is GameObject)
-            {
-                Debug.LogError("Can't destroy prefab asset, Unity doesn't permit it at all..");
-                return;
-            }
+            if (obj == null || asset == null) return;
 
             if (!needValidation
                     || EditorUtility.DisplayDialog(
-                        "Delete asset ?",
+                        "Delete nested asset ?",
                         "Are you sure you want to delete " + obj.name + " ?",
                         "Yes", "Cancel"))
             {
                 Undo.SetCurrentGroupName("Delete asset " + obj.name);
                 int undoGroup = Undo.GetCurrentGroup();
+
+                Undo.RecordObject(asset, "Remove nested asset from " + asset.name);
+                AssetDatabase.RemoveObjectFromAsset(obj);
 
                 Undo.DestroyObjectImmediate(obj);
 
@@ -406,8 +433,6 @@ namespace Dhs5.Utility.Databases
         protected bool DatabaseInformationsFoldoutOpen { get; set; }
 
         // Database Content List Window
-        private List<UnityEngine.Object> m_databaseContentList;
-        protected int DatabaseContentListCount => m_databaseContentList != null ? m_databaseContentList.Count : 0;
         protected int DatabaseContentListSelectionIndex { get; set; } = -1;
         protected Vector2 DatabaseContentListWindowScrollPos { get; set; }
         protected float DatabaseContentListElementHeight { get; set; } = 20f;
@@ -446,10 +471,7 @@ namespace Dhs5.Utility.Databases
 
         #region Event Callbacks
 
-        protected virtual void OnDatabaseContentChanged()
-        {
-            GetDatabaseContent();
-        }
+        protected virtual void OnDatabaseContentChanged() { }
 
         #endregion
 
@@ -518,39 +540,21 @@ namespace Dhs5.Utility.Databases
 
         #region Database Content
 
-        protected virtual void GetDatabaseContent()
+        protected virtual int DatabaseContentListCount => throw new NotImplementedException();
+
+        protected virtual UnityEngine.Object GetDatabaseContentElementAtIndex(int index)
         {
-            ClearEditors();
-            m_databaseContentList = m_database.Editor_GetDatabaseContent().ToList();
+            throw new NotImplementedException();
         }
 
-        protected void GetDatabaseContentIfNull()
-        {
-            if (m_databaseContentList == null)
-            {
-                GetDatabaseContent();
-            }
-        }
+        protected void ForceDatabaseContentRefresh() { m_database.Editor_ShouldRecomputeDatabaseContent(); }
 
         #endregion
 
         #region Database Content List
 
-        protected void ForceDatabaseContentRefresh() { m_database.Editor_ShouldRecomputeDatabaseContent(); }
-
-        protected virtual UnityEngine.Object GetDatabaseContentListAtIndex(int index)
-        {
-            if (index >= 0 && index < DatabaseContentListCount)
-            {
-                return m_databaseContentList[index];
-            }
-            return null;
-        }
-
         protected virtual void OnDatabaseContentListWindowGUI(Rect rect, bool refreshButton = false, bool addButton = false, bool deleteButtons = false)
         {
-            GetDatabaseContentIfNull();
-
             bool hasAtLeastOneButton = refreshButton || addButton;
             Rect listRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? DatabaseContentListButtonsHeight : 0f));
             EditorGUI.DrawRect(listRect, EditorGUIHelper.transparentBlack01);
@@ -564,7 +568,7 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(0, 0, viewRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
                 {
-                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentListAtIndex(i), deleteButtons);
+                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentElementAtIndex(i), deleteButtons);
                     dataRect.y += DatabaseContentListElementHeight;
                 }
 
@@ -575,7 +579,7 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(listRect.x, listRect.y, listRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
                 {
-                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentListAtIndex(i), deleteButtons);
+                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentElementAtIndex(i), deleteButtons);
                     dataRect.y += DatabaseContentListElementHeight;
                 }
             }
@@ -738,7 +742,7 @@ namespace Dhs5.Utility.Databases
             {
                 foreach (var editor in m_editors.Values)
                 {
-                    if (editor != null && editor.serializedObject.targetObject != null)
+                    if (editor != null)
                         DestroyImmediate(editor);
                 }
                 m_editors.Clear();
@@ -795,7 +799,7 @@ namespace Dhs5.Utility.Databases
         {
             if (DatabaseContentListSelectionIndex != -1)
             {
-                DisplayDatabaseElement(GetDatabaseContentListAtIndex(DatabaseContentListSelectionIndex));
+                DisplayDatabaseElement(GetDatabaseContentElementAtIndex(DatabaseContentListSelectionIndex));
                 return true;
             }
             return false;
@@ -845,6 +849,7 @@ namespace Dhs5.Utility.Databases
             if (OnCreateNewData(out var obj))
             {
                 OnAddNewDataToDatabase(obj);
+                m_database.Editor_OnNewElementCreated(obj);
                 return true;
             }
             return false;

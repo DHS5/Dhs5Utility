@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 
 
 #if UNITY_EDITOR
@@ -20,7 +19,7 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Editor Callbacks
+        #region Editor Content Management
 
 #if UNITY_EDITOR
 
@@ -55,14 +54,6 @@ namespace Dhs5.Utility.Databases
 
             base.Editor_ShouldRecomputeDatabaseContent();
         }
-
-#endif
-
-        #endregion
-
-        #region Editor Utility
-
-#if UNITY_EDITOR
 
         internal override IEnumerable<UnityEngine.Object> Editor_GetDatabaseContent()
         {
@@ -187,7 +178,33 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Overrides
+        #region Database Content
+
+        protected override int DatabaseContentListCount
+        {
+            get
+            {
+                if (p_folderContent != null)
+                {
+                    return p_folderContent.arraySize;
+                }
+                return -1;
+            }
+        }
+
+        protected override UnityEngine.Object GetDatabaseContentElementAtIndex(int index)
+        {
+            int count = DatabaseContentListCount;
+            if (count > 0 && index >= 0 && index < count)
+            {
+                return p_folderContent.GetArrayElementAtIndex(index).objectReferenceValue;
+            }
+            return null;
+        }
+
+        #endregion
+
+        #region Data Creation
 
         protected override bool OnCreateNewData(out UnityEngine.Object obj)
         {
