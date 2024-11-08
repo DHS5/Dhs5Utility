@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
+using Dhs5.Utility.Editors;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -245,6 +246,7 @@ namespace Dhs5.Utility.Databases
             {
                 AssetDatabase.CreateAsset(obj, path);
                 AssetDatabase.SaveAssetIfDirty(obj);
+                EditorUtils.TriggerAssetRename(obj);
             }
             return obj;
         }
@@ -257,6 +259,7 @@ namespace Dhs5.Utility.Databases
             {
                 AssetDatabase.CreateAsset(obj, path);
                 AssetDatabase.SaveAssetIfDirty(obj);
+                EditorUtils.TriggerAssetRename(obj);
             }
             return obj;
         }
@@ -291,9 +294,7 @@ namespace Dhs5.Utility.Databases
             DestroyImmediate(template);
             if (success)
             {
-                EditorUtility.FocusProjectWindow();
-                Selection.activeObject = obj;
-                EditorWindow.focusedWindow.SendEvent(new Event() { keyCode = KeyCode.F2, type = EventType.KeyDown });
+                EditorUtils.TriggerAssetRename(obj);
                 return obj;
             }
             return null;
@@ -324,7 +325,7 @@ namespace Dhs5.Utility.Databases
         /// </summary>
         public static void DeleteAsset(UnityEngine.Object obj, bool needValidation)
         {
-            if (obj == null) return;
+            if (obj == null && !AssetDatabase.IsMainAsset(obj)) return;
 
             if (!needValidation
                     || EditorUtility.DisplayDialog(
@@ -334,7 +335,7 @@ namespace Dhs5.Utility.Databases
             {
                 if (obj is GameObject)
                 {
-                    DeletePrefab(obj);
+                    EditorUtils.TriggerAssetHardDeletion(obj);
                 }
                 else
                 {
@@ -350,7 +351,7 @@ namespace Dhs5.Utility.Databases
         /// <param name="needValidation"></param>
         public static void DeleteNestedAsset(UnityEngine.Object obj, UnityEngine.Object asset, bool needValidation)
         {
-            if (obj == null || asset == null) return;
+            if (obj == null || asset == null || AssetDatabase.IsMainAsset(obj)) return;
 
             if (!needValidation
                     || EditorUtility.DisplayDialog(
@@ -370,11 +371,22 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        private static void DeletePrefab(UnityEngine.Object obj)
+        #endregion
+
+        #region Renaming
+
+        public static void RenameAsset(UnityEngine.Object obj, string newName)
         {
-            EditorUtility.FocusProjectWindow();
-            Selection.activeObject = obj;
-            EditorWindow.focusedWindow.SendEvent(EditorGUIUtility.CommandEvent("Delete"));
+            if (AssetDatabase.IsMainAsset(obj))
+            {
+                AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(obj), newName);
+                AssetDatabase.SaveAssetIfDirty(obj);
+            }
+            else
+            {
+                obj.name = newName;
+                AssetDatabase.SaveAssets();
+            }
         }
 
         #endregion
@@ -425,6 +437,8 @@ namespace Dhs5.Utility.Databases
 
         protected List<string> m_excludedProperties;
 
+        protected const string RenamingControlName = "RenameControl";
+
         #endregion
 
         #region Properties
@@ -439,6 +453,12 @@ namespace Dhs5.Utility.Databases
         protected float DatabaseContentListElementPingButtonWidth { get; set; } = 30f;
         protected float DatabaseContentListElementDeleteButtonWidth { get; set; } = 30f;
         protected float DatabaseContentListButtonsHeight { get; set; } = 20f;
+
+        // Renaming
+        protected bool IsRenamingElement { get; set; }
+        protected string RenamingString { get; set; }
+        protected UnityEngine.Object RenamingElement { get; set; }
+        private bool m_justStartedRename;
 
         // Database Element Display
         private Dictionary<UnityEngine.Object, Editor> m_editors = new();
@@ -497,17 +517,87 @@ namespace Dhs5.Utility.Databases
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
         }
 
+        #endregion
+
+        #region Events
+
         protected virtual void OnEventReceived(Event e)
         {
-            if (e.type == EventType.KeyUp)
+            if (e.type == EventType.KeyDown)
             {
-                if (e.keyCode == KeyCode.Delete)
+                switch (e.keyCode)
                 {
-                    if (TryDeleteCurrentSelection())
-                    {
-                        e.Use();
-                    }
+                    case KeyCode.Delete:
+                        OnEventReceived_Delete(e); break;
+                    case KeyCode.F2:
+                        OnEventReceived_Rename(e); break;
+                    case KeyCode.UpArrow:
+                        OnEventReceived_Up(e); break;
+                    case KeyCode.DownArrow:
+                        OnEventReceived_Down(e); break;
+                    //case KeyCode.Return:
+                    //case KeyCode.Escape:
+                    //    CompleteRenaming();
+                    //    e.Use();
+                    //    break;
                 }
+            }
+            //else if (e.type == EventType.MouseDown)
+            //{
+            //    CompleteRenaming();
+            //}
+            //else if (e.type == EventType.ContextClick)
+            //{
+            //    CompleteRenaming();
+            //}
+        }
+
+        protected virtual void OnEventReceived_Delete(Event e)
+        {
+            if (TryDeleteCurrentSelection())
+            {
+                e.Use();
+            }
+        }
+
+        protected virtual void OnEventReceived_Rename(Event e)
+        {
+            //if (DatabaseContentListSelectionIndex >= 0)
+            //{
+            //    EditorUtils.TriggerAssetRename(GetDatabaseCurrentSelection(), true);
+            //    e.Use();
+            //}
+            if (!IsRenamingElement)
+            {
+                if (DatabaseContentListSelectionIndex >= 0)
+                {
+                    BeginRenaming(GetDatabaseCurrentSelection());
+                    e.Use();
+                }
+            }
+            else if (CompleteRenaming())
+            {
+                e.Use();
+            }
+        }
+        
+
+        protected virtual void OnEventReceived_Up(Event e)
+        {
+            CompleteRenaming();
+            if (CanSelectUp())
+            {
+                DatabaseContentListSelectionIndex--;
+                e.Use();
+            }
+        }
+        protected virtual void OnEventReceived_Down(Event e)
+        {
+            CompleteRenaming();
+            if (CanSelectDown())
+            {
+                DatabaseContentListSelectionIndex++;
+                e.Use();
             }
         }
 
@@ -542,6 +632,13 @@ namespace Dhs5.Utility.Databases
 
         protected virtual int DatabaseContentListCount => throw new NotImplementedException();
 
+        protected bool CanSelectUp() => DatabaseContentListSelectionIndex > 0;
+        protected bool CanSelectDown() => DatabaseContentListSelectionIndex < DatabaseContentListCount - 1;
+
+        protected UnityEngine.Object GetDatabaseCurrentSelection()
+        {
+            return GetDatabaseContentElementAtIndex(DatabaseContentListSelectionIndex);
+        }
         protected virtual UnityEngine.Object GetDatabaseContentElementAtIndex(int index)
         {
             throw new NotImplementedException();
@@ -711,7 +808,28 @@ namespace Dhs5.Utility.Databases
             }
 
             Rect labelRect = new Rect(rect.x + 5f + (hasTexture ? 5f + rect.height : 0f), rect.y, rect.width - 5f - (hasTexture ? 5f + rect.height : 0f), rect.height);
-            EditorGUI.LabelField(labelRect, name);
+            if (IsRenamingElement && RenamingElement == obj)
+            {
+                GUI.SetNextControlName(RenamingControlName);
+
+                EditorGUI.BeginChangeCheck();
+                RenamingString = EditorGUI.DelayedTextField(labelRect, RenamingString);
+                if (EditorGUI.EndChangeCheck()
+                    || (!m_justStartedRename && !EditorGUIUtility.editingTextField)) // Stop editing
+                {
+                    CompleteRenaming();
+                }
+                // Get focus
+                if (m_justStartedRename)
+                {
+                    EditorGUI.FocusTextInControl(RenamingControlName);
+                    m_justStartedRename = false;
+                }
+            }
+            else
+            {
+                EditorGUI.LabelField(labelRect, name);
+            }
         }
 
         protected virtual void OnDatabaseContentListElementDeleteButtonGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
@@ -799,7 +917,7 @@ namespace Dhs5.Utility.Databases
         {
             if (DatabaseContentListSelectionIndex != -1)
             {
-                DisplayDatabaseElement(GetDatabaseContentElementAtIndex(DatabaseContentListSelectionIndex));
+                DisplayDatabaseElement(GetDatabaseCurrentSelection());
                 return true;
             }
             return false;
@@ -915,6 +1033,33 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnTryDeleteDatabaseElementAtIndex(int index)
         {
             m_database.Editor_DeleteElementAtIndex(index);
+        }
+
+        #endregion
+
+        #region Data Renaming
+
+        private void BeginRenaming(UnityEngine.Object obj)
+        {
+            RenamingElement = obj;
+            RenamingString = obj.name;
+            IsRenamingElement = true;
+            m_justStartedRename = true;
+        }
+        private bool CompleteRenaming()
+        {
+            if (IsRenamingElement)
+            {
+                OnCompleteRenaming(RenamingElement);
+                IsRenamingElement = false;
+                RenamingElement = null;
+                return true;
+            }
+            return false;
+        }
+        protected virtual void OnCompleteRenaming(UnityEngine.Object obj)
+        {
+            BaseDatabase.RenameAsset(obj, RenamingString);
         }
 
         #endregion

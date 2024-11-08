@@ -107,10 +107,6 @@ namespace Dhs5.Utility.Databases
         {
             DrawDefault();
 
-            OnDatabaseInformationsGUI();
-
-            EditorGUILayout.Space(10f);
-
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
