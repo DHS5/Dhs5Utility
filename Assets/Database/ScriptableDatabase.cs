@@ -43,8 +43,13 @@ namespace Dhs5.Utility.Databases
                     m_content.Add(so);
                 }
             }
+            SortContent();
 
             base.Editor_ShouldRecomputeDatabaseContent();
+        }
+        private void SortContent()
+        {
+            m_content.Sort(BaseDatabase.Sort_ByName);
         }
 
         internal override IEnumerable<Object> Editor_GetDatabaseContent()
@@ -62,7 +67,7 @@ namespace Dhs5.Utility.Databases
         {
             if (index >= 0 && index < m_content.Count)
             {
-                BaseDatabase.DeleteNestedAsset(m_content[index], this, true);
+                BaseDatabase.DeleteAsset(m_content[index], true);
                 return true;
             }
             return false;

@@ -321,11 +321,19 @@ namespace Dhs5.Utility.Databases
         }
 
         /// <summary>
-        /// Deletes an asset permanently, CAN'T UNDO
+        /// Deletes an asset<br></br>
+        /// If it's a main asset, deletes permanently and CAN'T UNDO<br></br>
+        /// If it's not, delete the nested asset and CAN UNDO
         /// </summary>
         public static void DeleteAsset(UnityEngine.Object obj, bool needValidation)
         {
-            if (obj == null && !AssetDatabase.IsMainAsset(obj)) return;
+            if (obj == null) return;
+
+            if (!AssetDatabase.IsMainAsset(obj))
+            {
+                DeleteNestedAsset(obj, needValidation);
+                return;
+            }
 
             if (!needValidation
                     || EditorUtility.DisplayDialog(
@@ -349,9 +357,11 @@ namespace Dhs5.Utility.Databases
         /// <param name="obj">Object to delete</param>
         /// <param name="asset">Asset in which the object is nested</param>
         /// <param name="needValidation"></param>
-        public static void DeleteNestedAsset(UnityEngine.Object obj, UnityEngine.Object asset, bool needValidation)
+        public static void DeleteNestedAsset(UnityEngine.Object obj, bool needValidation)
         {
-            if (obj == null || asset == null || AssetDatabase.IsMainAsset(obj)) return;
+            if (obj == null || AssetDatabase.IsMainAsset(obj)) return;
+
+            UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GetAssetPath(obj));
 
             if (!needValidation
                     || EditorUtility.DisplayDialog(
@@ -390,6 +400,19 @@ namespace Dhs5.Utility.Databases
         }
 
         #endregion
+
+        #endregion
+
+        #region Sort Functions
+
+        public static int Sort_ByName(UnityEngine.Object obj1, UnityEngine.Object obj2)
+        {
+            return obj1.name.CompareTo(obj2.name);
+        }
+        public static int Sort_ByType(UnityEngine.Object obj1, UnityEngine.Object obj2)
+        {
+            return obj1.GetType().FullName.CompareTo(obj2.GetType().FullName);
+        }
 
         #endregion
 
@@ -537,6 +560,11 @@ namespace Dhs5.Utility.Databases
                         OnEventReceived_Down(e); break;
                 }
             }
+            if (e.type == EventType.MouseDown)
+            {
+                CompleteRenaming();
+                e.Use();
+            }
         }
 
         protected virtual void OnEventReceived_Delete(Event e)
@@ -566,7 +594,6 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnEventReceived_Up(Event e)
         {
-            CompleteRenaming();
             if (CanSelectUp())
             {
                 DatabaseContentListSelectionIndex--;
@@ -575,7 +602,6 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void OnEventReceived_Down(Event e)
         {
-            CompleteRenaming();
             if (CanSelectDown())
             {
                 DatabaseContentListSelectionIndex++;
@@ -632,9 +658,14 @@ namespace Dhs5.Utility.Databases
 
         #region Database Content List
 
+        protected virtual bool IsDatabaseContentListInteractable()
+        {
+            return !IsRenamingElement;
+        }
+
         protected virtual void OnDatabaseContentListWindowGUI(Rect rect, bool refreshButton = false, bool addButton = false, bool deleteButtons = false)
         {
-            bool hasAtLeastOneButton = refreshButton || addButton;
+            bool hasAtLeastOneButton = (refreshButton || addButton);
             Rect listRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? DatabaseContentListButtonsHeight : 0f));
             EditorGUI.DrawRect(listRect, EditorGUIHelper.transparentBlack01);
 
@@ -665,6 +696,7 @@ namespace Dhs5.Utility.Databases
 
             if (hasAtLeastOneButton)
             {
+                EditorGUI.BeginDisabledGroup(!IsDatabaseContentListInteractable());
                 if (refreshButton)
                 {
                     // Refresh Button
@@ -683,6 +715,7 @@ namespace Dhs5.Utility.Databases
                         CreateNewData();
                     }
                 }
+                EditorGUI.EndDisabledGroup();
             }
         }
         protected virtual void OnDatabaseContentListElementGUI(Rect rect, int index, UnityEngine.Object element, bool deleteButton)
@@ -691,7 +724,7 @@ namespace Dhs5.Utility.Databases
             deleteButton = deleteButton && BaseDatabase.IsAssetDeletableFromCode(element); 
 
             Rect elementRect = new Rect(rect.x + DatabaseContentListElementPingButtonWidth, rect.y, rect.width - DatabaseContentListElementPingButtonWidth - (deleteButton ? DatabaseContentListElementDeleteButtonWidth : 0f), rect.height);
-            if (GUI.Button(elementRect, GUIContent.none, new GUIStyle()))
+            if (IsDatabaseContentListInteractable() && GUI.Button(elementRect, GUIContent.none, new GUIStyle()))
             {
                 if (selected)
                 {
@@ -709,12 +742,14 @@ namespace Dhs5.Utility.Databases
             
             OnDatabaseContentListElementBackgroundGUI(rect, index, selected, element);
 
+            EditorGUI.BeginDisabledGroup(!IsDatabaseContentListInteractable());
             Rect pingButtonRect = new Rect(rect.x, rect.y, DatabaseContentListElementPingButtonWidth, rect.height);
             if (GUI.Button(pingButtonRect, EditorGUIHelper.CanSeeIcon))
             {
                 EditorUtility.FocusProjectWindow();
                 EditorGUIUtility.PingObject(element);
             }
+            EditorGUI.EndDisabledGroup();
 
             if (element == null)
             {
@@ -733,14 +768,16 @@ namespace Dhs5.Utility.Databases
 
             if (deleteButton)
             {
+                EditorGUI.BeginDisabledGroup(!IsDatabaseContentListInteractable());
                 Rect deleteButtonRect = new Rect(rect.x + rect.width - DatabaseContentListElementDeleteButtonWidth, rect.y, DatabaseContentListElementDeleteButtonWidth, rect.height);
                 OnDatabaseContentListElementDeleteButtonGUI(deleteButtonRect, index, selected, element);
+                EditorGUI.EndDisabledGroup();
             }
         }
         protected virtual void OnDatabaseContentListElementBackgroundGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
         {
             Rect backgroundRect = new Rect(rect.x + 2f, rect.y, rect.width - 4f, rect.height);
-            EditorGUI.DrawRect(backgroundRect, selected ? Color.grey : (index % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04));
+            EditorGUI.DrawRect(backgroundRect, selected ? EditorGUIHelper.transparentWhite01 : (index % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04));
         }
 
         protected virtual void OnDatabaseContentListNullElementGUI(Rect rect, int index, bool selected)
