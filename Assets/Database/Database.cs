@@ -535,21 +535,8 @@ namespace Dhs5.Utility.Databases
                         OnEventReceived_Up(e); break;
                     case KeyCode.DownArrow:
                         OnEventReceived_Down(e); break;
-                    //case KeyCode.Return:
-                    //case KeyCode.Escape:
-                    //    CompleteRenaming();
-                    //    e.Use();
-                    //    break;
                 }
             }
-            //else if (e.type == EventType.MouseDown)
-            //{
-            //    CompleteRenaming();
-            //}
-            //else if (e.type == EventType.ContextClick)
-            //{
-            //    CompleteRenaming();
-            //}
         }
 
         protected virtual void OnEventReceived_Delete(Event e)
@@ -562,11 +549,6 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnEventReceived_Rename(Event e)
         {
-            //if (DatabaseContentListSelectionIndex >= 0)
-            //{
-            //    EditorUtils.TriggerAssetRename(GetDatabaseCurrentSelection(), true);
-            //    e.Use();
-            //}
             if (!IsRenamingElement)
             {
                 if (DatabaseContentListSelectionIndex >= 0)
