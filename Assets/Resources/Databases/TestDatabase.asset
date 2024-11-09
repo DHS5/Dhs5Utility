@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_folderName: Assets/Test
   m_folderContent:
-  - {fileID: 8787896727999081137, guid: 8dd9c501f44413c48b579b2a81fcb625, type: 3}
   - {fileID: 5917301022342299851, guid: 66d0f96ee3c08aa4b9bc0893b760d41d, type: 3}
   - {fileID: 1342592908510579053, guid: 3262cdff4a37ddf44948038dc448eb83, type: 3}
   - {fileID: 5835124454569886168, guid: 0f995f04cc1da974895cccd00a5042f3, type: 3}
+  - {fileID: 3161176181950657369, guid: 8dd9c501f44413c48b579b2a81fcb625, type: 3}
+  - {fileID: 3905021321511009000, guid: d82bca33ef5c27e46974b0c52f109db6, type: 3}

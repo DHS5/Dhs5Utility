@@ -216,8 +216,6 @@ namespace Dhs5.Utility.Databases
                 || BaseDatabase.MoveAssetToFolder(obj, FolderName))
             {
                 base.OnAddNewDataToDatabase(obj);
-
-                EditorGUIUtility.PingObject(obj);
             }
         }
 

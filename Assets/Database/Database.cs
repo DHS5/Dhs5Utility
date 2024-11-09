@@ -4,8 +4,6 @@ using UnityEngine;
 using System.Linq;
 using System;
 using Dhs5.Utility.Editors;
-using System.Data;
-
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -545,7 +543,10 @@ namespace Dhs5.Utility.Databases
 
         #region Event Callbacks
 
-        protected virtual void OnDatabaseContentChanged() { }
+        protected virtual void OnDatabaseContentChanged() 
+        { 
+            serializedObject.Update();
+        }
 
         #endregion
 
@@ -1098,10 +1099,12 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnAddNewDataToDatabase(UnityEngine.Object obj)
         {
-            m_database.Editor_ShouldRecomputeDatabaseContent();
-            if (Select(obj))
+            ForceDatabaseContentRefresh();
+            DatabaseContentListWindowScrollPos = Vector2.zero;
+            var root = GetRootElement(obj);
+            if (Select(root))
             {
-                BeginRenaming(obj);
+                BeginRenaming(root);
             }
         }
 
@@ -1182,9 +1185,26 @@ namespace Dhs5.Utility.Databases
                     {
                         OnAddNewDataToDatabase(DragAndDrop.objectReferences[i]);
                     }
+                    else
+                    {
+                        Debug.LogWarning(DragAndDrop.objectReferences[i] + " is not a valid element for DB " + m_database.name);
+                    }
                 }
                 e.Use();
             }
+        }
+
+        #endregion
+
+        #region Utility
+
+        protected UnityEngine.Object GetRootElement(UnityEngine.Object obj)
+        {
+            if (obj is Component component)
+            {
+                return component.transform.root.gameObject;
+            }
+            return obj;
         }
 
         #endregion

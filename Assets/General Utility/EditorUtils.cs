@@ -177,6 +177,10 @@ namespace Dhs5.Utility.Editors
         {
             EditorGUIUtility.PingObject(obj);
         }
+        public static void FocusProjectWindow()
+        {
+            EditorUtility.FocusProjectWindow();
+        }
 
         public static string GetAssetContainingFolder(UnityEngine.Object obj)
         {

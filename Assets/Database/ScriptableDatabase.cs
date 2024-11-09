@@ -173,8 +173,6 @@ namespace Dhs5.Utility.Databases
             }
 
             base.OnAddNewDataToDatabase(obj);
-
-            BeginRenaming(obj);
         }
 
         #endregion
