@@ -4,6 +4,8 @@ using UnityEngine;
 using System.Linq;
 using System;
 using Dhs5.Utility.Editors;
+using System.Data;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -82,7 +84,7 @@ namespace Dhs5.Utility.Databases
             return GetPath(GetType());
         }
 
-        protected virtual bool Editor_IsElementValid(UnityEngine.Object element)
+        internal virtual bool Editor_IsElementValid(UnityEngine.Object element)
         {
             if (element == null || element == this) return false;
 
@@ -219,25 +221,25 @@ namespace Dhs5.Utility.Databases
 
         #region Creation
 
-        public static UnityEngine.Object CreateAssetOfType(Type type, string path)
+        public static UnityEngine.Object CreateAssetOfType(Type type, string path, bool triggerRename = false)
         {
             if (type.IsSubclassOf(typeof(ScriptableObject)))
             {
-                return CreateScriptableAsset(type, path);
+                return CreateScriptableAsset(type, path, triggerRename);
             }
             else if (type.IsSubclassOf(typeof(Component)))
             {
-                return CreatePrefabWithComponent(type, path);
+                return CreatePrefabWithComponent(type, path, triggerRename);
             }
             else if (type == typeof(GameObject))
             {
-                return CreateEmptyPrefab(path);
+                return CreateEmptyPrefab(path, triggerRename);
             }
             return null;
         }
 
         // --- Scriptable ---
-        public static ScriptableObject CreateScriptableAsset(Type type, string path)
+        public static ScriptableObject CreateScriptableAsset(Type type, string path, bool triggerRename = false)
         {
             if (!path.EndsWith(".asset")) path += ".asset";
             path = AssetDatabase.GenerateUniqueAssetPath(path);
@@ -246,11 +248,11 @@ namespace Dhs5.Utility.Databases
             {
                 AssetDatabase.CreateAsset(obj, path);
                 AssetDatabase.SaveAssetIfDirty(obj);
-                EditorUtils.TriggerAssetRename(obj);
+                if (triggerRename) EditorUtils.TriggerAssetRename(obj);
             }
             return obj;
         }
-        public static T CreateScriptableAsset<T>(string path) where T : ScriptableObject
+        public static T CreateScriptableAsset<T>(string path, bool triggerRename = false) where T : ScriptableObject
         {
             if (!path.EndsWith(".asset")) path += ".asset";
             path = AssetDatabase.GenerateUniqueAssetPath(path);
@@ -259,7 +261,7 @@ namespace Dhs5.Utility.Databases
             {
                 AssetDatabase.CreateAsset(obj, path);
                 AssetDatabase.SaveAssetIfDirty(obj);
-                EditorUtils.TriggerAssetRename(obj);
+                if (triggerRename) EditorUtils.TriggerAssetRename(obj);
             }
             return obj;
         }
@@ -285,7 +287,7 @@ namespace Dhs5.Utility.Databases
         }
 
         // --- Prefab ---
-        public static GameObject CreateEmptyPrefab(string path)
+        public static GameObject CreateEmptyPrefab(string path, bool triggerRename = false)
         {
             if (!path.EndsWith(".prefab")) path += ".prefab";
             path = AssetDatabase.GenerateUniqueAssetPath(path);
@@ -294,14 +296,14 @@ namespace Dhs5.Utility.Databases
             DestroyImmediate(template);
             if (success)
             {
-                EditorUtils.TriggerAssetRename(obj);
+                if (triggerRename) EditorUtils.TriggerAssetRename(obj);
                 return obj;
             }
             return null;
         }
-        public static Component CreatePrefabWithComponent(Type behaviourType, string path)
+        public static Component CreatePrefabWithComponent(Type behaviourType, string path, bool triggerRename = false)
         {
-            var obj = CreateEmptyPrefab(path);
+            var obj = CreateEmptyPrefab(path, triggerRename);
             if (obj != null && !behaviourType.IsAbstract)
             {
                 var component = obj.AddComponent(behaviourType);
@@ -341,14 +343,7 @@ namespace Dhs5.Utility.Databases
                         "Are you sure you want to delete " + obj.name + " permanently ?",
                         "Yes", "Cancel"))
             {
-                if (obj is GameObject)
-                {
-                    EditorUtils.TriggerAssetHardDeletion(obj);
-                }
-                else
-                {
-                    DestroyImmediate(obj, true);
-                }
+                AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(obj));
             }
         }
         /// <summary>
@@ -396,6 +391,41 @@ namespace Dhs5.Utility.Databases
             {
                 obj.name = newName;
                 AssetDatabase.SaveAssets();
+            }
+        }
+
+        #endregion
+
+        #region Moving
+
+        public static bool MoveAssetToFolder(UnityEngine.Object obj, string folder)
+        {
+            string oldPath = AssetDatabase.GetAssetPath(obj);
+            string newPath;
+            int num = oldPath.LastIndexOf("/", StringComparison.Ordinal);
+            if (num == -1)
+            {
+                return false;
+            }
+            newPath = folder + oldPath.Substring(num, oldPath.Length - num);
+            if (AssetDatabase.ValidateMoveAsset(oldPath, newPath) == string.Empty)
+            {
+                return AssetDatabase.MoveAsset(oldPath, newPath) == string.Empty;
+            }
+            return false;
+        }
+
+        public static void AddAssetToOtherAsset(UnityEngine.Object objToAdd, UnityEngine.Object asset)
+        {
+            var duplicate = Instantiate(objToAdd);
+            if (AssetDatabase.MoveAssetToTrash(AssetDatabase.GetAssetPath(objToAdd))
+                && duplicate != null)
+            {
+                AssetDatabase.AddObjectToAsset(duplicate, asset);
+            }
+            else
+            {
+                Debug.Log("of course the object is null");
             }
         }
 
@@ -471,6 +501,7 @@ namespace Dhs5.Utility.Databases
 
         // Database Content List Window
         protected int DatabaseContentListSelectionIndex { get; set; } = -1;
+        protected Rect DatabaseContentListRect { get; set; }
         protected Vector2 DatabaseContentListWindowScrollPos { get; set; }
         protected float DatabaseContentListElementHeight { get; set; } = 20f;
         protected float DatabaseContentListElementPingButtonWidth { get; set; } = 30f;
@@ -546,24 +577,41 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnEventReceived(Event e)
         {
-            if (e.type == EventType.KeyDown)
+            switch (e.type)
             {
-                switch (e.keyCode)
-                {
-                    case KeyCode.Delete:
-                        OnEventReceived_Delete(e); break;
-                    case KeyCode.F2:
-                        OnEventReceived_Rename(e); break;
-                    case KeyCode.UpArrow:
-                        OnEventReceived_Up(e); break;
-                    case KeyCode.DownArrow:
-                        OnEventReceived_Down(e); break;
-                }
-            }
-            if (e.type == EventType.MouseDown)
-            {
-                CompleteRenaming();
-                e.Use();
+                case EventType.KeyDown:
+                    {
+                        switch (e.keyCode)
+                        {
+                            case KeyCode.Delete:
+                                OnEventReceived_Delete(e); break;
+                            case KeyCode.F2:
+                                OnEventReceived_Rename(e); break;
+                            case KeyCode.UpArrow:
+                                OnEventReceived_Up(e); break;
+                            case KeyCode.DownArrow:
+                                OnEventReceived_Down(e); break;
+                        }
+                        break;
+                    }
+                case EventType.MouseDown:
+                    {
+                        if (CompleteRenaming())
+                        {
+                            e.Use();
+                        }
+                        break;
+                    }
+                case EventType.DragUpdated:
+                    {
+                        OnEventReceived_DragUpdated(e);
+                        break;
+                    }
+                case EventType.DragPerform:
+                    {
+                        OnEventReceived_DragPerformed(e);
+                        break;
+                    }
             }
         }
 
@@ -656,6 +704,23 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Selection
+
+        protected bool Select(UnityEngine.Object obj)
+        {
+            for (int i = 0; i < DatabaseContentListCount; i++)
+            {
+                if (GetDatabaseContentElementAtIndex(i) == obj)
+                {
+                    DatabaseContentListSelectionIndex = i;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        #endregion
+
         #region Database Content List
 
         protected virtual bool IsDatabaseContentListInteractable()
@@ -666,14 +731,14 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnDatabaseContentListWindowGUI(Rect rect, bool refreshButton = false, bool addButton = false, bool deleteButtons = false)
         {
             bool hasAtLeastOneButton = (refreshButton || addButton);
-            Rect listRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? DatabaseContentListButtonsHeight : 0f));
-            EditorGUI.DrawRect(listRect, EditorGUIHelper.transparentBlack01);
+            DatabaseContentListRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? DatabaseContentListButtonsHeight : 0f));
+            EditorGUI.DrawRect(DatabaseContentListRect, EditorGUIHelper.transparentBlack01);
 
-            bool needScrollRect = DatabaseContentListCount * DatabaseContentListElementHeight > listRect.height;
+            bool needScrollRect = DatabaseContentListCount * DatabaseContentListElementHeight > DatabaseContentListRect.height;
             if (needScrollRect)
             {
-                Rect viewRect = new Rect(0, 0, listRect.width - 15f, DatabaseContentListCount * DatabaseContentListElementHeight);
-                DatabaseContentListWindowScrollPos = GUI.BeginScrollView(listRect, DatabaseContentListWindowScrollPos, viewRect);
+                Rect viewRect = new Rect(0, 0, DatabaseContentListRect.width - 15f, DatabaseContentListCount * DatabaseContentListElementHeight);
+                DatabaseContentListWindowScrollPos = GUI.BeginScrollView(DatabaseContentListRect, DatabaseContentListWindowScrollPos, viewRect);
 
                 Rect dataRect = new Rect(0, 0, viewRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
@@ -686,7 +751,7 @@ namespace Dhs5.Utility.Databases
             }
             else
             {
-                Rect dataRect = new Rect(listRect.x, listRect.y, listRect.width, DatabaseContentListElementHeight);
+                Rect dataRect = new Rect(DatabaseContentListRect.x, DatabaseContentListRect.y, DatabaseContentListRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
                 {
                     OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentElementAtIndex(i), deleteButtons);
@@ -1034,6 +1099,10 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnAddNewDataToDatabase(UnityEngine.Object obj)
         {
             m_database.Editor_ShouldRecomputeDatabaseContent();
+            if (Select(obj))
+            {
+                BeginRenaming(obj);
+            }
         }
 
         #endregion
@@ -1058,7 +1127,7 @@ namespace Dhs5.Utility.Databases
 
         #region Data Renaming
 
-        private void BeginRenaming(UnityEngine.Object obj)
+        protected void BeginRenaming(UnityEngine.Object obj)
         {
             RenamingElement = obj;
             RenamingString = obj.name;
@@ -1079,6 +1148,7 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnCompleteRenaming(UnityEngine.Object obj)
         {
             BaseDatabase.RenameAsset(obj, RenamingString);
+            ForceDatabaseContentRefresh();
         }
 
         #endregion
@@ -1088,6 +1158,33 @@ namespace Dhs5.Utility.Databases
         protected void Separator(float height, Color color)
         {
             EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, height), color);
+        }
+
+        #endregion
+
+        #region Drag & Drop
+
+        protected virtual void OnEventReceived_DragUpdated(Event e)
+        {
+            if (DatabaseContentListRect.Contains(e.mousePosition))
+            {
+                DragAndDrop.visualMode = DragAndDropVisualMode.Move;
+                e.Use();
+            }
+        }
+        protected virtual void OnEventReceived_DragPerformed(Event e)
+        {
+            if (DatabaseContentListRect.Contains(e.mousePosition))
+            {
+                for (int i = 0; i < DragAndDrop.objectReferences.Length; i++)
+                {
+                    if (m_database.Editor_IsElementValid(DragAndDrop.objectReferences[i]))
+                    {
+                        OnAddNewDataToDatabase(DragAndDrop.objectReferences[i]);
+                    }
+                }
+                e.Use();
+            }
         }
 
         #endregion

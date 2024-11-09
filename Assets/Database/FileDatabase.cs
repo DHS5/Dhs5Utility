@@ -212,9 +212,13 @@ namespace Dhs5.Utility.Databases
         }
         protected override void OnAddNewDataToDatabase(Object obj)
         {
-            base.OnAddNewDataToDatabase(obj);
+            if (EditorUtils.GetAssetContainingFolder(obj) == FolderName
+                || BaseDatabase.MoveAssetToFolder(obj, FolderName))
+            {
+                base.OnAddNewDataToDatabase(obj);
 
-            EditorGUIUtility.PingObject(obj);
+                EditorGUIUtility.PingObject(obj);
+            }
         }
 
         #endregion

@@ -165,6 +165,17 @@ namespace Dhs5.Utility.Databases
             obj = null;
             return false;
         }
+        protected override void OnAddNewDataToDatabase(Object obj)
+        {
+            if (AssetDatabase.IsMainAsset(obj))
+            {
+                BaseDatabase.AddAssetToOtherAsset(obj, m_database);
+            }
+
+            base.OnAddNewDataToDatabase(obj);
+
+            BeginRenaming(obj);
+        }
 
         #endregion
     }

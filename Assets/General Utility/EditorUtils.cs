@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 
@@ -16,14 +15,7 @@ namespace Dhs5.Utility.Editors
         public static void SelectAndFocusAsset(UnityEngine.Object obj)
         {
             EditorUtility.FocusProjectWindow();
-            if (obj is GameObject go)
-            {
-                Selection.activeGameObject = go;
-            }
-            else
-            {
-                Selection.activeObject = obj;
-            }
+            SelectObject(obj);
         }
 
         public static void TriggerAssetRename(UnityEngine.Object obj, bool delay = false)
@@ -53,13 +45,6 @@ namespace Dhs5.Utility.Editors
         public static void TriggerAssetDeletion(UnityEngine.Object obj)
         {
             SelectFocusAssetAndSendCommand(obj, "SoftDelete");
-        }
-        /// <summary>
-        /// Be aware that it will be immediate and can't be undone
-        /// </summary>
-        public static void TriggerAssetHardDeletion(UnityEngine.Object obj)
-        {
-            SelectFocusAssetAndSendCommand(obj, "Delete");
         }
 
         public static void CopyAsset(UnityEngine.Object obj)
@@ -171,6 +156,31 @@ namespace Dhs5.Utility.Editors
                     UnregisterToUpdate();
                 }
             }
+        }
+
+        #endregion
+
+        #region Objects Utility
+
+        public static void SelectObject(UnityEngine.Object obj)
+        {
+            if (obj is GameObject go)
+            {
+                Selection.activeGameObject = go;
+            }
+            else
+            {
+                Selection.activeObject = obj;
+            }
+        }
+        public static void PingObject(UnityEngine.Object obj)
+        {
+            EditorGUIUtility.PingObject(obj);
+        }
+
+        public static string GetAssetContainingFolder(UnityEngine.Object obj)
+        {
+            return ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(obj));
         }
 
         #endregion
