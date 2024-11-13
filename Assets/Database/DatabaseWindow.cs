@@ -83,6 +83,11 @@ namespace Dhs5.Utility.Databases
                 if (editor != null)
                 {
                     editor.OnInspectorGUI();
+                    if (editor.HasPreviewGUI())
+                    {
+                        float previewHeight = 200.0f;
+                        editor.DrawPreview(new Rect(0, position.height - previewHeight, position.width, previewHeight));
+                    }
                     return;
                 }
                 EditorGUILayout.HelpBox("This Database's editor is null", MessageType.Error);

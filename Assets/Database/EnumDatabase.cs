@@ -196,6 +196,23 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Preview
+
+        public override bool HasPreviewGUI()
+        {
+            return p_textAsset.objectReferenceValue != null;
+        }
+        public override void OnPreviewGUI(Rect r, GUIStyle background)
+        {
+            if (p_textAsset.objectReferenceValue != null
+                && p_textAsset.objectReferenceValue is TextAsset textAsset)
+            {
+                EditorGUI.LabelField(r, textAsset.text);
+            }
+        }
+
+        #endregion
+
 
         #region STATIC : Enum Script Generation
 

@@ -9,6 +9,8 @@ public class TestScriptable : ScriptableObject, IDatabaseElement
     [SerializeField] private int m_int1;
     [SerializeField] private int m_int2;
     [SerializeField] private int m_int3;
+    [SerializeField] private int m_int4;
+    [SerializeField] private int m_int5;
 
     public bool HasDatabaseElementName(out string name)
     {
