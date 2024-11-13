@@ -17,8 +17,30 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Properties
+
+        public int Count => m_content.Count;
+
+        #endregion
+
         #region Utility
 
+        public ScriptableObject GetElementAtIndex(int index)
+        {
+            if (m_content.IsIndexValid(index)) return m_content[index];
+            return null;
+        }
+        public bool TryGetElementAtIndex<U>(int index, out U uValue) where U : ScriptableObject
+        {
+            if (m_content.IsIndexValid(index)
+                && m_content[index] is U u)
+            {
+                uValue = u;
+                return true;
+            }
+            uValue = null;
+            return false;
+        }
         protected int FindIndexOfElement(UnityEngine.Object element)
         {
             return m_content.FindIndex(e => e == element);

@@ -5,6 +5,7 @@ using System;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using System.IO;
 
 namespace Dhs5.Utility.Editors
 {
@@ -185,6 +186,29 @@ namespace Dhs5.Utility.Editors
         public static string GetAssetContainingFolder(UnityEngine.Object obj)
         {
             return ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(obj));
+        }
+
+        #endregion
+
+        #region Directory Utility
+
+        public static void AssureDirectoryExistence(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                string[] pathMembers = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                string currentPath = "";
+
+                for (int i = 0; i < pathMembers.Length; i++)
+                {
+                    currentPath += pathMembers[i];
+                    if (!Directory.Exists(currentPath))
+                    {
+                        Directory.CreateDirectory(currentPath);
+                    }
+                    currentPath += "/";
+                }
+            }
         }
 
         #endregion

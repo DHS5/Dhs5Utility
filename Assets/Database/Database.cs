@@ -311,6 +311,13 @@ namespace Dhs5.Utility.Databases
             return null;
         }
 
+        // --- Scripts ---
+        public static TextAsset CreateOrOverwriteScript(string path, string content)
+        {
+            File.WriteAllText(path, content);
+            return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+        }
+
         #endregion
 
         #region Deletion

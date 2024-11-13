@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7653022608893142504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
+  m_Name: T1
+  m_EditorClassIdentifier: 
+  m_int0: 0
+  m_int1: 0
+  m_int2: 0
+  m_int3: 0
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fa03b75f24f06d49b9a93a91866bf4d, type: 3}
+  m_Name: TestEnumDB
+  m_EditorClassIdentifier: 
+  m_content:
+  - {fileID: -7653022608893142504}
+  - {fileID: 117526268651082808}
+  m_enumName: TestEnum
+  m_enumNamespace: Dhs5.Test
+  m_usings: 
+  m_scriptFolder: Assets/Test
+  m_textAsset: {fileID: 11500000, guid: e3e9fb50330def94c9724b0e2b5e2e6d, type: 3}
+--- !u!114 &117526268651082808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
+  m_Name: T2
+  m_EditorClassIdentifier: 
+  m_int0: 0
+  m_int1: 0
+  m_int2: 0
+  m_int3: 0
