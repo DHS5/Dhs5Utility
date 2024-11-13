@@ -76,6 +76,12 @@ namespace Dhs5.Utility.Databases
             return null;
         }
 
+        protected string GetCurrentScriptContent()
+        {
+            if (m_textAsset != null) return m_textAsset.text;
+            return null;
+        }
+
 #endif
 
         #endregion
@@ -90,6 +96,7 @@ namespace Dhs5.Utility.Databases
 
             string content = GetEnumScriptContent();
             if (content != null
+                && content != GetCurrentScriptContent()
                 && TryGetEnumScriptPath(out string path))
             {
                 var newTextAsset = BaseDatabase.CreateOrOverwriteScript(path, content);
@@ -102,10 +109,6 @@ namespace Dhs5.Utility.Databases
 
                 AssetDatabase.Refresh();
                 AssetDatabase.SaveAssets();
-            }
-            else
-            {
-                Debug.Log("failed");
             }
         }
 
@@ -267,6 +270,7 @@ namespace Dhs5.Utility.Databases
 
             string value;
             Increment();
+            int index = 0;
             for (int i = 0; i < enumContent.Length; i++)
             {
                 value = enumContent[i];
@@ -275,12 +279,9 @@ namespace Dhs5.Utility.Databases
                     AppendPrefix();
                     sb.Append(value);
                     sb.Append(" = ");
-                    sb.Append(i.ToString());
+                    sb.Append(index.ToString());
                     sb.AppendLine(",");
-                }
-                else
-                {
-                    sb.AppendLine();
+                    index++;
                 }
             }
             Decrement();
@@ -297,6 +298,7 @@ namespace Dhs5.Utility.Databases
 
             OpenBracket();
             Increment();
+            index = 0;
             for (int i = 0; i < enumContent.Length; i++)
             {
                 value = enumContent[i];
@@ -305,12 +307,9 @@ namespace Dhs5.Utility.Databases
                     AppendPrefix();
                     sb.Append(value);
                     sb.Append(" = 1 << ");
-                    sb.Append(i.ToString());
+                    sb.Append(index.ToString());
                     sb.AppendLine(",");
-                }
-                else
-                {
-                    sb.AppendLine();
+                    index++;
                 }
             }
             Decrement();

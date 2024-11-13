@@ -7,6 +7,9 @@ namespace Dhs5.Test
     {
         T1 = 0,
         T2 = 1,
+        T3 = 2,
+        T4 = 3,
+        T5 = 4,
     }
 
     [Flags]
@@ -14,6 +17,9 @@ namespace Dhs5.Test
     {
         T1 = 1 << 0,
         T2 = 1 << 1,
+        T3 = 1 << 2,
+        T4 = 1 << 3,
+        T5 = 1 << 4,
     }
     
     public static class TestEnumExtension
