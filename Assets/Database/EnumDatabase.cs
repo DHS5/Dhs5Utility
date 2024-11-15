@@ -131,6 +131,8 @@ namespace Dhs5.Utility.Databases
         protected SerializedProperty p_scriptFolder;
         protected SerializedProperty p_textAsset;
 
+        protected Vector2 PreviewScrollPos { get; set; }
+
         #endregion
 
         #region Core Behaviour
@@ -204,10 +206,21 @@ namespace Dhs5.Utility.Databases
         }
         public override void OnPreviewGUI(Rect r, GUIStyle background)
         {
+            base.OnPreviewGUI(r, background);
+
             if (p_textAsset.objectReferenceValue != null
                 && p_textAsset.objectReferenceValue is TextAsset textAsset)
             {
-                EditorGUI.LabelField(r, textAsset.text);
+                GUIContent textAssetContent = new GUIContent(textAsset.text);
+                Vector2 contentSize = EditorStyles.label.CalcSize(textAssetContent);
+                Rect contentViewRect = new Rect(0, 0, contentSize.x + 10f, contentSize.y + 4f);
+                Rect contentRect = new Rect(5f, 2f, contentSize.x, contentSize.y);
+
+                PreviewScrollPos = GUI.BeginScrollView(r, PreviewScrollPos, contentViewRect);
+
+                EditorGUI.LabelField(contentRect, textAsset.text);
+
+                GUI.EndScrollView();
             }
         }
 

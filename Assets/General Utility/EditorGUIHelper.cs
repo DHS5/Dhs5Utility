@@ -31,6 +31,17 @@ namespace Dhs5.Utility.Editors
         public static Color transparentWhite07 = new Color(1f, 1f, 1f, 0.7f);
         public static Color transparentWhite08 = new Color(1f, 1f, 1f, 0.8f);
         public static Color transparentWhite09 = new Color(1f, 1f, 1f, 0.9f);
+        
+        public static Color grey01 = new Color(0.1f, 0.1f, 0.1f, 1f);
+        public static Color grey015 = new Color(0.15f, 0.15f, 0.15f, 1f);
+        public static Color grey02 = new Color(0.2f, 0.2f, 0.2f, 1f);
+        public static Color grey03 = new Color(0.3f, 0.3f, 0.3f, 1f);
+        public static Color grey04 = new Color(0.4f, 0.4f, 0.4f, 1f);
+        public static Color grey05 = new Color(0.5f, 0.5f, 0.5f, 1f);
+        public static Color grey06 = new Color(0.6f, 0.6f, 0.6f, 1f);
+        public static Color grey07 = new Color(0.7f, 0.7f, 0.7f, 1f);
+        public static Color grey08 = new Color(0.8f, 0.8f, 0.8f, 1f);
+        public static Color grey09 = new Color(0.9f, 0.9f, 0.9f, 1f);
 
         #endregion
 

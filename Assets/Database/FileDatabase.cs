@@ -220,6 +220,28 @@ namespace Dhs5.Utility.Databases
         }
 
         #endregion
+
+        #region Preview
+
+        public override bool HasPreviewGUI()
+        {
+            var editor = GetOrCreateEditorFor(GetDatabaseCurrentSelection());
+            if (editor != null)
+            {
+                return editor.HasPreviewGUI();
+            }
+            return false;
+        }
+        public override void OnPreviewGUI(Rect r, GUIStyle background)
+        {
+            var editor = GetOrCreateEditorFor(GetDatabaseCurrentSelection());
+            if (editor != null)
+            {
+                editor.OnPreviewGUI(r, background);
+            }
+        }
+
+        #endregion
     }
 
 #endif

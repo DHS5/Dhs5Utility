@@ -960,6 +960,8 @@ namespace Dhs5.Utility.Databases
         }
         protected Editor GetOrCreateEditorFor(UnityEngine.Object element)
         {
+            if (element == null) return null;
+
             if (m_editors.TryGetValue(element, out Editor editor)
                 && editor != null)
             {

@@ -16,6 +16,8 @@ MonoBehaviour:
   m_int1: 0
   m_int2: 0
   m_int3: 0
+  m_int4: 0
+  m_int5: 0
 --- !u!114 &-4981773068678875975
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -32,6 +34,8 @@ MonoBehaviour:
   m_int1: 0
   m_int2: 0
   m_int3: 0
+  m_int4: 0
+  m_int5: 0
 --- !u!114 &-2493718153621344122
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48,6 +52,8 @@ MonoBehaviour:
   m_int1: 0
   m_int2: 0
   m_int3: 0
+  m_int4: 0
+  m_int5: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -87,6 +93,8 @@ MonoBehaviour:
   m_int1: 0
   m_int2: 0
   m_int3: 0
+  m_int4: 0
+  m_int5: 0
 --- !u!114 &8874608391915744809
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103,3 +111,5 @@ MonoBehaviour:
   m_int1: 0
   m_int2: 0
   m_int3: 0
+  m_int4: 0
+  m_int5: 0

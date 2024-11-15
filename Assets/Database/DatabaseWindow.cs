@@ -30,6 +30,16 @@ namespace Dhs5.Utility.Databases
 
         private Vector2 m_scrollPosition;
         private int m_currentSelection;
+        private bool m_previewOpen;
+        private bool m_previewWasOpen;
+        private float m_inspectorHeight;
+        private float m_inspectorY;
+
+        // --- Parameters ---
+
+        private float m_previewWindowHeight = 200f;
+        private float m_previewButtonHeight = 20f;
+        private float m_previewMargin = 8f;
 
         #endregion
 
@@ -62,11 +72,48 @@ namespace Dhs5.Utility.Databases
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
                 EditorGUILayout.Space(5f);
 
-                m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition);
+                if (TryGetEditorAtIndex(m_currentSelection, out Editor editor))
+                {
+                    bool hasPreview = editor.HasPreviewGUI();
+                    float previewHeight = m_previewOpen ? m_previewWindowHeight + m_previewButtonHeight : m_previewButtonHeight;
 
-                OnDatabaseGUI(m_currentSelection);
+                    if (Event.current.type != EventType.Layout)
+                    {
+                        m_inspectorY = GUILayoutUtility.GetLastRect().y;
+                        m_inspectorHeight = position.height - m_inspectorY - previewHeight - m_previewMargin;
+                    }
 
-                EditorGUILayout.EndScrollView();
+                    m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition, GUILayout.Height(m_inspectorHeight));
+
+                    editor.OnInspectorGUI();
+
+                    EditorGUILayout.EndScrollView();
+
+                    if (hasPreview)
+                    {
+                        Rect previewRect = new Rect(0, m_inspectorY + m_inspectorHeight + m_previewMargin, position.width, previewHeight);
+                        
+                        if (m_previewOpen)
+                        {
+                            OnPreviewButtonGUI(new Rect(previewRect.x, previewRect.y, previewRect.width, m_previewButtonHeight));
+                            editor.DrawPreview(new Rect(previewRect.x, previewRect.y + m_previewButtonHeight, previewRect.width, m_previewWindowHeight));
+                            if (!m_previewWasOpen)
+                            {
+                                Repaint();
+                                m_previewWasOpen = true;
+                            }
+                        }
+                        else
+                        {
+                            OnPreviewButtonGUI(previewRect);
+                            if (m_previewWasOpen)
+                            {
+                                Repaint();
+                                m_previewWasOpen = false;
+                            }
+                        }
+                    }
+                }               
             }
         }
 
@@ -74,26 +121,17 @@ namespace Dhs5.Utility.Databases
 
         #region GUI
 
-        private void OnDatabaseGUI(int index)
+        private void OnPreviewButtonGUI(Rect rect)
         {
-            BaseDatabase database = m_databases[index];
-            if (database != null)
+            EditorGUI.DrawRect(rect, EditorGUIHelper.grey015);
+            EditorGUI.LabelField(rect, "Preview", EditorGUIHelper.centeredBoldLabel);
+
+            if (Event.current.type == EventType.MouseDown
+                && rect.Contains(Event.current.mousePosition))
             {
-                var editor = GetOrCreateEditor(database);
-                if (editor != null)
-                {
-                    editor.OnInspectorGUI();
-                    if (editor.HasPreviewGUI())
-                    {
-                        float previewHeight = 200.0f;
-                        editor.DrawPreview(new Rect(0, position.height - previewHeight, position.width, previewHeight));
-                    }
-                    return;
-                }
-                EditorGUILayout.HelpBox("This Database's editor is null", MessageType.Error);
-                return;
+                m_previewOpen = !m_previewOpen;
+                Event.current.Use();
             }
-            EditorGUILayout.HelpBox("This Database is null", MessageType.Error);
         }
 
         #endregion
@@ -143,6 +181,24 @@ namespace Dhs5.Utility.Databases
                     }
                 }
             }
+        }
+
+        private bool TryGetEditorAtIndex(int index, out Editor editor)
+        {
+            BaseDatabase database = m_databases[index];
+            if (database != null)
+            {
+                editor = GetOrCreateEditor(database);
+                if (editor != null)
+                {
+                    return true;
+                }
+                EditorGUILayout.HelpBox("This Database's editor is null", MessageType.Error);
+                return false;
+            }
+            EditorGUILayout.HelpBox("This Database is null", MessageType.Error);
+            editor = null;
+            return false;
         }
 
         #endregion
