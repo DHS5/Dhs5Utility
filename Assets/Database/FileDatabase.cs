@@ -137,7 +137,7 @@ namespace Dhs5.Utility.Databases
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
-            OnDatabaseContentListWindowGUI(dataListWindowRect, refreshButton:true, addButton:true, deleteButtons:true);
+            OnDatabaseContentListWindowGUI(dataListWindowRect, refreshButton:true, addButton:true, contextButtons:true);
             
             EditorGUILayout.Space(5f);
             Separator(2f, Color.white);

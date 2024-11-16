@@ -101,6 +101,13 @@ namespace Dhs5.Utility.Editors
             },
         };
 
+        public static GUIStyle simpleIconButton = new GUIStyle()
+        {
+            alignment = TextAnchor.MiddleCenter,
+            clipping = TextClipping.Clip,
+            imagePosition = ImagePosition.ImageOnly
+        };
+
         #endregion
 
         #region GUI Icons

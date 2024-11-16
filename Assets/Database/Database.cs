@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
-using Dhs5.Utility.Editors;
+using static UnityEngine.Rendering.VolumeComponent;
+using UnityEngine.UIElements;
+
+
 
 #if UNITY_EDITOR
 using UnityEditor;
 using System.Reflection;
 using System.IO;
+using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Databases
@@ -501,6 +505,11 @@ namespace Dhs5.Utility.Databases
 
         #region Properties
 
+        // Events
+        protected Event CurrentEvent { get; private set; }
+        protected bool EventReceived { get; private set; }
+        protected Vector2 MousePosition { get; private set; }
+
         // Database Informations
         protected bool DatabaseInformationsFoldoutOpen { get; set; }
 
@@ -509,9 +518,10 @@ namespace Dhs5.Utility.Databases
         protected Rect DatabaseContentListRect { get; set; }
         protected Vector2 DatabaseContentListWindowScrollPos { get; set; }
         protected float DatabaseContentListElementHeight { get; set; } = 20f;
-        protected float DatabaseContentListElementPingButtonWidth { get; set; } = 30f;
-        protected float DatabaseContentListElementDeleteButtonWidth { get; set; } = 30f;
+        protected float DatabaseContentListElementContextButtonWidth { get; set; } = 30f;
         protected float DatabaseContentListButtonsHeight { get; set; } = 20f;
+        private double m_lastSelectionTime;
+        private double m_doubleClickDelay = 0.2d;
 
         // Renaming
         protected bool IsRenamingElement { get; set; }
@@ -563,9 +573,14 @@ namespace Dhs5.Utility.Databases
         {
             serializedObject.Update();
 
+            HandleEvent();
+
             OnGUI();
 
-            OnEventReceived(Event.current);
+            if (CheckEventReceived())
+            {
+                OnEventReceived(CurrentEvent);
+            }
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -582,6 +597,22 @@ namespace Dhs5.Utility.Databases
         #endregion
 
         #region Events
+
+        protected virtual void HandleEvent()
+        {
+            CurrentEvent = Event.current;
+            CheckEventReceived();
+            MousePosition = CurrentEvent.mousePosition;
+        }
+        protected bool CheckEventReceived()
+        {
+            EventReceived =
+                CurrentEvent.type != EventType.Ignore &&
+                CurrentEvent.type != EventType.Used &&
+                CurrentEvent.type != EventType.Repaint &&
+                CurrentEvent.type != EventType.Layout;
+            return EventReceived;
+        }
 
         protected virtual void OnEventReceived(Event e)
         {
@@ -736,7 +767,7 @@ namespace Dhs5.Utility.Databases
             return !IsRenamingElement;
         }
 
-        protected virtual void OnDatabaseContentListWindowGUI(Rect rect, bool refreshButton = false, bool addButton = false, bool deleteButtons = false)
+        protected virtual void OnDatabaseContentListWindowGUI(Rect rect, bool refreshButton = false, bool addButton = false, bool contextButtons = false)
         {
             bool hasAtLeastOneButton = (refreshButton || addButton);
             DatabaseContentListRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? DatabaseContentListButtonsHeight : 0f));
@@ -751,7 +782,7 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(0, 0, viewRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
                 {
-                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentElementAtIndex(i), deleteButtons);
+                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentElementAtIndex(i), contextButtons);
                     dataRect.y += DatabaseContentListElementHeight;
                 }
 
@@ -762,7 +793,7 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(DatabaseContentListRect.x, DatabaseContentListRect.y, DatabaseContentListRect.width, DatabaseContentListElementHeight);
                 for (int i = 0; i < DatabaseContentListCount; i++)
                 {
-                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentElementAtIndex(i), deleteButtons);
+                    OnDatabaseContentListElementGUI(dataRect, i, GetDatabaseContentElementAtIndex(i), contextButtons);
                     dataRect.y += DatabaseContentListElementHeight;
                 }
             }
@@ -791,38 +822,61 @@ namespace Dhs5.Utility.Databases
                 EditorGUI.EndDisabledGroup();
             }
         }
-        protected virtual void OnDatabaseContentListElementGUI(Rect rect, int index, UnityEngine.Object element, bool deleteButton)
+        protected virtual void OnDatabaseContentListElementGUI(Rect rect, int index, UnityEngine.Object element, bool contextButton)
         {
             bool selected = DatabaseContentListSelectionIndex == index;
-            deleteButton = deleteButton && BaseDatabase.IsAssetDeletableFromCode(element); 
 
-            Rect elementRect = new Rect(rect.x + DatabaseContentListElementPingButtonWidth, rect.y, rect.width - DatabaseContentListElementPingButtonWidth - (deleteButton ? DatabaseContentListElementDeleteButtonWidth : 0f), rect.height);
-            if (IsDatabaseContentListInteractable() && GUI.Button(elementRect, GUIContent.none, new GUIStyle()))
+            Rect elementRect = new Rect(rect.x, rect.y, rect.width - (contextButton ? DatabaseContentListElementContextButtonWidth : 0f), rect.height);
+            bool isHovered = elementRect.Contains(MousePosition);
+            bool clicked = false, doubleClicked = false, contextClicked = false;
+            if (isHovered && EventReceived)
             {
-                if (selected)
+                switch (CurrentEvent.type)
                 {
-                    DatabaseContentListSelectionIndex = -1;
-                    OnDeselectDatabaseContentListElement(element);
-                    selected = false;
+                    case EventType.MouseDown:
+                        if (CurrentEvent.button == 0)
+                        {
+                            clicked = true;
+                            doubleClicked = EditorApplication.timeSinceStartup <= m_lastSelectionTime + m_doubleClickDelay;
+                            CurrentEvent.Use();
+                            GUI.changed = true;
+                        }
+                        break;
+                    case EventType.ContextClick:
+                        contextClicked = true;
+                        CurrentEvent.Use();
+                        GUI.changed = true;
+                        break;
                 }
-                else
+            }
+
+            if (IsDatabaseContentListInteractable())
+            {
+                if (clicked)
                 {
-                    DatabaseContentListSelectionIndex = index;
-                    OnSelectDatabaseContentListElement(element);
-                    selected = true;
+                    m_lastSelectionTime = EditorApplication.timeSinceStartup;
+                    if (doubleClicked)
+                    {
+                        // Double click
+                        Select();
+                        EditorUtils.PingObject(element);
+                    }
+                    else if (selected)
+                    {
+                        Deselect();
+                    }
+                    else
+                    {
+                        Select();
+                    }
+                }
+                else if (contextClicked)
+                {
+                    ShowDatabaseContentListElementContextMenu(index);
                 }
             }
             
             OnDatabaseContentListElementBackgroundGUI(rect, index, selected, element);
-
-            EditorGUI.BeginDisabledGroup(!IsDatabaseContentListInteractable());
-            Rect pingButtonRect = new Rect(rect.x, rect.y, DatabaseContentListElementPingButtonWidth, rect.height);
-            if (GUI.Button(pingButtonRect, EditorGUIHelper.CanSeeIcon))
-            {
-                EditorUtility.FocusProjectWindow();
-                EditorGUIUtility.PingObject(element);
-            }
-            EditorGUI.EndDisabledGroup();
 
             if (element == null)
             {
@@ -839,14 +893,28 @@ namespace Dhs5.Utility.Databases
                     OnDatabaseContentListOtherObjectElementGUI(elementRect, index, selected, element); break;
             }
 
-            if (deleteButton)
+            if (contextButton)
             {
                 EditorGUI.BeginDisabledGroup(!IsDatabaseContentListInteractable());
-                Rect deleteButtonRect = new Rect(rect.x + rect.width - DatabaseContentListElementDeleteButtonWidth, rect.y, DatabaseContentListElementDeleteButtonWidth, rect.height);
-                OnDatabaseContentListElementDeleteButtonGUI(deleteButtonRect, index, selected, element);
+                Rect deleteButtonRect = new Rect(rect.x + rect.width - DatabaseContentListElementContextButtonWidth, rect.y, DatabaseContentListElementContextButtonWidth, rect.height);
+                OnDatabaseContentListElementContextButtonGUI(deleteButtonRect, index, selected, element);
                 EditorGUI.EndDisabledGroup();
             }
+
+            void Select()
+            {
+                DatabaseContentListSelectionIndex = index;
+                OnSelectDatabaseContentListElement(element);
+                selected = true;
+            }
+            void Deselect()
+            {
+                DatabaseContentListSelectionIndex = -1;
+                OnDeselectDatabaseContentListElement(element);
+                selected = false;
+            }
         }
+        
         protected virtual void OnDatabaseContentListElementBackgroundGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
         {
             Rect backgroundRect = new Rect(rect.x + 2f, rect.y, rect.width - 4f, rect.height);
@@ -924,23 +992,46 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        protected virtual void OnDatabaseContentListElementDeleteButtonGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
+        protected virtual void OnDatabaseContentListElementContextButtonGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
         {
-            if (element != null)
+            bool hover = false;
+            if (element != null
+                && rect.Contains(MousePosition))
             {
-                Color guiBackgroundColor = GUI.backgroundColor;
-                GUI.backgroundColor = Color.red;
-                if (GUI.Button(rect, EditorGUIHelper.DeleteIcon))
+                hover = true;                
+                if (EventReceived
+                    && CurrentEvent.type == EventType.MouseDown)
                 {
-                    OnTryDeleteDatabaseElementAtIndex(index);
+                    ShowDatabaseContentListElementContextMenu(index);
+                    GUI.changed = true;
+                    CurrentEvent.Use();
                 }
-                GUI.backgroundColor = guiBackgroundColor;
+            }
+            if (CurrentEvent.type == EventType.Repaint)
+            {
+                EditorGUIHelper.simpleIconButton.Draw(rect, EditorGUIHelper.MenuIcon, 0, false, hover);
             }
         }
 
 
         protected virtual void OnSelectDatabaseContentListElement(UnityEngine.Object element) { }
         protected virtual void OnDeselectDatabaseContentListElement(UnityEngine.Object element) { }
+
+        #endregion
+
+        #region Context Menu
+
+        protected void ShowDatabaseContentListElementContextMenu(int index)
+        {
+            var menu = new GenericMenu();
+            PopulateDatabaseContentListElementContextMenu(index, menu);
+            menu.ShowAsContext();
+        }
+        protected virtual void PopulateDatabaseContentListElementContextMenu(int index, GenericMenu menu)
+        {
+            menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.PingObject(GetDatabaseContentElementAtIndex(index)));
+            menu.AddItem(new GUIContent("Remove"), false, () => OnTryDeleteDatabaseElementAtIndex(index));
+        }
 
         #endregion
 
@@ -1153,6 +1244,7 @@ namespace Dhs5.Utility.Databases
                 OnCompleteRenaming(RenamingElement);
                 IsRenamingElement = false;
                 RenamingElement = null;
+                GUI.changed = true;
                 return true;
             }
             return false;

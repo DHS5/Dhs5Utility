@@ -99,7 +99,7 @@ namespace Dhs5.Utility.Databases
                             editor.DrawPreview(new Rect(previewRect.x, previewRect.y + m_previewButtonHeight, previewRect.width, m_previewWindowHeight));
                             if (!m_previewWasOpen)
                             {
-                                Repaint();
+                                GUI.changed = true;
                                 m_previewWasOpen = true;
                             }
                         }
@@ -108,7 +108,7 @@ namespace Dhs5.Utility.Databases
                             OnPreviewButtonGUI(previewRect);
                             if (m_previewWasOpen)
                             {
-                                Repaint();
+                                GUI.changed = true;
                                 m_previewWasOpen = false;
                             }
                         }
@@ -131,6 +131,7 @@ namespace Dhs5.Utility.Databases
             {
                 m_previewOpen = !m_previewOpen;
                 Event.current.Use();
+                GUI.changed = true;
             }
         }
 
