@@ -917,8 +917,7 @@ namespace Dhs5.Utility.Databases
         
         protected virtual void OnDatabaseContentListElementBackgroundGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
         {
-            Rect backgroundRect = new Rect(rect.x + 2f, rect.y, rect.width - 4f, rect.height);
-            EditorGUI.DrawRect(backgroundRect, selected ? EditorGUIHelper.transparentWhite01 : (index % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04));
+            EditorGUI.DrawRect(rect, selected ? EditorGUIHelper.transparentWhite01 : (index % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04));
         }
 
         protected virtual void OnDatabaseContentListNullElementGUI(Rect rect, int index, bool selected)

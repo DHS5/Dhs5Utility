@@ -61,7 +61,13 @@ namespace Dhs5.Utility.Databases
 
         private void OnGUI()
         {
-            m_currentSelection = EditorGUILayout.IntPopup(m_currentSelection, m_paths, m_options);
+            var selectionRect = EditorGUILayout.GetControlRect(false, 20f);
+            m_currentSelection = EditorGUI.IntPopup(new Rect(selectionRect.x, selectionRect.y, selectionRect.width - 40f, selectionRect.height),
+                m_currentSelection, m_paths, m_options);
+            if (GUI.Button(new Rect(selectionRect.x + selectionRect.width - 38f, selectionRect.y, 38f, selectionRect.height), EditorGUIHelper.RefreshIcon))
+            {
+                GetDatabases();
+            }
 
             if (m_currentSelection >= 0)
             {
