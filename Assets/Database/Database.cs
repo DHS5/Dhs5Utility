@@ -822,12 +822,18 @@ namespace Dhs5.Utility.Databases
                 EditorGUI.EndDisabledGroup();
             }
         }
+
+        protected virtual Rect GetButtonRectForDatabaseContentListElement(Rect rect, int index, UnityEngine.Object element, bool contextButton)
+        {
+            return new Rect(rect.x, rect.y, rect.width - (contextButton ? DatabaseContentListElementContextButtonWidth : 0f), rect.height);
+        }
         protected virtual void OnDatabaseContentListElementGUI(Rect rect, int index, UnityEngine.Object element, bool contextButton)
         {
             bool selected = DatabaseContentListSelectionIndex == index;
 
             Rect elementRect = new Rect(rect.x, rect.y, rect.width - (contextButton ? DatabaseContentListElementContextButtonWidth : 0f), rect.height);
-            bool isHovered = elementRect.Contains(MousePosition);
+            Rect buttonRect = GetButtonRectForDatabaseContentListElement(rect, index, element, contextButton);
+            bool isHovered = buttonRect.Contains(MousePosition);
             bool clicked = false, doubleClicked = false, contextClicked = false;
             if (isHovered && EventReceived)
             {
@@ -896,8 +902,8 @@ namespace Dhs5.Utility.Databases
             if (contextButton)
             {
                 EditorGUI.BeginDisabledGroup(!IsDatabaseContentListInteractable());
-                Rect deleteButtonRect = new Rect(rect.x + rect.width - DatabaseContentListElementContextButtonWidth, rect.y, DatabaseContentListElementContextButtonWidth, rect.height);
-                OnDatabaseContentListElementContextButtonGUI(deleteButtonRect, index, selected, element);
+                Rect contextButtonRect = new Rect(rect.x + rect.width - DatabaseContentListElementContextButtonWidth, rect.y, DatabaseContentListElementContextButtonWidth, rect.height);
+                OnDatabaseContentListElementContextButtonGUI(contextButtonRect, index, selected, element);
                 EditorGUI.EndDisabledGroup();
             }
 
@@ -967,12 +973,16 @@ namespace Dhs5.Utility.Databases
             }
 
             Rect labelRect = new Rect(rect.x + 5f + (hasTexture ? 5f + rect.height : 0f), rect.y, rect.width - 5f - (hasTexture ? 5f + rect.height : 0f), rect.height);
+            OnDatabaseContentListElementNameGUI(labelRect, index, selected, obj, name);
+        }
+        protected virtual void OnDatabaseContentListElementNameGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name)
+        {
             if (IsRenamingElement && RenamingElement == obj)
             {
                 GUI.SetNextControlName(RenamingControlName);
 
                 EditorGUI.BeginChangeCheck();
-                RenamingString = EditorGUI.DelayedTextField(labelRect, RenamingString);
+                RenamingString = EditorGUI.DelayedTextField(rect, RenamingString);
                 if (EditorGUI.EndChangeCheck()
                     || (!m_justStartedRename && !EditorGUIUtility.editingTextField)) // Stop editing
                 {
@@ -987,7 +997,7 @@ namespace Dhs5.Utility.Databases
             }
             else
             {
-                EditorGUI.LabelField(labelRect, name);
+                EditorGUI.LabelField(rect, name, selected ? EditorStyles.boldLabel : EditorStyles.label);
             }
         }
 

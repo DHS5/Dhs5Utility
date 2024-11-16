@@ -1,5 +1,19 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7002647680321824663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
+  m_Name: UI
+  m_EditorClassIdentifier: 
+  m_color: {r: 1, g: 0, b: 0.83840847, a: 1}
+  m_level: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13,12 +27,28 @@ MonoBehaviour:
   m_Name: DebuggerDatabase
   m_EditorClassIdentifier: 
   m_content:
+  - {fileID: -7002647680321824663}
+  - {fileID: 697256396391879857}
   - {fileID: 6690754561762255559}
-  m_enumName: 
+  m_enumName: DebugCategory
   m_enumNamespace: 
-  m_usings: 
-  m_scriptFolder: 
-  m_textAsset: {fileID: 0}
+  m_usings: using Dhs5.Utility.Debugger;
+  m_scriptFolder: Assets/Test
+  m_textAsset: {fileID: 11500000, guid: 7788e208a4f62824fa74e35562847ea0, type: 3}
+--- !u!114 &697256396391879857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
+  m_Name: GAME
+  m_EditorClassIdentifier: 
+  m_color: {r: 0, g: 0.08001089, b: 1, a: 1}
+  m_level: 2
 --- !u!114 &6690754561762255559
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31,5 +61,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: NONE
   m_EditorClassIdentifier: 
-  m_color: {r: 0, g: 0, b: 0, a: 0}
-  m_level: 0
+  m_color: {r: 1, g: 0, b: 0, a: 1}
+  m_level: -1

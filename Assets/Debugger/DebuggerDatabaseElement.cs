@@ -16,6 +16,11 @@ namespace Dhs5.Utility.Debugger
         #region Properties
 
         public Color Color => m_color;
+        public int Level
+        {
+            get => m_level;
+            set => m_level = value;
+        }
 
         #endregion
     }

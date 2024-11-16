@@ -13,7 +13,7 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
-        [SerializeField] private List<ScriptableObject> m_content;
+        [SerializeField] protected List<ScriptableObject> m_content;
 
         #endregion
 
@@ -24,6 +24,8 @@ namespace Dhs5.Utility.Databases
         #endregion
 
         #region Utility
+
+        protected IEnumerable<ScriptableObject> Content => m_content;
 
         public ScriptableObject GetElementAtIndex(int index)
         {
@@ -69,7 +71,7 @@ namespace Dhs5.Utility.Databases
 
             base.Editor_ShouldRecomputeDatabaseContent();
         }
-        private void SortContent()
+        protected virtual void SortContent()
         {
             m_content.Sort(BaseDatabase.Sort_ByName);
         }

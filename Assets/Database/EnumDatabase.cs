@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
-using Dhs5.Utility.Editors;
+using System.Linq;
 
 
 #if UNITY_EDITOR
 using UnityEditor;
 using System.IO;
+using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Databases
@@ -25,6 +26,12 @@ namespace Dhs5.Utility.Databases
         // Script Properties
         [SerializeField] private string m_scriptFolder;
         [SerializeField] private TextAsset m_textAsset;
+
+#if UNITY_EDITOR
+
+        [SerializeField] private int[] m_contentIndexes;
+
+#endif
 
         #endregion
 
@@ -92,6 +99,8 @@ namespace Dhs5.Utility.Databases
 
         internal override void Editor_ShouldRecomputeDatabaseContent()
         {
+            //SaveCurrentContentOrder();
+
             base.Editor_ShouldRecomputeDatabaseContent();
 
             string content = GetEnumScriptContent();
@@ -109,6 +118,39 @@ namespace Dhs5.Utility.Databases
 
                 AssetDatabase.Refresh();
                 AssetDatabase.SaveAssets();
+            }
+        }
+
+        protected virtual void SaveCurrentContentOrder()
+        {
+            m_contentIndexes = new int[Count];
+
+            // Fill with -1
+            for (int i = 0; i < Count; i++)
+            {
+                m_contentIndexes[i] = -1;
+            }
+
+            // Sort the list to know the automatic order
+            var sortedList = Content.ToList();
+            sortedList.Sort(BaseDatabase.Sort_ByName);
+
+            int realIndex;
+            for (int sortedIndex = 0; sortedIndex < Count; sortedIndex++)
+            {
+                realIndex = FindIndexOfElement(sortedList[sortedIndex]);
+                if (realIndex != -1) m_contentIndexes[realIndex] = sortedIndex;
+            }
+        }
+        protected override void SortContent()
+        {
+            base.SortContent();
+
+            var sortedContent = new ScriptableObject[Count];
+            for (int i = 0; i < m_contentIndexes.Length; i++)
+            {
+                //if ()
+                sortedContent[m_contentIndexes[i]] = GetElementAtIndex(i);
             }
         }
 
@@ -194,6 +236,52 @@ namespace Dhs5.Utility.Databases
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(p_textAsset);
             EditorGUI.EndDisabledGroup();
+        }
+
+        #endregion
+
+        #region Context Menu
+
+        protected override void PopulateDatabaseContentListElementContextMenu(int index, GenericMenu menu)
+        {
+            base.PopulateDatabaseContentListElementContextMenu(index, menu);
+
+            if (index > 0)
+            {
+                menu.AddItem(new GUIContent("Move Up"), false, () => MoveElement(index, index - 1));
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent("Move Up"));
+            }
+            
+            if (index < DatabaseContentListCount - 1)
+            {
+                menu.AddItem(new GUIContent("Move Down"), false, () => MoveElement(index, index + 1));
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent("Move Down"));
+            }
+        }
+
+        #endregion
+
+        #region List Reorder
+
+        protected void MoveElement(int index, int newIndex)
+        {
+            if (index >= 0 && index < DatabaseContentListCount && 
+                newIndex >= 0 && newIndex < DatabaseContentListCount)
+            {
+                p_content.MoveArrayElement(index, newIndex);
+                serializedObject.ApplyModifiedProperties();
+                OnReorderElements();
+            }
+        }
+        protected virtual void OnReorderElements()
+        {
+            ForceDatabaseContentRefresh();
         }
 
         #endregion
