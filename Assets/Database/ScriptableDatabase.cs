@@ -13,7 +13,7 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
-        [SerializeField] protected List<ScriptableObject> m_content;
+        [SerializeField] private List<ScriptableObject> m_content;
 
         #endregion
 
@@ -24,8 +24,6 @@ namespace Dhs5.Utility.Databases
         #endregion
 
         #region Utility
-
-        protected IEnumerable<ScriptableObject> Content => m_content;
 
         public ScriptableObject GetElementAtIndex(int index)
         {
@@ -46,6 +44,10 @@ namespace Dhs5.Utility.Databases
         protected int FindIndexOfElement(UnityEngine.Object element)
         {
             return m_content.FindIndex(e => e == element);
+        }
+        protected virtual void SortContent()
+        {
+            m_content.Sort(BaseDatabase.Sort_ByName);
         }
 
         #endregion
@@ -71,10 +73,6 @@ namespace Dhs5.Utility.Databases
 
             base.Editor_ShouldRecomputeDatabaseContent();
         }
-        protected virtual void SortContent()
-        {
-            m_content.Sort(BaseDatabase.Sort_ByName);
-        }
 
         internal override IEnumerable<Object> Editor_GetDatabaseContent()
         {
@@ -95,6 +93,19 @@ namespace Dhs5.Utility.Databases
                 return true;
             }
             return false;
+        }
+
+        protected void Editor_SetContent(List<ScriptableObject> content)
+        {
+            if (m_content != null)
+            {
+                m_content.Clear();
+                m_content.AddRange(content);
+            }
+            else
+            {
+                m_content = new(content);
+            }
         }
 
 #endif

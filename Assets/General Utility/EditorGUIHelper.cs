@@ -142,6 +142,12 @@ namespace Dhs5.Utility.Editors
         public static GUIContent RedLightIcon => EditorGUIUtility.IconContent("redLight");
         public static GUIContent LightRimIcon => EditorGUIUtility.IconContent("lightRim");
         public static GUIContent FolderOpenedIcon => EditorGUIUtility.IconContent("FolderOpened On Icon");
+        public static GUIContent ConsoleInfoIcon => EditorGUIUtility.IconContent("console.infoicon.sml");
+        public static GUIContent ConsoleInfoInactiveIcon => EditorGUIUtility.IconContent("console.infoicon.inactive.sml");
+        public static GUIContent ConsoleWarningIcon => EditorGUIUtility.IconContent("console.warnicon.sml");
+        public static GUIContent ConsoleWarningInactiveIcon => EditorGUIUtility.IconContent("console.warnicon.inactive.sml");
+        public static GUIContent ConsoleErrorIcon => EditorGUIUtility.IconContent("console.erroricon.sml");
+        public static GUIContent ConsoleErrorInactiveIcon => EditorGUIUtility.IconContent("console.erroricon.inactive.sml");
 
         #endregion
 

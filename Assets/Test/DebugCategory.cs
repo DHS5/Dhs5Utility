@@ -4,25 +4,26 @@ using Dhs5.Utility.Debugger;
 
 public enum DebugCategory
 {
-    UI = 0,
+    NONE = 0,
     GAME = 1,
-    NONE = 2,
+    FLOW = 2,
+    UI = 3,
 }
 
 [Flags]
 public enum DebugCategoryFlags
 {
-    UI = 1 << 0,
+    NONE = 1 << 0,
     GAME = 1 << 1,
-    NONE = 1 << 2,
+    FLOW = 1 << 2,
+    UI = 1 << 3,
 }
 
 public static class DebugCategoryExtension
 {
     public static DebuggerDatabaseElement GetValue(this DebugCategory e)
     {
-        return DebuggerDatabase.I
-.GetValueAtIndex<DebuggerDatabaseElement>((int)e);    }
+        return DebuggerDatabase.I.GetValueAtIndex<DebuggerDatabaseElement>((int)e);    }
 
     public static bool Contains(this DebugCategoryFlags flag, DebugCategory e)
     {

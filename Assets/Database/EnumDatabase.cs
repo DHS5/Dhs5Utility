@@ -27,9 +27,25 @@ namespace Dhs5.Utility.Databases
         [SerializeField] private string m_scriptFolder;
         [SerializeField] private TextAsset m_textAsset;
 
+        #endregion
+
+        #region Enum Database Element (Editor Only)
+
 #if UNITY_EDITOR
 
-        [SerializeField] private int[] m_contentIndexes;
+        private struct EnumDatabaseElement
+        {
+            public EnumDatabaseElement(ScriptableObject obj, int index) 
+            { 
+                this.obj = obj;
+                this.index = index;
+            }
+
+            public readonly ScriptableObject obj;
+            public readonly int index;
+        }
+
+        private List<EnumDatabaseElement> m_enumElements;
 
 #endif
 
@@ -99,7 +115,7 @@ namespace Dhs5.Utility.Databases
 
         internal override void Editor_ShouldRecomputeDatabaseContent()
         {
-            //SaveCurrentContentOrder();
+            SaveCurrentContentOrder();
 
             base.Editor_ShouldRecomputeDatabaseContent();
 
@@ -123,34 +139,53 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void SaveCurrentContentOrder()
         {
-            m_contentIndexes = new int[Count];
+            if (m_enumElements != null) m_enumElements.Clear();
+            else m_enumElements = new();
 
-            // Fill with -1
-            for (int i = 0; i < Count; i++)
+            int i = 0;
+            foreach (var elem in Editor_GetDatabaseContent())
             {
-                m_contentIndexes[i] = -1;
-            }
-
-            // Sort the list to know the automatic order
-            var sortedList = Content.ToList();
-            sortedList.Sort(BaseDatabase.Sort_ByName);
-
-            int realIndex;
-            for (int sortedIndex = 0; sortedIndex < Count; sortedIndex++)
-            {
-                realIndex = FindIndexOfElement(sortedList[sortedIndex]);
-                if (realIndex != -1) m_contentIndexes[realIndex] = sortedIndex;
+                if (elem is ScriptableObject so)
+                {
+                    m_enumElements.Add(new EnumDatabaseElement(so, i));
+                    i++;
+                }
             }
         }
         protected override void SortContent()
         {
-            base.SortContent();
-
-            var sortedContent = new ScriptableObject[Count];
-            for (int i = 0; i < m_contentIndexes.Length; i++)
+            if (m_enumElements != null)
             {
-                //if ()
-                sortedContent[m_contentIndexes[i]] = GetElementAtIndex(i);
+                // Sort enum elements
+                m_enumElements.Sort((e1,e2) => e1.index.CompareTo(e2.index));
+
+                // Get content
+                List<ScriptableObject> newContent = new();
+                var currentContent = Editor_GetDatabaseContent().ToList().ConvertAll(o => o as ScriptableObject);
+
+                // Add saved sorted content first (if still exists)
+                foreach (var elem in m_enumElements)
+                {
+                    if (currentContent.Contains(elem.obj))
+                    {
+                        newContent.Add(elem.obj);
+                    }
+                }
+                // Add new content then
+                foreach (var elem in currentContent)
+                {
+                    if (!newContent.Contains(elem))
+                    {
+                        newContent.Add(elem);
+                    }
+                }
+
+                // Set new content
+                Editor_SetContent(newContent);
+            }
+            else
+            {
+                base.SortContent();
             }
         }
 
@@ -460,7 +495,7 @@ namespace Dhs5.Utility.Databases
                 AppendPrefix();
                 sb.Append("return ");
                 sb.Append(databaseTypeName);
-                sb.AppendLine(".I");
+                sb.Append(".I");
                 sb.Append(".GetValueAtIndex<");
                 sb.Append(paramTypeName);
                 sb.Append(">((int)e);");
