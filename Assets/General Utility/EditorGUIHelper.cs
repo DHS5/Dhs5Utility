@@ -148,6 +148,8 @@ namespace Dhs5.Utility.Editors
         public static GUIContent ConsoleWarningInactiveIcon => EditorGUIUtility.IconContent("console.warnicon.inactive.sml");
         public static GUIContent ConsoleErrorIcon => EditorGUIUtility.IconContent("console.erroricon.sml");
         public static GUIContent ConsoleErrorInactiveIcon => EditorGUIUtility.IconContent("console.erroricon.inactive.sml");
+        public static GUIContent ScreenIcon => EditorGUIUtility.IconContent("BuildSettings.Standalone On");
+        public static GUIContent ScreenInactiveIcon => EditorGUIUtility.IconContent("BuildSettings.LinuxHeadlessSimulation");
 
         #endregion
 
@@ -265,6 +267,17 @@ namespace Dhs5.Utility.Editors
             EditorGUI.DrawRect(new Rect(rect.x, rect.y, rect.width * value, rect.height), color);
 
             EditorGUI.LabelField(rect, text, centeredBoldLabel);
+        }
+
+        #endregion
+
+        #region Toolbar Toogle
+
+        public static bool ToolbarToggle(Rect rect, GUIContent content, bool value)
+        {
+            bool result = GUI.Toggle(rect, value, GUIContent.none, EditorStyles.toolbarButton);
+            EditorGUI.LabelField(rect, content, centeredLabel);
+            return result;
         }
 
         #endregion
