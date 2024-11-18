@@ -2,21 +2,44 @@ using Dhs5.Utility.Databases;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Dhs5.Utility.Editors;
-using static UnityEditor.Rendering.FilterWindow;
-
-
 
 #if UNITY_EDITOR
 using UnityEditor;
+using Dhs5.Utility.Editors;
 #endif
 
-namespace Dhs5.Utility.Debugger
+namespace Dhs5.Utility.Debuggers
 {
     [Database("Debug/Debugger", typeof(DebuggerDatabaseElement))]
     public class DebuggerDatabase : EnumDatabase<DebuggerDatabase>
     {
-        
+        #region Editor Utility
+
+#if UNITY_EDITOR
+
+        protected string[] GetEnumScriptContentDebuggerExtensions(string enumName)
+        {
+            List<string> extensions = new();
+
+            extensions.Add("public static void Log(this " + enumName + " category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)");
+            extensions.Add("{");
+            extensions.Add("    Debugger.Log(category, message, level, onScreen, context);");
+            extensions.Add("}");
+
+            return extensions.ToArray();
+        }
+
+        protected override string GetEnumScriptContentFor(string enumName, string enumNamespace, string usings, string[] enumContent, System.Type dataType, System.Type databaseType)
+        {
+            
+
+            return EnumDatabaseEditor.GenerateEnumScriptContent
+                (enumName, enumContent, enumNamespace, "using Dhs5.Utility.Debuggers;\n" + usings, dataType, databaseType, GetEnumScriptContentDebuggerExtensions(enumName));
+        }
+
+#endif
+
+        #endregion
     }
 
     #region Editor

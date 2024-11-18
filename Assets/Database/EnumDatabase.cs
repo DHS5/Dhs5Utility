@@ -82,6 +82,12 @@ namespace Dhs5.Utility.Databases
             return true;
         }
 
+        protected virtual string GetEnumScriptContentFor(
+            string enumName, string enumNamespace, string usings, string[] enumContent, Type dataType, Type databaseType)
+        {
+            return EnumDatabaseEditor.GenerateEnumScriptContent
+                (enumName, enumContent, enumNamespace, usings, dataType, databaseType);
+        }
         protected string GetEnumScriptContent()
         {
             string[] enumContent = new string[Count];
@@ -93,8 +99,7 @@ namespace Dhs5.Utility.Databases
             if (HasDataType(GetType(), out var dataType)
                 && dataType.IsSubclassOf(typeof(ScriptableObject)))
             {
-                return EnumDatabaseEditor.GenerateEnumScriptContent(
-                    m_enumName, m_enumNamespace, m_usings, enumContent, dataType, GetType());
+                return GetEnumScriptContentFor(m_enumName, m_enumNamespace, m_usings, enumContent, dataType, GetType());
             }
             return null;
         }
@@ -139,6 +144,10 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void SaveCurrentContentOrder()
         {
+            bool objectsAreEnumDatabaseElements = 
+                HasDataType(GetType(), out var dataType)
+                && typeof(IEnumDatabaseElement).IsAssignableFrom(dataType);
+
             if (m_enumElements != null) m_enumElements.Clear();
             else m_enumElements = new();
 
@@ -147,14 +156,31 @@ namespace Dhs5.Utility.Databases
             {
                 if (elem is ScriptableObject so)
                 {
-                    m_enumElements.Add(new EnumDatabaseElement(so, i));
+                    if (objectsAreEnumDatabaseElements
+                        && so is IEnumDatabaseElement enumElement)
+                    {
+                        enumElement.Editor_SetIndex(i);
+                    }
+                    else
+                    {
+                        m_enumElements.Add(new EnumDatabaseElement(so, i));
+                    }
                     i++;
                 }
             }
         }
         protected override void SortContent()
         {
-            if (m_enumElements != null)
+            if (HasDataType(GetType(), out var dataType)
+                && typeof(IEnumDatabaseElement).IsAssignableFrom(dataType))
+            {
+                var content = Editor_GetDatabaseContent().ToList().ConvertAll(o => o as ScriptableObject);
+                content.Sort((e1,e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex));
+
+                // Set new content
+                Editor_SetContent(content);
+            }
+            else if (m_enumElements != null)
             {
                 // Sort enum elements
                 m_enumElements.Sort((e1,e2) => e1.index.CompareTo(e2.index));
@@ -354,11 +380,12 @@ namespace Dhs5.Utility.Databases
 
         public static string GenerateEnumScriptContent(
             string enumName, 
-            string enumNamespace, 
-            string usings,
             string[] enumContent,
-            Type paramType,
-            Type databaseType = null)
+            string enumNamespace = null,
+            string usings = null,
+            Type paramType = null,
+            Type databaseType = null,
+            string[] extensions = null)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -367,9 +394,11 @@ namespace Dhs5.Utility.Databases
             // Parameters
             bool hasNamespace = !string.IsNullOrWhiteSpace(enumNamespace);
             bool hasUsings = !string.IsNullOrWhiteSpace(usings);
+            bool hasParam = paramType != null;
             string paramTypeName = paramType.Name;
             bool hasDatabase = databaseType != null;
             string databaseTypeName = hasDatabase ? databaseType.Name : null;
+            bool hasExtensions = extensions != null;
 
             string defaultUsings = "using UnityEngine;\nusing System;\n";
 
@@ -480,7 +509,7 @@ namespace Dhs5.Utility.Databases
             OpenBracket();
             Increment();
 
-            if (hasDatabase)
+            if (hasDatabase && hasParam)
             {
                 // Get Value
                 AppendPrefix();
@@ -541,6 +570,16 @@ namespace Dhs5.Utility.Databases
             sb.AppendLine("return (flag & other) != 0;");
             Decrement();
             CloseBracket();
+
+            // OTHER EXTENSIONS
+            if (hasExtensions)
+            {
+                foreach (var extension in extensions)
+                {
+                    AppendPrefix();
+                    sb.AppendLine(extension);
+                }
+            }
 
             Decrement();
             CloseBracket();

@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor.Toolbars;
+using Dhs5.Utility.Databases;
 
 
 #if UNITY_EDITOR
@@ -9,13 +9,16 @@ using UnityEditor;
 using Dhs5.Utility.Editors;
 #endif
 
-namespace Dhs5.Utility.Debugger
+namespace Dhs5.Utility.Debuggers
 {
-    public class DebuggerDatabaseElement : ScriptableObject
+    public class DebuggerDatabaseElement : ScriptableObject, IEnumDatabaseElement
     {
         #region Members
 
+        [SerializeField] private int m_enumIndex;
+
         [SerializeField] private Color m_color;
+        [SerializeField] private string m_colorString;
         [SerializeField, Range(-1, 2)] private int m_level;
 
         [SerializeField] private bool m_showLogs = true;
@@ -28,6 +31,9 @@ namespace Dhs5.Utility.Debugger
         #region Properties
 
         public Color Color => m_color;
+        public string ColorString => m_colorString;
+
+        public bool Active => Level >= 0;
         public int Level
         {
             get => m_level;
@@ -40,22 +46,43 @@ namespace Dhs5.Utility.Debugger
 
         #region Accessors
 
-        public bool CanShow(LogType logType, int logLevel)
-        {
-            return logLevel <= Level && CanShow(logType);
-        }
-        private bool CanShow(LogType logType)
+        public bool CanLog(LogType logType, int logLevel)
         {
             switch (logType)
             {
-                case LogType.Log: return m_showLogs;
-                case LogType.Warning: return m_showWarnings;
+                case LogType.Log: return Active && m_showLogs && logLevel <= Level;
+                case LogType.Warning: return Active && m_showWarnings && logLevel <= Level;
                 case LogType.Error:
                 case LogType.Exception:
                 case LogType.Assert:
                     return m_showErrors;
                 default: return false;
             }
+        }
+
+        #endregion
+
+        #region IEnumDatabaseElement
+
+        public int EnumIndex => m_enumIndex;
+
+#if UNITY_EDITOR
+        public void Editor_SetIndex(int index)
+        {
+            m_enumIndex = index;
+        }
+#endif
+
+        public bool HasDatabaseElementName(out string name)
+        {
+            name = null;
+            return false;
+        }
+
+        public bool HasDatabaseElementTexture(out Texture2D texture)
+        {
+            texture = null;
+            return false;
         }
 
         #endregion
@@ -73,7 +100,9 @@ namespace Dhs5.Utility.Debugger
         protected DebuggerDatabaseElement m_element;
 
         protected SerializedProperty p_script;
+        protected SerializedProperty p_enumIndex;
         protected SerializedProperty p_color;
+        protected SerializedProperty p_colorString;
         protected SerializedProperty p_level;
         protected SerializedProperty p_showLogs;
         protected SerializedProperty p_showWarnings;
@@ -81,6 +110,12 @@ namespace Dhs5.Utility.Debugger
         protected SerializedProperty p_showOnScreen;
 
         protected List<string> m_excludedProperties;
+
+
+        protected string m_testString;
+        protected int m_testLevel;
+        protected LogType m_testLogType;
+
         #endregion
 
         #region Core Behaviour
@@ -90,7 +125,9 @@ namespace Dhs5.Utility.Debugger
             m_element = (DebuggerDatabaseElement)target;
 
             p_script = serializedObject.FindProperty("m_Script");
+            p_enumIndex = serializedObject.FindProperty("m_enumIndex");
             p_color = serializedObject.FindProperty("m_color");
+            p_colorString = serializedObject.FindProperty("m_colorString");
             p_level = serializedObject.FindProperty("m_level");
             p_showLogs = serializedObject.FindProperty("m_showLogs");
             p_showWarnings = serializedObject.FindProperty("m_showWarnings");
@@ -99,6 +136,9 @@ namespace Dhs5.Utility.Debugger
 
             m_excludedProperties = new();
             m_excludedProperties.Add(p_script.propertyPath);
+            m_excludedProperties.Add(p_enumIndex.propertyPath);
+            m_excludedProperties.Add(p_color.propertyPath);
+            m_excludedProperties.Add(p_colorString.propertyPath);
             m_excludedProperties.Add(p_showLogs.propertyPath);
             m_excludedProperties.Add(p_showWarnings.propertyPath);
             m_excludedProperties.Add(p_showErrors.propertyPath);
@@ -106,7 +146,7 @@ namespace Dhs5.Utility.Debugger
         }
 
         #endregion
-        bool hey;
+        
         #region GUI
 
         public override void OnInspectorGUI()
@@ -143,31 +183,6 @@ namespace Dhs5.Utility.Debugger
             }
             // Log type buttons
             {
-                /*
-                EditorGUILayout.BeginHorizontal();
-
-                if (GUILayout.Button(p_showLogs.boolValue ? EditorGUIHelper.ConsoleInfoIcon : EditorGUIHelper.ConsoleInfoInactiveIcon, EditorStyles.toolbarButton))
-                {
-                    p_showLogs.boolValue = !p_showLogs.boolValue;
-                }
-                if (GUILayout.Button(p_showWarnings.boolValue ? EditorGUIHelper.ConsoleWarningIcon : EditorGUIHelper.ConsoleWarningInactiveIcon, EditorStyles.toolbarButton))
-                {
-                    p_showWarnings.boolValue = !p_showWarnings.boolValue;
-                }
-                if (GUILayout.Button(p_showErrors.boolValue ? EditorGUIHelper.ConsoleErrorIcon : EditorGUIHelper.ConsoleErrorInactiveIcon, EditorStyles.toolbarButton))
-                {
-                    p_showErrors.boolValue = !p_showErrors.boolValue;
-                }
-                if (GUILayout.Button(p_showOnScreen.boolValue ? EditorGUIHelper.ScreenIcon : EditorGUIHelper.ScreenInactiveIcon, EditorStyles.toolbarButton))
-                {
-                    p_showOnScreen.boolValue = !p_showOnScreen.boolValue;
-                }
-
-                EditorGUILayout.EndHorizontal();
-                */
-            }
-
-            {
                 var rect = EditorGUILayout.GetControlRect(false, 20f);
                 rect.x -= 2f;
                 rect.width += 4f;
@@ -190,7 +205,37 @@ namespace Dhs5.Utility.Debugger
 
             EditorGUILayout.Space(5f);
 
+            // Color
+            {
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(p_color);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    p_colorString.stringValue = ColorUtility.ToHtmlStringRGB(p_color.colorValue);
+                }
+
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.PropertyField(p_colorString);
+                EditorGUI.EndDisabledGroup();
+            }
+
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
+
+            EditorGUILayout.Space(15f);
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("Test", EditorStyles.boldLabel);
+
+            EditorGUILayout.Space(5f);
+            m_testString = EditorGUILayout.TextField(m_testString);
+            m_testLevel = EditorGUILayout.IntSlider(m_testLevel, 0, 2);
+            m_testLogType = (LogType)EditorGUILayout.EnumPopup(m_testLogType);
+            if (GUILayout.Button("Test Log"))
+            {
+                Debugger.Log((DebugCategory)m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
+                DebugCategory.GAME.Log("test");
+            }
+            EditorGUILayout.EndVertical();
 
             serializedObject.ApplyModifiedProperties();
         }

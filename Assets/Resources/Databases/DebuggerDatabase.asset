@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: UI
   m_EditorClassIdentifier: 
+  m_enumIndex: 3
   m_color: {r: 1, g: 0, b: 0.83840847, a: 1}
+  m_colorString: FF00D6
   m_level: 1
   m_showLogs: 1
   m_showWarnings: 1
@@ -37,7 +39,7 @@ MonoBehaviour:
   - {fileID: -7002647680321824663}
   m_enumName: DebugCategory
   m_enumNamespace: 
-  m_usings: using Dhs5.Utility.Debugger;
+  m_usings: 
   m_scriptFolder: Assets/Test
   m_textAsset: {fileID: 11500000, guid: 7788e208a4f62824fa74e35562847ea0, type: 3}
 --- !u!114 &697256396391879857
@@ -52,7 +54,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: GAME
   m_EditorClassIdentifier: 
+  m_enumIndex: 1
   m_color: {r: 0, g: 0.08001089, b: 1, a: 1}
+  m_colorString: 0014FF
   m_level: 2
   m_showLogs: 1
   m_showWarnings: 1
@@ -70,7 +74,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: FLOW
   m_EditorClassIdentifier: 
+  m_enumIndex: 2
   m_color: {r: 0.34378123, g: 1, b: 0, a: 1}
+  m_colorString: 58FF00
   m_level: 0
   m_showLogs: 1
   m_showWarnings: 1
@@ -88,7 +94,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: NONE
   m_EditorClassIdentifier: 
+  m_enumIndex: 0
   m_color: {r: 1, g: 0, b: 0, a: 1}
+  m_colorString: FF0000
   m_level: -1
   m_showLogs: 1
   m_showWarnings: 1

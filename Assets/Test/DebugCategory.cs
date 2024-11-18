@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
-using Dhs5.Utility.Debugger;
+using Dhs5.Utility.Debuggers;
+
 
 public enum DebugCategory
 {
@@ -33,5 +34,9 @@ public static class DebugCategoryExtension
     public static bool Contains(this DebugCategoryFlags flag, DebugCategoryFlags other)
     {
         return (flag & other) != 0;
+    }
+    public static void Log(this DebugCategory category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
+    {
+        Debugger.Log(category, message, level, onScreen, context);
     }
 }
