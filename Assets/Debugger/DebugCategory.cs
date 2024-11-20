@@ -39,4 +39,16 @@ public static class DebugCategoryExtension
     {
         Debugger.Log(category, message, level, onScreen, context);
     }
+    public static void LogWarning(this DebugCategory category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
+    {
+        Debugger.LogWarning(category, message, level, onScreen, context);
+    }
+    public static void LogError(this DebugCategory category, object message, bool onScreen = true, UnityEngine.Object context = null)
+    {
+        Debugger.LogError(category, message, onScreen, context);
+    }
+    public static void LogAlways(this DebugCategory category, object message, LogType logType = LogType.Error, bool onScreen = true, UnityEngine.Object context = null)
+    {
+        Debugger.LogAlways(category, message, logType, onScreen, context);
+    }
 }

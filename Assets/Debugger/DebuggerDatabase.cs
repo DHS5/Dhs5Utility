@@ -25,6 +25,21 @@ namespace Dhs5.Utility.Debuggers
             extensions.Add("{");
             extensions.Add("    Debugger.Log(category, message, level, onScreen, context);");
             extensions.Add("}");
+            
+            extensions.Add("public static void LogWarning(this " + enumName + " category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)");
+            extensions.Add("{");
+            extensions.Add("    Debugger.LogWarning(category, message, level, onScreen, context);");
+            extensions.Add("}");
+            
+            extensions.Add("public static void LogError(this " + enumName + " category, object message, bool onScreen = true, UnityEngine.Object context = null)");
+            extensions.Add("{");
+            extensions.Add("    Debugger.LogError(category, message, onScreen, context);");
+            extensions.Add("}");
+            
+            extensions.Add("public static void LogAlways(this " + enumName + " category, object message, LogType logType = LogType.Error, bool onScreen = true, UnityEngine.Object context = null)");
+            extensions.Add("{");
+            extensions.Add("    Debugger.LogAlways(category, message, logType, onScreen, context);");
+            extensions.Add("}");
 
             return extensions.ToArray();
         }
@@ -49,6 +64,17 @@ namespace Dhs5.Utility.Debuggers
     [CustomEditor(typeof(DebuggerDatabase), editorForChildClasses:true)]
     public class DebuggerDatabaseEditor : EnumDatabaseEditor
     {
+        #region Core Behaviour
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            ShowExtraUsings = false;
+        }
+
+        #endregion
+
         #region Database Content List
 
         protected override Rect GetButtonRectForDatabaseContentListElement(Rect rect, int index, Object element, bool contextButton)

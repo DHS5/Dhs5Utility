@@ -125,9 +125,14 @@ namespace Dhs5.Utility.Databases
             base.Editor_ShouldRecomputeDatabaseContent();
 
             string content = GetEnumScriptContent();
-            if (content != null
-                && content != GetCurrentScriptContent()
-                && TryGetEnumScriptPath(out string path))
+            bool differentContent = content != null && content != GetCurrentScriptContent();
+            bool differentPath = false;
+            bool pathValid = TryGetEnumScriptPath(out string path);
+            if (pathValid)
+            {
+                differentPath = m_textAsset == null || path != AssetDatabase.GetAssetPath(m_textAsset);
+            }
+            if (pathValid && (differentContent || differentPath))
             {
                 var newTextAsset = BaseDatabase.CreateOrOverwriteScript(path, content);
                 if (m_textAsset != null 
@@ -135,6 +140,7 @@ namespace Dhs5.Utility.Databases
                 {
                     BaseDatabase.DeleteAsset(m_textAsset, false);
                 }
+
                 m_textAsset = newTextAsset;
 
                 AssetDatabase.Refresh();
@@ -238,6 +244,13 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Properties
+
+        // Database Informations
+        protected bool ShowExtraUsings { get; set; } = true;
+
+        #endregion
+
         #region Core Behaviour
 
         protected override void OnEnable()
@@ -289,7 +302,9 @@ namespace Dhs5.Utility.Databases
         {
             EditorGUILayout.PropertyField(p_enumName);
             EditorGUILayout.PropertyField(p_enumNamespace);
-            EditorGUILayout.PropertyField(p_usings);
+
+            if (ShowExtraUsings)
+                EditorGUILayout.PropertyField(p_usings);
 
             EditorGUILayout.Space(8f);
 
@@ -297,6 +312,15 @@ namespace Dhs5.Utility.Databases
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(p_textAsset);
             EditorGUI.EndDisabledGroup();
+        }
+
+        #endregion
+
+        #region Database Content List
+
+        protected override void OnDatabaseContentListElementNameGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name)
+        {
+            base.OnDatabaseContentListElementNameGUI(rect, index, selected, obj, index + ": " + name);
         }
 
         #endregion

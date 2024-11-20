@@ -1,3 +1,4 @@
+using Dhs5.Utility.Debuggers;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,5 +20,15 @@ public class TestScript : MonoBehaviour, IDatabaseElement
     {
         texture = _texture;
         return _showTexture;
+    }
+
+    float lastUpdate;
+    private void Update()
+    {
+        if (Time.time > lastUpdate + 1f)
+        {
+            lastUpdate = Time.time;
+            Debugger.LogOnScreen(0, "Test");
+        }
     }
 }

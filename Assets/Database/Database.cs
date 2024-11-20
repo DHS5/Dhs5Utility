@@ -319,6 +319,8 @@ namespace Dhs5.Utility.Databases
         public static TextAsset CreateOrOverwriteScript(string path, string content)
         {
             File.WriteAllText(path, content);
+            AssetDatabase.Refresh();
+            AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
         }
 

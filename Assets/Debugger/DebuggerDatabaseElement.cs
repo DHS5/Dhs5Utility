@@ -19,7 +19,7 @@ namespace Dhs5.Utility.Debuggers
 
         [SerializeField] private Color m_color;
         [SerializeField] private string m_colorString;
-        [SerializeField, Range(-1, 2)] private int m_level;
+        [SerializeField, Range(-1, Debugger.MAX_DEBUGGER_LEVEL)] private int m_level;
 
         [SerializeField] private bool m_showLogs = true;
         [SerializeField] private bool m_showWarnings = true;
@@ -112,6 +112,7 @@ namespace Dhs5.Utility.Debuggers
         protected List<string> m_excludedProperties;
 
 
+        protected bool m_testLogOpen;
         protected string m_testString;
         protected int m_testLevel;
         protected LogType m_testLogType;
@@ -223,19 +224,24 @@ namespace Dhs5.Utility.Debuggers
 
             EditorGUILayout.Space(15f);
 
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("Test", EditorStyles.boldLabel);
-
-            EditorGUILayout.Space(5f);
-            m_testString = EditorGUILayout.TextField(m_testString);
-            m_testLevel = EditorGUILayout.IntSlider(m_testLevel, 0, 2);
-            m_testLogType = (LogType)EditorGUILayout.EnumPopup(m_testLogType);
-            if (GUILayout.Button("Test Log"))
+            // Test Log
             {
-                Debugger.Log((DebugCategory)m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
-                DebugCategory.GAME.Log("test");
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                m_testLogOpen = EditorGUILayout.Foldout(m_testLogOpen, "Test Log", true);
+
+                if (m_testLogOpen)
+                {
+                    EditorGUILayout.Space(5f);
+                    m_testString = EditorGUILayout.TextField(m_testString);
+                    m_testLevel = EditorGUILayout.IntSlider(m_testLevel, 0, Debugger.MAX_DEBUGGER_LEVEL);
+                    m_testLogType = (LogType)EditorGUILayout.EnumPopup(m_testLogType);
+                    if (GUILayout.Button("Log"))
+                    {
+                        Debugger.Log((DebugCategory)m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
+                    }
+                }
+                EditorGUILayout.EndVertical();
             }
-            EditorGUILayout.EndVertical();
 
             serializedObject.ApplyModifiedProperties();
         }
