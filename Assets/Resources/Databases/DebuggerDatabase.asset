@@ -19,6 +19,7 @@ MonoBehaviour:
   m_showLogs: 1
   m_showWarnings: 1
   m_showErrors: 1
+  m_showInConsole: 1
   m_showOnScreen: 1
 --- !u!114 &11400000
 MonoBehaviour:
@@ -61,6 +62,7 @@ MonoBehaviour:
   m_showLogs: 1
   m_showWarnings: 1
   m_showErrors: 1
+  m_showInConsole: 1
   m_showOnScreen: 1
 --- !u!114 &5819532464124954668
 MonoBehaviour:
@@ -81,6 +83,7 @@ MonoBehaviour:
   m_showLogs: 1
   m_showWarnings: 1
   m_showErrors: 1
+  m_showInConsole: 1
   m_showOnScreen: 1
 --- !u!114 &6690754561762255559
 MonoBehaviour:
@@ -101,4 +104,5 @@ MonoBehaviour:
   m_showLogs: 1
   m_showWarnings: 1
   m_showErrors: 1
+  m_showInConsole: 1
   m_showOnScreen: 1

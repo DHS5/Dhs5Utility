@@ -24,6 +24,8 @@ namespace Dhs5.Utility.Debuggers
         [SerializeField] private bool m_showLogs = true;
         [SerializeField] private bool m_showWarnings = true;
         [SerializeField] private bool m_showErrors = true;
+
+        [SerializeField] private bool m_showInConsole = true;
         [SerializeField] private bool m_showOnScreen = true;
 
         #endregion
@@ -40,6 +42,7 @@ namespace Dhs5.Utility.Debuggers
             set => m_level = value;
         }
 
+        public bool ShowInConsole => m_showInConsole;
         public bool ShowOnScreen => m_showOnScreen;
 
         #endregion
@@ -107,6 +110,7 @@ namespace Dhs5.Utility.Debuggers
         protected SerializedProperty p_showLogs;
         protected SerializedProperty p_showWarnings;
         protected SerializedProperty p_showErrors;
+        protected SerializedProperty p_showInConsole;
         protected SerializedProperty p_showOnScreen;
 
         protected List<string> m_excludedProperties;
@@ -133,6 +137,7 @@ namespace Dhs5.Utility.Debuggers
             p_showLogs = serializedObject.FindProperty("m_showLogs");
             p_showWarnings = serializedObject.FindProperty("m_showWarnings");
             p_showErrors = serializedObject.FindProperty("m_showErrors");
+            p_showInConsole = serializedObject.FindProperty("m_showInConsole");
             p_showOnScreen = serializedObject.FindProperty("m_showOnScreen");
 
             m_excludedProperties = new();
@@ -143,6 +148,7 @@ namespace Dhs5.Utility.Debuggers
             m_excludedProperties.Add(p_showLogs.propertyPath);
             m_excludedProperties.Add(p_showWarnings.propertyPath);
             m_excludedProperties.Add(p_showErrors.propertyPath);
+            m_excludedProperties.Add(p_showInConsole.propertyPath);
             m_excludedProperties.Add(p_showOnScreen.propertyPath);
         }
 
@@ -184,12 +190,16 @@ namespace Dhs5.Utility.Debuggers
             }
             // Log type buttons
             {
-                var rect = EditorGUILayout.GetControlRect(false, 20f);
+                var rect = EditorGUILayout.GetControlRect(false, 40f);
                 rect.x -= 2f;
                 rect.width += 4f;
                 rect.y -= 2f;
+                rect.height = 20f;
 
-                float width = rect.width / 4;
+                // First row
+
+                float totalWidth = rect.width;
+                float width = totalWidth / 3;
                 rect.width = width;
 
                 p_showLogs.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showLogs.boolValue ? EditorGUIHelper.ConsoleInfoIcon : EditorGUIHelper.ConsoleInfoInactiveIcon, p_showLogs.boolValue);
@@ -199,6 +209,15 @@ namespace Dhs5.Utility.Debuggers
 
                 rect.x += width;
                 p_showErrors.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showErrors.boolValue ? EditorGUIHelper.ConsoleErrorIcon : EditorGUIHelper.ConsoleErrorInactiveIcon, p_showErrors.boolValue);
+
+                // Second row
+
+                width = totalWidth / 2;
+                rect.width = width;
+                rect.y += 20f;
+
+                rect.x = 0;
+                p_showInConsole.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showInConsole.boolValue ? EditorGUIHelper.ConsoleIcon : EditorGUIHelper.ConsoleIcon, p_showInConsole.boolValue);
 
                 rect.x += width;
                 p_showOnScreen.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showOnScreen.boolValue ? EditorGUIHelper.ScreenIcon : EditorGUIHelper.ScreenInactiveIcon, p_showOnScreen.boolValue);
@@ -237,7 +256,7 @@ namespace Dhs5.Utility.Debuggers
                     m_testLogType = (LogType)EditorGUILayout.EnumPopup(m_testLogType);
                     if (GUILayout.Button("Log"))
                     {
-                        Debugger.Log((DebugCategory)m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
+                        Debugger.ComplexLog((DebugCategory)m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
                     }
                 }
                 EditorGUILayout.EndVertical();

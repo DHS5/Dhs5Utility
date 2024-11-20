@@ -48,12 +48,13 @@ namespace Dhs5.Utility.Debuggers
 
         #region Log Enhancement
 
-        private static string CategorizeMessage(object message, int level, DebuggerDatabaseElement element)
+        private static string CategorizeMessage(object message, int level, DebuggerDatabaseElement element, bool onScreen = false)
         {
             StringBuilder sb = new();
 
+            int maxSize = onScreen ? 20 : 14;
             sb.Append("<size=");
-            sb.Append(14 - 2*level);
+            sb.Append(maxSize - 2*level);
             sb.Append(">");
             sb.Append("<color=#");
             sb.Append(element.ColorString);
@@ -71,68 +72,76 @@ namespace Dhs5.Utility.Debuggers
 
         #endregion
 
-        #region Log Behaviour
+        #region Public Log Behaviour
 
-        public static void Log(Enum e, object message, LogType logType, int level = MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
+        public static void ComplexLog(Enum e, object message, LogType logType, int level = MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
             if (CanLog(e, logType, level, out DebuggerDatabaseElement element))
             {
-                switch (logType)
-                {
-                    case LogType.Log: Debug.Log(CategorizeMessage(message, level, element), context); break;
-                    case LogType.Warning: Debug.LogWarning(CategorizeMessage(message, level, element), context); break;
-                    case LogType.Error: Debug.LogError(CategorizeMessage(message, 0, element), context); break;
-                    case LogType.Exception: Debug.LogException(new Exception(CategorizeMessage(message, 0, element)), context); break;
-                    case LogType.Assert: Debug.LogAssertion(CategorizeMessage(message, 0, element), context); break;
-                }
+                Internal_Log(message, logType, element, level, onScreen, context);
+            }
+        }
+        public static void ComplexLog(int key, object message, LogType logType, int level = MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
+        {
+            if (CanLog(key, logType, level, out DebuggerDatabaseElement element))
+            {
+                Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
 
         // --- LOG ---
         public static void Log(Enum e, object message, int level = MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
-            if (CanLog(e, LogType.Log, level, out DebuggerDatabaseElement element))
+            var logType = LogType.Log;
+            if (CanLog(e, logType, level, out DebuggerDatabaseElement element))
             {
-                Debug.Log(CategorizeMessage(message, level, element), context);
+                Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
         public static void Log(int key, object message, int level = MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
-            if (CanLog(key, LogType.Log, level, out DebuggerDatabaseElement element))
+            var logType = LogType.Log;
+            if (CanLog(key, logType, level, out DebuggerDatabaseElement element))
             {
-                Debug.Log(CategorizeMessage(message, level, element), context);
+                Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
         
         // --- WARNING ---
         public static void LogWarning(Enum e, object message, int level = MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
-            if (CanLog(e, LogType.Warning, level, out DebuggerDatabaseElement element))
+            var logType = LogType.Warning;
+            if (CanLog(e, logType, level, out DebuggerDatabaseElement element))
             {
-                Debug.LogWarning(CategorizeMessage(message, level, element), context);
+                Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
         public static void LogWarning(int key, object message, int level = MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
-            if (CanLog(key, LogType.Warning, level, out DebuggerDatabaseElement element))
+            var logType = LogType.Warning;
+            if (CanLog(key, logType, level, out DebuggerDatabaseElement element))
             {
-                Debug.LogWarning(CategorizeMessage(message, level, element), context);
+                Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
         
         // --- ERROR ---
         public static void LogError(Enum e, object message, bool onScreen = false, UnityEngine.Object context = null)
         {
-            if (CanLog(e, LogType.Error, 0, out DebuggerDatabaseElement element))
+            var logType = LogType.Error;
+            int level = 0;
+            if (CanLog(e, logType, level, out DebuggerDatabaseElement element))
             {
-                Debug.LogError(CategorizeMessage(message, 0, element), context);
+                Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
         public static void LogError(int key, object message, bool onScreen = true, UnityEngine.Object context = null)
         {
-            if (CanLog(key, LogType.Error, 0, out DebuggerDatabaseElement element))
+            var logType = LogType.Error;
+            int level = 0;
+            if (CanLog(key, logType, level, out DebuggerDatabaseElement element))
             {
-                Debug.LogError(CategorizeMessage(message, 0, element), context);
+                Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
         
@@ -142,15 +151,7 @@ namespace Dhs5.Utility.Debuggers
             var element = GetElement(e);
             if (element != null)
             {
-                string categorizedMessage = CategorizeMessage(message, 0, element);
-                switch (logType)
-                {
-                    case LogType.Log: Debug.Log(categorizedMessage, context); break;
-                    case LogType.Warning: Debug.LogWarning(categorizedMessage, context); break;
-                    case LogType.Error: Debug.LogError(categorizedMessage, context); break;
-                    case LogType.Assert: Debug.LogAssertion(categorizedMessage, context); break;
-                    case LogType.Exception: Debug.LogException(new Exception(categorizedMessage), context); break;
-                }
+                Internal_Log(message, logType, element, 0, onScreen, context);
             }
         }
         public static void LogAlways(int key, object message, LogType logType = LogType.Error, bool onScreen = true, UnityEngine.Object context = null)
@@ -158,33 +159,59 @@ namespace Dhs5.Utility.Debuggers
             var element = GetElement(key);
             if (element != null)
             {
-                string categorizedMessage = CategorizeMessage(message, 0, element);
-                switch (logType)
-                {
-                    case LogType.Log: Debug.Log(categorizedMessage, context); break;
-                    case LogType.Warning: Debug.LogWarning(categorizedMessage, context); break;
-                    case LogType.Error: Debug.LogError(categorizedMessage, context); break;
-                    case LogType.Assert: Debug.LogAssertion(categorizedMessage, context); break;
-                    case LogType.Exception: Debug.LogException(new Exception(categorizedMessage), context); break;
-                }
+                Internal_Log(message, logType, element, 0, onScreen, context);
             }
         }
         
         // --- ON SCREEN ---
-        public static void LogOnScreen(Enum e, object message, LogType logType = LogType.Error)
+        public static void LogOnScreen(Enum e, object message, LogType logType = LogType.Log, int level = MAX_DEBUGGER_LEVEL)
         {
             var element = GetElement(e);
             if (element != null)
             {
-                OnScreenDebugger.Log(CategorizeMessage(message, 0, element), 5f);
+                Internal_LogOnScreen(message, element, logType, level, 5f);
             }
         }
-        public static void LogOnScreen(int key, object message)
+        public static void LogOnScreen(int key, object message, LogType logType = LogType.Log, int level = MAX_DEBUGGER_LEVEL)
         {
             var element = GetElement(key);
             if (element != null)
             {
-                OnScreenDebugger.Log(CategorizeMessage(message, 0, element), 5f);
+                Internal_LogOnScreen(message, element, logType, level, 5f);
+            }
+        }
+
+        #endregion
+
+        #region Private Log Behaviour
+
+        private static void Internal_Log(object message, LogType logType, DebuggerDatabaseElement element, int level, bool onScreen, UnityEngine.Object context)
+        {
+            string consoleMessage = CategorizeMessage(message, level, element, false);
+
+            if (element.ShowInConsole)
+            {
+                switch (logType)
+                {
+                    case LogType.Log: Debug.Log(consoleMessage, context); break;
+                    case LogType.Warning: Debug.LogWarning(consoleMessage, context); break;
+                    case LogType.Exception:
+                    case LogType.Assert:
+                    case LogType.Error: Debug.LogError(consoleMessage, context); break;
+                }
+            }
+
+            if (onScreen)
+            {
+                Internal_LogOnScreen(message, element, logType, level, 5f);
+            }
+        }
+
+        private static void Internal_LogOnScreen(object message, DebuggerDatabaseElement element, LogType logType, int level, float duration)
+        {
+            if (element.ShowOnScreen && Application.isPlaying)
+            {
+                OnScreenDebugger.Log(CategorizeMessage(message, level, element, true), logType, duration);
             }
         }
 

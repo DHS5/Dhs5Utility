@@ -25,10 +25,12 @@ public class TestScript : MonoBehaviour, IDatabaseElement
     float lastUpdate;
     private void Update()
     {
-        if (Time.time > lastUpdate + 1f)
+        if (Time.time > lastUpdate + 0.75f)
         {
             lastUpdate = Time.time;
-            Debugger.LogOnScreen(0, "Test");
+            Debugger.LogOnScreen(0, "Test", LogType.Log);
+            Debugger.LogOnScreen(0, "Test", LogType.Warning);
+            Debugger.LogOnScreen(0, "Test", LogType.Error);
         }
     }
 }
