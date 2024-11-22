@@ -169,21 +169,18 @@ namespace Dhs5.Utility.Debuggers
                     p_showLogs.boolValue = true;
                     p_showWarnings.boolValue = true;
                     p_showErrors.boolValue = true;
-                    p_showOnScreen.boolValue = true;
                 }
                 if (GUILayout.Button("Disable All", EditorStyles.toolbarButton))
                 {
                     p_showLogs.boolValue = false;
                     p_showWarnings.boolValue = false;
                     p_showErrors.boolValue = false;
-                    p_showOnScreen.boolValue = false;
                 }
                 if (GUILayout.Button("Error Only", EditorStyles.toolbarButton))
                 {
                     p_showLogs.boolValue = false;
                     p_showWarnings.boolValue = false;
                     p_showErrors.boolValue = true;
-                    p_showOnScreen.boolValue = false;
                 }
 
                 EditorGUILayout.EndHorizontal();
@@ -191,9 +188,10 @@ namespace Dhs5.Utility.Debuggers
             // Log type buttons
             {
                 var rect = EditorGUILayout.GetControlRect(false, 40f);
-                rect.x -= 2f;
+                float startX = rect.x - 2f;
+                rect.x = startX;
                 rect.width += 4f;
-                rect.y -= 2f;
+                rect.y -= 1f;
                 rect.height = 20f;
 
                 // First row
@@ -214,9 +212,9 @@ namespace Dhs5.Utility.Debuggers
 
                 width = totalWidth / 2;
                 rect.width = width;
-                rect.y += 20f;
+                rect.y += 21f;
 
-                rect.x = 0;
+                rect.x = startX;
                 p_showInConsole.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showInConsole.boolValue ? EditorGUIHelper.ConsoleIcon : EditorGUIHelper.ConsoleIcon, p_showInConsole.boolValue);
 
                 rect.x += width;

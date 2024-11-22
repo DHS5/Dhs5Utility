@@ -126,7 +126,7 @@ namespace Dhs5.Utility.Debuggers
         }
         
         // --- ERROR ---
-        public static void LogError(Enum e, object message, bool onScreen = false, UnityEngine.Object context = null)
+        public static void LogError(Enum e, object message, bool onScreen = true, UnityEngine.Object context = null)
         {
             var logType = LogType.Error;
             int level = 0;
@@ -146,7 +146,7 @@ namespace Dhs5.Utility.Debuggers
         }
         
         // --- ALWAYS ---
-        public static void LogAlways(Enum e, object message, LogType logType = LogType.Error, bool onScreen = false, UnityEngine.Object context = null)
+        public static void LogAlways(Enum e, object message, LogType logType = LogType.Error, bool onScreen = true, UnityEngine.Object context = null)
         {
             var element = GetElement(e);
             if (element != null)
