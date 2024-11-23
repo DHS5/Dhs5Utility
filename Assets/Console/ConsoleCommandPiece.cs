@@ -36,6 +36,44 @@ namespace Dhs5.Utility.Console
         [SerializeField] private bool m_optional;
 
         #endregion
+
+
+        #region Accessors
+
+        public IEnumerable<string> GetOptions()
+        {
+            switch (m_type)
+            {
+                case Type.SINGLE:
+                    yield return m_singleInput;
+                    if (m_optional)
+                    {
+                        yield return string.Empty;
+                    }
+                    break;
+
+                case Type.MULTI:
+                    for (int i = 0; i < m_multiInputs.Length; i++)
+                    {
+                        yield return m_multiInputs[i];
+                    }
+                    if (m_optional)
+                    {
+                        yield return string.Empty;
+                    }
+                    break;
+
+                case Type.PARAMETER:
+                    yield return ConsoleCommand.PARAMETER;
+                    if (m_optional)
+                    {
+                        yield return string.Empty;
+                    }
+                    break;
+            }
+        }
+
+        #endregion
     }
 
 #if UNITY_EDITOR
@@ -49,8 +87,6 @@ namespace Dhs5.Utility.Console
         SerializedProperty p_singleInput;
         SerializedProperty p_multiInputs;
         SerializedProperty p_optional;
-
-        private int m_typeIndex;
 
         const float SPACE = 2f;
 
@@ -70,10 +106,9 @@ namespace Dhs5.Utility.Console
             EditorGUI.BeginProperty(position, label, property);
 
             EditorGUI.PropertyField(rect, p_type);
-            m_typeIndex = p_type.enumValueIndex;
             rect.y += EditorGUI.GetPropertyHeight(p_type) + SPACE;
 
-            switch (m_typeIndex)
+            switch (p_type.enumValueIndex)
             {
                 // SINGLE
                 case 0:
@@ -111,7 +146,7 @@ namespace Dhs5.Utility.Console
 
             float height = EditorGUI.GetPropertyHeight(p_type) + SPACE;
 
-            switch (m_typeIndex)
+            switch (p_type.enumValueIndex)
             {
                 // SINGLE
                 case 0:

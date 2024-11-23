@@ -12,4 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa2f7ae92d4a508439a436e4a709a85b, type: 3}
   m_Name: CCMD_Test
   m_EditorClassIdentifier: 
-  m_commandPieces: []
+  m_commandPieces:
+  - m_type: 0
+    m_singleInput: /tp character
+    m_multiInputs: []
+    m_optional: 0
+  - m_type: 1
+    m_singleInput: /tp character
+    m_multiInputs:
+    - chara1
+    - chara2
+    - chara3
+    m_optional: 1
+  - m_type: 2
+    m_singleInput: slow
+    m_multiInputs:
+    - chara1
+    - chara2
+    - chara3
+    m_optional: 0
