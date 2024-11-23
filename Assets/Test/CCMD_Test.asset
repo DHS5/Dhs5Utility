@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1cc34b9715b90c45bd0ab4d792b1e13, type: 3}
-  m_Name: TestEmptyDB
+  m_Script: {fileID: 11500000, guid: fa2f7ae92d4a508439a436e4a709a85b, type: 3}
+  m_Name: CCMD_Test
   m_EditorClassIdentifier: 
-  emptyStr: 
+  m_commandPieces: []

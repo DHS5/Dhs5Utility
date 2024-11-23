@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace Dhs5.Utility.Debuggers
+namespace Dhs5.Utility.Console
 {
     public class OnScreenConsole : MonoBehaviour
     {
@@ -16,9 +16,11 @@ namespace Dhs5.Utility.Debuggers
             public ValidCommand(string command)
             {
                 rawCommand = command;
+                parameters = null;
             }
 
             public readonly string rawCommand;
+            public readonly object[] parameters;
         }
 
         #endregion
@@ -86,6 +88,25 @@ namespace Dhs5.Utility.Debuggers
                 float inputRectHeight = 50f;
                 var inputRect = new Rect(0f, Screen.height - inputRectHeight, Screen.width * 0.8f, inputRectHeight);
                 bool hasFocus = GUI.GetNameOfFocusedControl() == m_inputControlName;
+
+                if (Event.current.type == EventType.KeyDown)
+                {
+                    switch (Event.current.keyCode)
+                    {
+                        case KeyCode.Return:
+                            if (hasFocus)
+                            {
+                                Event.current.Use();
+                                Debug.Log("VALIDATE");
+                                CloseConsole();
+                            }
+                            return;
+                        case KeyCode.Escape:
+                            Event.current.Use();
+                            CloseConsole();
+                            return;
+                    }
+                }
 
                 EditorGUI.DrawRect(inputRect, hasFocus ? EditorGUIHelper.transparentBlack07 : EditorGUIHelper.transparentBlack03);
 
