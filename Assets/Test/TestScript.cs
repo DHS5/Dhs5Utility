@@ -23,11 +23,6 @@ public class TestScript : MonoBehaviour, IDatabaseElement
         return _showTexture;
     }
 
-    private void Start()
-    {
-        OnScreenConsole.Open();
-    }
-
     float lastUpdate;
     private void Update()
     {

@@ -74,6 +74,69 @@ namespace Dhs5.Utility.Console
         }
 
         #endregion
+
+        #region Command Validation
+
+        public bool IsCommandValid(string rawCommandPiece, out object parameter, out string rawCommandLeft)
+        {
+            parameter = null;
+            rawCommandLeft = null;
+
+            if (string.IsNullOrWhiteSpace(rawCommandPiece))
+            {
+                return m_optional;
+            }
+
+            switch (m_type)
+            {
+                case Type.SINGLE:
+                    if (rawCommandPiece.StartsWith(m_singleInput, StringComparison.OrdinalIgnoreCase) &&
+                        (rawCommandPiece.Length == m_singleInput.Length || rawCommandPiece[m_singleInput.Length] == ' '))
+                    {
+                        parameter = null;
+                        rawCommandLeft = rawCommandPiece.Substring(m_singleInput.Length).Trim();
+                        return true;
+                    }
+                    break;
+
+                case Type.MULTI:
+                    for (int i = 0; i < m_multiInputs.Length; i++)
+                    {
+                        if (rawCommandPiece.StartsWith(m_multiInputs[i], StringComparison.OrdinalIgnoreCase))
+                        {
+                            parameter = i;
+                            rawCommandLeft = rawCommandPiece.Substring(m_multiInputs[i].Length).Trim();
+                            return true;
+                        }
+                    }
+                    break;
+
+                case Type.PARAMETER:
+                    int spaceIndex = rawCommandPiece.IndexOf(' ');
+                    if (spaceIndex != -1)
+                    {
+                        parameter = rawCommandPiece.Substring(0, spaceIndex).Trim();
+                        rawCommandLeft = rawCommandPiece.Substring(spaceIndex).Trim();
+                    }
+                    else
+                    {
+                        parameter = rawCommandPiece;
+                        rawCommandLeft = string.Empty;
+                    }
+                    return true;
+            }
+
+            if (m_optional)
+            {
+                parameter = null;
+                rawCommandLeft = rawCommandPiece;
+                return true;
+            }
+
+            return false;
+        }
+
+        #endregion
     }
 
 #if UNITY_EDITOR
@@ -127,8 +190,15 @@ namespace Dhs5.Utility.Console
                     break;
             }
 
-            EditorGUI.PropertyField(rect, p_optional);
-            rect.y += EditorGUI.GetPropertyHeight(p_optional);
+            if (p_type.enumValueIndex != 2)
+            {
+                EditorGUI.PropertyField(rect, p_optional);
+                rect.y += EditorGUI.GetPropertyHeight(p_optional);
+            }
+            else
+            {
+                p_optional.boolValue = false;
+            }
 
             EditorGUI.EndProperty();
         }
@@ -163,7 +233,10 @@ namespace Dhs5.Utility.Console
                     break;
             }
 
-            height += EditorGUI.GetPropertyHeight(p_optional);
+            if (p_type.enumValueIndex != 2)
+            {
+                height += EditorGUI.GetPropertyHeight(p_optional);
+            }
 
             return height;
         }

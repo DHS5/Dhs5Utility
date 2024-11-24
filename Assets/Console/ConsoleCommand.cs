@@ -83,6 +83,26 @@ namespace Dhs5.Utility.Console
 
                 return sb.ToString();
             }
+            public string ToStringWithoutParams()
+            {
+                StringBuilder sb = new();
+
+                for (int i = 0; i < m_list.Count; i++)
+                {
+                    if (m_list[i] == PARAMETER)
+                    {
+                        sb.Append('_');
+                    }
+                    else
+                    {
+                        sb.Append(m_list[i]);
+                    }
+
+                    if (i < Count - 1) sb.Append(' ');
+                }
+
+                return sb.ToString();
+            }
 
             #endregion
 
@@ -142,6 +162,31 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
+        #region STRUCT : ValidCommand
+
+        public struct ValidCommand
+        {
+            public ValidCommand(ConsoleCommand command, string rawCommand, object[] parameters)
+            {
+                this.command = command;
+                this.rawCommand = rawCommand;
+                this.parameters = parameters;
+            }
+
+            public readonly ConsoleCommand command;
+            public readonly string rawCommand;
+            public readonly object[] parameters;
+
+
+            public static ValidCommand Invalid()
+            {
+                return new ValidCommand(null, null, null);
+            }
+        }
+
+        #endregion
+
+
         #region Members
 
         public const string PARAMETER = "$PARAM$";
@@ -157,33 +202,33 @@ namespace Dhs5.Utility.Console
         #endregion
 
 
-        #region Valid Command Strings
+        #region Command Options
 
-        public List<CommandArray> GetValidCommandStrings()
+        public List<CommandArray> GetCommandOptions()
         {
             List<CommandArray> commandArrays = new();
 
             if (m_commandPieces.IsValid())
             {
-                Recursive_GetValidCommand(commandArrays, new CommandArray(), 0);
+                Recursive_GetCommand(commandArrays, new CommandArray(), 0);
             }
 
             return commandArrays;
         }
-        public List<CommandArray> GetValidCommandStringsStartingWith(string commandStart)
+        public List<CommandArray> GetCommandOptionsStartingWith(string commandStart)
         {
             List<CommandArray> commandArrays = new();
             var startArray = new CommandArray(commandStart);
 
             if (m_commandPieces.IsValid())
             {
-                Recursive_GetValidCommandStartingWith(commandArrays, new CommandArray(), 0, startArray);
+                Recursive_GetCommandStartingWith(commandArrays, new CommandArray(), 0, startArray);
             }
 
             return commandArrays;
         }
 
-        private void Recursive_GetValidCommand(List<CommandArray> commandArrays, CommandArray currentArray, int pieceIndex)
+        private void Recursive_GetCommand(List<CommandArray> commandArrays, CommandArray currentArray, int pieceIndex)
         {
             CommandArray nextArray;
 
@@ -198,11 +243,11 @@ namespace Dhs5.Utility.Console
                 }
                 else
                 {
-                    Recursive_GetValidCommand(commandArrays, nextArray, pieceIndex + 1);
+                    Recursive_GetCommand(commandArrays, nextArray, pieceIndex + 1);
                 }
             }
         }
-        private void Recursive_GetValidCommandStartingWith(List<CommandArray> commandArrays, CommandArray currentArray, int pieceIndex, CommandArray startArray)
+        private void Recursive_GetCommandStartingWith(List<CommandArray> commandArrays, CommandArray currentArray, int pieceIndex, CommandArray startArray)
         {
             CommandArray nextArray;
 
@@ -220,11 +265,45 @@ namespace Dhs5.Utility.Console
                     }
                     else
                     {
-                        if (nextArray.Count > startArray.Count) Recursive_GetValidCommand(commandArrays, nextArray, pieceIndex + 1);
-                        else Recursive_GetValidCommandStartingWith(commandArrays, nextArray, pieceIndex + 1, startArray);
+                        if (nextArray.Count > startArray.Count) Recursive_GetCommand(commandArrays, nextArray, pieceIndex + 1);
+                        else Recursive_GetCommandStartingWith(commandArrays, nextArray, pieceIndex + 1, startArray);
                     }
                 }
             }
+        }
+
+        #endregion
+
+        #region Valid Command
+
+        public bool IsCommandValid(string rawCommand, out ValidCommand validCommand)
+        {
+            rawCommand = rawCommand.Trim();
+            string currentStr = rawCommand;
+            object[] parameters = new object[m_commandPieces.Count];
+
+            for (int i = 0; i < m_commandPieces.Count; i++)
+            {
+                if (m_commandPieces[i].IsCommandValid(currentStr, out object param, out string nextStr))
+                {
+                    parameters[i] = param;
+                    currentStr = nextStr;
+                }
+                else
+                {
+                    validCommand = ValidCommand.Invalid();
+                    return false;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentStr))
+            {
+                validCommand = ValidCommand.Invalid();
+                return false;
+            }
+
+            validCommand = new ValidCommand(this, rawCommand, parameters);
+            return true;
         }
 
         #endregion
@@ -240,6 +319,7 @@ namespace Dhs5.Utility.Console
 
         protected ConsoleCommand m_command;
 
+        protected SerializedProperty p_script;
         protected SerializedProperty p_commandPieces;
         protected List<string> m_excludedProperties;
 
@@ -256,9 +336,11 @@ namespace Dhs5.Utility.Console
         {
             m_command = (ConsoleCommand)target;
 
+            p_script = serializedObject.FindProperty("m_Script");
             p_commandPieces = serializedObject.FindProperty("m_commandPieces");
 
             m_excludedProperties = new();
+            m_excludedProperties.Add(p_script.propertyPath);
             m_excludedProperties.Add(p_commandPieces.propertyPath);
 
             CreatePiecesList();
@@ -276,7 +358,6 @@ namespace Dhs5.Utility.Console
 
             EditorGUILayout.Space(15f);
 
-            //EditorGUILayout.PropertyField(p_commandPieces);
             m_piecesList.DoLayoutList();
 
             EditorGUILayout.Space(15f);
@@ -284,12 +365,18 @@ namespace Dhs5.Utility.Console
             m_previewOpen = EditorGUILayout.Foldout(m_previewOpen, "Preview", true);
             if (m_previewOpen)
             {
+                Color guiColor = GUI.color;
+                if (!string.IsNullOrWhiteSpace(m_previewCommandStart))
+                {
+                    GUI.color = m_command.IsCommandValid(m_previewCommandStart, out _) ? Color.green : Color.red;
+                }
                 m_previewCommandStart = EditorGUILayout.TextField(m_previewCommandStart);
+                GUI.color = guiColor;
 
                 var validCommands = 
                     string.IsNullOrWhiteSpace(m_previewCommandStart) ? 
-                    m_command.GetValidCommandStrings() : 
-                    m_command.GetValidCommandStringsStartingWith(m_previewCommandStart);
+                    m_command.GetCommandOptions() : 
+                    m_command.GetCommandOptionsStartingWith(m_previewCommandStart);
 
                 var previewRect = EditorGUILayout.GetControlRect(false, 150f);
                 previewRect.x += 4f;

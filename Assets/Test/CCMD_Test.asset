@@ -23,7 +23,7 @@ MonoBehaviour:
     - chara1
     - chara2
     - chara3
-    m_optional: 1
+    m_optional: 0
   - m_type: 2
     m_singleInput: slow
     m_multiInputs:
