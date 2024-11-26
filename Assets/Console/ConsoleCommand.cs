@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
-
+using System;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -89,7 +89,7 @@ namespace Dhs5.Utility.Console
 
                 for (int i = 0; i < m_list.Count; i++)
                 {
-                    if (m_list[i] == PARAMETER)
+                    if (ConsoleCommand.IsParameterString(m_list[i], out _))
                     {
                         sb.Append('_');
                     }
@@ -120,7 +120,8 @@ namespace Dhs5.Utility.Console
                         ownStr = GetAtIndex(i);
                         otherStr = other.GetAtIndex(i);
                         if (string.Compare(ownStr, otherStr, true) != 0 && 
-                            otherStr != PARAMETER)
+                            !IsFirstStrStartingLikeParameterOfTypeSecondStr(ownStr, otherStr))
+                            //!ConsoleCommand.IsParameterString(otherStr, out _))
                         {
                             return false;
                         }
@@ -128,7 +129,7 @@ namespace Dhs5.Utility.Console
 
                     ownStr = GetAtIndex(count - 1);
                     otherStr = other.GetAtIndex(count - 1);
-                    if (otherStr != PARAMETER &&
+                    if (!IsFirstStrStartingLikeParameterOfTypeSecondStr(ownStr, otherStr) &&
                         !otherStr.StartsWith(ownStr, System.StringComparison.OrdinalIgnoreCase))
                     {
                         return false;
@@ -136,6 +137,27 @@ namespace Dhs5.Utility.Console
                 }
 
                 return true;
+            }
+
+            private static bool IsFirstStrStartingLikeParameterOfTypeSecondStr(string firstStr, string secondStr)
+            {
+                if (!ConsoleCommand.IsParameterString(secondStr, out var paramType))
+                {
+                    return false;
+                }
+
+                switch (paramType)
+                {
+                    case ParamType.BOOL:
+                        return firstStr == "T" || firstStr == "F";
+                    case ParamType.INT:
+                        return int.TryParse(firstStr, out _);
+                    case ParamType.FLOAT:
+                        return float.TryParse(firstStr, out _);
+                    case ParamType.STRING:
+                        return true;
+                }
+                return false;
             }
 
             #endregion
@@ -186,10 +208,29 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
+        #region ENUM : Parameter Type
+
+        public enum ParamType
+        {
+            BOOL,
+            INT,
+            FLOAT,
+            STRING
+        }
+
+        #endregion
+
+
+        #region Consts
+
+        public const string PARAM_INT = "$INT$";
+        public const string PARAM_FLOAT = "$FLOAT$";
+        public const string PARAM_BOOL = "$BOOL$";
+        public const string PARAM_STR = "$STRING$";
+
+        #endregion
 
         #region Members
-
-        public const string PARAMETER = "$PARAM$";
 
         [SerializeField] private List<ConsoleCommandPiece> m_commandPieces;
 
@@ -304,6 +345,43 @@ namespace Dhs5.Utility.Console
 
             validCommand = new ValidCommand(this, rawCommand, parameters);
             return true;
+        }
+
+        #endregion
+
+
+        #region STATIC Utility
+
+        public static bool IsParameterString(string str, out ParamType paramType)
+        {
+            switch (str)
+            {
+                case PARAM_BOOL:
+                    paramType = ParamType.BOOL;
+                    return true;
+                case PARAM_INT:
+                    paramType = ParamType.INT;
+                    return true;
+                case PARAM_FLOAT:
+                    paramType = ParamType.FLOAT;
+                    return true;
+                case PARAM_STR:
+                    paramType = ParamType.STRING;
+                    return true;
+            }
+            paramType = ParamType.BOOL;
+            return false;
+        }
+        public static string GetParameterString(ParamType paramType)
+        {
+            switch (paramType)
+            {
+                case ParamType.BOOL: return PARAM_BOOL;
+                case ParamType.INT: return PARAM_INT;
+                case ParamType.FLOAT: return PARAM_FLOAT;
+                case ParamType.STRING: return PARAM_STR;
+            }
+            return null;
         }
 
         #endregion

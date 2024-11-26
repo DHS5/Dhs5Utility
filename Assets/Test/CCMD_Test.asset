@@ -16,6 +16,7 @@ MonoBehaviour:
   - m_type: 0
     m_singleInput: /tp character
     m_multiInputs: []
+    m_paramType: 0
     m_optional: 0
   - m_type: 1
     m_singleInput: /tp character
@@ -23,6 +24,7 @@ MonoBehaviour:
     - chara1
     - chara2
     - chara3
+    m_paramType: 0
     m_optional: 0
   - m_type: 2
     m_singleInput: slow
@@ -30,4 +32,5 @@ MonoBehaviour:
     - chara1
     - chara2
     - chara3
+    m_paramType: 2
     m_optional: 0

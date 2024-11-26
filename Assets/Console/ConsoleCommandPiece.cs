@@ -31,6 +31,7 @@ namespace Dhs5.Utility.Console
         // INPUTS
         [SerializeField] private string m_singleInput;
         [SerializeField] private string[] m_multiInputs;
+        [SerializeField] private ConsoleCommand.ParamType m_paramType;
 
         // PARAMETERS
         [SerializeField] private bool m_optional;
@@ -64,11 +65,7 @@ namespace Dhs5.Utility.Console
                     break;
 
                 case Type.PARAMETER:
-                    yield return ConsoleCommand.PARAMETER;
-                    if (m_optional)
-                    {
-                        yield return string.Empty;
-                    }
+                    yield return ConsoleCommand.GetParameterString(m_paramType);
                     break;
             }
         }
@@ -149,6 +146,7 @@ namespace Dhs5.Utility.Console
         SerializedProperty p_type;
         SerializedProperty p_singleInput;
         SerializedProperty p_multiInputs;
+        SerializedProperty p_paramType;
         SerializedProperty p_optional;
 
         const float SPACE = 2f;
@@ -162,6 +160,7 @@ namespace Dhs5.Utility.Console
             p_type = property.FindPropertyRelative("m_type");
             p_singleInput = property.FindPropertyRelative("m_singleInput");
             p_multiInputs = property.FindPropertyRelative("m_multiInputs");
+            p_paramType = property.FindPropertyRelative("m_paramType");
             p_optional = property.FindPropertyRelative("m_optional");
 
             var rect = new Rect(position.x, position.y, position.width, 20f);
@@ -187,6 +186,9 @@ namespace Dhs5.Utility.Console
                     
                 // PARAMETER
                 case 2:
+                    EditorGUI.PropertyField(rect, p_paramType);
+                    rect.y += EditorGUI.GetPropertyHeight(p_paramType);
+                    p_optional.boolValue = false;
                     break;
             }
 
@@ -194,10 +196,6 @@ namespace Dhs5.Utility.Console
             {
                 EditorGUI.PropertyField(rect, p_optional);
                 rect.y += EditorGUI.GetPropertyHeight(p_optional);
-            }
-            else
-            {
-                p_optional.boolValue = false;
             }
 
             EditorGUI.EndProperty();
@@ -212,6 +210,7 @@ namespace Dhs5.Utility.Console
             p_type = property.FindPropertyRelative("m_type");
             p_singleInput = property.FindPropertyRelative("m_singleInput");
             p_multiInputs = property.FindPropertyRelative("m_multiInputs");
+            p_paramType = property.FindPropertyRelative("m_paramType");
             p_optional = property.FindPropertyRelative("m_optional");
 
             float height = EditorGUI.GetPropertyHeight(p_type) + SPACE;
@@ -221,21 +220,19 @@ namespace Dhs5.Utility.Console
                 // SINGLE
                 case 0:
                     height += EditorGUI.GetPropertyHeight(p_singleInput) + SPACE;
+                    height += EditorGUI.GetPropertyHeight(p_optional);
                     break;
 
                 // MULTI
                 case 1:
                     height += EditorGUI.GetPropertyHeight(p_multiInputs) + SPACE;
+                    height += EditorGUI.GetPropertyHeight(p_optional);
                     break;
 
                 // PARAMETER
                 case 2:
+                    height += EditorGUI.GetPropertyHeight(p_paramType);
                     break;
-            }
-
-            if (p_type.enumValueIndex != 2)
-            {
-                height += EditorGUI.GetPropertyHeight(p_optional);
             }
 
             return height;
