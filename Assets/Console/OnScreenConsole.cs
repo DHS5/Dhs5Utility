@@ -28,6 +28,7 @@ namespace Dhs5.Utility.Console
         private bool m_justOpenedConsole;
         private string m_currentInputString;
         private bool m_isCurrentInputValid;
+        private Vector2 m_optionsScrollPos;
 
         #endregion
 
@@ -60,11 +61,11 @@ namespace Dhs5.Utility.Console
                 alignment = TextAnchor.MiddleLeft,
                 richText = false,
                 wordWrap = false,
-                fontSize = OnScreenConsoleSettings.InputStyleFontSize,
+                fontSize = OnScreenConsoleSettings.InputFontSize,
                 contentOffset = new Vector2(15, 0),
                 normal = new GUIStyleState()
                 {
-                    textColor = OnScreenConsoleSettings.InputStyleTextColor,
+                    textColor = OnScreenConsoleSettings.InputTextColor,
                 }
             };
             m_validInputStyle = new GUIStyle()
@@ -72,11 +73,11 @@ namespace Dhs5.Utility.Console
                 alignment = TextAnchor.MiddleLeft,
                 richText = false,
                 wordWrap = false,
-                fontSize = 40,
+                fontSize = OnScreenConsoleSettings.InputFontSize,
                 contentOffset = new Vector2(15, 0),
                 normal = new GUIStyleState()
                 {
-                    textColor = Color.green,
+                    textColor = OnScreenConsoleSettings.InputValidTextColor,
                 }
             };
             m_optionStyle = new GUIStyle()
@@ -84,11 +85,11 @@ namespace Dhs5.Utility.Console
                 alignment = TextAnchor.MiddleLeft,
                 richText = false,
                 wordWrap = false,
-                fontSize = 30,
+                fontSize = OnScreenConsoleSettings.OptionFontSize,
                 contentOffset = new Vector2(20, 0),
                 normal = new GUIStyleState()
                 {
-                    textColor = Color.white,
+                    textColor = OnScreenConsoleSettings.OptionTextColor,
                 }
             };
         }
@@ -210,6 +211,8 @@ namespace Dhs5.Utility.Console
                     }
                 }
             }
+
+            m_optionsScrollPos = new Vector2(0, OnScreenConsoleSettings.OptionRectHeight * Mathf.Max(0, m_currentInputOptions.Count - OnScreenConsoleSettings.MaxOptionsDisplayed));
         }
 
         #endregion
@@ -287,14 +290,14 @@ namespace Dhs5.Utility.Console
         #region GUI
 
         // PARAMETERS
-        private string m_inputControlName = "Command Input";
+        private const string InputControlName = "Command Input";
 
         private void OnGUI()
         {
             if (IsActive)
             {
                 var inputRect = new Rect(0f, Screen.height - OnScreenConsoleSettings.InputRectHeight, Screen.width * 0.8f, OnScreenConsoleSettings.InputRectHeight);
-                bool hasFocus = GUI.GetNameOfFocusedControl() == m_inputControlName;
+                bool hasFocus = GUI.GetNameOfFocusedControl() == InputControlName;
 
                 // EVENTS
                 OnHandleEvents(hasFocus);
@@ -336,7 +339,7 @@ namespace Dhs5.Utility.Console
         {
             EditorGUI.DrawRect(rect, hasFocus ? EditorGUIHelper.transparentBlack07 : EditorGUIHelper.transparentBlack03);
 
-            GUI.SetNextControlName(m_inputControlName);
+            GUI.SetNextControlName(InputControlName);
 
             EditorGUI.BeginChangeCheck();
             m_currentInputString = GUI.TextField(rect, m_currentInputString, m_isCurrentInputValid ? m_validInputStyle : m_inputStyle);
@@ -348,17 +351,27 @@ namespace Dhs5.Utility.Console
             if (m_justOpenedConsole)
             {
                 m_justOpenedConsole = false;
-                EditorGUI.FocusTextInControl(m_inputControlName);
+                EditorGUI.FocusTextInControl(InputControlName);
             }
         }
 
         private void OnOptionsGUI(float y, float width)
         {
-            var optionRect = new Rect(0, y, width, OnScreenConsoleSettings.OptionRectHeight);
+            float optionRectHeight = OnScreenConsoleSettings.OptionRectHeight;
 
-            for (int i = 0; i < Mathf.Min(OnScreenConsoleSettings.MaxOptionsDisplayed, m_currentInputOptions.Count); i++)
+            float scrollViewRectHeight = optionRectHeight * OnScreenConsoleSettings.MaxOptionsDisplayed;
+            var scrollViewRect = new Rect(0, y - scrollViewRectHeight, width, scrollViewRectHeight);
+            var viewRect = new Rect(0, 0, width - 25f, Mathf.Max(scrollViewRectHeight, optionRectHeight * m_currentInputOptions.Count));
+
+            EditorGUI.DrawRect(scrollViewRect, EditorGUIHelper.transparentBlack01);
+
+            m_optionsScrollPos = GUI.BeginScrollView(scrollViewRect, m_optionsScrollPos, viewRect);
+
+            var optionRect = new Rect(0, viewRect.height, viewRect.width, optionRectHeight);
+
+            for (int i = 0; i < m_currentInputOptions.Count; i++)
             {
-                optionRect.y -= OnScreenConsoleSettings.OptionRectHeight;
+                optionRect.y -= optionRectHeight;
                 EditorGUI.DrawRect(optionRect, i % 2 == 0 ? EditorGUIHelper.transparentBlack03 : EditorGUIHelper.transparentBlack05);
 
                 if (GUI.Button(optionRect, m_currentInputOptions[i].ToString(), m_optionStyle))
@@ -367,6 +380,8 @@ namespace Dhs5.Utility.Console
                     OnInputChanged();
                 }
             }
+
+            GUI.EndScrollView();
         }
 
         #endregion

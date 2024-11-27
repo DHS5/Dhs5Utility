@@ -99,7 +99,8 @@ namespace Dhs5.Utility.Console
                 case Type.MULTI:
                     for (int i = 0; i < m_multiInputs.Length; i++)
                     {
-                        if (rawCommandPiece.StartsWith(m_multiInputs[i], StringComparison.OrdinalIgnoreCase))
+                        if (rawCommandPiece.StartsWith(m_multiInputs[i], StringComparison.OrdinalIgnoreCase) &&
+                            (rawCommandPiece.Length == m_multiInputs[i].Length || rawCommandPiece[m_multiInputs[i].Length] == ' '))
                         {
                             parameter = i;
                             rawCommandLeft = rawCommandPiece.Substring(m_multiInputs[i].Length).Trim();

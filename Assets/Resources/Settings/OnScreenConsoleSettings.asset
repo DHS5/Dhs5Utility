@@ -18,7 +18,10 @@ MonoBehaviour:
     type: 3}
   m_inputRectWidth: 0.8
   m_inputRectHeight: 50
-  m_inputStyleFontSize: 40
-  m_inputStyleTextColor: {r: 1, g: 0, b: 0, a: 1}
+  m_inputFontSize: 40
+  m_inputTextColor: {r: 1, g: 1, b: 1, a: 1}
+  m_inputValidTextColor: {r: 0, g: 1, b: 0, a: 1}
   m_optionRectHeight: 30
   m_maxOptionsDisplayed: 10
+  m_optionFontSize: 25
+  m_optionTextColor: {r: 0.8319181, g: 1, b: 0.8160377, a: 1}

@@ -45,24 +45,30 @@ public class OnScreenConsoleSettings : CustomSettings<OnScreenConsoleSettings>
     [Tooltip("Width of the input rect in percent of the game view")]
     [SerializeField, Range(0.2f, 1f)] private float m_inputRectWidth = 0.8f;
     [Tooltip("Height of the input rect in pixels")]
-    [SerializeField, Min(0f)] private float m_inputRectHeight = 50f;
-    [SerializeField, Min(0f)] private int m_inputStyleFontSize = 40;
-    [SerializeField, ColorUsage(false)] private Color m_inputStyleTextColor = Color.white;
+    [SerializeField, Min(10f)] private float m_inputRectHeight = 50f;
+    [SerializeField, Min(10)] private int m_inputFontSize = 40;
+    [SerializeField, ColorUsage(false)] private Color m_inputTextColor = Color.white;
+    [SerializeField, ColorUsage(false)] private Color m_inputValidTextColor = Color.green;
 
     public static float InputRectWidthPercent => I != null ? I.m_inputRectWidth : 0.8f;
     public static float InputRectHeight => I != null ? I.m_inputRectHeight : 50f;
-    public static int InputStyleFontSize => I != null ? I.m_inputStyleFontSize : 40;
-    public static Color InputStyleTextColor => I != null ? I.m_inputStyleTextColor : Color.white;
+    public static int InputFontSize => I != null ? I.m_inputFontSize : 40;
+    public static Color InputTextColor => I != null ? I.m_inputTextColor : Color.white;
+    public static Color InputValidTextColor => I != null ? I.m_inputValidTextColor : Color.green;
 
     [Space(15f)]
 
     [Tooltip("Height of an option rect in pixels")]
     [SerializeField] private float m_optionRectHeight = 30f;
     [Tooltip("Max number of options displayed at the same time")]
-    [SerializeField] private int m_maxOptionsDisplayed = 10;
+    [SerializeField, Min(1)] private int m_maxOptionsDisplayed = 10;
+    [SerializeField, Min(10f)] private int m_optionFontSize = 30;
+    [SerializeField, ColorUsage(false)] private Color m_optionTextColor = Color.white;
 
     public static float OptionRectHeight => I != null ? I.m_optionRectHeight : 30f;
-    public static float MaxOptionsDisplayed => I != null ? I.m_maxOptionsDisplayed : 10;
+    public static int MaxOptionsDisplayed => I != null ? I.m_maxOptionsDisplayed : 10;
+    public static int OptionFontSize => I != null ? I.m_optionFontSize : 30;
+    public static Color OptionTextColor => I != null ? I.m_optionTextColor : Color.white;
 
     #endregion
 }

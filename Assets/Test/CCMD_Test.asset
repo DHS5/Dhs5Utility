@@ -24,6 +24,15 @@ MonoBehaviour:
     - chara1
     - chara2
     - chara3
+    - chara4
+    - chara5
+    - chara6
+    - chara7
+    - chara8
+    - chara9
+    - chara10
+    - chara11
+    - chara12
     m_paramType: 0
     m_optional: 0
   - m_type: 2
