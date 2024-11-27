@@ -17,7 +17,7 @@ namespace Dhs5.Utility.Console
     {
         #region STRUCT : CommandArray
 
-        public struct CommandArray
+        internal struct CommandArray
         {
             #region Constructors
 
@@ -89,9 +89,9 @@ namespace Dhs5.Utility.Console
 
                 for (int i = 0; i < m_list.Count; i++)
                 {
-                    if (ConsoleCommand.IsParameterString(m_list[i], out _))
+                    if (ConsoleCommand.IsParameterString(m_list[i], out var paramType))
                     {
-                        sb.Append('_');
+                        sb.Append(ConsoleCommand.ParamDefaultValueAsString(paramType));
                     }
                     else
                     {
@@ -139,6 +139,10 @@ namespace Dhs5.Utility.Console
                 return true;
             }
 
+            #endregion
+
+            #region STATIC Utility
+
             private static bool IsFirstStrStartingLikeParameterOfTypeSecondStr(string firstStr, string secondStr)
             {
                 if (!ConsoleCommand.IsParameterString(secondStr, out var paramType))
@@ -146,23 +150,8 @@ namespace Dhs5.Utility.Console
                     return false;
                 }
 
-                switch (paramType)
-                {
-                    case ParamType.BOOL:
-                        return firstStr == "T" || firstStr == "F";
-                    case ParamType.INT:
-                        return int.TryParse(firstStr, out _);
-                    case ParamType.FLOAT:
-                        return float.TryParse(firstStr, out _);
-                    case ParamType.STRING:
-                        return true;
-                }
-                return false;
+                return ConsoleCommand.IsParameterValid(firstStr, paramType, out _);
             }
-
-            #endregion
-
-            #region STATIC Utility
 
             public static bool StartTheSame(CommandArray a, CommandArray b)
             {
@@ -238,14 +227,14 @@ namespace Dhs5.Utility.Console
 
         #region Properties
 
-        public int PieceCount => m_commandPieces.Count;
+        private int PieceCount => m_commandPieces.Count;
 
         #endregion
 
 
         #region Command Options
 
-        public List<CommandArray> GetCommandOptions()
+        internal List<CommandArray> GetCommandOptions()
         {
             List<CommandArray> commandArrays = new();
 
@@ -256,7 +245,7 @@ namespace Dhs5.Utility.Console
 
             return commandArrays;
         }
-        public List<CommandArray> GetCommandOptionsStartingWith(string commandStart)
+        internal List<CommandArray> GetCommandOptionsStartingWith(string commandStart)
         {
             List<CommandArray> commandArrays = new();
             var startArray = new CommandArray(commandStart);
@@ -382,6 +371,62 @@ namespace Dhs5.Utility.Console
                 case ParamType.STRING: return PARAM_STR;
             }
             return null;
+        }
+
+        public static bool IsParameterValid(string paramStr, ParamType paramType, out object param)
+        {
+            param = null;
+            switch (paramType)
+            {
+                case ParamType.BOOL:
+                    if (paramStr == "T")
+                    {
+                        param = true;
+                        return true;
+                    }
+                    if (paramStr == "F")
+                    {
+                        param = false;
+                        return true;
+                    }
+                    return false;
+
+                case ParamType.INT:
+                    if (int.TryParse(paramStr, out var intVal))
+                    {
+                        param = intVal;
+                        return true;
+                    }
+                    return false;
+
+                case ParamType.FLOAT:
+                    if (float.TryParse(paramStr, out var floatVal))
+                    {
+                        param = floatVal;
+                        return true;
+                    }
+                    return false;
+
+                case ParamType.STRING:
+                    param = paramStr;
+                    return true;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public static string ParamDefaultValueAsString(ParamType paramType)
+        {
+            switch (paramType)
+            {
+                case ParamType.BOOL: return "F";
+                case ParamType.INT: return "0";
+                case ParamType.FLOAT: return "0.0";
+                case ParamType.STRING: return "_";
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
         #endregion

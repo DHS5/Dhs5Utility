@@ -110,17 +110,19 @@ namespace Dhs5.Utility.Console
 
                 case Type.PARAMETER:
                     int spaceIndex = rawCommandPiece.IndexOf(' ');
+                    string paramStr;
                     if (spaceIndex != -1)
                     {
-                        parameter = rawCommandPiece.Substring(0, spaceIndex).Trim();
+                        paramStr = rawCommandPiece.Substring(0, spaceIndex).Trim();
                         rawCommandLeft = rawCommandPiece.Substring(spaceIndex).Trim();
                     }
                     else
                     {
-                        parameter = rawCommandPiece;
+                        paramStr = rawCommandPiece;
                         rawCommandLeft = string.Empty;
                     }
-                    return true;
+
+                    return ConsoleCommand.IsParameterValid(paramStr, m_paramType, out parameter);
             }
 
             if (m_optional)

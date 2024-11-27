@@ -104,7 +104,7 @@ namespace Dhs5.Utility.Settings
             m_editors = new();
 
             // Settings
-            m_settings = BaseSettings.GetAllInstances(t => BaseSettings.GetScope(t) == SettingsScope.Project);
+            m_settings = BaseSettings.GetAllInstances();// t => BaseSettings.GetScope(t) == SettingsScope.Project);
 
             // Paths, names & options
             m_names = new string[m_settings.Length];
@@ -113,7 +113,10 @@ namespace Dhs5.Utility.Settings
             for (int i = 0; i < m_settings.Length; i++)
             {
                 m_names[i] = m_settings[i].name.Contains("Settings") ? m_settings[i].name.Replace("Settings", "") : m_settings[i].name;
-                m_paths[i] = m_settings[i].Editor_GetPath().Replace("Project/", "");
+                var path = m_settings[i].Editor_GetPath();
+                if (path.Contains("Project")) path = path.Replace("Project/", "");
+                else if (path.Contains("Preferences")) path = path.Replace("Preferences/", "");
+                m_paths[i] = path;
                 m_options[i] = i;
             }
         }

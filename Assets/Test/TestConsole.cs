@@ -14,7 +14,7 @@ public class TestConsole : MonoBehaviour
             OnScreenConsole.Register(command, OnConsoleCommandValidated);
         }
 
-        OnScreenConsole.Open();
+        OnScreenConsole.Init();
     }
 
     private void OnConsoleCommandValidated(ConsoleCommand.ValidCommand command)

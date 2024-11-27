@@ -1,9 +1,12 @@
-using Dhs5.Utility.Editors;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
+
+#if UNITY_EDITOR
+using UnityEditor;
+using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Console
 {
@@ -14,6 +17,9 @@ namespace Dhs5.Utility.Console
         #region INSTANCE
 
         #region Members
+
+        private InputAction m_openConsoleAction;
+        private InputAction m_closeConsoleAction;
 
         private GUIStyle m_inputStyle;
         private GUIStyle m_validInputStyle;
@@ -32,6 +38,16 @@ namespace Dhs5.Utility.Console
         #endregion
 
         #region Core Behaviour
+
+        private void OnEnable()
+        {
+            InitInputs();
+        }
+        private void OnDisable()
+        {
+            EnableOpenConsoleInput(false);
+            EnableCloseConsoleInput(false);
+        }
 
         private void Start()
         {
@@ -75,17 +91,68 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
+        #region Inputs Management
+
+        private void InitInputs()
+        {
+            if (OnScreenConsoleSettings.HasOpenConsoleInput(out var openAction))
+            {
+                m_openConsoleAction = openAction;
+                if (!IsActive) m_openConsoleAction.performed += OpenConsole;
+            }
+            if (OnScreenConsoleSettings.HasCloseConsoleInput(out var closeAction))
+            {
+                m_closeConsoleAction = closeAction;
+                if (IsActive) m_closeConsoleAction.performed += CloseConsole;
+            }
+        }
+        private void EnableOpenConsoleInput(bool enable)
+        {
+            if (m_openConsoleAction != null)
+            {
+                if (enable) m_openConsoleAction.performed += OpenConsole;
+                else m_openConsoleAction.performed -= OpenConsole;
+            }
+        }
+        private void EnableCloseConsoleInput(bool enable)
+        {
+            if (m_closeConsoleAction != null)
+            {
+                if (enable) m_closeConsoleAction.performed += CloseConsole;
+                else m_closeConsoleAction.performed -= CloseConsole;
+            }
+        }
+
+        #endregion
+
         #region Activation
 
         public void OpenConsole()
         {
+            if (IsActive) return;
+
+            EnableOpenConsoleInput(false);
+            EnableCloseConsoleInput(true);
             IsActive = true;
+
             m_currentInputString = string.Empty;
             m_justOpenedConsole = true;
         }
+        private void OpenConsole(InputAction.CallbackContext callbackContext)
+        {
+            OpenConsole();
+        }
         private void CloseConsole()
         {
+            if (!IsActive) return;
+
+            EnableOpenConsoleInput(true);
+            EnableCloseConsoleInput(false);
             IsActive = false;
+        }
+        private void CloseConsole(InputAction.CallbackContext callbackContext)
+        {
+            CloseConsole();
         }
 
         #endregion
@@ -169,6 +236,34 @@ namespace Dhs5.Utility.Console
             }
 
             ValidatedInConsole?.Invoke(m_currentInputString);
+            AddToPreviousCommands(m_currentInputString);
+
+            m_currentInputString = string.Empty;
+        }
+
+        #endregion
+
+        #region Previous Commands
+
+        private List<string> m_previousCommands = new();
+        private int m_previousCommandMarker = 0;
+
+        private void AddToPreviousCommands(string cmd)
+        {
+            if (m_previousCommands.Count > 100) m_previousCommands.RemoveAt(0);
+            m_previousCommands.Add(cmd);
+            m_previousCommandMarker = m_previousCommands.Count;
+        }
+
+        private void OnGetPreviousCommand()
+        {
+            m_previousCommandMarker = Mathf.Clamp(m_previousCommandMarker - 1, 0, m_previousCommands.Count - 1);
+            m_currentInputString = m_previousCommands[m_previousCommandMarker];
+        }
+        private void OnGetNextCommand()
+        {
+            m_previousCommandMarker = Mathf.Clamp(m_previousCommandMarker + 1, 0, m_previousCommands.Count);
+            m_currentInputString = m_previousCommandMarker == m_previousCommands.Count ? string.Empty : m_previousCommands[m_previousCommandMarker];
         }
 
         #endregion
@@ -200,31 +295,37 @@ namespace Dhs5.Utility.Console
                 bool hasFocus = GUI.GetNameOfFocusedControl() == m_inputControlName;
 
                 // EVENTS
-                if (Event.current.type == EventType.KeyDown)
-                {
-                    switch (Event.current.keyCode)
-                    {
-                        case KeyCode.Return:
-                            if (hasFocus)
-                            {
-                                Event.current.Use();
-                                Validate();
-                                CloseConsole();
-                            }
-                            return;
-                        case KeyCode.Escape:
-                            Event.current.Use();
-                            CloseConsole();
-                            return;
-                    }
-                }
+                OnHandleEvents(hasFocus);
 
+                // INPUT
                 OnInputGUI(inputRect, hasFocus);
 
                 // OPTIONS
                 if (hasFocus && !string.IsNullOrWhiteSpace(m_currentInputString))
                 {
                     OnOptionsGUI(new Rect(0f, inputRect.y - m_optionsRectHeight, inputRect.width, m_optionsRectHeight));
+                }
+            }
+        }
+
+        private void OnHandleEvents(bool hasFocus)
+        {
+            if (hasFocus && Event.current.type == EventType.KeyDown)
+            {
+                switch (Event.current.keyCode)
+                {
+                    case KeyCode.Return:
+                        Event.current.Use();
+                        Validate();
+                        break;
+
+                    case KeyCode.UpArrow:
+                        OnGetPreviousCommand();
+                        break;
+                    
+                    case KeyCode.DownArrow:
+                        OnGetNextCommand();
+                        break;
                 }
             }
         }
@@ -314,6 +415,10 @@ namespace Dhs5.Utility.Console
 
         #region Activation
 
+        public static void Init()
+        {
+            GetInstance();
+        }
         public static void Open()
         {
             GetInstance().OpenConsole();
@@ -342,3 +447,5 @@ namespace Dhs5.Utility.Console
         #endregion
     }
 }
+
+#endif

@@ -32,5 +32,5 @@ MonoBehaviour:
     - chara1
     - chara2
     - chara3
-    m_paramType: 2
+    m_paramType: 1
     m_optional: 0
