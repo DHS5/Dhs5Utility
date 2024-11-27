@@ -16,3 +16,9 @@ MonoBehaviour:
     type: 3}
   m_closeInputRef: {fileID: 3807760221207014426, guid: 9368637356315ca4eacc57f5450bf078,
     type: 3}
+  m_inputRectWidth: 0.8
+  m_inputRectHeight: 50
+  m_inputStyleFontSize: 40
+  m_inputStyleTextColor: {r: 1, g: 0, b: 0, a: 1}
+  m_optionRectHeight: 30
+  m_maxOptionsDisplayed: 10

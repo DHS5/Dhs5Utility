@@ -32,7 +32,7 @@ namespace Dhs5.Utility.Settings
         // --- GUI Members ---
 
         private Vector2 m_scrollPosition;
-        private int m_currentSettingsSelection;
+        private int m_currentSelection;
 
         #endregion
 
@@ -54,12 +54,13 @@ namespace Dhs5.Utility.Settings
 
         private void OnGUI()
         {
-            m_currentSettingsSelection = EditorGUILayout.IntPopup(m_currentSettingsSelection, m_paths, m_options);
+            var toolbarRect = EditorGUILayout.GetControlRect(false, 20f);
+            OnToolbarGUI(toolbarRect);
 
-            if (m_currentSettingsSelection >= 0)
+            if (m_currentSelection >= 0)
             {
                 EditorGUILayout.Space(5f);
-                EditorGUILayout.LabelField(m_names[m_currentSettingsSelection], EditorGUIHelper.bigTitleLabel);
+                EditorGUILayout.LabelField(m_names[m_currentSelection], EditorGUIHelper.bigTitleLabel);
 
                 EditorGUILayout.Space(5f);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
@@ -67,7 +68,7 @@ namespace Dhs5.Utility.Settings
 
                 m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition);
 
-                OnSettingsGUI(m_currentSettingsSelection);
+                OnSettingsGUI(m_currentSelection);
 
                 EditorGUILayout.EndScrollView();
             }
@@ -76,6 +77,27 @@ namespace Dhs5.Utility.Settings
         #endregion
 
         #region GUI
+
+        private void OnToolbarGUI(Rect rect)
+        {
+            rect.x = 0f;
+            rect.y = 0f;
+            rect.width = position.width;
+
+            GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
+
+            float buttonsWidth = 40f;
+            int buttonsCount = 1;
+
+            var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
+            m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
+
+            var refreshButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
+            if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
+            {
+                GetSettings();
+            }
+        }
 
         private void OnSettingsGUI(int settingsIndex)
         {

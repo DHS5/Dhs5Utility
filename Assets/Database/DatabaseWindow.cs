@@ -61,13 +61,8 @@ namespace Dhs5.Utility.Databases
 
         private void OnGUI()
         {
-            var selectionRect = EditorGUILayout.GetControlRect(false, 20f);
-            m_currentSelection = EditorGUI.IntPopup(new Rect(selectionRect.x, selectionRect.y, selectionRect.width - 40f, selectionRect.height),
-                m_currentSelection, m_paths, m_options);
-            if (GUI.Button(new Rect(selectionRect.x + selectionRect.width - 38f, selectionRect.y, 38f, selectionRect.height), EditorGUIHelper.RefreshIcon))
-            {
-                GetDatabases();
-            }
+            var toolbarRect = EditorGUILayout.GetControlRect(false, 20f);
+            OnToolbarGUI(toolbarRect);
 
             if (m_currentSelection >= 0)
             {
@@ -126,6 +121,27 @@ namespace Dhs5.Utility.Databases
         #endregion
 
         #region GUI
+
+        private void OnToolbarGUI(Rect rect)
+        {
+            rect.x = 0f;
+            rect.y = 0f;
+            rect.width = position.width;
+
+            GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
+
+            float buttonsWidth = 40f;
+            int buttonsCount = 1;
+
+            var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
+            m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
+
+            var refreshButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
+            if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
+            {
+                GetDatabases();
+            }
+        }
 
         private void OnPreviewButtonGUI(Rect rect)
         {

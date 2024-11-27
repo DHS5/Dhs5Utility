@@ -49,18 +49,22 @@ namespace Dhs5.Utility.Console
             EnableCloseConsoleInput(false);
         }
 
-        private void Start()
+        #endregion
+
+        #region Styles
+
+        private void InitStyles()
         {
             m_inputStyle = new GUIStyle()
             {
                 alignment = TextAnchor.MiddleLeft,
                 richText = false,
                 wordWrap = false,
-                fontSize = 40,
+                fontSize = OnScreenConsoleSettings.InputStyleFontSize,
                 contentOffset = new Vector2(15, 0),
                 normal = new GUIStyleState()
                 {
-                    textColor = Color.white,
+                    textColor = OnScreenConsoleSettings.InputStyleTextColor,
                 }
             };
             m_validInputStyle = new GUIStyle()
@@ -137,6 +141,7 @@ namespace Dhs5.Utility.Console
 
             m_currentInputString = string.Empty;
             m_justOpenedConsole = true;
+            InitStyles();
         }
         private void OpenConsole(InputAction.CallbackContext callbackContext)
         {
@@ -283,15 +288,12 @@ namespace Dhs5.Utility.Console
 
         // PARAMETERS
         private string m_inputControlName = "Command Input";
-        float m_inputRectHeight = 50f;
-        float m_optionRectHeight = 30f;
-        float m_optionsRectHeight = 300f;
 
         private void OnGUI()
         {
             if (IsActive)
             {
-                var inputRect = new Rect(0f, Screen.height - m_inputRectHeight, Screen.width * 0.8f, m_inputRectHeight);
+                var inputRect = new Rect(0f, Screen.height - OnScreenConsoleSettings.InputRectHeight, Screen.width * 0.8f, OnScreenConsoleSettings.InputRectHeight);
                 bool hasFocus = GUI.GetNameOfFocusedControl() == m_inputControlName;
 
                 // EVENTS
@@ -303,7 +305,7 @@ namespace Dhs5.Utility.Console
                 // OPTIONS
                 if (hasFocus && !string.IsNullOrWhiteSpace(m_currentInputString))
                 {
-                    OnOptionsGUI(new Rect(0f, inputRect.y - m_optionsRectHeight, inputRect.width, m_optionsRectHeight));
+                    OnOptionsGUI(inputRect.y, inputRect.width);
                 }
             }
         }
@@ -350,26 +352,19 @@ namespace Dhs5.Utility.Console
             }
         }
 
-        private void OnOptionsGUI(Rect rect)
+        private void OnOptionsGUI(float y, float width)
         {
-            var optionRect = new Rect(rect.x, rect.y + rect.height, rect.width, m_optionRectHeight);
+            var optionRect = new Rect(0, y, width, OnScreenConsoleSettings.OptionRectHeight);
 
-            for (int i = 0; i < m_currentInputOptions.Count; i++)
+            for (int i = 0; i < Mathf.Min(OnScreenConsoleSettings.MaxOptionsDisplayed, m_currentInputOptions.Count); i++)
             {
-                optionRect.y -= m_optionRectHeight;
-                if (optionRect.y >= rect.y)
+                optionRect.y -= OnScreenConsoleSettings.OptionRectHeight;
+                EditorGUI.DrawRect(optionRect, i % 2 == 0 ? EditorGUIHelper.transparentBlack03 : EditorGUIHelper.transparentBlack05);
+
+                if (GUI.Button(optionRect, m_currentInputOptions[i].ToString(), m_optionStyle))
                 {
-                    EditorGUI.DrawRect(optionRect, i % 2 == 0 ? EditorGUIHelper.transparentBlack03 : EditorGUIHelper.transparentBlack05);
-                    //EditorGUI.LabelField(optionRect, m_currentInputOptions[i], m_optionStyle);
-                    if (GUI.Button(optionRect, m_currentInputOptions[i].ToString(), m_optionStyle))
-                    {
-                        m_currentInputString = m_currentInputOptions[i].ToStringWithoutParams();
-                        OnInputChanged();
-                    }
-                }
-                else
-                {
-                    break;
+                    m_currentInputString = m_currentInputOptions[i].ToStringWithoutParams();
+                    OnInputChanged();
                 }
             }
         }
