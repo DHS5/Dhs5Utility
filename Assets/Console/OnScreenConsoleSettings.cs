@@ -1,3 +1,4 @@
+using Dhs5.Utility.Console;
 using Dhs5.Utility.Settings;
 using System.Collections;
 using System.Collections.Generic;
@@ -69,6 +70,16 @@ public class OnScreenConsoleSettings : CustomSettings<OnScreenConsoleSettings>
     public static int MaxOptionsDisplayed => I != null ? I.m_maxOptionsDisplayed : 10;
     public static int OptionFontSize => I != null ? I.m_optionFontSize : 30;
     public static Color OptionTextColor => I != null ? I.m_optionTextColor : Color.white;
+
+    #endregion
+
+    #region Predefined Commands
+
+    [Header("Predefined Commands")]
+
+    [SerializeField] private List<PredefinedConsoleCommand> m_predefinedCommands;
+
+    public static IEnumerable<PredefinedConsoleCommand> PredefinedCommands => I != null ? I.m_predefinedCommands : null;
 
     #endregion
 }

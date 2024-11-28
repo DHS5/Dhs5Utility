@@ -231,6 +231,18 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
+        #region Protected Access
+
+        protected void SetCommandPieces(List<ConsoleCommandPiece> commandPieces)
+        {
+            if (m_commandPieces == null) m_commandPieces = new();
+            else m_commandPieces.Clear();
+
+            m_commandPieces.AddRange(commandPieces);
+        }
+
+        #endregion
+
 
         #region Command Options
 
@@ -485,6 +497,13 @@ namespace Dhs5.Utility.Console
 
             EditorGUILayout.Space(15f);
 
+            OnPreviewGUI();
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        protected void OnPreviewGUI()
+        {
             m_previewOpen = EditorGUILayout.Foldout(m_previewOpen, "Preview", true);
             if (m_previewOpen)
             {
@@ -496,9 +515,9 @@ namespace Dhs5.Utility.Console
                 m_previewCommandStart = EditorGUILayout.TextField(m_previewCommandStart);
                 GUI.color = guiColor;
 
-                var validCommands = 
-                    string.IsNullOrWhiteSpace(m_previewCommandStart) ? 
-                    m_command.GetCommandOptions() : 
+                var validCommands =
+                    string.IsNullOrWhiteSpace(m_previewCommandStart) ?
+                    m_command.GetCommandOptions() :
                     m_command.GetCommandOptionsStartingWith(m_previewCommandStart);
 
                 var previewRect = EditorGUILayout.GetControlRect(false, 150f);
@@ -521,8 +540,6 @@ namespace Dhs5.Utility.Console
 
                 GUI.EndScrollView();
             }
-
-            serializedObject.ApplyModifiedProperties();
         }
 
         #endregion

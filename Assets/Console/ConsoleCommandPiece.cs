@@ -38,6 +38,41 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
+        #region Constructors
+
+        public ConsoleCommandPiece(bool optional, string singleInput)
+        {
+            m_type = Type.SINGLE;
+
+            m_singleInput = singleInput;
+            m_multiInputs = null;
+            m_paramType = ConsoleCommand.ParamType.BOOL;
+
+            m_optional = optional;
+        }
+        public ConsoleCommandPiece(bool optional, params string[] multiInputs)
+        {
+            m_type = Type.MULTI;
+
+            m_singleInput = null;
+            m_multiInputs = multiInputs;
+            m_paramType = ConsoleCommand.ParamType.BOOL;
+
+            m_optional = optional;
+        }
+        public ConsoleCommandPiece(ConsoleCommand.ParamType paramType)
+        {
+            m_type = Type.PARAMETER;
+
+            m_singleInput = null;
+            m_multiInputs = null;
+            m_paramType = paramType;
+
+            m_optional = false;
+        }
+
+        #endregion
+
 
         #region Accessors
 

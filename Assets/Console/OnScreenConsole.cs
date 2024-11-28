@@ -43,14 +43,17 @@ namespace Dhs5.Utility.Console
         private void OnEnable()
         {
             InitInputs();
+            RegisterPredefinedCommands(true);
         }
         private void OnDisable()
         {
+            RegisterPredefinedCommands(false);
             EnableOpenConsoleInput(false);
             EnableCloseConsoleInput(false);
         }
 
         #endregion
+
 
         #region Styles
 
@@ -159,6 +162,28 @@ namespace Dhs5.Utility.Console
         private void CloseConsole(InputAction.CallbackContext callbackContext)
         {
             CloseConsole();
+        }
+
+        #endregion
+
+        #region Predefined Commands
+
+        private void RegisterPredefinedCommands(bool register)
+        {
+            if (register)
+            {
+                foreach (var cmd in OnScreenConsoleSettings.PredefinedCommands)
+                {
+                    RegisterCommand(cmd, cmd.Callback);
+                }
+            }
+            else
+            {
+                foreach (var cmd in OnScreenConsoleSettings.PredefinedCommands)
+                {
+                    UnregisterCommand(cmd, cmd.Callback);
+                }
+            }
         }
 
         #endregion
