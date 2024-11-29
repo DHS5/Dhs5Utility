@@ -3,10 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
-using static UnityEngine.Rendering.VolumeComponent;
-using UnityEngine.UIElements;
-
-
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -39,18 +35,7 @@ namespace Dhs5.Utility.Databases
 #if UNITY_EDITOR
                 else
                 {
-                    instance = CreateInstance(type) as BaseDatabase;
-
-                    if (!Directory.Exists(Application.dataPath + "/Resources/Databases"))
-                    {
-                        if (!Directory.Exists(Application.dataPath + "/Resources"))
-                        {
-                            Directory.CreateDirectory(Application.dataPath + "/Resources");
-                        }
-                        Directory.CreateDirectory(Application.dataPath + "/Resources/Databases");
-                    }
-
-                    AssetDatabase.CreateAsset(instance, "Assets/Resources/Databases/" + type.Name + ".asset");
+                    instance = BaseDatabase.CreateAssetOfType(type, "Assets/Resources/Databases/" + type.Name + ".asset") as BaseDatabase;
                     AssetDatabase.SaveAssets();
                 }
 #endif
@@ -63,14 +48,14 @@ namespace Dhs5.Utility.Databases
         internal static BaseDatabase[] GetAllInstances(Func<Type, bool> predicate) => GetAllInstances(GetAllChildTypes(t => predicate.Invoke(t)));
         private static BaseDatabase[] GetAllInstances(Type[] childTypes)
         {
-            BaseDatabase[] settings = new BaseDatabase[childTypes.Length];
+            BaseDatabase[] databases = new BaseDatabase[childTypes.Length];
 
-            for (int i = 0; i < settings.Length; i++)
+            for (int i = 0; i < databases.Length; i++)
             {
-                settings[i] = GetInstance(childTypes[i]);
+                databases[i] = GetInstance(childTypes[i]);
             }
 
-            return settings;
+            return databases;
         }
 
         #endregion
@@ -244,6 +229,7 @@ namespace Dhs5.Utility.Databases
         public static ScriptableObject CreateScriptableAsset(Type type, string path, bool triggerRename = false)
         {
             if (!path.EndsWith(".asset")) path += ".asset";
+            EditorUtils.EnsureAssetParentDirectoryExistence(path);
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var obj = ScriptableObject.CreateInstance(type);
             if (obj != null)
@@ -257,6 +243,7 @@ namespace Dhs5.Utility.Databases
         public static T CreateScriptableAsset<T>(string path, bool triggerRename = false) where T : ScriptableObject
         {
             if (!path.EndsWith(".asset")) path += ".asset";
+            EditorUtils.EnsureAssetParentDirectoryExistence(path);
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var obj = ScriptableObject.CreateInstance<T>();
             if (obj != null)
@@ -292,6 +279,7 @@ namespace Dhs5.Utility.Databases
         public static GameObject CreateEmptyPrefab(string path, bool triggerRename = false)
         {
             if (!path.EndsWith(".prefab")) path += ".prefab";
+            EditorUtils.EnsureAssetParentDirectoryExistence(path);
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var template = new GameObject();
             var obj = PrefabUtility.SaveAsPrefabAsset(template, path, out var success);
@@ -318,6 +306,7 @@ namespace Dhs5.Utility.Databases
         // --- Scripts ---
         public static TextAsset CreateOrOverwriteScript(string path, string content)
         {
+            EditorUtils.EnsureAssetParentDirectoryExistence(path);
             File.WriteAllText(path, content);
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();

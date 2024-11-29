@@ -9,6 +9,7 @@ namespace Dhs5.Utility.Debuggers
     public static class Debugger
     {
         public const int MAX_DEBUGGER_LEVEL = 2;
+        private const float DEFAULT_SCREEN_LOG_DURATION = 5.0f;
 
         #region Database Access
 
@@ -52,9 +53,9 @@ namespace Dhs5.Utility.Debuggers
         {
             StringBuilder sb = new();
 
-            int maxSize = onScreen ? 20 : 14;
+            int size = onScreen ? DebuggerSettings.GetScreenLogSize(level) : DebuggerSettings.GetConsoleLogSize(level);
             sb.Append("<size=");
-            sb.Append(maxSize - 2*level);
+            sb.Append(size);
             sb.Append(">");
             sb.Append("<color=#");
             sb.Append(element.ColorString);
@@ -164,20 +165,20 @@ namespace Dhs5.Utility.Debuggers
         }
         
         // --- ON SCREEN ---
-        public static void LogOnScreen(Enum e, object message, LogType logType = LogType.Log, int level = MAX_DEBUGGER_LEVEL)
+        public static void LogOnScreen(Enum e, object message, LogType logType = LogType.Log, int level = MAX_DEBUGGER_LEVEL, float duration = DEFAULT_SCREEN_LOG_DURATION)
         {
             var element = GetElement(e);
             if (element != null)
             {
-                Internal_LogOnScreen(message, element, logType, level, 5f);
+                Internal_LogOnScreen(message, element, logType, level, DebuggerSettings.DefaultScreenLogDuration);
             }
         }
-        public static void LogOnScreen(int key, object message, LogType logType = LogType.Log, int level = MAX_DEBUGGER_LEVEL)
+        public static void LogOnScreen(int key, object message, LogType logType = LogType.Log, int level = MAX_DEBUGGER_LEVEL, float duration = DEFAULT_SCREEN_LOG_DURATION)
         {
             var element = GetElement(key);
             if (element != null)
             {
-                Internal_LogOnScreen(message, element, logType, level, 5f);
+                Internal_LogOnScreen(message, element, logType, level, DebuggerSettings.DefaultScreenLogDuration);
             }
         }
 
@@ -203,7 +204,7 @@ namespace Dhs5.Utility.Debuggers
 
             if (onScreen)
             {
-                Internal_LogOnScreen(message, element, logType, level, 5f);
+                Internal_LogOnScreen(message, element, logType, level, DebuggerSettings.DefaultScreenLogDuration);
             }
         }
 

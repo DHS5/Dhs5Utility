@@ -192,11 +192,11 @@ namespace Dhs5.Utility.Editors
 
         #region Directory Utility
 
-        public static void AssureDirectoryExistence(string path)
+        public static void EnsureDirectoryExistence(string directoryPath)
         {
-            if (!Directory.Exists(path))
+            if (!Directory.Exists(directoryPath))
             {
-                string[] pathMembers = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                string[] pathMembers = directoryPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
                 string currentPath = "";
 
                 for (int i = 0; i < pathMembers.Length; i++)
@@ -207,6 +207,29 @@ namespace Dhs5.Utility.Editors
                         Directory.CreateDirectory(currentPath);
                     }
                     currentPath += "/";
+                }
+            }
+        }
+        public static void EnsureAssetParentDirectoryExistence(string assetPath)
+        {
+            var index = assetPath.LastIndexOf('/');
+            if (index != -1)
+            {
+                string directoryPath = assetPath.Substring(0, index);
+                if (!Directory.Exists(directoryPath))
+                {
+                    string[] pathMembers = directoryPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    string currentPath = "";
+
+                    for (int i = 0; i < pathMembers.Length; i++)
+                    {
+                        currentPath += pathMembers[i];
+                        if (!Directory.Exists(currentPath))
+                        {
+                            Directory.CreateDirectory(currentPath);
+                        }
+                        currentPath += "/";
+                    }
                 }
             }
         }

@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Dhs5.Utility.Editors;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Settings
 {
@@ -60,7 +60,11 @@ namespace Dhs5.Utility.Settings
             if (m_currentSelection >= 0)
             {
                 EditorGUILayout.Space(5f);
-                EditorGUILayout.LabelField(m_names[m_currentSelection], EditorGUIHelper.bigTitleLabel);
+                if (GUILayout.Button(m_names[m_currentSelection], EditorGUIHelper.bigTitleLabel)
+                    && m_settings[m_currentSelection] != null)
+                {
+                    EditorUtils.PingObject(m_settings[m_currentSelection]);
+                }
 
                 EditorGUILayout.Space(5f);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);

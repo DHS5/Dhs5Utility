@@ -1,6 +1,8 @@
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
 using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
@@ -67,7 +69,11 @@ namespace Dhs5.Utility.Databases
             if (m_currentSelection >= 0)
             {
                 EditorGUILayout.Space(5f);
-                EditorGUILayout.LabelField(m_names[m_currentSelection], EditorGUIHelper.bigTitleLabel);
+                if (GUILayout.Button(m_names[m_currentSelection], EditorGUIHelper.bigTitleLabel)
+                    && m_databases[m_currentSelection] != null)
+                {
+                    EditorUtils.PingObject(m_databases[m_currentSelection]);
+                }
 
                 EditorGUILayout.Space(5f);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
@@ -227,3 +233,5 @@ namespace Dhs5.Utility.Databases
         #endregion
     }
 }
+
+#endif

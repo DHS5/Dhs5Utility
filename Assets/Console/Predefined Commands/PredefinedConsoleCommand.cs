@@ -43,22 +43,6 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
-        #region Registration
-
-        public void Register(bool register)
-        {
-            if (register)
-            {
-                OnScreenConsole.Register(this, OnCommandValidated);
-            }
-            else
-            {
-                OnScreenConsole.Unregister(this, OnCommandValidated);
-            }
-        }
-
-        #endregion
-
 
         #region Editor Methods
 

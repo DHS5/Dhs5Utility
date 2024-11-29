@@ -28,7 +28,7 @@ namespace Dhs5.Utility.Console
             if (validCommand.parameters.Length == 2
                 && validCommand.parameters[1] is float timeScale)
             {
-                Time.timeScale = timeScale;
+                Time.timeScale = Mathf.Max(0f, timeScale);
             }
         }
 

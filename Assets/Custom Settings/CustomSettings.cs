@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
+using Dhs5.Utility.Databases;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -35,18 +36,7 @@ namespace Dhs5.Utility.Settings
 #if UNITY_EDITOR
                 else
                 {
-                    instance = CreateInstance(type) as BaseSettings;
-
-                    if (!Directory.Exists(Application.dataPath + "/Resources/Settings"))
-                    {
-                        if (!Directory.Exists(Application.dataPath + "/Resources"))
-                        {
-                            Directory.CreateDirectory(Application.dataPath + "/Resources");
-                        }
-                        Directory.CreateDirectory(Application.dataPath + "/Resources/Settings");
-                    }
-
-                    AssetDatabase.CreateAsset(instance, "Assets/Resources/Settings/" + type.Name + ".asset");
+                    instance = BaseDatabase.CreateAssetOfType(type, "Assets/Resources/Settings/" + type.Name + ".asset") as BaseSettings;
                     AssetDatabase.SaveAssets();
                 }
 #endif

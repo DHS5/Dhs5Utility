@@ -78,7 +78,7 @@ namespace Dhs5.Utility.Databases
                 return false;
             }
             path = m_scriptFolder + "/" + m_enumName + ".cs";
-            EditorUtils.AssureDirectoryExistence(m_scriptFolder);
+            EditorUtils.EnsureDirectoryExistence(m_scriptFolder);
             return true;
         }
 
