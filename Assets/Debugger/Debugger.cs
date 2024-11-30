@@ -9,7 +9,7 @@ namespace Dhs5.Utility.Debuggers
     public static class Debugger
     {
         public const int MAX_DEBUGGER_LEVEL = 2;
-        private const float DEFAULT_SCREEN_LOG_DURATION = 5.0f;
+        public const float DEFAULT_SCREEN_LOG_DURATION = 5.0f;
 
         #region Database Access
 

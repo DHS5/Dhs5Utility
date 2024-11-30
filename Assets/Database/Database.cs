@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
+using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -762,7 +763,7 @@ namespace Dhs5.Utility.Databases
         {
             bool hasAtLeastOneButton = (refreshButton || addButton);
             DatabaseContentListRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? DatabaseContentListButtonsHeight : 0f));
-            EditorGUI.DrawRect(DatabaseContentListRect, EditorGUIHelper.transparentBlack01);
+            EditorGUI.DrawRect(DatabaseContentListRect, GUIHelper.transparentBlack01);
 
             bool needScrollRect = DatabaseContentListCount * DatabaseContentListElementHeight > DatabaseContentListRect.height;
             if (needScrollRect)
@@ -914,7 +915,7 @@ namespace Dhs5.Utility.Databases
         
         protected virtual void OnDatabaseContentListElementBackgroundGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
         {
-            EditorGUI.DrawRect(rect, selected ? EditorGUIHelper.transparentWhite01 : (index % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04));
+            EditorGUI.DrawRect(rect, selected ? GUIHelper.transparentWhite01 : (index % 2 == 0 ? GUIHelper.transparentBlack02 : GUIHelper.transparentBlack04));
         }
 
         protected virtual void OnDatabaseContentListNullElementGUI(Rect rect, int index, bool selected)
@@ -1009,7 +1010,7 @@ namespace Dhs5.Utility.Databases
             }
             if (CurrentEvent.type == EventType.Repaint)
             {
-                EditorGUIHelper.simpleIconButton.Draw(rect, EditorGUIHelper.MenuIcon, 0, false, hover);
+                GUIHelper.simpleIconButton.Draw(rect, EditorGUIHelper.MenuIcon, 0, false, hover);
             }
         }
 

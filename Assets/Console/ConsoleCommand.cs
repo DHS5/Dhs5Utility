@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
+using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -527,13 +528,13 @@ namespace Dhs5.Utility.Console
                 float scrollbarSpace = validCommands.Count > 7 ? 15f : 0f;
                 var viewRect = new Rect(0, 0, previewRect.width - scrollbarSpace, validCommands.Count * 20f);
 
-                EditorGUI.DrawRect(previewRect, EditorGUIHelper.transparentBlack02);
+                EditorGUI.DrawRect(previewRect, GUIHelper.transparentBlack02);
                 m_previewScrollPos = GUI.BeginScrollView(previewRect, m_previewScrollPos, viewRect);
 
                 var commandRect = new Rect(0, 0, viewRect.width, 20f);
                 for (int i = 0; i < validCommands.Count; i++)
                 {
-                    EditorGUI.DrawRect(commandRect, i % 2 == 0 ? EditorGUIHelper.transparentBlack02 : EditorGUIHelper.transparentBlack04);
+                    EditorGUI.DrawRect(commandRect, i % 2 == 0 ? GUIHelper.transparentBlack02 : GUIHelper.transparentBlack04);
                     EditorGUI.LabelField(commandRect, validCommands[i].ToString());
                     commandRect.y += 20f;
                 }
@@ -583,7 +584,7 @@ namespace Dhs5.Utility.Console
         // BACKGROUND
         protected virtual void OnDrawBackground(Rect rect, int index, bool active, bool focused)
         {
-            if (focused) EditorGUI.DrawRect(rect, EditorGUIHelper.transparentWhite01);
+            if (focused) EditorGUI.DrawRect(rect, GUIHelper.transparentWhite01);
             GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
         }
 

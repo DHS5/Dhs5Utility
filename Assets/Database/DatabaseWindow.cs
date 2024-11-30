@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -31,11 +32,14 @@ namespace Dhs5.Utility.Databases
         // --- GUI Members ---
 
         private Vector2 m_scrollPosition;
-        private int m_currentSelection;
         private bool m_previewOpen;
         private bool m_previewWasOpen;
         private float m_inspectorHeight;
         private float m_inspectorY;
+
+        // --- STATIC Members ---
+
+        private static int _currentSelection;
 
         // --- Parameters ---
 
@@ -66,20 +70,20 @@ namespace Dhs5.Utility.Databases
             var toolbarRect = EditorGUILayout.GetControlRect(false, 20f);
             OnToolbarGUI(toolbarRect);
 
-            if (m_currentSelection >= 0)
+            if (_currentSelection >= 0)
             {
                 EditorGUILayout.Space(5f);
-                if (GUILayout.Button(m_names[m_currentSelection], EditorGUIHelper.bigTitleLabel)
-                    && m_databases[m_currentSelection] != null)
+                if (GUILayout.Button(m_names[_currentSelection], GUIHelper.bigTitleLabel)
+                    && m_databases[_currentSelection] != null)
                 {
-                    EditorUtils.PingObject(m_databases[m_currentSelection]);
+                    EditorUtils.PingObject(m_databases[_currentSelection]);
                 }
 
                 EditorGUILayout.Space(5f);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
                 EditorGUILayout.Space(5f);
 
-                if (TryGetEditorAtIndex(m_currentSelection, out Editor editor))
+                if (TryGetEditorAtIndex(_currentSelection, out Editor editor))
                 {
                     bool hasPreview = editor.HasPreviewGUI();
                     float previewHeight = m_previewOpen ? m_previewWindowHeight + m_previewButtonHeight : m_previewButtonHeight;
@@ -140,7 +144,7 @@ namespace Dhs5.Utility.Databases
             int buttonsCount = 1;
 
             var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
-            m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
+            _currentSelection = EditorGUI.IntPopup(popupRect, _currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
 
             var refreshButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
@@ -151,8 +155,8 @@ namespace Dhs5.Utility.Databases
 
         private void OnPreviewButtonGUI(Rect rect)
         {
-            EditorGUI.DrawRect(rect, EditorGUIHelper.grey015);
-            EditorGUI.LabelField(rect, "Preview", EditorGUIHelper.centeredBoldLabel);
+            EditorGUI.DrawRect(rect, GUIHelper.grey015);
+            EditorGUI.LabelField(rect, "Preview", GUIHelper.centeredBoldLabel);
 
             if (Event.current.type == EventType.MouseDown
                 && rect.Contains(Event.current.mousePosition))

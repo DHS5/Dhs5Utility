@@ -3,10 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
-#if UNITY_EDITOR
-using UnityEditor;
-using Dhs5.Utility.Editors;
+using Dhs5.Utility.GUIs;
 
 namespace Dhs5.Utility.Console
 {
@@ -362,13 +359,13 @@ namespace Dhs5.Utility.Console
 
         private void OnInputGUI(Rect rect, bool hasFocus)
         {
-            EditorGUI.DrawRect(rect, hasFocus ? EditorGUIHelper.transparentBlack07 : EditorGUIHelper.transparentBlack03);
+            GUIHelper.DrawRect(rect, hasFocus ? GUIHelper.transparentBlack07 : GUIHelper.transparentBlack03);
 
             GUI.SetNextControlName(InputControlName);
 
-            EditorGUI.BeginChangeCheck();
+            GUIHelper.BeginChangeCheck();
             m_currentInputString = GUI.TextField(rect, m_currentInputString, m_isCurrentInputValid ? m_validInputStyle : m_inputStyle);
-            if (EditorGUI.EndChangeCheck())
+            if (GUIHelper.EndChangeCheck())
             {
                 OnInputChanged();
             }
@@ -376,7 +373,7 @@ namespace Dhs5.Utility.Console
             if (m_justOpenedConsole)
             {
                 m_justOpenedConsole = false;
-                EditorGUI.FocusTextInControl(InputControlName);
+                GUI.FocusControl(InputControlName);
             }
         }
 
@@ -388,7 +385,7 @@ namespace Dhs5.Utility.Console
             var scrollViewRect = new Rect(0, y - scrollViewRectHeight, width, scrollViewRectHeight);
             var viewRect = new Rect(0, 0, width - 25f, Mathf.Max(scrollViewRectHeight, optionRectHeight * m_currentInputOptions.Count));
 
-            EditorGUI.DrawRect(scrollViewRect, EditorGUIHelper.transparentBlack01);
+            GUIHelper.DrawRect(scrollViewRect, GUIHelper.transparentBlack01);
 
             m_optionsScrollPos = GUI.BeginScrollView(scrollViewRect, m_optionsScrollPos, viewRect);
 
@@ -397,7 +394,7 @@ namespace Dhs5.Utility.Console
             for (int i = 0; i < m_currentInputOptions.Count; i++)
             {
                 optionRect.y -= optionRectHeight;
-                EditorGUI.DrawRect(optionRect, i % 2 == 0 ? EditorGUIHelper.transparentBlack03 : EditorGUIHelper.transparentBlack05);
+                GUIHelper.DrawRect(optionRect, i % 2 == 0 ? GUIHelper.transparentBlack03 : GUIHelper.transparentBlack05);
 
                 if (GUI.Button(optionRect, m_currentInputOptions[i].ToString(), m_optionStyle))
                 {
@@ -482,5 +479,3 @@ namespace Dhs5.Utility.Console
         #endregion
     }
 }
-
-#endif

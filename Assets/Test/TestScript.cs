@@ -29,9 +29,9 @@ public class TestScript : MonoBehaviour, IDatabaseElement
         if (Time.time > lastUpdate + 0.75f)
         {
             lastUpdate = Time.time;
-            Debugger.LogOnScreen(0, "Test", LogType.Log);
-            Debugger.LogOnScreen(0, "Test", LogType.Warning);
-            Debugger.LogOnScreen(0, "Test", LogType.Error);
+            Debugger.LogOnScreen(0, "Test reogj trj grop trjl hp tr khpr tr khp  typh k typ hkph yp hy y pypy jp trpok z ^lf, ap dal dapd ka fk", LogType.Log, 2);
+            Debugger.LogOnScreen(0, "Test", LogType.Warning, 1);
+            Debugger.LogOnScreen(0, "Test", LogType.Error, 0);
         }
     }
 }

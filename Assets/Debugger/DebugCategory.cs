@@ -51,4 +51,8 @@ public static class DebugCategoryExtension
     {
         Debugger.LogAlways(category, message, logType, onScreen, context);
     }
+    public static void LogOnScreen(this DebugCategory category, object message, LogType logType = LogType.Log, int level = Debugger.MAX_DEBUGGER_LEVEL, float duration = Debugger.DEFAULT_SCREEN_LOG_DURATION)
+    {
+        Debugger.LogOnScreen(category, message, logType, level, duration);
+    }
 }

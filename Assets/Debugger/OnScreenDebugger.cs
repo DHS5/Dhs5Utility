@@ -2,11 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-#if UNITY_EDITOR
-using UnityEditor;
-using Dhs5.Utility.Editors;
-#endif
+using Dhs5.Utility.GUIs;
 
 namespace Dhs5.Utility.Debuggers
 {
@@ -32,11 +28,20 @@ namespace Dhs5.Utility.Debuggers
 
         private void Start()
         {
+            InitStyles();
+        }
+
+        #endregion
+
+        #region Styles
+
+        private void InitStyles()
+        {
             m_timeStyle = new GUIStyle()
             {
                 alignment = TextAnchor.MiddleRight,
-                wordWrap = false,
-                fontSize = 18,
+                wordWrap = true,
+                fontSize = DebuggerSettings.ScreenLogsTimeSize,
                 normal = new GUIStyleState()
                 {
                     textColor = Color.white,
@@ -46,7 +51,7 @@ namespace Dhs5.Utility.Debuggers
             {
                 alignment = TextAnchor.MiddleLeft,
                 richText = true,
-                wordWrap = false,
+                wordWrap = true,
                 fontSize = 20,
                 normal = new GUIStyleState()
                 {
@@ -159,48 +164,69 @@ namespace Dhs5.Utility.Debuggers
 
         #endregion
 
+
         #region GUI
 
         private void OnGUI()
         {
             if (IsActive)
             {
-                float logHeight = 20f;
-                int maxLogCount = 25;
+                float logBaseHeight = DebuggerSettings.ScreenLogHeight;
+                var rect = DebuggerSettings.ScreenLogsRect;
+                var logRect = new Rect(rect.x, rect.y, rect.width, logBaseHeight);
 
-                var rect = new Rect(10, 10, 700f, 0f);
-                var logRect = new Rect(rect.x, rect.y, rect.width, logHeight);
-
-                for (int i = LogsCount - 1; i >= Mathf.Max(0, LogsCount - maxLogCount); i--)
+                ScreenLog screenLog;
+                for (int i = LogsCount - 1; i >= 0 && logRect.y + logBaseHeight <= rect.y + rect.height; i--)
                 {
-                    OnScreenLogGUI(logRect, i, m_activeScreenLogs[i]);
-                    logRect.y += logHeight;
+                    screenLog = m_activeScreenLogs[i];
+                    OnScreenLogGUI(logRect, i, screenLog, out var logNecessaryHeight);
+                    logRect.y += logNecessaryHeight;
                 }
             }
         }
 
-        private void OnScreenLogGUI(Rect rect, int index, ScreenLog log)
+        private void OnScreenLogGUI(Rect rect, int index, ScreenLog log, out float necessaryHeight)
         {
+            // PARAMETERS
+            float messageRectX = rect.x;
+            float messageRectWidth = rect.width;
+
+            float timeRectWidth = 75f;
+            float space = 15f;
+
+            if (DebuggerSettings.ShowScreenLogsTime)
+            {
+                messageRectX = rect.x + timeRectWidth + space;
+                messageRectWidth = rect.width - timeRectWidth - space;
+            }
+
+            GUIContent messageContent = new GUIContent(log.message);
+            necessaryHeight = Mathf.Max(rect.height, m_timeStyle.CalcHeight(messageContent, messageRectWidth));
+
+            rect.height = necessaryHeight;
+
+            // BACKGROUND
             switch (log.logType)
             {
                 case LogType.Warning:
-                    EditorGUI.DrawRect(rect, new Color(1f, 0.92f, 0.016f, 0.5f)); 
+                    GUIHelper.DrawRect(rect, new Color(1f, 0.92f, 0.016f, 0.5f)); 
                     break;
                 case LogType.Exception:
                 case LogType.Assert:
                 case LogType.Error:
-                    EditorGUI.DrawRect(rect, new Color(1f, 0f, 0f, 0.5f)); 
+                    GUIHelper.DrawRect(rect, new Color(1f, 0f, 0f, 0.5f)); 
                     break;
             }
-            EditorGUI.DrawRect(rect, index % 2 == 0 ? EditorGUIHelper.transparentBlack05 : EditorGUIHelper.transparentBlack04);
+            GUIHelper.DrawRect(rect, index % 2 == 0 ? GUIHelper.transparentBlack05 : GUIHelper.transparentBlack04);
 
-            float timeRectWidth = 75f;
-            float space = 15f;
-            var timeRect = new Rect(rect.x, rect.y, timeRectWidth, rect.height);
-            EditorGUI.LabelField(timeRect, log.time.ToString("0.00"), m_timeStyle);
+            if (DebuggerSettings.ShowScreenLogsTime)
+            {
+                var timeRect = new Rect(rect.x, rect.y, timeRectWidth, rect.height);
+                GUI.Label(timeRect, log.time.ToString("0.00"), m_timeStyle);
+            }
 
-            var messageRect = new Rect(rect.x + timeRectWidth + space, rect.y, rect.width - timeRectWidth - space, rect.height);
-            EditorGUI.LabelField(messageRect, log.message, m_logStyle);
+            var messageRect = new Rect(messageRectX, rect.y, messageRectWidth, rect.height);
+            GUI.Label(messageRect, messageContent, m_logStyle);
         }
 
         #endregion

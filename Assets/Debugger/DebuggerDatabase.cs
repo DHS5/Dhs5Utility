@@ -2,6 +2,7 @@ using Dhs5.Utility.Databases;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -39,6 +40,11 @@ namespace Dhs5.Utility.Debuggers
             extensions.Add("public static void LogAlways(this " + enumName + " category, object message, LogType logType = LogType.Error, bool onScreen = true, UnityEngine.Object context = null)");
             extensions.Add("{");
             extensions.Add("    Debugger.LogAlways(category, message, logType, onScreen, context);");
+            extensions.Add("}");
+
+            extensions.Add("public static void LogOnScreen(this " + enumName + " category, object message, LogType logType = LogType.Log, int level = Debugger.MAX_DEBUGGER_LEVEL, float duration = Debugger.DEFAULT_SCREEN_LOG_DURATION)");
+            extensions.Add("{");
+            extensions.Add("    Debugger.LogOnScreen(category, message, logType, level, duration);");
             extensions.Add("}");
 
             return extensions.ToArray();
@@ -102,7 +108,7 @@ namespace Dhs5.Utility.Debuggers
                 var levelSliderRect = new Rect(colorRect.x + 5f, rect.y, colorRectWidth - DatabaseContentListElementContextButtonWidth - 10f, rect.height);
                 elem.Level = (int)GUI.HorizontalSlider(levelSliderRect, elem.Level, -1, 2);
                 var levelLabelRect = new Rect(colorRect.x - 25f, rect.y, 20f, rect.height);
-                EditorGUI.LabelField(levelLabelRect, elem.Level.ToString(), EditorGUIHelper.centeredLabel);
+                EditorGUI.LabelField(levelLabelRect, elem.Level.ToString(), GUIHelper.centeredLabel);
 
                 // Label
                 float labelRectX = rect.x + lightRimRect.width + 5f;

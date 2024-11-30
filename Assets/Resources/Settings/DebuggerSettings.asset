@@ -15,7 +15,16 @@ MonoBehaviour:
   m_consoleLog0Size: 14
   m_consoleLog1Size: 12
   m_consoleLog2Size: 11
+  m_defaultScreenLogDuration: 5
+  m_showScreenLogsTime: 1
+  m_screenLogsRect:
+    serializedVersion: 2
+    x: 10
+    y: 10
+    width: 700
+    height: 500
+  m_screenLogHeight: 25
   m_screenLog0Size: 20
   m_screenLog1Size: 18
   m_screenLog2Size: 16
-  m_defaultScreenLogDuration: 5
+  m_screenLogsTimeSize: 18

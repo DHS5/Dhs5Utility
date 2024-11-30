@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -30,9 +31,10 @@ namespace Dhs5.Utility.Settings
         private int[] m_options;
 
         // --- GUI Members ---
-
         private Vector2 m_scrollPosition;
-        private int m_currentSelection;
+
+        // --- STATIC Members ---
+        private static int _currentSelection;
 
         #endregion
 
@@ -57,13 +59,13 @@ namespace Dhs5.Utility.Settings
             var toolbarRect = EditorGUILayout.GetControlRect(false, 20f);
             OnToolbarGUI(toolbarRect);
 
-            if (m_currentSelection >= 0)
+            if (_currentSelection >= 0)
             {
                 EditorGUILayout.Space(5f);
-                if (GUILayout.Button(m_names[m_currentSelection], EditorGUIHelper.bigTitleLabel)
-                    && m_settings[m_currentSelection] != null)
+                if (GUILayout.Button(m_names[_currentSelection], GUIHelper.bigTitleLabel)
+                    && m_settings[_currentSelection] != null)
                 {
-                    EditorUtils.PingObject(m_settings[m_currentSelection]);
+                    EditorUtils.PingObject(m_settings[_currentSelection]);
                 }
 
                 EditorGUILayout.Space(5f);
@@ -72,7 +74,7 @@ namespace Dhs5.Utility.Settings
 
                 m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition);
 
-                OnSettingsGUI(m_currentSelection);
+                OnSettingsGUI(_currentSelection);
 
                 EditorGUILayout.EndScrollView();
             }
@@ -94,7 +96,7 @@ namespace Dhs5.Utility.Settings
             int buttonsCount = 1;
 
             var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
-            m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
+            _currentSelection = EditorGUI.IntPopup(popupRect, _currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
 
             var refreshButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))

@@ -36,13 +36,34 @@ namespace Dhs5.Utility.Debuggers
 
         [Header("Screen Debugger")]
 
+        [SerializeField, Min(1f)] private float m_defaultScreenLogDuration = 5.0f;
+        [SerializeField] private bool m_showScreenLogsTime = true;
+
+        public static float DefaultScreenLogDuration => I != null ? I.m_defaultScreenLogDuration : 5.0f;
+        public static bool ShowScreenLogsTime => I != null ? I.m_showScreenLogsTime : true;
+
+        #endregion
+
+        #region Screen Debugger GUI
+
+        [Header("Screen Debugger GUI")]
+
+        [SerializeField] private Rect m_screenLogsRect = new Rect(10f, 10f, 700f, 500f);
+        [SerializeField, Range(10f, 40f)] private float m_screenLogHeight = 20f;
+
+        [Space(10f)]
+
         [SerializeField, Range(10, 30)] private int m_screenLog0Size = 20;
         [SerializeField, Range(10, 30)] private int m_screenLog1Size = 18;
         [SerializeField, Range(10, 30)] private int m_screenLog2Size = 16;
 
         [Space(10f)]
 
-        [SerializeField, Min(1f)] private float m_defaultScreenLogDuration = 5.0f;
+        [SerializeField, Range(10, 30)] private int m_screenLogsTimeSize = 18;
+
+        public static Rect ScreenLogsRect => I != null ? I.m_screenLogsRect : new Rect(10f, 10f, 700f, 500f);
+        public static float ScreenLogHeight => I != null ? I.m_screenLogHeight : 20f;
+        public static int MaxLogsOnScreen => I != null ? Mathf.FloorToInt(I.m_screenLogsRect.height / I.m_screenLogHeight) : 25;
 
         public static int GetScreenLogSize(int level)
         {
@@ -58,7 +79,7 @@ namespace Dhs5.Utility.Debuggers
             return 18;
         }
 
-        public static float DefaultScreenLogDuration => I != null ? I.m_defaultScreenLogDuration : 5.0f;
+        public static int ScreenLogsTimeSize => I != null ? I.m_screenLogsTimeSize : 18;
 
         #endregion
     }
