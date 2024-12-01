@@ -22,29 +22,29 @@ namespace Dhs5.Utility.Debuggers
         {
             List<string> extensions = new();
 
-            extensions.Add("public static void Log(this " + enumName + " category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)");
+            extensions.Add("public static void Log(this " + enumName + " category, object message, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)");
             extensions.Add("{");
-            extensions.Add("    Debugger.Log(category, message, level, onScreen, context);");
+            extensions.Add("    Debugger<" + enumName + ">.Log(category, message, level, onScreen, context);");
             extensions.Add("}");
             
-            extensions.Add("public static void LogWarning(this " + enumName + " category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)");
+            extensions.Add("public static void LogWarning(this " + enumName + " category, object message, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)");
             extensions.Add("{");
-            extensions.Add("    Debugger.LogWarning(category, message, level, onScreen, context);");
+            extensions.Add("    Debugger<" + enumName + ">.LogWarning(category, message, level, onScreen, context);");
             extensions.Add("}");
             
             extensions.Add("public static void LogError(this " + enumName + " category, object message, bool onScreen = true, UnityEngine.Object context = null)");
             extensions.Add("{");
-            extensions.Add("    Debugger.LogError(category, message, onScreen, context);");
+            extensions.Add("    Debugger<" + enumName + ">.LogError(category, message, onScreen, context);");
             extensions.Add("}");
             
             extensions.Add("public static void LogAlways(this " + enumName + " category, object message, LogType logType = LogType.Error, bool onScreen = true, UnityEngine.Object context = null)");
             extensions.Add("{");
-            extensions.Add("    Debugger.LogAlways(category, message, logType, onScreen, context);");
+            extensions.Add("    Debugger<" + enumName + ">.LogAlways(category, message, logType, onScreen, context);");
             extensions.Add("}");
 
-            extensions.Add("public static void LogOnScreen(this " + enumName + " category, object message, LogType logType = LogType.Log, int level = Debugger.MAX_DEBUGGER_LEVEL, float duration = Debugger.DEFAULT_SCREEN_LOG_DURATION)");
+            extensions.Add("public static void LogOnScreen(this " + enumName + " category, object message, LogType logType = LogType.Log, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, float duration = BaseDebugger.DEFAULT_SCREEN_LOG_DURATION)");
             extensions.Add("{");
-            extensions.Add("    Debugger.LogOnScreen(category, message, logType, level, duration);");
+            extensions.Add("    Debugger<" + enumName + ">.LogOnScreen(category, message, logType, level, duration);");
             extensions.Add("}");
 
             return extensions.ToArray();
@@ -52,8 +52,6 @@ namespace Dhs5.Utility.Debuggers
 
         protected override string GetEnumScriptContentFor(string enumName, string enumNamespace, string usings, string[] enumContent, System.Type dataType, System.Type databaseType)
         {
-            
-
             return EnumDatabaseEditor.GenerateEnumScriptContent
                 (enumName, enumContent, enumNamespace, "using Dhs5.Utility.Debuggers;\n" + usings, dataType, databaseType, GetEnumScriptContentDebuggerExtensions(enumName));
         }

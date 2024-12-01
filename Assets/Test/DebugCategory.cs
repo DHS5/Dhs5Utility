@@ -35,24 +35,24 @@ public static class DebugCategoryExtension
     {
         return (flag & other) != 0;
     }
-    public static void Log(this DebugCategory category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
+    public static void Log(this DebugCategory category, object message, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
     {
-        Debugger.Log(category, message, level, onScreen, context);
+        Debugger<DebugCategory>.Log(category, message, level, onScreen, context);
     }
-    public static void LogWarning(this DebugCategory category, object message, int level = Debugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
+    public static void LogWarning(this DebugCategory category, object message, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
     {
-        Debugger.LogWarning(category, message, level, onScreen, context);
+        Debugger<DebugCategory>.LogWarning(category, message, level, onScreen, context);
     }
     public static void LogError(this DebugCategory category, object message, bool onScreen = true, UnityEngine.Object context = null)
     {
-        Debugger.LogError(category, message, onScreen, context);
+        Debugger<DebugCategory>.LogError(category, message, onScreen, context);
     }
     public static void LogAlways(this DebugCategory category, object message, LogType logType = LogType.Error, bool onScreen = true, UnityEngine.Object context = null)
     {
-        Debugger.LogAlways(category, message, logType, onScreen, context);
+        Debugger<DebugCategory>.LogAlways(category, message, logType, onScreen, context);
     }
-    public static void LogOnScreen(this DebugCategory category, object message, LogType logType = LogType.Log, int level = Debugger.MAX_DEBUGGER_LEVEL, float duration = Debugger.DEFAULT_SCREEN_LOG_DURATION)
+    public static void LogOnScreen(this DebugCategory category, object message, LogType logType = LogType.Log, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, float duration = BaseDebugger.DEFAULT_SCREEN_LOG_DURATION)
     {
-        Debugger.LogOnScreen(category, message, logType, level, duration);
+        Debugger<DebugCategory>.LogOnScreen(category, message, logType, level, duration);
     }
 }

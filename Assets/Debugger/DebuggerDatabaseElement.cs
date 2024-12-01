@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.Databases;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 using Dhs5.Utility.Editors;
@@ -19,7 +18,7 @@ namespace Dhs5.Utility.Debuggers
 
         [SerializeField] private Color m_color;
         [SerializeField] private string m_colorString;
-        [SerializeField, Range(-1, Debugger.MAX_DEBUGGER_LEVEL)] private int m_level;
+        [SerializeField, Range(-1, BaseDebugger.MAX_DEBUGGER_LEVEL)] private int m_level;
 
         [SerializeField] private bool m_showLogs = true;
         [SerializeField] private bool m_showWarnings = true;
@@ -250,11 +249,11 @@ namespace Dhs5.Utility.Debuggers
                 {
                     EditorGUILayout.Space(5f);
                     m_testString = EditorGUILayout.TextField(m_testString);
-                    m_testLevel = EditorGUILayout.IntSlider(m_testLevel, 0, Debugger.MAX_DEBUGGER_LEVEL);
+                    m_testLevel = EditorGUILayout.IntSlider(m_testLevel, 0, BaseDebugger.MAX_DEBUGGER_LEVEL);
                     m_testLogType = (LogType)EditorGUILayout.EnumPopup(m_testLogType);
                     if (GUILayout.Button("Log"))
                     {
-                        Debugger.ComplexLog((DebugCategory)m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
+                        BaseDebugger.ComplexLog(m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
                     }
                 }
                 EditorGUILayout.EndVertical();

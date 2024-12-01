@@ -41,7 +41,7 @@ MonoBehaviour:
   m_enumName: DebugCategory
   m_enumNamespace: 
   m_usings: 
-  m_scriptFolder: Assets/Debugger
+  m_scriptFolder: Assets/Test
   m_textAsset: {fileID: 11500000, guid: ffe7c303b14e25942ae3a1c9bb971dd9, type: 3}
 --- !u!114 &697256396391879857
 MonoBehaviour:

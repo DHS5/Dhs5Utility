@@ -5,105 +5,24 @@ using UnityEngine;
 
 namespace Dhs5.Utility.Updates
 {
-    public class Updater : MonoBehaviour
+    public class Updater<UpdateEnum> where UpdateEnum : Enum
     {
-        public delegate void UpdateCallback(float deltaTime);
-
-        #region ENUM : Pass
-
-        public enum Pass
-        {
-            CLASSIC = 0,
-            EARLY,
-            LATE,
-
-            FIXED,
-
-            PRE_INPUT,
-            POST_INPUT,
-        }
-
-        #endregion
-
-        #region INSTANCE
-
-        #region Update Methods
-
-        // UNITY
-        private void Update()
-        {
-            Time = UnityEngine.Time.time;
-            DeltaTime = UnityEngine.Time.deltaTime;
-            
-            RealTime = UnityEngine.Time.realtimeSinceStartup;
-            RealDeltaTime = UnityEngine.Time.unscaledDeltaTime;
-
-            GamePaused = DeltaTime != 0f;
-
-            EarlyUpdate();
-            ClassicUpdate();
-        }
-        private void LateUpdate()
-        {
-            OnLateUpdate?.Invoke(DeltaTime);
-        }
-        private void FixedUpdate()
-        {
-            OnFixedUpdate?.Invoke(UnityEngine.Time.fixedDeltaTime);
-        }
-
-        // INPUT
-        private void PreInputUpdate()
-        {
-            OnBeforeInputUpdate?.Invoke(DeltaTime);
-        }
-        private void PostInputUpdate()
-        {
-            OnAfterInputUpdate?.Invoke(DeltaTime);
-        }
-
-        // CUSTOM
-        private void EarlyUpdate()
-        {
-            OnEarlyUpdate?.Invoke(DeltaTime);
-        }
-        private void ClassicUpdate()
-        {
-            OnUpdate?.Invoke(DeltaTime);
-        }
-
-        #endregion
-
-
-        #region Default Updates Registration
-
-        #endregion
-
-        #region Next Updates
-
-        #endregion
-
-        #endregion
-
-        // ---------- ---------- ---------- 
-
-        #region STATIC
-
         #region Instance Creation
 
-        private static Updater Instance { get; set; }
+        private static UpdaterInstance Instance { get; set; }
 
         private static void CreateInstance()
         {
             if (Instance != null) return;
 
             var obj = new GameObject("Updater");
-            DontDestroyOnLoad(obj);
+            GameObject.DontDestroyOnLoad(obj);
 
-            Instance = obj.AddComponent<Updater>();
+            Instance = obj.AddComponent<UpdaterInstance>();
+            Instance.Init(Update, LateUpdate, FixedUpdate);
         }
 
-        private static Updater GetInstance()
+        private static UpdaterInstance GetInstance()
         {
             if (Instance == null)
             {
@@ -141,10 +60,167 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+
         #region Registration
 
-        #endregion
+        private static ulong _registrationCount = 0;
+
+        private static Dictionary<UpdateEnum, HashSet<ulong>> _registeredKeys = new();
+        private static Dictionary<UpdateEnum, UpdateCallback> _registeredCallbacks = new();
+
+        private static ulong GetUniqueRegistrationKey()
+        {
+            _registrationCount++;
+            return _registrationCount;
+        }
+
+        public static bool Register(bool register, UpdateEnum category, UpdateCallback callback, ref ulong key)
+        {
+            if (register) // Wants to register new callback
+            {
+                if (_registeredKeys.TryGetValue(category, out var keys)) // The callback category already exists
+                {
+                    if (keys.Contains(key)) // This callback is already registered
+                    {
+                        return false;
+                    }
+
+                    key = GetUniqueRegistrationKey();
+                    keys.Add(key);
+                    _registeredCallbacks[category] += callback;
+
+                    return true;
+                }
+                else // The callback category doesn't exists yet
+                {
+                    key = GetUniqueRegistrationKey();
+                    _registeredKeys.Add(category, new HashSet<ulong>() { key });
+                    _registeredCallbacks.Add(category, callback);
+
+                    return true;
+                }
+            }
+
+            else // Wants to unregister callback
+            {
+                if (_registeredKeys.TryGetValue(category, out var keys) // The callback category exists
+                    && keys.Remove(key)) // AND the key was registered and removed successfully
+                {
+                    _registeredCallbacks[category] -= callback;
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         #endregion
+
+        #region Pass Management
+
+        private static void InvokePassEvents(UpdatePass pass, float deltaTime)
+        {
+            //foreach (var category in GetPassList(pass))
+            //{
+            //    InvokeCategoryEvents(category, deltaTime);
+            //}
+
+            switch (pass)
+            {
+                case UpdatePass.CLASSIC: OnUpdate?.Invoke(deltaTime); break;
+                case UpdatePass.EARLY: OnEarlyUpdate?.Invoke(deltaTime); break;
+                case UpdatePass.LATE: OnLateUpdate?.Invoke(deltaTime); break;
+                case UpdatePass.FIXED: OnFixedUpdate?.Invoke(deltaTime); break;
+                case UpdatePass.PRE_INPUT: OnBeforeInputUpdate?.Invoke(deltaTime); break;
+                case UpdatePass.POST_INPUT: OnAfterInputUpdate?.Invoke(deltaTime); break;
+            }
+        }
+
+        #endregion
+
+        #region Categories Management
+
+        private static Dictionary<UpdateEnum, float> _lastUpdateTimes = new();
+
+        private static void InvokeCategoryEvents(UpdateEnum category, float deltaTime)
+        {
+            if (_registeredCallbacks.ContainsKey(category))
+            {
+                _registeredCallbacks[category]?.Invoke(deltaTime);
+                _lastUpdateTimes[category] = Time;
+            }
+        }
+
+        #endregion
+
+
+        #region Time Management
+
+        private static void ComputeTimeState()
+        {
+            Time = UnityEngine.Time.time;
+            DeltaTime = UnityEngine.Time.deltaTime;
+
+            RealTime = UnityEngine.Time.realtimeSinceStartup;
+            RealDeltaTime = UnityEngine.Time.unscaledDeltaTime;
+
+            GamePaused = DeltaTime != 0f;
+        }
+
+        #endregion
+
+        #region Update Methods
+
+        // UNITY
+        private static void Update()
+        {
+            ComputeTimeState();
+
+            EarlyUpdate();
+            ClassicUpdate();
+        }
+        private static void LateUpdate()
+        {
+            InvokePassEvents(UpdatePass.LATE, DeltaTime);
+        }
+        private static void FixedUpdate()
+        {
+            InvokePassEvents(UpdatePass.FIXED, UnityEngine.Time.fixedDeltaTime);
+        }
+
+        // INPUT
+        private static void PreInputUpdate()
+        {
+            InvokePassEvents(UpdatePass.PRE_INPUT, DeltaTime);
+        }
+        private static void PostInputUpdate()
+        {
+            InvokePassEvents(UpdatePass.POST_INPUT, DeltaTime);
+        }
+
+        // CUSTOM
+        private static void EarlyUpdate()
+        {
+            InvokePassEvents(UpdatePass.EARLY, DeltaTime);
+        }
+        private static void ClassicUpdate()
+        {
+            InvokePassEvents(UpdatePass.CLASSIC, DeltaTime);
+        }
+
+        #endregion
+
+
+        #region Default Updates Registration
+
+        #endregion
+
+        #region Next Updates
+
+        #endregion
+
+
+
     }
 }

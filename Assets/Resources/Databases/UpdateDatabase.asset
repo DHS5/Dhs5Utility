@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4751636560149229809
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36506fb233b209446ad0660e84220fe6, type: 3}
+  m_Name: BASE
+  m_EditorClassIdentifier: 
+  m_enumIndex: 0
+  m_updatePass: 0
+  m_order: 0
+  m_updateCondition: 0
+  m_customFrequency:
+    m_enabled: 0
+    m_value: 0
+  m_timescaleIndependent: 0
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24bd91afbd565ac4d89af21a38546198, type: 3}
+  m_Name: UpdateDatabase
+  m_EditorClassIdentifier: 
+  m_content:
+  - {fileID: -4751636560149229809}
+  m_enumName: UpdateCategory
+  m_enumNamespace: 
+  m_usings: 
+  m_scriptFolder: Assets/Test
+  m_textAsset: {fileID: 11500000, guid: 3fb36483a8bb9454f9156e3d4a9860da, type: 3}
