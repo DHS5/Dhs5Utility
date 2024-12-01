@@ -6,12 +6,14 @@ using Dhs5.Utility.Updates;
 public enum UpdateCategory
 {
     BASE = 0,
+    SCREEN_LOG = 1,
 }
 
 [Flags]
 public enum UpdateCategoryFlags
 {
     BASE = 1 << 0,
+    SCREEN_LOG = 1 << 1,
 }
 
 public static class UpdateCategoryExtension

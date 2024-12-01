@@ -23,15 +23,31 @@ public class TestScript : MonoBehaviour, IDatabaseElement
         return _showTexture;
     }
 
-    float lastUpdate;
-    private void Update()
+    private ulong m_updateKey;
+    private void OnEnable()
     {
-        if (Time.time > lastUpdate + 0.75f)
+        TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_updateKey);
+    }
+    private void OnDisable()
+    {
+        TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_updateKey);
+    }
+
+    bool done;
+    private void OnUpdate(float deltaTime)
+    {
+        TestDebugger.LogOnScreen(0, "Test " + TestUpdater.RealTime, LogType.Log, 0);
+
+        if (!done && TestUpdater.Time > 2f)
         {
-            lastUpdate = Time.time;
-            TestDebugger.LogOnScreen(0, "Test reogj trj grop trjl hp tr khpr tr khp  typh k typ hkph yp hy y pypy jp trpok z ^lf, ap dal dapd ka fk", LogType.Log, 2);
-            TestDebugger.LogOnScreen(0, "Test", LogType.Warning, 1);
-            TestDebugger.LogOnScreen(0, "Test", LogType.Error, 0);
+            TestDebugger.Log(DebugCategory.GAME, "Frame : " + TestUpdater.Frame, 0);
+            done = true;
+            TestUpdater.CallOnNextUpdate(OnNextUpdate);
         }
+    }
+
+    private void OnNextUpdate(float deltaTime)
+    {
+        TestDebugger.Log(DebugCategory.GAME, "On Next update, Frame : " + TestUpdater.Frame, 0);
     }
 }

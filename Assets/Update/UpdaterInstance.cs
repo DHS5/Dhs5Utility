@@ -32,7 +32,7 @@ namespace Dhs5.Utility.Updates
 
         private void OnEnable()
         {
-            m_enableCallback.Invoke(true);
+            m_enableCallback?.Invoke(true);
         }
         private void OnDisable()
         {

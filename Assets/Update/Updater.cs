@@ -21,6 +21,7 @@ namespace Dhs5.Utility.Updates
 
             Instance = obj.AddComponent<UpdaterInstance>();
             Instance.Init(OnEnable, Update, LateUpdate, FixedUpdate);
+            Init();
         }
 
         private static UpdaterInstance GetInstance()
@@ -35,6 +36,9 @@ namespace Dhs5.Utility.Updates
         #endregion
 
         #region Properties
+
+        // ACTIVATION
+        public static bool IsActive { get; private set; }
 
         // TIME
         public static float Time { get; private set; }
@@ -62,9 +66,6 @@ namespace Dhs5.Utility.Updates
         public static event UpdateCallback OnBeforeInputUpdate;
         public static event UpdateCallback OnAfterInputUpdate;
 
-        // ONE-SHOT UPDATES
-        private static event UpdateCallback OnOneShotUpdate;
-
         #endregion
 
         #region Initialization
@@ -72,10 +73,14 @@ namespace Dhs5.Utility.Updates
         private static void Init()
         {
             GetUpdaterElements();
+            OnEnable(true);
         }
 
         private static void OnEnable(bool enable)
         {
+            if (enable == IsActive) return;
+
+            IsActive = enable;
             if (enable)
             {
                 InputSystem.onBeforeUpdate += PreInputUpdate;
@@ -100,6 +105,8 @@ namespace Dhs5.Utility.Updates
 
         private static ulong GetUniqueRegistrationKey()
         {
+            if (!IsActive) GetInstance(); // Activate on first registration
+
             _registrationCount++;
             return _registrationCount;
         }
@@ -157,7 +164,11 @@ namespace Dhs5.Utility.Updates
             }
 
             InvokeDefaultEvents(pass, deltaTime);
-            InvokeOneShotEvents(pass, deltaTime);
+
+            if (pass == UpdatePass.CLASSIC)
+            {
+                InvokePreciseFramesUpdates(deltaTime);
+            }
         }
         private static void InvokeDefaultEvents(UpdatePass pass, float deltaTime)
         {
@@ -171,14 +182,12 @@ namespace Dhs5.Utility.Updates
                 case UpdatePass.POST_INPUT: OnAfterInputUpdate?.Invoke(deltaTime); break;
             }
         }
-        private static void InvokeOneShotEvents(UpdatePass pass, float deltaTime)
+        private static void InvokePreciseFramesUpdates(float deltaTime)
         {
-            if (pass == UpdatePass.CLASSIC)
+            if (_preciseFrameCallbacks.ContainsKey(Frame))
             {
-                OnOneShotUpdate?.Invoke(deltaTime);
-                OnOneShotUpdate = null;
-                OnOneShotUpdate = _onNextUpdate;
-                _onNextUpdate = null;
+                _preciseFrameCallbacks[Frame].Invoke(deltaTime);
+                _preciseFrameCallbacks.Remove(Frame);
             }
         }
 
@@ -257,6 +266,11 @@ namespace Dhs5.Utility.Updates
             GamePaused = DeltaTime != 0f;
         }
 
+        public static void Pause(bool pause)
+        {
+            UnityEngine.Time.timeScale = pause ? 0f : 1f;
+        }
+
         #endregion
 
         #region Update Methods
@@ -281,11 +295,11 @@ namespace Dhs5.Utility.Updates
         // INPUT
         private static void PreInputUpdate()
         {
-            InvokePassEvents(UpdatePass.PRE_INPUT, DeltaTime, RealDeltaTime);
+            if (IsActive) InvokePassEvents(UpdatePass.PRE_INPUT, DeltaTime, RealDeltaTime);
         }
         private static void PostInputUpdate()
         {
-            InvokePassEvents(UpdatePass.POST_INPUT, DeltaTime, RealDeltaTime);
+            if (IsActive) InvokePassEvents(UpdatePass.POST_INPUT, DeltaTime, RealDeltaTime);
         }
 
         // CUSTOM
@@ -300,14 +314,43 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #region Precise Frames Updates
 
-        #region Next Updates
-
-        private static UpdateCallback _onNextUpdate;
+        private static Dictionary<int, UpdateCallback> _preciseFrameCallbacks = new();
         public static void CallOnNextUpdate(UpdateCallback callback)
         {
-            if (_onNextUpdate != null) _onNextUpdate += callback;
-            else _onNextUpdate = callback;
+            CallInXFrames(1, callback);
+        }
+        public static void CallInXFrames(int framesToWait, UpdateCallback callback)
+        {
+            if (callback == null || framesToWait < 1) return;
+
+            int nextFrame = Frame + framesToWait;
+            if (_preciseFrameCallbacks.ContainsKey(nextFrame))
+            {
+                _preciseFrameCallbacks[nextFrame] += callback;
+            }
+            else
+            {
+                _preciseFrameCallbacks.Add(nextFrame, callback);
+            }
+        }
+
+        #endregion
+
+
+        #region Utility
+
+        public static void Clear()
+        {
+            _registrationCount = 0;
+
+            _registeredKeys.Clear();
+            _registeredCallbacks.Clear();
+
+            _preciseFrameCallbacks.Clear();
+
+            _lastUpdateTimes.Clear();
         }
 
         #endregion

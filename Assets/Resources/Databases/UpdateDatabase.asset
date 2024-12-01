@@ -34,8 +34,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_content:
   - {fileID: -4751636560149229809}
+  - {fileID: 1281793251936599315}
   m_enumName: UpdateCategory
   m_enumNamespace: 
   m_usings: 
   m_scriptFolder: Assets/Test
   m_textAsset: {fileID: 11500000, guid: 3fb36483a8bb9454f9156e3d4a9860da, type: 3}
+--- !u!114 &1281793251936599315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36506fb233b209446ad0660e84220fe6, type: 3}
+  m_Name: SCREEN_LOG
+  m_EditorClassIdentifier: 
+  m_enumIndex: 1
+  m_updatePass: 4
+  m_order: 0
+  m_updateCondition: 0
+  m_customFrequency:
+    m_enabled: 1
+    m_value: 0.75
+  m_timescaleIndependent: 1
