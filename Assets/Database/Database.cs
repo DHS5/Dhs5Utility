@@ -1103,15 +1103,17 @@ namespace Dhs5.Utility.Databases
         {
             if (DatabaseContentListSelectionIndex != -1)
             {
+                DatabaseElementDisplayScrollPos = EditorGUILayout.BeginScrollView(DatabaseElementDisplayScrollPos);
+
                 DisplayDatabaseElement(GetDatabaseCurrentSelection());
+
+                EditorGUILayout.EndScrollView();
                 return true;
             }
             return false;
         }
         protected virtual void DisplayDatabaseElement(UnityEngine.Object element)
         {
-            DatabaseElementDisplayScrollPos = EditorGUILayout.BeginScrollView(DatabaseElementDisplayScrollPos);
-
             switch (element)
             {
                 case null:
@@ -1123,8 +1125,6 @@ namespace Dhs5.Utility.Databases
                 default:
                     OnDisplayDatabaseOtherObjectElement(element); break;
             }
-
-            EditorGUILayout.EndScrollView();
         }
 
         protected virtual void OnDisplayDatabaseNullElement()

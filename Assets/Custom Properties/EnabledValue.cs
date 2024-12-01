@@ -33,6 +33,7 @@ public class EnabledValueDrawer : PropertyDrawer
 {
     SerializedProperty p_enabled;
     SerializedProperty p_value;
+    float toggleWidth = 17f;
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
@@ -42,24 +43,33 @@ public class EnabledValueDrawer : PropertyDrawer
 
         EditorGUI.BeginProperty(position, label, property);
 
-        p_enabled.boolValue = EditorGUI.ToggleLeft(new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height), label, p_enabled.boolValue);
+        p_enabled.boolValue = EditorGUI.ToggleLeft(new Rect(rect.x, rect.y, toggleWidth, rect.height), GUIContent.none, p_enabled.boolValue);
         property.isExpanded = p_enabled.boolValue;
+
+        Rect propertyRect = new Rect(rect.x + toggleWidth, rect.y, rect.width - toggleWidth, rect.height);
+        var previousLabelWidth = EditorGUIUtility.labelWidth;
+        EditorGUIUtility.labelWidth -= toggleWidth;
 
         if (property.isExpanded)
         {
             p_value = property.FindPropertyRelative("m_value");
             if (p_value != null)
             {
-                EditorGUI.PropertyField(rect, p_value, new GUIContent(" "), true);
+                EditorGUI.PropertyField(propertyRect, p_value, label, true);
             }
             else
             {
                 rect.x += EditorGUIUtility.labelWidth;
                 rect.width -= EditorGUIUtility.labelWidth;
-                EditorGUI.LabelField(rect, "Value is invalid");
+                EditorGUI.LabelField(propertyRect, label, new GUIContent("Value is invalid"));
             }
         }
+        else
+        {
+            EditorGUI.LabelField(propertyRect, label);
+        }
 
+        EditorGUIUtility.labelWidth = previousLabelWidth;
         EditorGUI.EndProperty();
     }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Dhs5.Utility.Updates
 {
@@ -19,7 +20,7 @@ namespace Dhs5.Utility.Updates
             GameObject.DontDestroyOnLoad(obj);
 
             Instance = obj.AddComponent<UpdaterInstance>();
-            Instance.Init(Update, LateUpdate, FixedUpdate);
+            Instance.Init(OnEnable, Update, LateUpdate, FixedUpdate);
         }
 
         private static UpdaterInstance GetInstance()
@@ -41,6 +42,8 @@ namespace Dhs5.Utility.Updates
         // REALTIME
         public static float RealTime { get; private set; }
         public static float RealDeltaTime { get; private set; }
+        // FRAME
+        public static int Frame { get; private set; }
 
         // GAME STATE
         public static bool GamePaused { get; private set; }
@@ -49,6 +52,7 @@ namespace Dhs5.Utility.Updates
 
         #region Events
 
+        // UPDATES
         public static event UpdateCallback OnEarlyUpdate;
         public static event UpdateCallback OnUpdate;
         public static event UpdateCallback OnLateUpdate;
@@ -57,6 +61,32 @@ namespace Dhs5.Utility.Updates
 
         public static event UpdateCallback OnBeforeInputUpdate;
         public static event UpdateCallback OnAfterInputUpdate;
+
+        // ONE-SHOT UPDATES
+        private static event UpdateCallback OnOneShotUpdate;
+
+        #endregion
+
+        #region Initialization
+
+        private static void Init()
+        {
+            GetUpdaterElements();
+        }
+
+        private static void OnEnable(bool enable)
+        {
+            if (enable)
+            {
+                InputSystem.onBeforeUpdate += PreInputUpdate;
+                InputSystem.onAfterUpdate += PostInputUpdate;
+            }
+            else
+            {
+                InputSystem.onBeforeUpdate -= PreInputUpdate;
+                InputSystem.onAfterUpdate -= PostInputUpdate;
+            }
+        }
 
         #endregion
 
@@ -119,13 +149,18 @@ namespace Dhs5.Utility.Updates
 
         #region Pass Management
 
-        private static void InvokePassEvents(UpdatePass pass, float deltaTime)
+        private static void InvokePassEvents(UpdatePass pass, float deltaTime, float realDeltaTime)
         {
-            //foreach (var category in GetPassList(pass))
-            //{
-            //    InvokeCategoryEvents(category, deltaTime);
-            //}
+            foreach (var category in GetPassList(pass))
+            {
+                InvokeCategoryEvents(category, deltaTime, realDeltaTime);
+            }
 
+            InvokeDefaultEvents(pass, deltaTime);
+            InvokeOneShotEvents(pass, deltaTime);
+        }
+        private static void InvokeDefaultEvents(UpdatePass pass, float deltaTime)
+        {
             switch (pass)
             {
                 case UpdatePass.CLASSIC: OnUpdate?.Invoke(deltaTime); break;
@@ -136,19 +171,71 @@ namespace Dhs5.Utility.Updates
                 case UpdatePass.POST_INPUT: OnAfterInputUpdate?.Invoke(deltaTime); break;
             }
         }
+        private static void InvokeOneShotEvents(UpdatePass pass, float deltaTime)
+        {
+            if (pass == UpdatePass.CLASSIC)
+            {
+                OnOneShotUpdate?.Invoke(deltaTime);
+                OnOneShotUpdate = null;
+                OnOneShotUpdate = _onNextUpdate;
+                _onNextUpdate = null;
+            }
+        }
 
         #endregion
 
         #region Categories Management
 
+        private static Dictionary<UpdateEnum, UpdaterDatabaseElement> _updaterElements = new();
         private static Dictionary<UpdateEnum, float> _lastUpdateTimes = new();
 
-        private static void InvokeCategoryEvents(UpdateEnum category, float deltaTime)
+        private static void GetUpdaterElements()
+        {
+            _updaterElements.Clear();
+
+            for (int i = 0; i < UpdaterDatabase.I.Count; i++)
+            {
+                _updaterElements.Add((UpdateEnum)Enum.ToObject(typeof(UpdateEnum), i), UpdaterDatabase.I.GetValueAtIndex<UpdaterDatabaseElement>(i));
+            }
+        }
+
+        private static List<UpdateEnum> GetPassList(UpdatePass pass)
+        {
+            List<UpdateEnum> list = new List<UpdateEnum>();
+
+            foreach (var (category, updaterElement) in _updaterElements)
+            {
+                if (updaterElement.Pass == pass && CanUpdate(category, updaterElement))
+                {
+                    list.Add(category);
+                }
+            }
+
+            list.Sort((c1, c2) => _updaterElements[c1].Order.CompareTo(_updaterElements[c2].Order));
+
+            return list;
+        }
+        private static bool CanUpdate(UpdateEnum category, UpdaterDatabaseElement updaterElement)
+        {
+            if (updaterElement.Condition.IsFullfilled())
+            {
+                if (updaterElement.HasCustomFrequency(out float frequency)
+                    && _lastUpdateTimes.TryGetValue(category, out float lastUpdate))
+                {
+                    return (updaterElement.TimescaleIndependent ? RealTime : Time) >= lastUpdate + frequency;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private static void InvokeCategoryEvents(UpdateEnum category, float deltaTime, float realDeltaTime)
         {
             if (_registeredCallbacks.ContainsKey(category))
             {
-                _registeredCallbacks[category]?.Invoke(deltaTime);
-                _lastUpdateTimes[category] = Time;
+                bool timescaleIndependent = _updaterElements[category].TimescaleIndependent;
+                _registeredCallbacks[category]?.Invoke(timescaleIndependent ? realDeltaTime : deltaTime);
+                _lastUpdateTimes[category] = timescaleIndependent ? RealTime : Time;
             }
         }
 
@@ -164,6 +251,8 @@ namespace Dhs5.Utility.Updates
 
             RealTime = UnityEngine.Time.realtimeSinceStartup;
             RealDeltaTime = UnityEngine.Time.unscaledDeltaTime;
+
+            Frame = UnityEngine.Time.frameCount;
 
             GamePaused = DeltaTime != 0f;
         }
@@ -182,45 +271,45 @@ namespace Dhs5.Utility.Updates
         }
         private static void LateUpdate()
         {
-            InvokePassEvents(UpdatePass.LATE, DeltaTime);
+            InvokePassEvents(UpdatePass.LATE, DeltaTime, RealDeltaTime);
         }
         private static void FixedUpdate()
         {
-            InvokePassEvents(UpdatePass.FIXED, UnityEngine.Time.fixedDeltaTime);
+            InvokePassEvents(UpdatePass.FIXED, UnityEngine.Time.fixedDeltaTime, UnityEngine.Time.fixedUnscaledDeltaTime);
         }
 
         // INPUT
         private static void PreInputUpdate()
         {
-            InvokePassEvents(UpdatePass.PRE_INPUT, DeltaTime);
+            InvokePassEvents(UpdatePass.PRE_INPUT, DeltaTime, RealDeltaTime);
         }
         private static void PostInputUpdate()
         {
-            InvokePassEvents(UpdatePass.POST_INPUT, DeltaTime);
+            InvokePassEvents(UpdatePass.POST_INPUT, DeltaTime, RealDeltaTime);
         }
 
         // CUSTOM
         private static void EarlyUpdate()
         {
-            InvokePassEvents(UpdatePass.EARLY, DeltaTime);
+            InvokePassEvents(UpdatePass.EARLY, DeltaTime, RealDeltaTime);
         }
         private static void ClassicUpdate()
         {
-            InvokePassEvents(UpdatePass.CLASSIC, DeltaTime);
+            InvokePassEvents(UpdatePass.CLASSIC, DeltaTime, RealDeltaTime);
         }
 
         #endregion
 
 
-        #region Default Updates Registration
-
-        #endregion
-
         #region Next Updates
 
+        private static UpdateCallback _onNextUpdate;
+        public static void CallOnNextUpdate(UpdateCallback callback)
+        {
+            if (_onNextUpdate != null) _onNextUpdate += callback;
+            else _onNextUpdate = callback;
+        }
+
         #endregion
-
-
-
     }
 }

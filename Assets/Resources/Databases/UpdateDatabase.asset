@@ -18,7 +18,7 @@ MonoBehaviour:
   m_updateCondition: 0
   m_customFrequency:
     m_enabled: 0
-    m_value: 0
+    m_value: 0.25
   m_timescaleIndependent: 0
 --- !u!114 &11400000
 MonoBehaviour:

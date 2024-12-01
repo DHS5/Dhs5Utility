@@ -4,6 +4,8 @@ using UnityEngine;
 using System.Text;
 using System;
 using System.Linq;
+using Dhs5.Utility.GUIs;
+
 
 
 #if UNITY_EDITOR
@@ -321,6 +323,16 @@ namespace Dhs5.Utility.Databases
         protected override void OnDatabaseContentListElementNameGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name)
         {
             base.OnDatabaseContentListElementNameGUI(rect, index, selected, obj, index + ": " + name);
+        }
+
+        #endregion
+
+        #region Database Element
+
+        protected override void DisplayDatabaseElement(UnityEngine.Object element)
+        {
+            EditorGUILayout.LabelField(element.name, GUIHelper.centeredBoldLabel);
+            base.DisplayDatabaseElement(element);
         }
 
         #endregion

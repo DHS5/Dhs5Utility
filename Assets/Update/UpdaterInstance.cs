@@ -9,8 +9,9 @@ namespace Dhs5.Utility.Updates
     {
         #region Initialization
 
-        internal void Init(Action updateCallback, Action lateUpdateCallback, Action fixedUpdateCallback)
+        internal void Init(Action<bool> enableCallback, Action updateCallback, Action lateUpdateCallback, Action fixedUpdateCallback)
         {
+            m_enableCallback = enableCallback;
             m_updateCallback = updateCallback;
             m_lateUpdateCallback = lateUpdateCallback;
             m_fixedUpdateCallback = fixedUpdateCallback;
@@ -20,9 +21,23 @@ namespace Dhs5.Utility.Updates
 
         #region Events
 
+        private Action<bool> m_enableCallback;
         private Action m_updateCallback;
         private Action m_lateUpdateCallback;
         private Action m_fixedUpdateCallback;
+
+        #endregion
+
+        #region Core Behaviour
+
+        private void OnEnable()
+        {
+            m_enableCallback.Invoke(true);
+        }
+        private void OnDisable()
+        {
+            m_enableCallback.Invoke(false);
+        }
 
         #endregion
 
