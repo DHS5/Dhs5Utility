@@ -3,29 +3,53 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Dhs5.Utility.GUIs;
 
 namespace Dhs5.Utility.Console
 {
-    public class OnScreenConsole : MonoBehaviour
-    {
-        public delegate void ValidCommandCallback(ConsoleCommand.ValidCommand validCmd);
+    public delegate void ValidCommandCallback(ValidCommand validCmd);
 
+    public abstract class BaseOnScreenConsole<T> : MonoBehaviour where T : BaseOnScreenConsole<T>
+    {
         #region INSTANCE
 
         #region Members
 
-        private InputAction m_openConsoleAction;
-        private InputAction m_closeConsoleAction;
+        // INPUTS
+        [Header("Inputs")]
+        [SerializeField] protected InputAction m_openConsoleAction;
+        [SerializeField] protected InputAction m_closeConsoleAction;
 
-        private GUIStyle m_inputStyle;
-        private GUIStyle m_validInputStyle;
-        private GUIStyle m_optionStyle;
+        // GUI STYLES
+        protected GUIStyle m_inputStyle;
+        protected GUIStyle m_validInputStyle;
+        protected GUIStyle m_optionStyle;
 
+        // GUI COLORS
+        protected Color m_transparentBlack01 = new Color(0f, 0f, 0f, 0.1f);
+        protected Color m_transparentBlack03 = new Color(0f, 0f, 0f, 0.3f);
+        protected Color m_transparentBlack05 = new Color(0f, 0f, 0f, 0.5f);
+        protected Color m_transparentBlack07 = new Color(0f, 0f, 0f, 0.7f);
+
+        // PARAMETERS
         private bool m_justOpenedConsole;
         private string m_currentInputString;
         private bool m_isCurrentInputValid;
         private Vector2 m_optionsScrollPos;
+
+        // TEXTURES
+        private Texture2D _whiteTexture;
+        private Texture2D WhiteTexture
+        {
+            get
+            {
+                if (_whiteTexture == null)
+                {
+                    _whiteTexture = new Texture2D(1, 1);
+                    _whiteTexture.SetPixel(0, 0, Color.white);
+                }
+                return _whiteTexture;
+            }
+        }
 
         #endregion
 
@@ -37,16 +61,25 @@ namespace Dhs5.Utility.Console
 
         #region Core Behaviour
 
-        private void OnEnable()
+        private void Awake()
+        {
+            if (Instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            DontDestroyOnLoad(gameObject);
+            Instance = this as T;
+        }
+
+        protected virtual void OnEnable()
         {
             InitInputs();
-            RegisterPredefinedCommands(true);
         }
-        private void OnDisable()
+        protected virtual void OnDisable()
         {
-            RegisterPredefinedCommands(false);
-            EnableOpenConsoleInput(false);
-            EnableCloseConsoleInput(false);
+            ClearInputs();
         }
 
         #endregion
@@ -61,11 +94,11 @@ namespace Dhs5.Utility.Console
                 alignment = TextAnchor.MiddleLeft,
                 richText = false,
                 wordWrap = false,
-                fontSize = OnScreenConsoleSettings.InputFontSize,
+                fontSize = GetInputFontSize(),
                 contentOffset = new Vector2(15, 0),
                 normal = new GUIStyleState()
                 {
-                    textColor = OnScreenConsoleSettings.InputTextColor,
+                    textColor = GetInputTextColor(),
                 }
             };
             m_validInputStyle = new GUIStyle()
@@ -73,11 +106,11 @@ namespace Dhs5.Utility.Console
                 alignment = TextAnchor.MiddleLeft,
                 richText = false,
                 wordWrap = false,
-                fontSize = OnScreenConsoleSettings.InputFontSize,
+                fontSize = GetInputFontSize(),
                 contentOffset = new Vector2(15, 0),
                 normal = new GUIStyleState()
                 {
-                    textColor = OnScreenConsoleSettings.InputValidTextColor,
+                    textColor = GetValidInputTextColor(),
                 }
             };
             m_optionStyle = new GUIStyle()
@@ -85,46 +118,68 @@ namespace Dhs5.Utility.Console
                 alignment = TextAnchor.MiddleLeft,
                 richText = false,
                 wordWrap = false,
-                fontSize = OnScreenConsoleSettings.OptionFontSize,
+                fontSize = GetOptionFontSize(),
                 contentOffset = new Vector2(20, 0),
                 normal = new GUIStyleState()
                 {
-                    textColor = OnScreenConsoleSettings.OptionTextColor,
+                    textColor = GetOptionTextColor(),
                 }
             };
         }
+
+        protected virtual int GetInputFontSize() => 40;
+        protected virtual Color GetInputTextColor() => Color.white;
+        protected virtual Color GetValidInputTextColor() => Color.green;
+        protected virtual int GetOptionFontSize() => 30;
+        protected virtual Color GetOptionTextColor() => Color.white;
 
         #endregion
 
         #region Inputs Management
 
-        private void InitInputs()
+        protected virtual void InitInputs()
         {
-            if (OnScreenConsoleSettings.HasOpenConsoleInput(out var openAction))
-            {
-                m_openConsoleAction = openAction;
-                if (!IsActive) m_openConsoleAction.performed += OpenConsole;
-            }
-            if (OnScreenConsoleSettings.HasCloseConsoleInput(out var closeAction))
-            {
-                m_closeConsoleAction = closeAction;
-                if (IsActive) m_closeConsoleAction.performed += CloseConsole;
-            }
+            RegisterInputs(true);
+
+            if (!IsActive) EnableOpenConsoleInput(true);
+            else EnableCloseConsoleInput(true);
         }
-        private void EnableOpenConsoleInput(bool enable)
+        protected virtual void ClearInputs()
+        {
+            EnableOpenConsoleInput(false);
+            EnableCloseConsoleInput(false);
+
+            RegisterInputs(false);
+        }
+
+        private void RegisterInputs(bool register)
         {
             if (m_openConsoleAction != null)
             {
-                if (enable) m_openConsoleAction.performed += OpenConsole;
-                else m_openConsoleAction.performed -= OpenConsole;
+                if (register) m_openConsoleAction.performed += OpenConsoleCallback;
+                else m_openConsoleAction.performed -= OpenConsoleCallback;
+            }
+            if (m_closeConsoleAction != null)
+            {
+                if (register) m_closeConsoleAction.performed += CloseConsoleCallback;
+                else m_closeConsoleAction.performed -= CloseConsoleCallback;
             }
         }
-        private void EnableCloseConsoleInput(bool enable)
+
+        protected void EnableOpenConsoleInput(bool enable)
+        {
+            if (m_openConsoleAction != null)
+            {
+                if (enable) m_openConsoleAction.Enable();
+                else m_openConsoleAction.Disable();
+            }
+        }
+        protected void EnableCloseConsoleInput(bool enable)
         {
             if (m_closeConsoleAction != null)
             {
-                if (enable) m_closeConsoleAction.performed += CloseConsole;
-                else m_closeConsoleAction.performed -= CloseConsole;
+                if (enable) m_closeConsoleAction.Enable();
+                else m_closeConsoleAction.Disable();
             }
         }
 
@@ -144,7 +199,7 @@ namespace Dhs5.Utility.Console
             m_justOpenedConsole = true;
             InitStyles();
         }
-        private void OpenConsole(InputAction.CallbackContext callbackContext)
+        protected void OpenConsoleCallback(InputAction.CallbackContext callbackContext)
         {
             OpenConsole();
         }
@@ -156,31 +211,9 @@ namespace Dhs5.Utility.Console
             EnableCloseConsoleInput(false);
             IsActive = false;
         }
-        private void CloseConsole(InputAction.CallbackContext callbackContext)
+        protected void CloseConsoleCallback(InputAction.CallbackContext callbackContext)
         {
             CloseConsole();
-        }
-
-        #endregion
-
-        #region Predefined Commands
-
-        private void RegisterPredefinedCommands(bool register)
-        {
-            if (register)
-            {
-                foreach (var cmd in OnScreenConsoleSettings.PredefinedCommands)
-                {
-                    RegisterCommand(cmd, cmd.Callback);
-                }
-            }
-            else
-            {
-                foreach (var cmd in OnScreenConsoleSettings.PredefinedCommands)
-                {
-                    UnregisterCommand(cmd, cmd.Callback);
-                }
-            }
         }
 
         #endregion
@@ -188,9 +221,9 @@ namespace Dhs5.Utility.Console
 
         #region Registration
 
-        private Dictionary<ConsoleCommand, ValidCommandCallback> m_registeredCommands = new();
+        private Dictionary<IConsoleCommand, ValidCommandCallback> m_registeredCommands = new();
 
-        private void RegisterCommand(ConsoleCommand command, ValidCommandCallback callback)
+        protected void RegisterCommand(IConsoleCommand command, ValidCommandCallback callback)
         {
             if (m_registeredCommands.ContainsKey(command))
             {
@@ -201,23 +234,29 @@ namespace Dhs5.Utility.Console
                 m_registeredCommands.Add(command, callback);
             }
         }
-        private void UnregisterCommand(ConsoleCommand command, ValidCommandCallback callback)
+        protected void UnregisterCommand(IConsoleCommand command, ValidCommandCallback callback)
         {
             if (m_registeredCommands.ContainsKey(command))
             {
                 m_registeredCommands[command] -= callback;
             }
         }
-        private void UnregisterCommand(ConsoleCommand command)
+        protected void UnregisterCommand(IConsoleCommand command)
         {
             m_registeredCommands.Remove(command);
+        }
+
+        protected virtual void OnRegisteredCommandsChanged()
+        {
+            RecomputeOptions();
+            RecomputeCurrentInputValidity();
         }
 
         #endregion
 
         #region Options
 
-        private List<ConsoleCommand.CommandArray> m_currentInputOptions = new();
+        private List<CommandArray> m_currentInputOptions = new();
 
         private void RecomputeOptions()
         {
@@ -234,7 +273,7 @@ namespace Dhs5.Utility.Console
                 }
             }
 
-            m_optionsScrollPos = new Vector2(0, OnScreenConsoleSettings.OptionRectHeight * Mathf.Max(0, m_currentInputOptions.Count - OnScreenConsoleSettings.MaxOptionsDisplayed));
+            m_optionsScrollPos = new Vector2(0, GetOptionRectHeight() * Mathf.Max(0, m_currentInputOptions.Count - GetMaxOptionsDisplayed()));
         }
 
         #endregion
@@ -311,14 +350,12 @@ namespace Dhs5.Utility.Console
 
         #region GUI
 
-        // PARAMETERS
-        private const string InputControlName = "Command Input";
-
         private void OnGUI()
         {
             if (IsActive)
             {
-                var inputRect = new Rect(0f, Screen.height - OnScreenConsoleSettings.InputRectHeight, Screen.width * 0.8f, OnScreenConsoleSettings.InputRectHeight);
+                float inputRectHeight = GetInputRectHeight();
+                var inputRect = new Rect(0f, Screen.height - inputRectHeight, Screen.width * 0.8f, inputRectHeight);
                 bool hasFocus = GUI.GetNameOfFocusedControl() == InputControlName;
 
                 // EVENTS
@@ -359,13 +396,13 @@ namespace Dhs5.Utility.Console
 
         private void OnInputGUI(Rect rect, bool hasFocus)
         {
-            GUIHelper.DrawRect(rect, hasFocus ? GUIHelper.transparentBlack07 : GUIHelper.transparentBlack03);
+            DrawRect(rect, hasFocus ? m_transparentBlack07 : m_transparentBlack03);
 
             GUI.SetNextControlName(InputControlName);
 
-            GUIHelper.BeginChangeCheck();
+            BeginChangeCheck();
             m_currentInputString = GUI.TextField(rect, m_currentInputString, m_isCurrentInputValid ? m_validInputStyle : m_inputStyle);
-            if (GUIHelper.EndChangeCheck())
+            if (EndChangeCheck())
             {
                 OnInputChanged();
             }
@@ -379,13 +416,13 @@ namespace Dhs5.Utility.Console
 
         private void OnOptionsGUI(float y, float width)
         {
-            float optionRectHeight = OnScreenConsoleSettings.OptionRectHeight;
+            float optionRectHeight = GetOptionRectHeight();
 
-            float scrollViewRectHeight = optionRectHeight * OnScreenConsoleSettings.MaxOptionsDisplayed;
+            float scrollViewRectHeight = optionRectHeight * GetMaxOptionsDisplayed();
             var scrollViewRect = new Rect(0, y - scrollViewRectHeight, width, scrollViewRectHeight);
             var viewRect = new Rect(0, 0, width - 25f, Mathf.Max(scrollViewRectHeight, optionRectHeight * m_currentInputOptions.Count));
 
-            GUIHelper.DrawRect(scrollViewRect, GUIHelper.transparentBlack01);
+            DrawRect(scrollViewRect, m_transparentBlack01);
 
             m_optionsScrollPos = GUI.BeginScrollView(scrollViewRect, m_optionsScrollPos, viewRect);
 
@@ -394,7 +431,7 @@ namespace Dhs5.Utility.Console
             for (int i = 0; i < m_currentInputOptions.Count; i++)
             {
                 optionRect.y -= optionRectHeight;
-                GUIHelper.DrawRect(optionRect, i % 2 == 0 ? GUIHelper.transparentBlack03 : GUIHelper.transparentBlack05);
+                DrawRect(optionRect, i % 2 == 0 ? m_transparentBlack03 : m_transparentBlack05);
 
                 if (GUI.Button(optionRect, m_currentInputOptions[i].ToString(), m_optionStyle))
                 {
@@ -408,6 +445,46 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
+        #region GUI Parameters
+
+        // CONSTS
+        private const string InputControlName = "Command Input";
+
+        // 
+        protected virtual float GetInputRectHeight() => 50f;
+        protected virtual float GetOptionRectHeight() => 30f;
+        protected virtual int GetMaxOptionsDisplayed() => 10;
+
+        #endregion
+
+        #region GUI Helper
+
+        private void DrawRect(Rect rect, Color color)
+        {
+            if (Event.current.type == EventType.Repaint)
+            {
+                Color color2 = GUI.color;
+                GUI.color *= color;
+                GUI.DrawTexture(rect, WhiteTexture);
+                GUI.color = color2;
+            }
+        }
+
+        private bool m_hadChangeBeforeChangeCheck = false;
+        public void BeginChangeCheck()
+        {
+            m_hadChangeBeforeChangeCheck = GUI.changed;
+            GUI.changed = false;
+        }
+        public bool EndChangeCheck()
+        {
+            bool change = GUI.changed;
+            GUI.changed |= m_hadChangeBeforeChangeCheck;
+            return change;
+        }
+
+        #endregion
+
         #endregion
 
         // ---------- ---------- ---------- 
@@ -416,19 +493,15 @@ namespace Dhs5.Utility.Console
 
         #region Instance Creation
 
-        private static OnScreenConsole Instance { get; set; }
+        private static T Instance { get; set; }
 
         private static void CreateInstance()
         {
-            if (Instance != null) return;
-
             var obj = new GameObject("OnScreen Console");
-            DontDestroyOnLoad(obj);
-
-            Instance = obj.AddComponent<OnScreenConsole>();
+            obj.AddComponent<T>();
         }
 
-        private static OnScreenConsole GetInstance()
+        private static T GetInstance()
         {
             if (Instance == null)
             {
@@ -460,16 +533,21 @@ namespace Dhs5.Utility.Console
 
         #region Command Registration
 
-        public static void Register(ConsoleCommand command, ValidCommandCallback callback)
+        public static bool Register(IConsoleCommand command, ValidCommandCallback callback)
         {
-            GetInstance().RegisterCommand(command, callback);
+            if (command.IsValid())
+            {
+                GetInstance().RegisterCommand(command, callback);
+                return true;
+            }
+            return false;
         }
         
-        public static void Unregister(ConsoleCommand command, ValidCommandCallback callback)
+        public static void Unregister(IConsoleCommand command, ValidCommandCallback callback)
         {
             GetInstance().UnregisterCommand(command, callback);
         }
-        public static void Unregister(ConsoleCommand command)
+        public static void Unregister(IConsoleCommand command)
         {
             GetInstance().UnregisterCommand(command);
         }

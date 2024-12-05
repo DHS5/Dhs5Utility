@@ -445,6 +445,84 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 1
+--- !u!1 &877697410
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 877697412}
+  - component: {fileID: 877697411}
+  m_Layer: 0
+  m_Name: Console
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &877697411
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 877697410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a3de57a5bccd664485e41a7d2f2c7a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_openConsoleAction:
+    m_Name: Open Console
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 0548a51e-cf87-44c5-8479-a2db0ce10b94
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings:
+    - m_Name: 
+      m_Id: 91868ea5-1991-4b62-bea7-affb8393d6f1
+      m_Path: <Keyboard>/tab
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Open Console
+      m_Flags: 0
+    m_Flags: 0
+  m_closeConsoleAction:
+    m_Name: Close Console
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: e2efa029-e914-4333-9624-6ca807418466
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings:
+    - m_Name: 
+      m_Id: b6959bea-4c98-4741-9542-8a5d4d70d557
+      m_Path: <Keyboard>/escape
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Close Console
+      m_Flags: 0
+    m_Flags: 0
+--- !u!4 &877697412
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 877697410}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1102713469
 GameObject:
   m_ObjectHideFlags: 0
@@ -622,3 +700,4 @@ SceneRoots:
   - {fileID: 368687262}
   - {fileID: 1102713471}
   - {fileID: 1284688206}
+  - {fileID: 877697412}

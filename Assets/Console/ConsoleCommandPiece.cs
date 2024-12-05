@@ -31,7 +31,7 @@ namespace Dhs5.Utility.Console
         // INPUTS
         [SerializeField] private string m_singleInput;
         [SerializeField] private string[] m_multiInputs;
-        [SerializeField] private ConsoleCommand.ParamType m_paramType;
+        [SerializeField] private ParamType m_paramType;
 
         // PARAMETERS
         [SerializeField] private bool m_optional;
@@ -46,7 +46,7 @@ namespace Dhs5.Utility.Console
 
             m_singleInput = singleInput;
             m_multiInputs = null;
-            m_paramType = ConsoleCommand.ParamType.BOOL;
+            m_paramType = ParamType.BOOL;
 
             m_optional = optional;
         }
@@ -56,11 +56,11 @@ namespace Dhs5.Utility.Console
 
             m_singleInput = null;
             m_multiInputs = multiInputs;
-            m_paramType = ConsoleCommand.ParamType.BOOL;
+            m_paramType = ParamType.BOOL;
 
             m_optional = optional;
         }
-        public ConsoleCommandPiece(ConsoleCommand.ParamType paramType)
+        public ConsoleCommandPiece(ParamType paramType)
         {
             m_type = Type.PARAMETER;
 
@@ -100,7 +100,7 @@ namespace Dhs5.Utility.Console
                     break;
 
                 case Type.PARAMETER:
-                    yield return ConsoleCommand.GetParameterString(m_paramType);
+                    yield return ConsoleCommandUtility.GetParameterString(m_paramType);
                     break;
             }
         }
@@ -158,7 +158,7 @@ namespace Dhs5.Utility.Console
                         rawCommandLeft = string.Empty;
                     }
 
-                    return ConsoleCommand.IsParameterValid(paramStr, m_paramType, out parameter);
+                    return ConsoleCommandUtility.IsParameterValid(paramStr, m_paramType, out parameter);
             }
 
             if (m_optional)

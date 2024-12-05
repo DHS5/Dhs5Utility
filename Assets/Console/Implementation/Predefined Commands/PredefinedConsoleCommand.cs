@@ -9,7 +9,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Console
 {
-    public abstract class PredefinedConsoleCommand : ConsoleCommand
+    public abstract class PredefinedConsoleCommand : ConsoleCommandObject
     {
         #region Core Behaviour
 
@@ -37,7 +37,7 @@ namespace Dhs5.Utility.Console
 
         #region Validation Callbacks
 
-        public OnScreenConsole.ValidCommandCallback Callback => OnCommandValidated;
+        public ValidCommandCallback Callback => OnCommandValidated;
 
         protected abstract void OnCommandValidated(ValidCommand validCommand);
 

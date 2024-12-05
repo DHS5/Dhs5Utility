@@ -5,19 +5,23 @@ using UnityEngine;
 
 public class TestConsole : MonoBehaviour
 {
-    [SerializeField] private List<ConsoleCommand> commands;
+    [SerializeField] private List<ConsoleCommandObject> commands;
 
     private void Start()
     {
+        //TestOnScreenConsole.Init();
+
         foreach (var command in commands)
         {
-            OnScreenConsole.Register(command, OnConsoleCommandValidated);
+            TestOnScreenConsole.Register(command, OnConsoleCommandValidated);
         }
 
-        OnScreenConsole.Init();
+        var cmd = new ScriptedConsoleCommand(
+            new ConsoleCommandPiece(false, "/Debug time"));
+        TestOnScreenConsole.Register(cmd, OnDebugTime);
     }
 
-    private void OnConsoleCommandValidated(ConsoleCommand.ValidCommand command)
+    private void OnConsoleCommandValidated(ValidCommand command)
     {
         Debug.Log(command.rawCommand);
 
@@ -26,5 +30,10 @@ public class TestConsole : MonoBehaviour
             if (command.parameters[i] != null)
                 Debug.Log("param " + i + " = " + command.parameters[i]);
         }
+    }
+
+    private void OnDebugTime(ValidCommand command)
+    {
+        Debug.Log(Time.time);
     }
 }
