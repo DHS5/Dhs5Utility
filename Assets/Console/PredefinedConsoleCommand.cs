@@ -4,7 +4,6 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Console
@@ -60,7 +59,7 @@ namespace Dhs5.Utility.Console
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(PredefinedConsoleCommand), true)]
+    [CustomEditor(typeof(PredefinedConsoleCommand), editorForChildClasses:true)]
     public class PredefinedConsoleCommandEditor : ConsoleCommandEditor
     {
         #region GUI

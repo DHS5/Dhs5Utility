@@ -16,8 +16,9 @@ public class TestConsole : MonoBehaviour
             TestOnScreenConsole.Register(command, OnConsoleCommandValidated);
         }
 
-        var cmd = new ScriptedConsoleCommand(
-            new ConsoleCommandPiece(false, "/Debug time"));
+        //var cmd = new ScriptedConsoleCommand(
+        //    new ConsoleCommandPiece(false, "/Debug time"));
+        var cmd = new ScriptedConsoleCommand("/Debug time");
         TestOnScreenConsole.Register(cmd, OnDebugTime);
     }
 
