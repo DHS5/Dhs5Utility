@@ -34,5 +34,14 @@ namespace Dhs5.Utility.Console
         public int Count => m_commandPieces.Count;
 
         #endregion
+
+
+        #region Validation Callbacks
+
+        public ValidCommandCallback Callback => OnCommandValidated;
+
+        protected virtual void OnCommandValidated(ValidCommand validCommand) { }
+
+        #endregion
     }
 }
