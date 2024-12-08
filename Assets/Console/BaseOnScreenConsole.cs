@@ -141,8 +141,8 @@ namespace Dhs5.Utility.Console
         {
             RegisterInputs(true);
 
-            if (!IsActive) EnableOpenConsoleInput(true);
-            else EnableCloseConsoleInput(true);
+            EnableOpenConsoleInput(true);
+            EnableCloseConsoleInput(true);
         }
         protected virtual void ClearInputs()
         {
@@ -187,34 +187,42 @@ namespace Dhs5.Utility.Console
 
         #region Activation
 
-        public void OpenConsole()
+        private int m_lastActivationChangeFrame = -1;
+        protected void OpenConsole()
         {
-            if (IsActive) return;
+            if (IsActive || m_lastActivationChangeFrame == Time.frameCount) return;
 
-            EnableOpenConsoleInput(false);
-            EnableCloseConsoleInput(true);
+            m_lastActivationChangeFrame = Time.frameCount;
+
             IsActive = true;
 
             m_currentInputString = string.Empty;
             m_justOpenedConsole = true;
             InitStyles();
+
+            OnOpenConsole();
         }
-        protected void OpenConsoleCallback(InputAction.CallbackContext callbackContext)
+        private void OpenConsoleCallback(InputAction.CallbackContext callbackContext)
         {
             OpenConsole();
         }
-        private void CloseConsole()
+        protected void CloseConsole()
         {
-            if (!IsActive) return;
+            if (!IsActive || m_lastActivationChangeFrame == Time.frameCount) return;
 
-            EnableOpenConsoleInput(true);
-            EnableCloseConsoleInput(false);
+            m_lastActivationChangeFrame = Time.frameCount;
+
             IsActive = false;
+
+            OnCloseConsole();
         }
-        protected void CloseConsoleCallback(InputAction.CallbackContext callbackContext)
+        private void CloseConsoleCallback(InputAction.CallbackContext callbackContext)
         {
             CloseConsole();
         }
+
+        protected virtual void OnOpenConsole() { }
+        protected virtual void OnCloseConsole() { }
 
         #endregion
 
@@ -257,6 +265,7 @@ namespace Dhs5.Utility.Console
         #region Options
 
         private List<CommandArray> m_currentInputOptions = new();
+        private int m_currentlySelectedOptionIndex = -1;
 
         private void RecomputeOptions()
         {
@@ -274,6 +283,39 @@ namespace Dhs5.Utility.Console
             }
 
             m_optionsScrollPos = new Vector2(0, GetOptionRectHeight() * Mathf.Max(0, m_currentInputOptions.Count - GetMaxOptionsDisplayed()));
+            m_currentlySelectedOptionIndex = -1;
+        }
+
+        private void FillWithOptionAtIndex(int index)
+        {
+            m_currentInputString = m_currentInputOptions[index].ToStringWithoutParams();
+            OnInputStringChanged();
+        }
+
+        private void OnSelectUpOption()
+        {
+            if (m_currentInputOptions.IsValid())
+            {
+                m_currentlySelectedOptionIndex = Mathf.Clamp(m_currentlySelectedOptionIndex + 1, 0, m_currentInputOptions.Count - 1);
+            }
+        }
+        private void OnSelectDownOption()
+        {
+            if (m_currentInputOptions.IsValid())
+            {
+                m_currentlySelectedOptionIndex = Mathf.Clamp(m_currentlySelectedOptionIndex - 1, -1, m_currentInputOptions.Count - 1);
+            }
+        }
+        private void FillWithSelectedOption()
+        {
+            if (m_currentlySelectedOptionIndex != -1)
+            {
+                FillWithOptionAtIndex(m_currentlySelectedOptionIndex);
+            }
+            else if (m_currentInputOptions.IsValid())
+            {
+                FillWithOptionAtIndex(0);
+            }
         }
 
         #endregion
@@ -316,6 +358,7 @@ namespace Dhs5.Utility.Console
 
         private List<string> m_previousCommands = new();
         private int m_previousCommandMarker = 0;
+        private string m_currentlyEditedCommand;
 
         private void AddToPreviousCommands(string cmd)
         {
@@ -326,20 +369,35 @@ namespace Dhs5.Utility.Console
 
         private void OnGetPreviousCommand()
         {
-            m_previousCommandMarker = Mathf.Clamp(m_previousCommandMarker - 1, 0, m_previousCommands.Count - 1);
-            m_currentInputString = m_previousCommands[m_previousCommandMarker];
+            if (m_previousCommands.IsValid())
+            {
+                m_previousCommandMarker = Mathf.Clamp(m_previousCommandMarker - 1, 0, m_previousCommands.Count - 1);
+                m_currentInputString = m_previousCommands[m_previousCommandMarker];
+                OnInputStringChanged();
+            }
         }
         private void OnGetNextCommand()
         {
-            m_previousCommandMarker = Mathf.Clamp(m_previousCommandMarker + 1, 0, m_previousCommands.Count);
-            m_currentInputString = m_previousCommandMarker == m_previousCommands.Count ? string.Empty : m_previousCommands[m_previousCommandMarker];
+            if (m_previousCommands.IsValid())
+            {
+                m_previousCommandMarker = Mathf.Clamp(m_previousCommandMarker + 1, 0, m_previousCommands.Count);
+                m_currentInputString = m_previousCommandMarker == m_previousCommands.Count ? m_currentlyEditedCommand : m_previousCommands[m_previousCommandMarker];
+                OnInputStringChanged();
+            }
         }
 
         #endregion
 
         #region Callbacks
 
-        private void OnInputChanged()
+        private void OnPlayerInput()
+        {
+            m_currentlyEditedCommand = m_currentInputString;
+            m_previousCommandMarker = m_previousCommands.Count;
+
+            OnInputStringChanged();
+        }
+        private void OnInputStringChanged()
         {
             RecomputeOptions();
             RecomputeCurrentInputValidity();
@@ -383,12 +441,21 @@ namespace Dhs5.Utility.Console
                         Validate();
                         break;
 
+                    case KeyCode.Tab:
+                        FillWithSelectedOption();
+                        Event.current.Use();
+                        break;
+
                     case KeyCode.UpArrow:
-                        OnGetPreviousCommand();
+                        if (Event.current.modifiers.HasFlag(EventModifiers.Control)) OnSelectUpOption();
+                        else OnGetPreviousCommand();
+                        Event.current.Use();
                         break;
                     
                     case KeyCode.DownArrow:
-                        OnGetNextCommand();
+                        if (Event.current.modifiers.HasFlag(EventModifiers.Control)) OnSelectDownOption();
+                        else OnGetNextCommand();
+                        Event.current.Use();
                         break;
                 }
             }
@@ -400,11 +467,11 @@ namespace Dhs5.Utility.Console
 
             GUI.SetNextControlName(InputControlName);
 
-            BeginChangeCheck();
+            BeginInputChangeCheck();
             m_currentInputString = GUI.TextField(rect, m_currentInputString, m_isCurrentInputValid ? m_validInputStyle : m_inputStyle);
-            if (EndChangeCheck())
+            if (EndInputChangeCheck())
             {
-                OnInputChanged();
+                OnPlayerInput();
             }
 
             if (m_justOpenedConsole)
@@ -427,16 +494,17 @@ namespace Dhs5.Utility.Console
             m_optionsScrollPos = GUI.BeginScrollView(scrollViewRect, m_optionsScrollPos, viewRect);
 
             var optionRect = new Rect(0, viewRect.height, viewRect.width, optionRectHeight);
+            bool selected = false;
 
             for (int i = 0; i < m_currentInputOptions.Count; i++)
             {
+                selected = m_currentlySelectedOptionIndex == i;
                 optionRect.y -= optionRectHeight;
-                DrawRect(optionRect, i % 2 == 0 ? m_transparentBlack03 : m_transparentBlack05);
+                DrawRect(optionRect, selected ? Color.black : (i % 2 == 0 ? m_transparentBlack03 : m_transparentBlack05));
 
                 if (GUI.Button(optionRect, m_currentInputOptions[i].ToString(), m_optionStyle))
                 {
-                    m_currentInputString = m_currentInputOptions[i].ToStringWithoutParams();
-                    OnInputChanged();
+                    FillWithOptionAtIndex(i);
                 }
             }
 
@@ -470,17 +538,14 @@ namespace Dhs5.Utility.Console
             }
         }
 
-        private bool m_hadChangeBeforeChangeCheck = false;
-        public void BeginChangeCheck()
+        private string m_inputStringBeforeChangeCheck;
+        public void BeginInputChangeCheck()
         {
-            m_hadChangeBeforeChangeCheck = GUI.changed;
-            GUI.changed = false;
+            m_inputStringBeforeChangeCheck = m_currentInputString;
         }
-        public bool EndChangeCheck()
+        public bool EndInputChangeCheck()
         {
-            bool change = GUI.changed;
-            GUI.changed |= m_hadChangeBeforeChangeCheck;
-            return change;
+            return m_inputStringBeforeChangeCheck != m_currentInputString;
         }
 
         #endregion

@@ -484,7 +484,7 @@ MonoBehaviour:
     m_SingletonActionBindings:
     - m_Name: 
       m_Id: 91868ea5-1991-4b62-bea7-affb8393d6f1
-      m_Path: <Keyboard>/tab
+      m_Path: <Keyboard>/f12
       m_Interactions: 
       m_Processors: 
       m_Groups: 
@@ -501,7 +501,7 @@ MonoBehaviour:
     m_SingletonActionBindings:
     - m_Name: 
       m_Id: b6959bea-4c98-4741-9542-8a5d4d70d557
-      m_Path: <Keyboard>/escape
+      m_Path: <Keyboard>/f12
       m_Interactions: 
       m_Processors: 
       m_Groups: 
