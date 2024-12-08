@@ -447,14 +447,14 @@ namespace Dhs5.Utility.Console
                         break;
 
                     case KeyCode.UpArrow:
-                        if (Event.current.modifiers.HasFlag(EventModifiers.Control)) OnSelectUpOption();
-                        else OnGetPreviousCommand();
+                        if (Event.current.modifiers.HasFlag(EventModifiers.Control)) OnGetPreviousCommand();
+                        else OnSelectUpOption();
                         Event.current.Use();
                         break;
                     
                     case KeyCode.DownArrow:
-                        if (Event.current.modifiers.HasFlag(EventModifiers.Control)) OnSelectDownOption();
-                        else OnGetNextCommand();
+                        if (Event.current.modifiers.HasFlag(EventModifiers.Control)) OnGetNextCommand();
+                        else OnSelectDownOption(); 
                         Event.current.Use();
                         break;
                 }
