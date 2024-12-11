@@ -11,7 +11,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Debuggers
 {
-    [Database("Debug/Debugger", typeof(DebuggerDatabaseElement))]
+    [Database("Debugger", typeof(DebuggerDatabaseElement))]
     public class DebuggerDatabase : EnumDatabase<DebuggerDatabase>
     {
         #region Editor Utility
@@ -81,10 +81,12 @@ namespace Dhs5.Utility.Debuggers
 
         #region Database Content List
 
+        float m_extraInfosWidth = 150f;
+
         protected override Rect GetButtonRectForDatabaseContentListElement(Rect rect, int index, Object element, bool contextButton)
         {
             var resultRect = base.GetButtonRectForDatabaseContentListElement(rect, index, element, contextButton);
-            resultRect.width -= 125f;
+            resultRect.width -= m_extraInfosWidth;
             return resultRect;
         }
 
@@ -98,19 +100,22 @@ namespace Dhs5.Utility.Debuggers
                 EditorGUI.LabelField(lightRimRect, elem.Level > -1 ? EditorGUIHelper.GreenLightIcon : EditorGUIHelper.RedLightIcon);
 
                 // Color
-                float colorRectWidth = 125f;
-                var colorRect = new Rect(rect.x + rect.width - colorRectWidth + DatabaseContentListElementContextButtonWidth, rect.y, colorRectWidth, rect.height);
-                EditorGUI.DrawRect(colorRect, elem.Color);
+                float colorRectWidth = 40f;
+                var colorRect = new Rect(rect.x + rect.width - m_extraInfosWidth, rect.y, colorRectWidth, rect.height);
+                elem.Color = EditorGUI.ColorField(colorRect, GUIContent.none, elem.Color, false, false, false);
 
                 // Level
-                var levelSliderRect = new Rect(colorRect.x + 5f, rect.y, colorRectWidth - DatabaseContentListElementContextButtonWidth - 10f, rect.height);
-                elem.Level = (int)GUI.HorizontalSlider(levelSliderRect, elem.Level, -1, 2);
-                var levelLabelRect = new Rect(colorRect.x - 25f, rect.y, 20f, rect.height);
+                float levelLabelWidth = 20f;
+                float levelSliderWidth = m_extraInfosWidth - colorRectWidth - 5f - levelLabelWidth;
+                var levelSliderRect = new Rect(colorRect.x + colorRectWidth + 5f, rect.y, levelSliderWidth, rect.height);
+                elem.Level = (int)GUI.HorizontalSlider(levelSliderRect, elem.Level, -1, BaseDebugger.MAX_DEBUGGER_LEVEL);
+                //elem.Level = EditorGUI.IntSlider(levelSliderRect, elem.Level, -1, BaseDebugger.MAX_DEBUGGER_LEVEL);
+                var levelLabelRect = new Rect(levelSliderRect.x + levelSliderWidth, rect.y, levelLabelWidth, rect.height);
                 EditorGUI.LabelField(levelLabelRect, elem.Level.ToString(), GUIHelper.centeredLabel);
 
                 // Label
                 float labelRectX = rect.x + lightRimRect.width + 5f;
-                var labelRect = new Rect(labelRectX, rect.y, levelLabelRect.x - labelRectX - 5f, rect.height);
+                var labelRect = new Rect(labelRectX, rect.y, colorRect.x - labelRectX - 5f, rect.height);
                 OnDatabaseContentListElementNameGUI(labelRect, index, selected, obj, name);
             }
             else

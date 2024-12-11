@@ -31,14 +31,18 @@ namespace Dhs5.Utility.Debuggers
 
         #region Properties
 
-        public Color Color => m_color;
+        public Color Color
+        {
+            get => m_color;
+            internal set => m_color = value;
+        }
         public string ColorString => m_colorString;
 
         public bool Active => Level >= 0;
         public int Level
         {
             get => m_level;
-            set => m_level = value;
+            internal set => m_level = value;
         }
 
         public bool ShowInConsole => m_showInConsole;
@@ -225,7 +229,7 @@ namespace Dhs5.Utility.Debuggers
             // Color
             {
                 EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(p_color);
+                EditorGUILayout.ColorField(new GUIContent(p_color.displayName), p_color.colorValue, true, false, false);
                 if (EditorGUI.EndChangeCheck())
                 {
                     p_colorString.stringValue = ColorUtility.ToHtmlStringRGB(p_color.colorValue);

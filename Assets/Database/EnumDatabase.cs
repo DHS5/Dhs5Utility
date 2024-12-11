@@ -6,8 +6,6 @@ using System;
 using System.Linq;
 using Dhs5.Utility.GUIs;
 
-
-
 #if UNITY_EDITOR
 using UnityEditor;
 using System.IO;
@@ -327,11 +325,28 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Data Creation
+
+        protected override void OnAddNewDataToDatabase(UnityEngine.Object obj)
+        {
+            if (obj is IEnumDatabaseElement elem)
+            {
+                elem.Editor_SetIndex(int.MaxValue);
+            }
+
+            base.OnAddNewDataToDatabase(obj);
+        }
+
+        #endregion
+
         #region Database Element
 
         protected override void DisplayDatabaseElement(UnityEngine.Object element)
         {
-            EditorGUILayout.LabelField(element.name, GUIHelper.centeredBoldLabel);
+            if (element != null)
+            {
+                EditorGUILayout.LabelField(element.name, GUIHelper.centeredBoldLabel);
+            }
             base.DisplayDatabaseElement(element);
         }
 

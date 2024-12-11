@@ -39,7 +39,7 @@ namespace Dhs5.Utility.Databases
 
         // --- STATIC Members ---
 
-        private static int _currentSelection;
+        private int _currentSelection;
 
         // --- Parameters ---
 
@@ -76,7 +76,7 @@ namespace Dhs5.Utility.Databases
                 if (GUILayout.Button(m_names[_currentSelection], GUIHelper.bigTitleLabel)
                     && m_databases[_currentSelection] != null)
                 {
-                    EditorUtils.PingObject(m_databases[_currentSelection]);
+                    EditorUtils.FullPingObject(m_databases[_currentSelection]);
                 }
 
                 EditorGUILayout.Space(5f);

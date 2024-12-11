@@ -31,4 +31,13 @@ public static class UpdateCategoryExtension
     {
         return (flag & other) != 0;
     }
+     
+    public static void Register(this UpdateCategory category, UpdateCallback callback, ref ulong key)
+    {
+        Updater<UpdateCategory>.Register(true, category, callback, ref key);
+    }
+    public static void Unregister(this UpdateCategory category, UpdateCallback callback, ref ulong key)
+    {
+        Updater<UpdateCategory>.Register(false, category, callback, ref key);
+    }
 }

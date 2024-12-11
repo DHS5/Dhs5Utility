@@ -183,6 +183,12 @@ namespace Dhs5.Utility.Editors
             EditorUtility.FocusProjectWindow();
         }
 
+        public static void FullPingObject(UnityEngine.Object obj)
+        {
+            FocusProjectWindow();
+            PingObject(obj);
+        }
+
         public static string GetAssetContainingFolder(UnityEngine.Object obj)
         {
             return ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(obj));

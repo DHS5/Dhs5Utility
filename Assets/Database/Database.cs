@@ -550,7 +550,7 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Event Callbacks
+        #region Callbacks
 
         protected virtual void OnDatabaseContentChanged() 
         { 
@@ -605,6 +605,11 @@ namespace Dhs5.Utility.Databases
                 CurrentEvent.type != EventType.Layout;
             return EventReceived;
         }
+        protected void UseCurrentEvent()
+        {
+            EventReceived = false;
+            CurrentEvent.Use();
+        }
 
         protected virtual void OnEventReceived(Event e)
         {
@@ -622,6 +627,8 @@ namespace Dhs5.Utility.Databases
                                 OnEventReceived_Up(e); break;
                             case KeyCode.DownArrow:
                                 OnEventReceived_Down(e); break;
+                            case KeyCode.Return:
+                                OnEventReceived_Validate(e); break;
                         }
                         break;
                     }
@@ -629,7 +636,7 @@ namespace Dhs5.Utility.Databases
                     {
                         if (CompleteRenaming())
                         {
-                            e.Use();
+                            UseCurrentEvent();
                         }
                         break;
                     }
@@ -650,7 +657,7 @@ namespace Dhs5.Utility.Databases
         {
             if (TryDeleteCurrentSelection())
             {
-                e.Use();
+                UseCurrentEvent();
             }
         }
 
@@ -661,12 +668,22 @@ namespace Dhs5.Utility.Databases
                 if (DatabaseContentListSelectionIndex >= 0)
                 {
                     BeginRenaming(GetDatabaseCurrentSelection());
-                    e.Use();
+                    UseCurrentEvent();
                 }
             }
             else if (CompleteRenaming())
             {
-                e.Use();
+                UseCurrentEvent();
+            }
+        }
+
+        protected virtual void OnEventReceived_Validate(Event e)
+        {
+            var obj = GetDatabaseCurrentSelection();
+            if (obj != null)
+            {
+                EditorUtils.FullPingObject(obj);
+                UseCurrentEvent();
             }
         }
         
@@ -676,7 +693,7 @@ namespace Dhs5.Utility.Databases
             if (CanSelectUp())
             {
                 DatabaseContentListSelectionIndex--;
-                e.Use();
+                UseCurrentEvent();
             }
         }
         protected virtual void OnEventReceived_Down(Event e)
@@ -684,7 +701,7 @@ namespace Dhs5.Utility.Databases
             if (CanSelectDown())
             {
                 DatabaseContentListSelectionIndex++;
-                e.Use();
+                UseCurrentEvent();
             }
         }
 
@@ -836,13 +853,13 @@ namespace Dhs5.Utility.Databases
                         {
                             clicked = true;
                             doubleClicked = EditorApplication.timeSinceStartup <= m_lastSelectionTime + m_doubleClickDelay;
-                            CurrentEvent.Use();
+                            UseCurrentEvent();
                             GUI.changed = true;
                         }
                         break;
                     case EventType.ContextClick:
                         contextClicked = true;
-                        CurrentEvent.Use();
+                        UseCurrentEvent();
                         GUI.changed = true;
                         break;
                 }
@@ -857,7 +874,7 @@ namespace Dhs5.Utility.Databases
                     {
                         // Double click
                         Select();
-                        EditorUtils.PingObject(element);
+                        EditorUtils.FullPingObject(element);
                     }
                     else if (selected)
                     {
@@ -1005,7 +1022,7 @@ namespace Dhs5.Utility.Databases
                 {
                     ShowDatabaseContentListElementContextMenu(index);
                     GUI.changed = true;
-                    CurrentEvent.Use();
+                    UseCurrentEvent();
                 }
             }
             if (CurrentEvent.type == EventType.Repaint)
@@ -1030,7 +1047,7 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void PopulateDatabaseContentListElementContextMenu(int index, GenericMenu menu)
         {
-            menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.PingObject(GetDatabaseContentElementAtIndex(index)));
+            menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(GetDatabaseContentElementAtIndex(index)));
             menu.AddItem(new GUIContent("Remove"), false, () => OnTryDeleteDatabaseElementAtIndex(index));
         }
 

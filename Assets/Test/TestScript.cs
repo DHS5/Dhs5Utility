@@ -26,13 +26,15 @@ public class TestScript : MonoBehaviour, IDatabaseElement
     private ulong m_update1Key;
     private void OnEnable()
     {
-        TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
+        //TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
         TestUpdater.OnLateUpdate += OnLateUpdate;
+        UpdateCategory.SCREEN_LOG.Register(OnUpdate, ref m_update1Key);
     }
     private void OnDisable()
     {
-        TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
+        //TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
         TestUpdater.OnLateUpdate -= OnLateUpdate;
+        UpdateCategory.SCREEN_LOG.Unregister(OnUpdate, ref m_update1Key);
     }
 
     bool done;

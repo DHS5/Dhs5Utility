@@ -20,7 +20,17 @@ namespace Dhs5.Utility.Updates
         {
             List<string> extensions = new();
 
+            extensions.Add(" ");
+
+            extensions.Add("public static void Register(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
+            extensions.Add("{");
+            extensions.Add("    Updater<" + enumName + ">.Register(true, category, callback, ref key);");
+            extensions.Add("}");
             
+            extensions.Add("public static void Unregister(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
+            extensions.Add("{");
+            extensions.Add("    Updater<" + enumName + ">.Register(false, category, callback, ref key);");
+            extensions.Add("}");
 
             return extensions.ToArray();
         }
@@ -43,6 +53,12 @@ namespace Dhs5.Utility.Updates
     [CustomEditor(typeof(UpdaterDatabase), editorForChildClasses: true)]
     public class UpdaterDatabaseEditor : EnumDatabaseEditor
     {
+        #region Members
+
+        private GUIStyle m_smallInfosStyle;
+
+        #endregion
+
         #region Core Behaviour
 
         protected override void OnEnable()
@@ -50,6 +66,16 @@ namespace Dhs5.Utility.Updates
             base.OnEnable();
 
             ShowExtraUsings = false;
+
+            m_smallInfosStyle = new GUIStyle()
+            {
+                alignment = TextAnchor.LowerRight,
+                fontSize = 10,
+                normal = new GUIStyleState()
+                {
+                    textColor = Color.white,
+                }
+            };
         }
 
         #endregion
@@ -65,7 +91,19 @@ namespace Dhs5.Utility.Updates
         {
             if (obj is UpdaterDatabaseElement elem)
             {
-                OnDatabaseContentListElementNameGUI(rect, index, selected, obj, name);
+                float passRectWidth = 70f;
+                var passRect = new Rect(rect.x + rect.width - passRectWidth, rect.y, passRectWidth, rect.height);
+                EditorGUI.LabelField(passRect, elem.Pass.ToString(), m_smallInfosStyle);
+
+                float customFreqRectWidth = 40f;
+                if (elem.HasCustomFrequency(out float f))
+                {
+                    var customFreqRect = new Rect(rect.x + rect.width - customFreqRectWidth - passRectWidth, rect.y, customFreqRectWidth, rect.height);
+                    EditorGUI.LabelField(customFreqRect, "f=" + f, m_smallInfosStyle); 
+                }
+
+                var labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f - passRectWidth - customFreqRectWidth, rect.height);
+                OnDatabaseContentListElementNameGUI(labelRect, index, selected, obj, name);
             }
             else
             {

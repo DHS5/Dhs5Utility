@@ -33,8 +33,8 @@ namespace Dhs5.Utility.Settings
         // --- GUI Members ---
         private Vector2 m_scrollPosition;
 
-        // --- STATIC Members ---
-        private static int _currentSelection;
+        // --- Members ---
+        private int _currentSelection;
 
         #endregion
 
@@ -65,7 +65,7 @@ namespace Dhs5.Utility.Settings
                 if (GUILayout.Button(m_names[_currentSelection], GUIHelper.bigTitleLabel)
                     && m_settings[_currentSelection] != null)
                 {
-                    EditorUtils.PingObject(m_settings[_currentSelection]);
+                    EditorUtils.FullPingObject(m_settings[_currentSelection]);
                 }
 
                 EditorGUILayout.Space(5f);
