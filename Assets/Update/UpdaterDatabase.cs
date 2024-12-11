@@ -5,7 +5,6 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Updates

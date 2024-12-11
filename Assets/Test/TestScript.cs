@@ -23,26 +23,38 @@ public class TestScript : MonoBehaviour, IDatabaseElement
         return _showTexture;
     }
 
-    private ulong m_updateKey;
+    private ulong m_update1Key;
     private void OnEnable()
     {
-        TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_updateKey);
+        TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
+        TestUpdater.OnLateUpdate += OnLateUpdate;
     }
     private void OnDisable()
     {
-        TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_updateKey);
+        TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
+        TestUpdater.OnLateUpdate -= OnLateUpdate;
     }
 
     bool done;
+    bool done2;
     private void OnUpdate(float deltaTime)
     {
-        TestDebugger.LogOnScreen(0, "Test " + TestUpdater.RealTime, LogType.Log, 0);
+        //TestDebugger.LogOnScreen(0, "Test " + TestUpdater.RealTime, LogType.Log, 0);
 
         if (!done && TestUpdater.Time > 2f)
         {
             TestDebugger.Log(DebugCategory.GAME, "Frame : " + TestUpdater.Frame, 0);
             done = true;
             TestUpdater.CallOnNextUpdate(OnNextUpdate);
+        }
+    }
+    private void OnLateUpdate(float deltaTime)
+    {
+        if (!done2 && TestUpdater.Time > 3f)
+        {
+            done2 = true;
+            TestDebugger.Log(DebugCategory.GAME, "on late register, frame : " + TestUpdater.Frame, 0);
+            TestUpdater.CallOnLateUpdate((dt) => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + TestUpdater.Frame, 0));
         }
     }
 
