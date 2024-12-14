@@ -23,7 +23,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override void Editor_ShouldRecomputeDatabaseContent()
+        internal override void Editor_ShouldRecomputeContainerContent()
         {
             if (string.IsNullOrWhiteSpace(m_folderName)) return;
 
@@ -52,10 +52,10 @@ namespace Dhs5.Utility.Databases
                 Debug.LogError("Invalid folder path");
             }
 
-            base.Editor_ShouldRecomputeDatabaseContent();
+            base.Editor_ShouldRecomputeContainerContent();
         }
 
-        internal override IEnumerable<UnityEngine.Object> Editor_GetDatabaseContent()
+        internal override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
         {
             if (m_folderContent != null)
             {
@@ -169,9 +169,9 @@ namespace Dhs5.Utility.Databases
             ForceDatabaseContentRefresh();
         }
 
-        protected override void OnDatabaseContentChanged()
+        protected override void OnContainerContentChanged()
         {
-            base.OnDatabaseContentChanged();
+            base.OnContainerContentChanged();
 
             DatabaseContentListSelectionIndex = -1;
         }

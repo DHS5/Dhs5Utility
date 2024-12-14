@@ -11,20 +11,6 @@ namespace Dhs5.Utility.Editors
 {
     public static class EditorGUIHelper
     {
-        #region GUI Styles
-
-        public static GUIStyle foldoutStyle = new(EditorStyles.foldout)
-        {
-            fontSize = 14,
-            fontStyle = FontStyle.Bold,
-            onNormal = new GUIStyleState()
-            {
-                textColor = Color.white,
-            },
-        };
-
-        #endregion
-
         #region GUI Icons
 
         public static GUIContent RefreshIcon => EditorGUIUtility.IconContent("d_Refresh");
@@ -194,6 +180,22 @@ namespace Dhs5.Utility.Editors
             bool result = GUI.Toggle(rect, value, GUIContent.none, EditorStyles.toolbarButton);
             EditorGUI.LabelField(rect, content, GUIHelper.centeredLabel);
             return result;
+        }
+
+        #endregion
+
+        #region Foldout
+
+        public static bool Foldout(Rect rect, string label, bool value)
+        {
+            var content = value ? UpIcon : DownIcon;
+            content.text = label;
+
+            if (GUI.Button(rect, content, GUIHelper.foldoutStyle))
+            {
+                return !value;
+            }
+            return value;
         }
 
         #endregion

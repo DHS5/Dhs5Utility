@@ -94,6 +94,16 @@ namespace Dhs5.Utility.GUIs
             imagePosition = ImagePosition.ImageOnly
         };
 
+        public static GUIStyle foldoutStyle = new()
+        {
+            fontSize = 14,
+            fontStyle = FontStyle.Bold,
+            normal = new GUIStyleState()
+            {
+                textColor = Color.white,
+            },
+        };
+
         #endregion
 
         #region Textures

@@ -11,6 +11,15 @@ using UnityEditor;
 public class TestEmptyDB : BaseDatabase
 {
     [SerializeField] private string emptyStr;
+
+#if UNITY_EDITOR
+
+    protected override bool Editor_OnDeleteElementAtIndex(int index)
+    {
+        throw new System.NotImplementedException();
+    }
+
+#endif
 }
 
 #if UNITY_EDITOR

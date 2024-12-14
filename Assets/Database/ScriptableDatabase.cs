@@ -56,7 +56,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override bool Editor_DatabaseHasValidDataType()
+        internal override bool Editor_ContainerHasValidDataType()
         {
             return HasDataType(GetType(), out var dataType) &&
                 dataType.IsSubclassOf(typeof(ScriptableObject)) &&
@@ -71,7 +71,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override void Editor_ShouldRecomputeDatabaseContent()
+        internal override void Editor_ShouldRecomputeContainerContent()
         {
             if (m_content == null) m_content = new();
             else m_content.Clear();
@@ -86,10 +86,10 @@ namespace Dhs5.Utility.Databases
             }
             SortContent();
 
-            base.Editor_ShouldRecomputeDatabaseContent();
+            base.Editor_ShouldRecomputeContainerContent();
         }
 
-        internal override IEnumerable<Object> Editor_GetDatabaseContent()
+        internal override IEnumerable<Object> Editor_GetContainerContent()
         {
             if (m_content != null)
             {
@@ -174,7 +174,7 @@ namespace Dhs5.Utility.Databases
             DisplayCurrentDatabaseContentListSelection();
         }
 
-        protected override string DatabaseInvalidDataTypeMessage()
+        protected override string ContainerInvalidDataTypeMessage()
         {
             return "The data type of this Database is not valid.\n\n" +
                     "- Add the DatabaseAttribute to the top of your script.\n" +

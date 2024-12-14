@@ -47,7 +47,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override bool Editor_DatabaseHasValidDataType()
+        internal override bool Editor_ContainerHasValidDataType()
         {
             return HasDataType(GetType(), out var dataType) &&
                 typeof(IEnumDatabaseElement).IsAssignableFrom(dataType);
@@ -110,11 +110,11 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override void Editor_ShouldRecomputeDatabaseContent()
+        internal override void Editor_ShouldRecomputeContainerContent()
         {
             SaveCurrentContentOrder();
 
-            base.Editor_ShouldRecomputeDatabaseContent();
+            base.Editor_ShouldRecomputeContainerContent();
 
             string content = GetEnumScriptContent();
             bool differentContent = content != null && content != GetCurrentScriptContent();
@@ -143,7 +143,7 @@ namespace Dhs5.Utility.Databases
         protected virtual void SaveCurrentContentOrder()
         {
             int i = 0;
-            foreach (var elem in Editor_GetDatabaseContent())
+            foreach (var elem in Editor_GetContainerContent())
             {
                 if (elem is IEnumDatabaseElement enumElement)
                 {
@@ -154,7 +154,7 @@ namespace Dhs5.Utility.Databases
         }
         protected override void SortContent()
         {
-            var content = Editor_GetDatabaseContent().ToList().ConvertAll(o => o as ScriptableObject);
+            var content = Editor_GetContainerContent().ToList().ConvertAll(o => o as ScriptableObject);
             content.Sort((e1, e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex));
 
             // Set new content
@@ -234,7 +234,7 @@ namespace Dhs5.Utility.Databases
             DisplayCurrentDatabaseContentListSelection();
         }
 
-        protected override string DatabaseInvalidDataTypeMessage()
+        protected override string ContainerInvalidDataTypeMessage()
         {
             return "The data type of this Database is not valid.\n\n" +
                     "- Add the DatabaseAttribute to the top of your script.\n" +
