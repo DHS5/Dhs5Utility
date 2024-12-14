@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36506fb233b209446ad0660e84220fe6, type: 3}
   m_Name: BASE
   m_EditorClassIdentifier: 
+  m_uid: 1
   m_enumIndex: 0
   m_updatePass: 0
   m_order: 0
@@ -52,6 +53,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36506fb233b209446ad0660e84220fe6, type: 3}
   m_Name: SCREEN_LOG
   m_EditorClassIdentifier: 
+  m_uid: 2
   m_enumIndex: 1
   m_updatePass: 5
   m_order: 0

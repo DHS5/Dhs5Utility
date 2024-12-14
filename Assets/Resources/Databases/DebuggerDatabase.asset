@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: UI
   m_EditorClassIdentifier: 
-  m_enumIndex: 4
+  m_uid: 4
+  m_enumIndex: 3
   m_color: {r: 1, g: 0, b: 0.83840847, a: 1}
   m_colorString: FF00D6
   m_level: -1
@@ -55,7 +56,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: GAME
   m_EditorClassIdentifier: 
-  m_enumIndex: 2
+  m_uid: 2
+  m_enumIndex: 1
   m_color: {r: 0, g: 0.08001089, b: 1, a: 1}
   m_colorString: 0014FF
   m_level: 2
@@ -76,7 +78,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: FLOW
   m_EditorClassIdentifier: 
-  m_enumIndex: 3
+  m_uid: 3
+  m_enumIndex: 2
   m_color: {r: 1, g: 0.79222596, b: 0, a: 1}
   m_colorString: 58FF00
   m_level: -1
@@ -97,7 +100,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
   m_Name: NONE
   m_EditorClassIdentifier: 
-  m_enumIndex: 1
+  m_uid: 1
+  m_enumIndex: 0
   m_color: {r: 1, g: 0, b: 0, a: 1}
   m_colorString: FF0000
   m_level: -1

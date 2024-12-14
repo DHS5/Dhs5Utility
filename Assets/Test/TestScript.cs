@@ -4,12 +4,19 @@ using UnityEngine;
 
 public class TestScript : MonoBehaviour, IDatabaseElement
 {
+    [SerializeField] private int m_uid;
     [SerializeField] private bool _showTexture;
     [SerializeField] private Texture2D _texture;
     [SerializeField] private bool _showName;
     [SerializeField] private string _name;
 
+    public int UID => m_uid;
+
 #if UNITY_EDITOR
+    public void Editor_SetUID(int uid)
+    {
+        m_uid = uid;
+    }
     public bool Editor_HasDatabaseElementName(out string name)
     {
         name = _name;

@@ -2,6 +2,8 @@ using Dhs5.Utility.Databases;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -13,6 +15,7 @@ namespace Dhs5.Utility.Updates
     {
         #region Members
 
+        [SerializeField] private int m_uid;
         [SerializeField] private int m_enumIndex;
 
         [SerializeField] private UpdatePass m_updatePass = UpdatePass.CLASSIC;
@@ -46,10 +49,15 @@ namespace Dhs5.Utility.Updates
 
         #region IEnumDatabaseElement
 
+        public int UID => m_uid;
         public int EnumIndex => m_enumIndex;
 
 #if UNITY_EDITOR
 
+        public void Editor_SetUID(int uid)
+        {
+            m_uid = uid;
+        }
         public void Editor_SetIndex(int index)
         {
             m_enumIndex = index;
@@ -83,6 +91,7 @@ namespace Dhs5.Utility.Updates
         protected UpdaterDatabaseElement m_element;
 
         protected SerializedProperty p_script;
+        protected SerializedProperty p_uid;
         protected SerializedProperty p_enumIndex;
         protected SerializedProperty p_updatePass;
         protected SerializedProperty p_order;
@@ -101,6 +110,7 @@ namespace Dhs5.Utility.Updates
             m_element = (UpdaterDatabaseElement)target;
 
             p_script = serializedObject.FindProperty("m_Script");
+            p_uid = serializedObject.FindProperty("m_uid");
             p_enumIndex = serializedObject.FindProperty("m_enumIndex");
             p_updatePass = serializedObject.FindProperty("m_updatePass");
             p_order = serializedObject.FindProperty("m_order");
@@ -110,6 +120,7 @@ namespace Dhs5.Utility.Updates
 
             m_excludedProperties = new();
             m_excludedProperties.Add(p_script.propertyPath);
+            m_excludedProperties.Add(p_uid.propertyPath);
             m_excludedProperties.Add(p_enumIndex.propertyPath);
             m_excludedProperties.Add(p_updatePass.propertyPath);
             m_excludedProperties.Add(p_order.propertyPath);

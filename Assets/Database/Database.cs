@@ -135,6 +135,14 @@ namespace Dhs5.Utility.Databases
 
         internal virtual void Editor_ShouldRecomputeDatabaseContent()
         {
+            foreach (var obj in Editor_GetDatabaseContent())
+            {
+                if (obj is IDatabaseElement elem && elem.UID == 0)
+                {
+                    elem.Editor_SetUID(Editor_GenerateUID());
+                }
+            }
+
             Editor_DatabaseContentChanged?.Invoke();
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssetIfDirty(this);
@@ -148,15 +156,15 @@ namespace Dhs5.Utility.Databases
         internal virtual void Editor_OnNewElementCreated(UnityEngine.Object element) { }
 
         // --- UIDs ---
-        protected virtual IEnumerable<int> Editor_FetchDatabaseContentUIDs() { return null; }
         protected int Editor_GenerateUID()
         {
             int max = 0;
-            foreach (var uid in Editor_FetchDatabaseContentUIDs())
+            foreach (var obj in Editor_GetDatabaseContent())
             {
-                if (uid > max)
+                if (obj is IDatabaseElement elem &&
+                    elem.UID > max)
                 {
-                    max = uid;
+                    max = elem.UID;
                 }
             }
 

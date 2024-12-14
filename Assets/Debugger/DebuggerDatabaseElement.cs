@@ -14,6 +14,7 @@ namespace Dhs5.Utility.Debuggers
     {
         #region Members
 
+        [SerializeField] private int m_uid;
         [SerializeField] private int m_enumIndex;
 
         [SerializeField] private Color m_color;
@@ -70,12 +71,17 @@ namespace Dhs5.Utility.Debuggers
 
         #region IEnumDatabaseElement
 
+        public int UID => m_uid;
         public int EnumIndex => m_enumIndex;
 
 #if UNITY_EDITOR
         public void Editor_SetIndex(int index)
         {
             m_enumIndex = index;
+        }
+        public void Editor_SetUID(int uid)
+        {
+            m_uid = uid;
         }
 
         public bool Editor_HasDatabaseElementName(out string name)
@@ -106,6 +112,7 @@ namespace Dhs5.Utility.Debuggers
         protected DebuggerDatabaseElement m_element;
 
         protected SerializedProperty p_script;
+        protected SerializedProperty p_uid;
         protected SerializedProperty p_enumIndex;
         protected SerializedProperty p_color;
         protected SerializedProperty p_colorString;
@@ -133,6 +140,7 @@ namespace Dhs5.Utility.Debuggers
             m_element = (DebuggerDatabaseElement)target;
 
             p_script = serializedObject.FindProperty("m_Script");
+            p_uid = serializedObject.FindProperty("m_uid");
             p_enumIndex = serializedObject.FindProperty("m_enumIndex");
             p_color = serializedObject.FindProperty("m_color");
             p_colorString = serializedObject.FindProperty("m_colorString");
@@ -145,6 +153,7 @@ namespace Dhs5.Utility.Debuggers
 
             m_excludedProperties = new();
             m_excludedProperties.Add(p_script.propertyPath);
+            m_excludedProperties.Add(p_uid.propertyPath);
             m_excludedProperties.Add(p_enumIndex.propertyPath);
             m_excludedProperties.Add(p_color.propertyPath);
             m_excludedProperties.Add(p_colorString.propertyPath);
