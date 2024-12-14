@@ -1,16 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Dhs5.Utility.Editors;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using System.IO;
+using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Databases
 {
-    public class FileDatabase<T> : Database<T> where T : FileDatabase<T>
+    public class FolderDatabase<T> : Database<T> where T : FolderDatabase<T>
     {
         #region Members
 
@@ -87,7 +87,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(FileDatabase<>), editorForChildClasses:true)]
+    [CustomEditor(typeof(FolderDatabase<>), editorForChildClasses:true)]
     public class FileDatabaseEditor : BaseDatabaseEditor
     {
         #region Members

@@ -4,6 +4,8 @@ using UnityEngine;
 
 public interface IDatabaseElement
 {
-    bool HasDatabaseElementTexture(out Texture2D texture);
-    bool HasDatabaseElementName(out string name);
+#if UNITY_EDITOR
+    bool Editor_HasDatabaseElementTexture(out Texture2D texture);
+    bool Editor_HasDatabaseElementName(out string name);
+#endif
 }

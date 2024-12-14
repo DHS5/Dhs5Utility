@@ -1,15 +1,19 @@
 using Dhs5.Utility.Databases;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
-[Database("Test/Empty")]
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+[Database("Test/Empty", showInDatabaseWindow = false)]
 public class TestEmptyDB : BaseDatabase
 {
     [SerializeField] private string emptyStr;
 }
 
+#if UNITY_EDITOR
 [CustomEditor(typeof(TestEmptyDB))]
 public class EmptyDBEditor : Editor
 {
@@ -28,3 +32,4 @@ public class EmptyDBEditor : Editor
         
     }
 }
+#endif

@@ -52,6 +52,21 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Editor Data Type
+
+#if UNITY_EDITOR
+
+        internal override bool Editor_DatabaseHasValidDataType()
+        {
+            return HasDataType(GetType(), out var dataType) &&
+                dataType.IsSubclassOf(typeof(ScriptableObject)) &&
+                typeof(IDatabaseElement).IsAssignableFrom(dataType);
+        }
+
+#endif
+
+        #endregion
+
         #region Editor Content Management
 
 #if UNITY_EDITOR
@@ -157,6 +172,13 @@ namespace Dhs5.Utility.Databases
             EditorGUILayout.Space(10f);
 
             DisplayCurrentDatabaseContentListSelection();
+        }
+
+        protected override string DatabaseInvalidDataTypeMessage()
+        {
+            return "The data type of this Database is not valid.\n\n" +
+                    "- Add the DatabaseAttribute to the top of your script.\n" +
+                    "- Make sure the dataType parameter inherits from ScriptableObject and implements at least the IDatabaseElement interface.";
         }
 
         #endregion

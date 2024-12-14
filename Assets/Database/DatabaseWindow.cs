@@ -39,7 +39,7 @@ namespace Dhs5.Utility.Databases
 
         // --- STATIC Members ---
 
-        private int _currentSelection;
+        private int m_currentSelection;
 
         // --- Parameters ---
 
@@ -53,10 +53,12 @@ namespace Dhs5.Utility.Databases
 
         private void OnEnable()
         {
+            m_currentSelection = EditorPrefs.GetInt("DW_selection");
             GetDatabases();
         }
         private void OnDisable()
         {
+            EditorPrefs.SetInt("DW_selection", m_currentSelection);
             ClearEditors();
         }
 
@@ -70,20 +72,20 @@ namespace Dhs5.Utility.Databases
             var toolbarRect = EditorGUILayout.GetControlRect(false, 20f);
             OnToolbarGUI(toolbarRect);
 
-            if (_currentSelection >= 0)
+            if (m_currentSelection >= 0)
             {
                 EditorGUILayout.Space(5f);
-                if (GUILayout.Button(m_names[_currentSelection], GUIHelper.bigTitleLabel)
-                    && m_databases[_currentSelection] != null)
+                if (GUILayout.Button(m_names[m_currentSelection], GUIHelper.bigTitleLabel)
+                    && m_databases[m_currentSelection] != null)
                 {
-                    EditorUtils.FullPingObject(m_databases[_currentSelection]);
+                    EditorUtils.FullPingObject(m_databases[m_currentSelection]);
                 }
 
                 EditorGUILayout.Space(5f);
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
                 EditorGUILayout.Space(5f);
 
-                if (TryGetEditorAtIndex(_currentSelection, out Editor editor))
+                if (TryGetEditorAtIndex(m_currentSelection, out Editor editor))
                 {
                     bool hasPreview = editor.HasPreviewGUI();
                     float previewHeight = m_previewOpen ? m_previewWindowHeight + m_previewButtonHeight : m_previewButtonHeight;
@@ -144,7 +146,7 @@ namespace Dhs5.Utility.Databases
             int buttonsCount = 1;
 
             var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
-            _currentSelection = EditorGUI.IntPopup(popupRect, _currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
+            m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
 
             var refreshButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
@@ -177,7 +179,7 @@ namespace Dhs5.Utility.Databases
             m_editors = new();
 
             // Settings
-            m_databases = BaseDatabase.GetAllInstances();
+            m_databases = BaseDatabase.GetAllInstances((da) => da.showInDatabaseWindow);
 
             // Paths, names & options
             m_names = new string[m_databases.Length];

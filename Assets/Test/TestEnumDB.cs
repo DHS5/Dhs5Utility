@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[Database("Enum/Test", typeof(TestScriptable))]
+[Database(path:"Enum/Test", dataType:typeof(TestScriptable))]
 public class TestEnumDB : EnumDatabase<TestEnumDB>
 {
     

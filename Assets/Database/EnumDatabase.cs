@@ -29,28 +29,6 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Enum Database Element (Editor Only)
-
-#if UNITY_EDITOR
-
-        private struct EnumDatabaseElement
-        {
-            public EnumDatabaseElement(ScriptableObject obj, int index) 
-            { 
-                this.obj = obj;
-                this.index = index;
-            }
-
-            public readonly ScriptableObject obj;
-            public readonly int index;
-        }
-
-        private List<EnumDatabaseElement> m_enumElements;
-
-#endif
-
-        #endregion
-
         #region Accessors
 
         public U GetValueAtIndex<U>(int index) where U : ScriptableObject
@@ -64,6 +42,20 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+
+        #region Editor Data Type
+
+#if UNITY_EDITOR
+
+        internal override bool Editor_DatabaseHasValidDataType()
+        {
+            return HasDataType(GetType(), out var dataType) &&
+                typeof(IEnumDatabaseElement).IsAssignableFrom(dataType);
+        }
+
+#endif
+
+        #endregion
 
         #region Editor Utility
 
@@ -150,75 +142,23 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void SaveCurrentContentOrder()
         {
-            bool objectsAreEnumDatabaseElements = 
-                HasDataType(GetType(), out var dataType)
-                && typeof(IEnumDatabaseElement).IsAssignableFrom(dataType);
-
-            if (m_enumElements != null) m_enumElements.Clear();
-            else m_enumElements = new();
-
             int i = 0;
             foreach (var elem in Editor_GetDatabaseContent())
             {
-                if (elem is ScriptableObject so)
+                if (elem is IEnumDatabaseElement enumElement)
                 {
-                    if (objectsAreEnumDatabaseElements
-                        && so is IEnumDatabaseElement enumElement)
-                    {
-                        enumElement.Editor_SetIndex(i);
-                    }
-                    else
-                    {
-                        m_enumElements.Add(new EnumDatabaseElement(so, i));
-                    }
+                    enumElement.Editor_SetIndex(i);
                     i++;
                 }
             }
         }
         protected override void SortContent()
         {
-            if (HasDataType(GetType(), out var dataType)
-                && typeof(IEnumDatabaseElement).IsAssignableFrom(dataType))
-            {
-                var content = Editor_GetDatabaseContent().ToList().ConvertAll(o => o as ScriptableObject);
-                content.Sort((e1,e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex));
+            var content = Editor_GetDatabaseContent().ToList().ConvertAll(o => o as ScriptableObject);
+            content.Sort((e1, e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex));
 
-                // Set new content
-                Editor_SetContent(content);
-            }
-            else if (m_enumElements != null)
-            {
-                // Sort enum elements
-                m_enumElements.Sort((e1,e2) => e1.index.CompareTo(e2.index));
-
-                // Get content
-                List<ScriptableObject> newContent = new();
-                var currentContent = Editor_GetDatabaseContent().ToList().ConvertAll(o => o as ScriptableObject);
-
-                // Add saved sorted content first (if still exists)
-                foreach (var elem in m_enumElements)
-                {
-                    if (currentContent.Contains(elem.obj))
-                    {
-                        newContent.Add(elem.obj);
-                    }
-                }
-                // Add new content then
-                foreach (var elem in currentContent)
-                {
-                    if (!newContent.Contains(elem))
-                    {
-                        newContent.Add(elem);
-                    }
-                }
-
-                // Set new content
-                Editor_SetContent(newContent);
-            }
-            else
-            {
-                base.SortContent();
-            }
+            // Set new content
+            Editor_SetContent(content);
         }
 
 #endif
@@ -292,6 +232,13 @@ namespace Dhs5.Utility.Databases
             EditorGUILayout.Space(10f);
 
             DisplayCurrentDatabaseContentListSelection();
+        }
+
+        protected override string DatabaseInvalidDataTypeMessage()
+        {
+            return "The data type of this Database is not valid.\n\n" +
+                    "- Add the DatabaseAttribute to the top of your script.\n" +
+                    "- Make sure the dataType parameter inherits from ScriptableObject and implements at least the IEnumDatabaseElement interface.";
         }
 
         #endregion

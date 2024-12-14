@@ -1,5 +1,3 @@
-using Dhs5.Utility.Debuggers;
-using Dhs5.Utility.Console;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,17 +9,19 @@ public class TestScript : MonoBehaviour, IDatabaseElement
     [SerializeField] private bool _showName;
     [SerializeField] private string _name;
 
-    public bool HasDatabaseElementName(out string name)
+#if UNITY_EDITOR
+    public bool Editor_HasDatabaseElementName(out string name)
     {
         name = _name;
         return _showName;
     }
 
-    public bool HasDatabaseElementTexture(out Texture2D texture)
+    public bool Editor_HasDatabaseElementTexture(out Texture2D texture)
     {
         texture = _texture;
         return _showTexture;
     }
+#endif
 
     private ulong m_update1Key;
     private void OnEnable()

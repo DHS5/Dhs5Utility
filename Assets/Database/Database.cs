@@ -47,6 +47,7 @@ namespace Dhs5.Utility.Databases
 
         internal static BaseDatabase[] GetAllInstances() => GetAllInstances(GetAllChildTypes());
         internal static BaseDatabase[] GetAllInstances(Func<Type, bool> predicate) => GetAllInstances(GetAllChildTypes(t => predicate.Invoke(t)));
+        internal static BaseDatabase[] GetAllInstances(Func<DatabaseAttribute, bool> predicate) => GetAllInstances(GetAllChildTypes(da => predicate.Invoke(da)));
         private static BaseDatabase[] GetAllInstances(Type[] childTypes)
         {
             BaseDatabase[] databases = new BaseDatabase[childTypes.Length];
@@ -70,6 +71,12 @@ namespace Dhs5.Utility.Databases
         internal string Editor_GetPath()
         {
             return GetPath(GetType());
+        }
+
+        internal virtual bool Editor_DatabaseHasValidDataType()
+        {
+            return HasDataType(GetType(), out var dataType) &&
+                typeof(IDatabaseElement).IsAssignableFrom(dataType);
         }
 
         internal virtual bool Editor_IsElementValid(UnityEngine.Object element)
@@ -140,6 +147,26 @@ namespace Dhs5.Utility.Databases
         /// <param name="element"></param>
         internal virtual void Editor_OnNewElementCreated(UnityEngine.Object element) { }
 
+        // --- UIDs ---
+        protected virtual IEnumerable<int> Editor_FetchDatabaseContentUIDs() { return null; }
+        protected int Editor_GenerateUID()
+        {
+            int max = 0;
+            foreach (var uid in Editor_FetchDatabaseContentUIDs())
+            {
+                if (uid > max)
+                {
+                    max = uid;
+                }
+            }
+
+            if (max == int.MaxValue)
+            {
+                throw new Exception("You reached the max number of elements created in this DB, congratulations !");
+            }
+            return max + 1;
+        }
+
         #endregion
 
 #endif
@@ -200,6 +227,13 @@ namespace Dhs5.Utility.Databases
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
                 .Where(t => t.IsSubclassOf(typeof(BaseDatabase)) && !t.IsAbstract && TryGetAttribute(t, out _) && predicate.Invoke(t))
+                .ToArray();
+        }
+        private static Type[] GetAllChildTypes(Func<DatabaseAttribute, bool> predicate)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .Where(t => t.IsSubclassOf(typeof(BaseDatabase)) && !t.IsAbstract && TryGetAttribute(t, out var att) && predicate.Invoke(att))
                 .ToArray();
         }
 
@@ -497,6 +531,9 @@ namespace Dhs5.Utility.Databases
 
         #region Properties
 
+        // Valid Data Type
+        protected bool DatabaseHasValidDataType { get; private set; }
+
         // Events
         protected Event CurrentEvent { get; private set; }
         protected bool EventReceived { get; private set; }
@@ -532,10 +569,12 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnEnable()
         {
             m_database = (BaseDatabase)target;
+            DatabaseHasValidDataType = m_database.Editor_DatabaseHasValidDataType();
+
             m_database.Editor_DatabaseContentChanged += OnDatabaseContentChanged;
-            
+
             p_script = serializedObject.FindProperty("m_Script");
-            
+
             m_excludedProperties = new()
             {
                 p_script.propertyPath,
@@ -565,6 +604,11 @@ namespace Dhs5.Utility.Databases
         {
             serializedObject.Update();
 
+            if (DatabaseFailedDataTypeCheck())
+            {
+                return;
+            }
+
             HandleEvent();
 
             OnGUI();
@@ -584,6 +628,25 @@ namespace Dhs5.Utility.Databases
         protected void DrawDefault()
         {
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
+        }
+
+        protected virtual string DatabaseInvalidDataTypeMessage()
+        {
+            return "The data type of this Database is not valid.\n\n" +
+                    "- Add the DatabaseAttribute to the top of your script.\n" +
+                    "- Make sure the dataType parameter implements at least the IDatabaseElement interface.";
+        }
+        protected virtual bool DatabaseFailedDataTypeCheck()
+        {
+            if (!DatabaseHasValidDataType)
+            {
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.PropertyField(p_script);
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.HelpBox(DatabaseInvalidDataTypeMessage(), MessageType.Error);
+                return true;
+            }
+            return false;
         }
 
         #endregion
@@ -947,8 +1010,8 @@ namespace Dhs5.Utility.Databases
 
             if (element.TryGetComponent(out IDatabaseElement elem))
             {
-                if (elem.HasDatabaseElementName(out var newName)) elementName = newName;
-                if (elem.HasDatabaseElementTexture(out var newTexture)) elementTexture = newTexture;
+                if (elem.Editor_HasDatabaseElementName(out var newName)) elementName = newName;
+                if (elem.Editor_HasDatabaseElementTexture(out var newTexture)) elementTexture = newTexture;
             }
 
             OnDatabaseContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);
@@ -961,8 +1024,8 @@ namespace Dhs5.Utility.Databases
 
             if (element is IDatabaseElement elem)
             {
-                if (elem.HasDatabaseElementName(out var newName)) elementName = newName;
-                if (elem.HasDatabaseElementTexture(out var newTexture)) elementTexture = newTexture;
+                if (elem.Editor_HasDatabaseElementName(out var newName)) elementName = newName;
+                if (elem.Editor_HasDatabaseElementTexture(out var newTexture)) elementTexture = newTexture;
             }
 
             OnDatabaseContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);

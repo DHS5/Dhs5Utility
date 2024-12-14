@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Database("Test/File Database", typeof(TestScript))]
-public class TestDatabase : FileDatabase<TestDatabase>
+public class TestDatabase : FolderDatabase<TestDatabase>
 {
     
 }

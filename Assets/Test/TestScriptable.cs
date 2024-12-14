@@ -12,15 +12,17 @@ public class TestScriptable : ScriptableObject, IDatabaseElement
     [SerializeField] private int m_int4;
     [SerializeField] private int m_int5;
 
-    public bool HasDatabaseElementName(out string name)
+#if UNITY_EDITOR
+    public bool Editor_HasDatabaseElementName(out string name)
     {
         name = this.name;
         return true;
     }
 
-    public bool HasDatabaseElementTexture(out Texture2D texture)
+    public bool Editor_HasDatabaseElementTexture(out Texture2D texture)
     {
         texture = null;
         return false;
     }
+#endif
 }

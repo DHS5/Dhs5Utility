@@ -77,19 +77,19 @@ namespace Dhs5.Utility.Debuggers
         {
             m_enumIndex = index;
         }
-#endif
 
-        public bool HasDatabaseElementName(out string name)
+        public bool Editor_HasDatabaseElementName(out string name)
         {
             name = null;
             return false;
         }
 
-        public bool HasDatabaseElementTexture(out Texture2D texture)
+        public bool Editor_HasDatabaseElementTexture(out Texture2D texture)
         {
             texture = null;
             return false;
         }
+#endif
 
         #endregion
     }
