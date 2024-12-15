@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4e89c69cfb76624f8764847732fdadb, type: 3}
+  m_Name: UpdateTimelineDatabase
+  m_EditorClassIdentifier: 
+  m_content:
+  - {fileID: 8212853968729324693}
+--- !u!114 &8212853968729324693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51bd7547b72d18a48b70e5ed17829859, type: 3}
+  m_Name: Test
+  m_EditorClassIdentifier: 
+  m_uid: 1
+  m_update:
+    m_container: {fileID: 11400000, guid: f21412fbeabfe814fbc9f17efcabd932, type: 2}
+    m_currentSelectionUID: 1
+  m_duration: 0
+  m_loop: 0

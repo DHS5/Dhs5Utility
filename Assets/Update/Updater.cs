@@ -123,10 +123,10 @@ namespace Dhs5.Utility.Updates
         #endregion
 
 
-        #region Registration
+        #region Callbacks Registration
 
         private static ulong _registrationCount = 0;
-        private static Dictionary<UpdateEnum, HashSet<ulong>> _registeredKeys = new();
+        private static Dictionary<UpdateEnum, HashSet<ulong>> _registeredCallbackKeys = new();
 
         private static ulong GetUniqueRegistrationKey()
         {
@@ -140,7 +140,7 @@ namespace Dhs5.Utility.Updates
         {
             if (register) // Wants to register new callback
             {
-                if (_registeredKeys.TryGetValue(category, out var keys)) // The callback category already exists
+                if (_registeredCallbackKeys.TryGetValue(category, out var keys)) // The callback category already exists
                 {
                     if (keys.Contains(key)) // This callback is already registered
                     {
@@ -156,7 +156,7 @@ namespace Dhs5.Utility.Updates
                 else // The callback category doesn't exists yet
                 {
                     key = GetUniqueRegistrationKey();
-                    _registeredKeys.Add(category, new HashSet<ulong>() { key });
+                    _registeredCallbackKeys.Add(category, new HashSet<ulong>() { key });
                     GetInstance().RegisterCallback(Convert.ToInt32(category), callback);
 
                     return true;
@@ -165,7 +165,7 @@ namespace Dhs5.Utility.Updates
 
             else if (IsInstanceValid()) // Wants to unregister callback
             {
-                if (_registeredKeys.TryGetValue(category, out var keys) // The callback category exists
+                if (_registeredCallbackKeys.TryGetValue(category, out var keys) // The callback category exists
                     && keys.Remove(key)) // AND the key was registered and removed successfully
                 {
                     GetInstance().UnregisterCallback(Convert.ToInt32(category), callback);
@@ -178,11 +178,17 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Time Management
+        #region Timelines Management
 
-        public static void Pause(bool pause)
+        /// <summary>
+        /// Attempts to get a handle for the UpdateTimeline
+        /// </summary>
+        /// <remarks>
+        /// If the UpdateTimeline is not registered yet, this method will register it
+        /// </remarks>
+        public static bool TryGetUpdateTimelineHandle(UpdateTimelineDatabaseElement updateTimeline, out UpdateTimelineHandle handle)
         {
-            UnityEngine.Time.timeScale = pause ? 0f : 1f;
+            return GetInstance().TryGetOrCreateUpdateTimelineHandle(updateTimeline, out handle);
         }
 
         #endregion
@@ -225,10 +231,15 @@ namespace Dhs5.Utility.Updates
 
         #region Utility
 
+        public static void Pause(bool pause)
+        {
+            UnityEngine.Time.timeScale = pause ? 0f : 1f;
+        }
+
         public static void Clear()
         {
             _registrationCount = 0;
-            _registeredKeys.Clear();
+            _registeredCallbackKeys.Clear();
 
             GetInstance().Clear();
         }

@@ -9,7 +9,7 @@ using UnityEditor;
 
 namespace Dhs5.Utility.Updates
 {
-    [Database("Updater", typeof(UpdaterDatabaseElement))]
+    [Database("Update/Updater", typeof(UpdaterDatabaseElement))]
     public class UpdaterDatabase : EnumDatabase<UpdaterDatabase>
     {
         #region Editor Utility

@@ -96,7 +96,6 @@ namespace Dhs5.Utility.Debuggers
             {
                 // Light rim
                 var lightRimRect = new Rect(rect.x, rect.y, rect.height + 4f, rect.height);
-                EditorGUI.LabelField(lightRimRect, EditorGUIHelper.LightRimIcon);
                 EditorGUI.LabelField(lightRimRect, elem.Level > -1 ? EditorGUIHelper.GreenLightIcon : EditorGUIHelper.RedLightIcon);
 
                 // Color

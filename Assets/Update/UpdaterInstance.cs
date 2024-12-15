@@ -55,30 +55,64 @@ namespace Dhs5.Utility.Updates
         #endregion
 
 
-        #region Registrations
+        #region Updates Registrations
 
-        private Dictionary<int, UpdateCallback> _registeredCallbacks = new();
+        private Dictionary<int, UpdateCallback> m_registeredCallbacks = new();
 
         internal void RegisterCallback(int key, UpdateCallback callback)
         {
-            if (_registeredCallbacks.ContainsKey(key))
+            if (m_registeredCallbacks.ContainsKey(key))
             {
-                _registeredCallbacks[key] += callback;
+                m_registeredCallbacks[key] += callback;
             }
             else
             {
-                _registeredCallbacks.Add(key, callback);
+                m_registeredCallbacks.Add(key, callback);
             }
         }
         internal void UnregisterCallback(int key, UpdateCallback callback)
         {
-            if (_registeredCallbacks.ContainsKey(key))
+            if (m_registeredCallbacks.ContainsKey(key))
             {
-                _registeredCallbacks[key] -= callback;
+                m_registeredCallbacks[key] -= callback;
             }
         }
 
         #endregion
+
+        #region Timeline Registrations
+
+        private Dictionary<int, UpdateTimelineState> m_updateTimelines = new();
+
+        internal bool RegisterUpdateTimeline(UpdateTimelineDatabaseElement updateTimeline)
+        {
+            if (updateTimeline == null) return false;
+            if (m_updateTimelines.ContainsKey(updateTimeline.UID)) return true;
+
+            if (updateTimeline.HasValidUpdate(out int updateKey))
+            {
+                var state = new UpdateTimelineState(updateTimeline, updateKey);
+                m_updateTimelines[updateTimeline.UID] = state;
+                RegisterCallback(updateKey, state.OnUpdate);
+                return true;
+            }
+            else
+            {
+                Debug.LogError("You tried to register an UpdateTimeline that has no valid update");
+                return false;
+            }
+        }
+        internal void UnregisterUpdateTimeline(int updateTimelineUID)
+        {
+            if (m_updateTimelines.TryGetValue(updateTimelineUID, out UpdateTimelineState state))
+            {
+                UnregisterCallback(state.updateKey, state.OnUpdate);
+                m_updateTimelines.Remove(updateTimelineUID);
+            }
+        }
+
+        #endregion
+
 
         #region Time Management
 
@@ -145,7 +179,7 @@ namespace Dhs5.Utility.Updates
         {
             foreach (var category in GetPassValidCategories(pass))
             {
-                bool timescaleIndependant = _updaterElements[category].TimescaleIndependent;
+                bool timescaleIndependant = m_updaterElements[category].TimescaleIndependent;
                 InvokeCategoryEvents(category, timescaleIndependant ? realDeltaTime : deltaTime, timescaleIndependant ? RealTime : Time);
             }
 
@@ -165,14 +199,14 @@ namespace Dhs5.Utility.Updates
 
         #region Category Management
 
-        private Dictionary<int, float> _lastUpdateTimes = new();
+        private Dictionary<int, float> m_lastUpdateTimes = new();
 
         private void InvokeCategoryEvents(int category, float deltaTime, float time)
         {
-            if (_registeredCallbacks.ContainsKey(category))
+            if (m_registeredCallbacks.ContainsKey(category))
             {
-                _registeredCallbacks[category]?.Invoke(deltaTime);
-                _lastUpdateTimes[category] = time;
+                m_registeredCallbacks[category]?.Invoke(deltaTime);
+                m_lastUpdateTimes[category] = time;
             }
         }
 
@@ -180,7 +214,7 @@ namespace Dhs5.Utility.Updates
         {
             List<int> list = new();
 
-            foreach (var (category, element) in _updaterElements)
+            foreach (var (category, element) in m_updaterElements)
             {
                 if (element.Pass == pass && CanUpdate(category, element))
                 {
@@ -188,7 +222,7 @@ namespace Dhs5.Utility.Updates
                 }
             }
 
-            list.Sort((c1, c2) => _updaterElements[c1].Order.CompareTo(_updaterElements[c2].Order));
+            list.Sort((c1, c2) => m_updaterElements[c1].Order.CompareTo(m_updaterElements[c2].Order));
 
             return list;
         }
@@ -197,7 +231,7 @@ namespace Dhs5.Utility.Updates
             if (updaterElement.Condition.IsFullfilled())
             {
                 if (updaterElement.HasCustomFrequency(out float frequency)
-                    && _lastUpdateTimes.TryGetValue(category, out float lastUpdate))
+                    && m_lastUpdateTimes.TryGetValue(category, out float lastUpdate))
                 {
                     return (updaterElement.TimescaleIndependent ? RealTime : Time) >= lastUpdate + frequency;
                 }
@@ -210,16 +244,54 @@ namespace Dhs5.Utility.Updates
 
         #region Updater Elements
 
-        private Dictionary<int, UpdaterDatabaseElement> _updaterElements = new();
+        private Dictionary<int, UpdaterDatabaseElement> m_updaterElements = new();
 
         private void FetchUpdaterElements()
         {
-            _updaterElements.Clear();
+            m_updaterElements.Clear();
 
             for (int i = 0; i < UpdaterDatabase.I.Count; i++)
             {
-                _updaterElements.Add(i, UpdaterDatabase.I.GetValueAtIndex<UpdaterDatabaseElement>(i));
+                m_updaterElements.Add(i, UpdaterDatabase.I.GetValueAtIndex<UpdaterDatabaseElement>(i));
             }
+        }
+
+        #endregion
+
+        #region Update Timeline Management
+
+        internal bool IsUpdateTimelineRegistered(int uid) => m_updateTimelines.ContainsKey(uid);
+        internal bool TryGetUpdateTimelineState(int uid, out UpdateTimelineState state) => m_updateTimelines.TryGetValue(uid, out state);
+        internal bool TryGetOrCreateUpdateTimelineHandle(UpdateTimelineDatabaseElement updateTimeline, out UpdateTimelineHandle handle)
+        {
+            if (updateTimeline == null)
+            {
+                handle = UpdateTimelineHandle.Empty;
+                return false;
+            }
+
+            if (m_updateTimelines.ContainsKey(updateTimeline.UID))
+            {
+                handle = new(this, updateTimeline.UID);
+                return true;
+            }
+            else if (RegisterUpdateTimeline(updateTimeline))
+            {
+                handle = new(this, updateTimeline.UID);
+                return true;
+            }
+
+            handle = UpdateTimelineHandle.Empty;
+            return false;
+        }
+
+        private void ClearUpdateTimelines()
+        {
+            foreach (var updateTimelineUID in m_updateTimelines.Keys)
+            {
+                UnregisterUpdateTimeline(updateTimelineUID);
+            }
+            m_updateTimelines.Clear();
         }
 
         #endregion
@@ -247,8 +319,8 @@ namespace Dhs5.Utility.Updates
 
         #region Precise Updates
 
-        private Dictionary<int, UpdateCallback> _preciseFrameCallbacks = new();
-        private UpdateCallback _oneShotLateUpdateCallback;
+        private Dictionary<int, UpdateCallback> m_preciseFrameCallbacks = new();
+        private UpdateCallback m_oneShotLateUpdateCallback;
 
         internal void RegisterCallbackOnFrame(int frame, UpdateCallback callback)
         {
@@ -258,13 +330,13 @@ namespace Dhs5.Utility.Updates
                 return;
             }
 
-            if (_preciseFrameCallbacks.ContainsKey(frame))
+            if (m_preciseFrameCallbacks.ContainsKey(frame))
             {
-                _preciseFrameCallbacks[frame] += callback;
+                m_preciseFrameCallbacks[frame] += callback;
             }
             else
             {
-                _preciseFrameCallbacks.Add(frame, callback);
+                m_preciseFrameCallbacks.Add(frame, callback);
             }
         }
         internal void RegisterOneShotLateUpdateCallback(UpdateCallback callback)
@@ -275,21 +347,21 @@ namespace Dhs5.Utility.Updates
                 return;
             }
 
-            _oneShotLateUpdateCallback += callback;
+            m_oneShotLateUpdateCallback += callback;
         }
 
         private void InvokePreciseFramesUpdates(float deltaTime)
         {
-            if (_preciseFrameCallbacks.ContainsKey(Frame))
+            if (m_preciseFrameCallbacks.ContainsKey(Frame))
             {
-                _preciseFrameCallbacks[Frame].Invoke(deltaTime);
-                _preciseFrameCallbacks.Remove(Frame);
+                m_preciseFrameCallbacks[Frame].Invoke(deltaTime);
+                m_preciseFrameCallbacks.Remove(Frame);
             }
         }
         private void InvokeOneShotLateUpdate(float deltaTime)
         {
-            _oneShotLateUpdateCallback?.Invoke(deltaTime);
-            _oneShotLateUpdateCallback = null;
+            m_oneShotLateUpdateCallback?.Invoke(deltaTime);
+            m_oneShotLateUpdateCallback = null;
         }
 
         #endregion
@@ -299,10 +371,14 @@ namespace Dhs5.Utility.Updates
 
         internal void Clear()
         {
-            _updaterElements.Clear();
-            _registeredCallbacks.Clear();
-            _preciseFrameCallbacks.Clear();
-            _lastUpdateTimes.Clear();
+            m_updaterElements.Clear();
+            m_registeredCallbacks.Clear();
+            m_preciseFrameCallbacks.Clear();
+            m_lastUpdateTimes.Clear();
+
+            ClearUpdateTimelines();
+
+            m_oneShotLateUpdateCallback = null;
 
             OnEarlyUpdate = null;
             OnUpdate = null;
@@ -310,6 +386,9 @@ namespace Dhs5.Utility.Updates
             OnFixedUpdate = null;
             OnBeforeInputUpdate = null;
             OnAfterInputUpdate = null;
+
+            m_lastClassicUpdateFrame = -1;
+            m_lastLateUpdateFrame = -1;
         }
 
         #endregion
