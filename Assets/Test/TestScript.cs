@@ -1,3 +1,5 @@
+using Dhs5.Utility.Databases;
+using Dhs5.Utility.Debuggers;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +11,8 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private Texture2D _texture;
     [SerializeField] private bool _showName;
     [SerializeField] private string _name;
+    [SerializeField] private DataPicker _dataPicker1;
+    [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
 
     public int UID => m_uid;
 

@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.GUIs;
+using System.Linq;
+
 
 #if UNITY_EDITOR
 using System.Reflection;
@@ -14,6 +16,12 @@ namespace Dhs5.Utility.Databases
 {
     public abstract class BaseDataContainer : ScriptableObject
     {
+        #region Accessors
+
+        public abstract bool TryGetObjectByUID(int uid, out IDataContainerElement obj);
+
+        #endregion
+
 #if UNITY_EDITOR
 
         #region Instance Content Management
@@ -21,10 +29,7 @@ namespace Dhs5.Utility.Databases
         internal abstract bool Editor_ContainerHasValidDataType(out Type dataType);
         internal abstract bool Editor_IsElementValid(UnityEngine.Object element);
 
-        internal virtual IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
-        {
-            yield return null;
-        }
+        internal abstract IEnumerable<UnityEngine.Object> Editor_GetContainerContent();
 
         internal bool Editor_DeleteElementAtIndex(int index)
         {
@@ -79,6 +84,26 @@ namespace Dhs5.Utility.Databases
                 throw new Exception("You reached the max number of elements created in this DB, congratulations !");
             }
             return max + 1;
+        }
+
+        public (string[], int[]) Editor_GetContainerDisplayContent()
+        {
+            List<string> names = new();
+            List<int> uids = new();
+
+            foreach (var obj in Editor_GetContainerContent())
+            {
+                if (obj is IDataContainerElement elem)
+                {
+                    // Name
+                    if (elem.Editor_HasDataContainerElementName(out string name)) names.Add(name);
+                    else names.Add(obj.name);
+                    // UID
+                    uids.Add(elem.UID);
+                }
+            }
+
+            return (names.ToArray(), uids.ToArray());
         }
 
         #endregion
@@ -482,24 +507,24 @@ namespace Dhs5.Utility.Databases
 
         #region Container Informations
 
-        protected virtual void OnDatabaseInformationsGUI()
+        protected virtual void OnContainerInformationsGUI(string title)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            DatabaseInformationsFoldoutOpen = EditorGUIHelper.Foldout(EditorGUILayout.GetControlRect(false, 20f), "Database Informations", DatabaseInformationsFoldoutOpen);
+            DatabaseInformationsFoldoutOpen = EditorGUIHelper.Foldout(EditorGUILayout.GetControlRect(false, 20f), title, DatabaseInformationsFoldoutOpen);
             if (DatabaseInformationsFoldoutOpen)
             {
                 EditorGUI.indentLevel++;
 
                 EditorGUILayout.Space(5f);
-                OnDatabaseInformationsContentGUI();
+                OnContainerInformationsContentGUI();
 
                 EditorGUI.indentLevel--;
             }
 
             EditorGUILayout.EndVertical();
         }
-        protected virtual void OnDatabaseInformationsContentGUI() { }
+        protected virtual void OnContainerInformationsContentGUI() { }
 
         #endregion
 

@@ -154,7 +154,7 @@ namespace Dhs5.Utility.Databases
                 }
             }
         }
-        protected override void SortContent()
+        protected override void Editor_SortContent()
         {
             var content = Editor_GetContainerContent().ToList().ConvertAll(o => o as ScriptableObject);
             content.Sort((e1, e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex));
@@ -220,7 +220,7 @@ namespace Dhs5.Utility.Databases
         {
             DrawDefault();
 
-            OnDatabaseInformationsGUI();
+            OnContainerInformationsGUI("Enum Informations");
 
             EditorGUILayout.Space(10f);
 
@@ -247,7 +247,7 @@ namespace Dhs5.Utility.Databases
 
         #region Database Informations
 
-        protected override void OnDatabaseInformationsContentGUI()
+        protected override void OnContainerInformationsContentGUI()
         {
             EditorGUILayout.PropertyField(p_enumName);
             EditorGUILayout.PropertyField(p_enumNamespace);

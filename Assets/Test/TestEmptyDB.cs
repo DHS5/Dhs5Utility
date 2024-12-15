@@ -12,9 +12,20 @@ public class TestEmptyDB : BaseDatabase
 {
     [SerializeField] private string emptyStr;
 
+    public override bool TryGetObjectByUID(int uid, out IDataContainerElement obj)
+    {
+        obj = null;
+        return false;
+    }
+
 #if UNITY_EDITOR
 
     protected override bool Editor_OnDeleteElementAtIndex(int index)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    internal override IEnumerable<Object> Editor_GetContainerContent()
     {
         throw new System.NotImplementedException();
     }

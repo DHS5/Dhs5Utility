@@ -10,12 +10,9 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Debuggers
 {
-    public class DebuggerDatabaseElement : ScriptableObject, IEnumDatabaseElement
+    public class DebuggerDatabaseElement : BaseEnumDatabaseElement
     {
         #region Members
-
-        [SerializeField] private int m_uid;
-        [SerializeField] private int m_enumIndex;
 
         [SerializeField] private Color m_color;
         [SerializeField] private string m_colorString;
@@ -68,36 +65,6 @@ namespace Dhs5.Utility.Debuggers
         }
 
         #endregion
-
-        #region IEnumDatabaseElement
-
-        public int UID => m_uid;
-        public int EnumIndex => m_enumIndex;
-
-#if UNITY_EDITOR
-        public void Editor_SetIndex(int index)
-        {
-            m_enumIndex = index;
-        }
-        public void Editor_SetUID(int uid)
-        {
-            m_uid = uid;
-        }
-
-        public bool Editor_HasDataContainerElementName(out string name)
-        {
-            name = null;
-            return false;
-        }
-
-        public bool Editor_HasDataContainerElementTexture(out Texture2D texture)
-        {
-            texture = null;
-            return false;
-        }
-#endif
-
-        #endregion
     }
 
     #region Editor
@@ -105,15 +72,12 @@ namespace Dhs5.Utility.Debuggers
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(DebuggerDatabaseElement), editorForChildClasses:true)]
-    public class DebuggerDatabaseElementEditor : Editor
+    public class DebuggerDatabaseElementEditor : BaseEnumDatabaseElementEditor
     {
         #region Members
 
         protected DebuggerDatabaseElement m_element;
 
-        protected SerializedProperty p_script;
-        protected SerializedProperty p_uid;
-        protected SerializedProperty p_enumIndex;
         protected SerializedProperty p_color;
         protected SerializedProperty p_colorString;
         protected SerializedProperty p_level;
@@ -122,8 +86,6 @@ namespace Dhs5.Utility.Debuggers
         protected SerializedProperty p_showErrors;
         protected SerializedProperty p_showInConsole;
         protected SerializedProperty p_showOnScreen;
-
-        protected List<string> m_excludedProperties;
 
 
         protected bool m_testLogOpen;
@@ -135,13 +97,12 @@ namespace Dhs5.Utility.Debuggers
 
         #region Core Behaviour
 
-        protected virtual void OnEnable()
+        protected override void OnEnable()
         {
+            base.OnEnable();
+
             m_element = (DebuggerDatabaseElement)target;
 
-            p_script = serializedObject.FindProperty("m_Script");
-            p_uid = serializedObject.FindProperty("m_uid");
-            p_enumIndex = serializedObject.FindProperty("m_enumIndex");
             p_color = serializedObject.FindProperty("m_color");
             p_colorString = serializedObject.FindProperty("m_colorString");
             p_level = serializedObject.FindProperty("m_level");
@@ -151,10 +112,6 @@ namespace Dhs5.Utility.Debuggers
             p_showInConsole = serializedObject.FindProperty("m_showInConsole");
             p_showOnScreen = serializedObject.FindProperty("m_showOnScreen");
 
-            m_excludedProperties = new();
-            m_excludedProperties.Add(p_script.propertyPath);
-            m_excludedProperties.Add(p_uid.propertyPath);
-            m_excludedProperties.Add(p_enumIndex.propertyPath);
             m_excludedProperties.Add(p_color.propertyPath);
             m_excludedProperties.Add(p_colorString.propertyPath);
             m_excludedProperties.Add(p_showLogs.propertyPath);

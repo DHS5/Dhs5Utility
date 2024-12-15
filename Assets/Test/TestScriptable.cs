@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Dhs5.Utility.Databases;
 
 [CreateAssetMenu(fileName = "TS", menuName = "TestScriptable")]
 public class TestScriptable : ScriptableObject, IDataContainerElement

@@ -322,6 +322,38 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_Test1
       objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: _dataPicker1.m_container
+      value: 
+      objectReference: {fileID: 11400000, guid: ea8e4d7f4a283864a8ba934f31b08e98,
+        type: 2}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: _dataPicker2.m_container
+      value: 
+      objectReference: {fileID: 11400000, guid: 72e73dbeecb35e64488c260f895d793c,
+        type: 2}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: _dataPicker1.m_currentSelection
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: _dataPicker2.m_currentSelection
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: _dataPicker1.m_currentSelectionUID
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: _dataPicker2.m_currentSelectionUID
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

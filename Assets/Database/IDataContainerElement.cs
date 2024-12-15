@@ -2,13 +2,16 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface IDataContainerElement
+namespace Dhs5.Utility.Databases
 {
-    int UID { get; }
+    public interface IDataContainerElement
+    {
+        int UID { get; }
 
 #if UNITY_EDITOR
-    void Editor_SetUID(int uid);
-    bool Editor_HasDataContainerElementTexture(out Texture2D texture);
-    bool Editor_HasDataContainerElementName(out string name);
+        void Editor_SetUID(int uid);
+        bool Editor_HasDataContainerElementTexture(out Texture2D texture);
+        bool Editor_HasDataContainerElementName(out string name);
 #endif
+    }
 }

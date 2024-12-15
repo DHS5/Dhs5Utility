@@ -24,6 +24,25 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Accessors
+
+        public override bool TryGetObjectByUID(int uid, out IDataContainerElement obj)
+        {
+            foreach (var item in m_content)
+            {
+                if (item is IDataContainerElement elem && elem.UID == uid)
+                {
+                    obj = elem;
+                    return true;
+                }
+            }
+
+            obj = null;
+            return false;
+        }
+
+        #endregion
+
         #region Utility
 
         public ScriptableObject GetElementAtIndex(int index)
@@ -41,14 +60,6 @@ namespace Dhs5.Utility.Databases
             }
             uValue = null;
             return false;
-        }
-        protected int FindIndexOfElement(UnityEngine.Object element)
-        {
-            return m_content.FindIndex(e => e == element);
-        }
-        protected virtual void SortContent()
-        {
-            m_content.Sort(BaseDataContainer.Sort_ByName);
         }
 
         #endregion
@@ -87,7 +98,7 @@ namespace Dhs5.Utility.Databases
                     m_content.Add(so);
                 }
             }
-            SortContent();
+            Editor_SortContent();
 
             base.Editor_ShouldRecomputeContainerContent();
         }
@@ -124,6 +135,11 @@ namespace Dhs5.Utility.Databases
             {
                 m_content = new(content);
             }
+        }
+
+        protected virtual void Editor_SortContent()
+        {
+            m_content.Sort(BaseDataContainer.Sort_ByName);
         }
 
 #endif

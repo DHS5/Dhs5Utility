@@ -20,6 +20,25 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Accessors
+
+        public override bool TryGetObjectByUID(int uid, out IDataContainerElement obj)
+        {
+            foreach (var item in m_folderContent)
+            {
+                if (item is IDataContainerElement elem && elem.UID == uid)
+                {
+                    obj = elem;
+                    return true;
+                }
+            }
+
+            obj = null;
+            return false;
+        }
+
+        #endregion
+
         #region Editor Content Management
 
 #if UNITY_EDITOR
@@ -143,7 +162,7 @@ namespace Dhs5.Utility.Databases
         {
             DrawDefault();
             
-            OnDatabaseInformationsGUI();
+            OnContainerInformationsGUI("Folder Informations");
             
             EditorGUILayout.Space(10f);
             
@@ -159,7 +178,7 @@ namespace Dhs5.Utility.Databases
             DisplayContainerCurrentSelection();
         }
 
-        protected override void OnDatabaseInformationsContentGUI()
+        protected override void OnContainerInformationsContentGUI()
         {
             EditorGUIHelper.FolderPicker(p_folderName, new GUIContent("Folder"), OnFolderSelected);
         }
