@@ -47,10 +47,13 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override bool Editor_ContainerHasValidDataType()
+        internal override bool Editor_ContainerHasValidDataType(out Type dataType)
         {
-            return HasDataType(GetType(), out var dataType) &&
-                typeof(IEnumDatabaseElement).IsAssignableFrom(dataType);
+            if (base.Editor_ContainerHasValidDataType(out dataType))
+            {
+                return typeof(IEnumDatabaseElement).IsAssignableFrom(dataType);
+            }
+            return false;
         }
 
 #endif
@@ -88,8 +91,7 @@ namespace Dhs5.Utility.Databases
                 enumContent[i] = GetElementAtIndex(i).name;
             }
 
-            if (HasDataType(GetType(), out var dataType)
-                && dataType.IsSubclassOf(typeof(ScriptableObject)))
+            if (Editor_ContainerHasValidDataType(out var dataType))
             {
                 return GetEnumScriptContentFor(m_enumName, m_enumNamespace, m_usings, enumContent, dataType, GetType());
             }
@@ -225,13 +227,13 @@ namespace Dhs5.Utility.Databases
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
-            OnDatabaseContentListWindowGUI(dataListWindowRect, refreshButton: true, addButton: true, contextButtons: true);
+            OnContainerContentListWindowGUI(dataListWindowRect, refreshButton: true, addButton: true, contextButtons: true);
 
             EditorGUILayout.Space(5f);
             Separator(2f, Color.white);
             EditorGUILayout.Space(10f);
 
-            DisplayCurrentDatabaseContentListSelection();
+            DisplayContainerCurrentSelection();
         }
 
         protected override string ContainerInvalidDataTypeMessage()
@@ -255,7 +257,7 @@ namespace Dhs5.Utility.Databases
 
             EditorGUILayout.Space(8f);
 
-            EditorGUIHelper.FolderPicker(p_scriptFolder, ForceDatabaseContentRefresh);
+            EditorGUIHelper.FolderPicker(p_scriptFolder, ForceContainerContentRefresh);
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(p_textAsset);
             EditorGUI.EndDisabledGroup();
@@ -265,45 +267,45 @@ namespace Dhs5.Utility.Databases
 
         #region Database Content List
 
-        protected override void OnDatabaseContentListElementNameGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name)
+        protected override void OnContentListElementNameGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name)
         {
-            base.OnDatabaseContentListElementNameGUI(rect, index, selected, obj, index + ": " + name);
+            base.OnContentListElementNameGUI(rect, index, selected, obj, index + ": " + name);
         }
 
         #endregion
 
         #region Data Creation
 
-        protected override void OnAddNewDataToDatabase(UnityEngine.Object obj)
+        protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
             if (obj is IEnumDatabaseElement elem)
             {
                 elem.Editor_SetIndex(int.MaxValue);
             }
 
-            base.OnAddNewDataToDatabase(obj);
+            base.OnAddNewDataToContainer(obj);
         }
 
         #endregion
 
         #region Database Element
 
-        protected override void DisplayDatabaseElement(UnityEngine.Object element)
+        protected override void DisplayContainerElement(UnityEngine.Object element)
         {
             if (element != null)
             {
                 EditorGUILayout.LabelField(element.name, GUIHelper.centeredBoldLabel);
             }
-            base.DisplayDatabaseElement(element);
+            base.DisplayContainerElement(element);
         }
 
         #endregion
 
         #region Context Menu
 
-        protected override void PopulateDatabaseContentListElementContextMenu(int index, GenericMenu menu)
+        protected override void PopulateContainerElementContextMenu(int index, GenericMenu menu)
         {
-            base.PopulateDatabaseContentListElementContextMenu(index, menu);
+            base.PopulateContainerElementContextMenu(index, menu);
 
             if (index > 0)
             {
@@ -314,7 +316,7 @@ namespace Dhs5.Utility.Databases
                 menu.AddDisabledItem(new GUIContent("Move Up"));
             }
             
-            if (index < DatabaseContentListCount - 1)
+            if (index < ContentListCount - 1)
             {
                 menu.AddItem(new GUIContent("Move Down"), false, () => MoveElement(index, index + 1));
             }
@@ -330,8 +332,8 @@ namespace Dhs5.Utility.Databases
 
         protected void MoveElement(int index, int newIndex)
         {
-            if (index >= 0 && index < DatabaseContentListCount && 
-                newIndex >= 0 && newIndex < DatabaseContentListCount)
+            if (index >= 0 && index < ContentListCount && 
+                newIndex >= 0 && newIndex < ContentListCount)
             {
                 p_content.MoveArrayElement(index, newIndex);
                 serializedObject.ApplyModifiedProperties();
@@ -340,7 +342,7 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void OnReorderElements()
         {
-            ForceDatabaseContentRefresh();
+            ForceContainerContentRefresh();
         }
 
         #endregion

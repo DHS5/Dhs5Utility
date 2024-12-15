@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Dhs5.Utility.Databases
 {
-    public interface IEnumDatabaseElement : IDatabaseElement
+    public interface IEnumDatabaseElement : IDataContainerElement
     {
         public int EnumIndex { get; }
 

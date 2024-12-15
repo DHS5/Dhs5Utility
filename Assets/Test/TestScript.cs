@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TestScript : MonoBehaviour, IDatabaseElement
+public class TestScript : MonoBehaviour, IDataContainerElement
 {
     [SerializeField] private int m_uid;
     [SerializeField] private bool _showTexture;
@@ -17,13 +17,13 @@ public class TestScript : MonoBehaviour, IDatabaseElement
     {
         m_uid = uid;
     }
-    public bool Editor_HasDatabaseElementName(out string name)
+    public bool Editor_HasDataContainerElementName(out string name)
     {
         name = _name;
         return _showName;
     }
 
-    public bool Editor_HasDatabaseElementTexture(out Texture2D texture)
+    public bool Editor_HasDataContainerElementTexture(out Texture2D texture)
     {
         texture = _texture;
         return _showTexture;

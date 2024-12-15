@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "TS", menuName = "TestScriptable")]
-public class TestScriptable : ScriptableObject, IDatabaseElement
+public class TestScriptable : ScriptableObject, IDataContainerElement
 {
     [SerializeField] private int m_uid;
     [SerializeField] private int m_int0;
@@ -20,13 +20,13 @@ public class TestScriptable : ScriptableObject, IDatabaseElement
     {
         m_uid = uid;
     }
-    public bool Editor_HasDatabaseElementName(out string name)
+    public bool Editor_HasDataContainerElementName(out string name)
     {
         name = this.name;
         return true;
     }
 
-    public bool Editor_HasDatabaseElementTexture(out Texture2D texture)
+    public bool Editor_HasDataContainerElementTexture(out Texture2D texture)
     {
         texture = null;
         return false;

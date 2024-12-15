@@ -82,12 +82,12 @@ namespace Dhs5.Utility.Updates
 
         #region Database Content List
 
-        protected override Rect GetButtonRectForDatabaseContentListElement(Rect rect, int index, Object element, bool contextButton)
+        protected override Rect GetButtonRectForContentListElement(Rect rect, int index, Object element, bool contextButton)
         {
-            return base.GetButtonRectForDatabaseContentListElement(rect, index, element, contextButton);
+            return base.GetButtonRectForContentListElement(rect, index, element, contextButton);
         }
 
-        protected override void OnDatabaseContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, Object obj, string name, Texture2D texture)
+        protected override void OnContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, Object obj, string name, Texture2D texture)
         {
             if (obj is UpdaterDatabaseElement elem)
             {
@@ -103,11 +103,11 @@ namespace Dhs5.Utility.Updates
                 }
 
                 var labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f - passRectWidth - customFreqRectWidth, rect.height);
-                OnDatabaseContentListElementNameGUI(labelRect, index, selected, obj, name);
+                OnContentListElementNameGUI(labelRect, index, selected, obj, name);
             }
             else
             {
-                base.OnDatabaseContentListElementWithNameAndTextureGUI(rect, index, selected, obj, name, texture);
+                base.OnContentListElementWithNameAndTextureGUI(rect, index, selected, obj, name, texture);
             }
         }
 

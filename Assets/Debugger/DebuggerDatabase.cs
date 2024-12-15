@@ -83,14 +83,14 @@ namespace Dhs5.Utility.Debuggers
 
         float m_extraInfosWidth = 150f;
 
-        protected override Rect GetButtonRectForDatabaseContentListElement(Rect rect, int index, Object element, bool contextButton)
+        protected override Rect GetButtonRectForContentListElement(Rect rect, int index, Object element, bool contextButton)
         {
-            var resultRect = base.GetButtonRectForDatabaseContentListElement(rect, index, element, contextButton);
+            var resultRect = base.GetButtonRectForContentListElement(rect, index, element, contextButton);
             resultRect.width -= m_extraInfosWidth;
             return resultRect;
         }
 
-        protected override void OnDatabaseContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, Object obj, string name, Texture2D texture)
+        protected override void OnContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, Object obj, string name, Texture2D texture)
         {
             if (obj is DebuggerDatabaseElement elem)
             {
@@ -116,11 +116,11 @@ namespace Dhs5.Utility.Debuggers
                 // Label
                 float labelRectX = rect.x + lightRimRect.width + 5f;
                 var labelRect = new Rect(labelRectX, rect.y, colorRect.x - labelRectX - 5f, rect.height);
-                OnDatabaseContentListElementNameGUI(labelRect, index, selected, obj, name);
+                OnContentListElementNameGUI(labelRect, index, selected, obj, name);
             }
             else
             {
-                base.OnDatabaseContentListElementWithNameAndTextureGUI(rect, index, selected, obj, name, texture);
+                base.OnContentListElementWithNameAndTextureGUI(rect, index, selected, obj, name, texture);
             }
         }
 

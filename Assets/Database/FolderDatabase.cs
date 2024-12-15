@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -88,7 +89,7 @@ namespace Dhs5.Utility.Databases
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(FolderDatabase<>), editorForChildClasses:true)]
-    public class FileDatabaseEditor : BaseDatabaseEditor
+    public class FolderDatabaseEditor : BaseDatabaseEditor
     {
         #region Members
 
@@ -104,6 +105,18 @@ namespace Dhs5.Utility.Databases
         #region Properties
 
         protected string FolderName => p_folderName.stringValue;
+
+        protected override int ContentListCount
+        {
+            get
+            {
+                if (p_folderContent != null)
+                {
+                    return p_folderContent.arraySize;
+                }
+                return -1;
+            }
+        }
 
         #endregion
 
@@ -137,13 +150,13 @@ namespace Dhs5.Utility.Databases
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
-            OnDatabaseContentListWindowGUI(dataListWindowRect, refreshButton:true, addButton:true, contextButtons:true);
+            OnContainerContentListWindowGUI(dataListWindowRect, refreshButton:true, addButton:true, contextButtons:true);
             
             EditorGUILayout.Space(5f);
             Separator(2f, Color.white);
             EditorGUILayout.Space(10f);
             
-            DisplayCurrentDatabaseContentListSelection();
+            DisplayContainerCurrentSelection();
         }
 
         protected override void OnDatabaseInformationsContentGUI()
@@ -166,35 +179,23 @@ namespace Dhs5.Utility.Databases
         {
             m_currentFolderName = current;
 
-            ForceDatabaseContentRefresh();
+            ForceContainerContentRefresh();
         }
 
         protected override void OnContainerContentChanged()
         {
             base.OnContainerContentChanged();
 
-            DatabaseContentListSelectionIndex = -1;
+            ContainerSelectionIndex = -1;
         }
 
         #endregion
 
         #region Database Content
 
-        protected override int DatabaseContentListCount
+        protected override UnityEngine.Object GetContainerElementAtIndex(int index)
         {
-            get
-            {
-                if (p_folderContent != null)
-                {
-                    return p_folderContent.arraySize;
-                }
-                return -1;
-            }
-        }
-
-        protected override UnityEngine.Object GetDatabaseContentElementAtIndex(int index)
-        {
-            int count = DatabaseContentListCount;
+            int count = ContentListCount;
             if (count > 0 && index >= 0 && index < count)
             {
                 return p_folderContent.GetArrayElementAtIndex(index).objectReferenceValue;
@@ -208,14 +209,40 @@ namespace Dhs5.Utility.Databases
 
         protected override bool OnCreateNewData(out UnityEngine.Object obj)
         {
-            return CreateNewData(FolderName + "/New", out obj);
+            return CreateNewDataAtPath(FolderName + "/New", out obj);
         }
-        protected override void OnAddNewDataToDatabase(Object obj)
+        protected virtual bool CreateNewDataAtPath(string path, out UnityEngine.Object obj)
+        {
+            if (ContainerHasValidDataType)
+            {
+                path = AssetDatabase.GenerateUniqueAssetPath(path);
+
+                if (DataType.IsSubclassOf(typeof(ScriptableObject)))
+                {
+                    obj = OnCreateNewScriptableObject(path, DataType);
+                    return obj != null;
+                }
+                else if (DataType.IsSubclassOf(typeof(Component)))
+                {
+                    obj = OnCreateNewPrefabWithComponent(path, DataType);
+                    return obj != null;
+                }
+                else if (DataType == typeof(GameObject))
+                {
+                    obj = OnCreateNewEmptyPrefab(path);
+                    return obj != null;
+                }
+            }
+            obj = null;
+            return false;
+        }
+
+        protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
             if (EditorUtils.GetAssetContainingFolder(obj) == FolderName
                 || BaseDatabase.MoveAssetToFolder(obj, FolderName))
             {
-                base.OnAddNewDataToDatabase(obj);
+                base.OnAddNewDataToContainer(obj);
             }
         }
 
@@ -225,7 +252,7 @@ namespace Dhs5.Utility.Databases
 
         public override bool HasPreviewGUI()
         {
-            var editor = GetOrCreateEditorFor(GetDatabaseCurrentSelection());
+            var editor = GetOrCreateEditorFor(GetContainerCurrentSelection());
             if (editor != null)
             {
                 return editor.HasPreviewGUI();
@@ -234,7 +261,7 @@ namespace Dhs5.Utility.Databases
         }
         public override void OnPreviewGUI(Rect r, GUIStyle background)
         {
-            var editor = GetOrCreateEditorFor(GetDatabaseCurrentSelection());
+            var editor = GetOrCreateEditorFor(GetContainerCurrentSelection());
             if (editor != null)
             {
                 editor.OnPreviewGUI(r, background);

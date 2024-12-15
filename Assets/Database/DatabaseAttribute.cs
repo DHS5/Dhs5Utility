@@ -36,7 +36,7 @@ namespace Dhs5.Utility.Databases
         /// </summary>
         public readonly string path;
         /// <summary>
-        /// Type of the data contained in the database, must implement at least <see cref="IDatabaseElement"/> interface
+        /// Type of the data contained in the database, must implement at least <see cref="IDataContainerElement"/> interface
         /// </summary>
         public readonly Type dataType;
         public readonly bool anyType;

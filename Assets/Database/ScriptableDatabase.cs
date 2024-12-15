@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -47,7 +48,7 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void SortContent()
         {
-            m_content.Sort(BaseDatabase.Sort_ByName);
+            m_content.Sort(BaseDataContainer.Sort_ByName);
         }
 
         #endregion
@@ -56,11 +57,13 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override bool Editor_ContainerHasValidDataType()
+        internal override bool Editor_ContainerHasValidDataType(out Type dataType)
         {
-            return HasDataType(GetType(), out var dataType) &&
-                dataType.IsSubclassOf(typeof(ScriptableObject)) &&
-                typeof(IDatabaseElement).IsAssignableFrom(dataType);
+            if (base.Editor_ContainerHasValidDataType(out dataType))
+            {
+                return dataType.IsSubclassOf(typeof(ScriptableObject));
+            }
+            return false;
         }
 
 #endif
@@ -89,7 +92,7 @@ namespace Dhs5.Utility.Databases
             base.Editor_ShouldRecomputeContainerContent();
         }
 
-        internal override IEnumerable<Object> Editor_GetContainerContent()
+        internal override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
         {
             if (m_content != null)
             {
@@ -165,13 +168,13 @@ namespace Dhs5.Utility.Databases
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
-            OnDatabaseContentListWindowGUI(dataListWindowRect, refreshButton: true, addButton: true, contextButtons: true);
+            OnContainerContentListWindowGUI(dataListWindowRect, refreshButton: true, addButton: true, contextButtons: true);
 
             EditorGUILayout.Space(5f);
             Separator(2f, Color.white);
             EditorGUILayout.Space(10f);
 
-            DisplayCurrentDatabaseContentListSelection();
+            DisplayContainerCurrentSelection();
         }
 
         protected override string ContainerInvalidDataTypeMessage()
@@ -185,7 +188,7 @@ namespace Dhs5.Utility.Databases
 
         #region Database Content
 
-        protected override int DatabaseContentListCount
+        protected override int ContentListCount
         {
             get
             {
@@ -197,9 +200,9 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        protected override Object GetDatabaseContentElementAtIndex(int index)
+        protected override UnityEngine.Object GetContainerElementAtIndex(int index)
         {
-            int count = DatabaseContentListCount;
+            int count = ContentListCount;
             if (count > 0 && index >= 0 && index < count)
             {
                 return p_content.GetArrayElementAtIndex(index).objectReferenceValue;
@@ -211,25 +214,24 @@ namespace Dhs5.Utility.Databases
 
         #region Data Creation
 
-        protected override bool OnCreateNewData(out Object obj)
+        protected override bool OnCreateNewData(out UnityEngine.Object obj)
         {
-            if (BaseDatabase.HasDataType(m_database.GetType(), out var dataType)
-                && dataType.IsSubclassOf(typeof(ScriptableObject)))
+            if (ContainerHasValidDataType)
             {
-                obj = BaseDatabase.CreateScriptableAndAddToAsset(dataType, m_database);
+                obj = BaseDatabase.CreateScriptableAndAddToAsset(DataType, m_database);
                 return obj != null;
             }
             obj = null;
             return false;
         }
-        protected override void OnAddNewDataToDatabase(Object obj)
+        protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
             if (AssetDatabase.IsMainAsset(obj))
             {
                 BaseDatabase.AddAssetToOtherAsset(obj, m_database);
             }
 
-            base.OnAddNewDataToDatabase(obj);
+            base.OnAddNewDataToContainer(obj);
         }
 
         #endregion

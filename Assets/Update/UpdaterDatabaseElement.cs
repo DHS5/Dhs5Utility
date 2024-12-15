@@ -63,13 +63,13 @@ namespace Dhs5.Utility.Updates
             m_enumIndex = index;
         }
 
-        public bool Editor_HasDatabaseElementName(out string name)
+        public bool Editor_HasDataContainerElementName(out string name)
         {
             name = null;
             return false;
         }
 
-        public bool Editor_HasDatabaseElementTexture(out Texture2D texture)
+        public bool Editor_HasDataContainerElementTexture(out Texture2D texture)
         {
             texture = null;
             return false;
