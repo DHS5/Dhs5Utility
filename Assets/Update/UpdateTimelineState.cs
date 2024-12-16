@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Dhs5.Utility.Updates
 {
@@ -14,6 +16,13 @@ namespace Dhs5.Utility.Updates
             this.updateKey = updateKey;
             this.duration = updateTimeline.Duration;
             this.loop = updateTimeline.Loop;
+            Timescale = updateTimeline.Timescale;
+
+            this.eventQueue = new();
+            foreach (var e in updateTimeline.GetSortedEvents())
+            {
+                this.eventQueue.Enqueue(e);
+            }
         }
 
         #endregion
@@ -23,6 +32,8 @@ namespace Dhs5.Utility.Updates
         public readonly int updateKey;
         public readonly float duration;
         public readonly bool loop;
+
+        private Queue<UpdateTimelineDatabaseElement.Event> eventQueue;
 
         #endregion
 
@@ -41,19 +52,32 @@ namespace Dhs5.Utility.Updates
         /// </summary>
         public float NormalizedTime => Time / duration;
 
+        /// <summary>
+        /// Timescale of this UpdateTimeline
+        /// </summary>
+        public float Timescale { get; set; }
+
         #endregion
 
         #region Events
 
+        /// <summary>
+        /// Callback triggered when this UpdateTimeline is updated
+        /// </summary>
+        /// <remarks>
+        /// This is called AFTER the Custom Event callback
+        /// </remarks>
         public event UpdateTimelineCallback Updated;
-
-        public event Action OnStart;
-        public event Action OnEnd;
-
-        public event Action Paused;
-        public event Action Unpaused;
+        /// <summary>
+        /// Event triggered when this UpdateTimeline encounters an Event
+        /// </summary>
+        /// <remarks>
+        /// For a Custom Event, this is called BEFORE the Update callback
+        /// </remarks>
+        public event UpdateTimelineEvent EventTriggered;
 
         #endregion
+
 
         #region Methods
 
@@ -73,7 +97,10 @@ namespace Dhs5.Utility.Updates
         {
             if (IsActive)
             {
+                deltaTime *= Timescale;
                 Time += deltaTime; // Increments time
+
+                CheckCustomEvents();
 
                 // Arrive to the end
                 if (Time >= duration)
@@ -84,11 +111,11 @@ namespace Dhs5.Utility.Updates
                         // End
                         Time = duration;
                         TriggerUpdate(deltaTime - surplus);
-                        OnEnd?.Invoke();
+                        EventTriggered?.Invoke(EUpdateTimelineEventType.END, 0);
 
                         // Restart
                         Time = 0f;
-                        OnStart?.Invoke();
+                        EventTriggered?.Invoke(EUpdateTimelineEventType.START, 0);
 
                         // Surplus update
                         if (surplus > 0f)
@@ -113,28 +140,40 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #region Custom Events
+
+        private void CheckCustomEvents()
+        {
+            while (eventQueue.TryPeek(out var e) && e.time <= Time)
+            {
+                TriggerCustomEvent(eventQueue.Dequeue().id);
+            }
+        }
+
+        #endregion
+
         #region Callbacks
 
         private void OnSetActive()
         {
             if (Time == 0f)
             {
-                OnStart?.Invoke();
+                EventTriggered?.Invoke(EUpdateTimelineEventType.START, 0);
             }
             else
             {
-                Unpaused?.Invoke();
+                EventTriggered?.Invoke(EUpdateTimelineEventType.UNPAUSE, 0);
             }
         }
         private void OnSetInactive()
         {
             if (Time == duration)
             {
-                OnEnd?.Invoke();
+                EventTriggered?.Invoke(EUpdateTimelineEventType.END, 0);
             }
             else
             {
-                Paused?.Invoke();
+                EventTriggered?.Invoke(EUpdateTimelineEventType.PAUSE, 0);
             }
         }
 
@@ -145,6 +184,11 @@ namespace Dhs5.Utility.Updates
         private void TriggerUpdate(float deltaTime)
         {
             Updated?.Invoke(deltaTime, Time, NormalizedTime);
+        }
+
+        private void TriggerCustomEvent(ushort id)
+        {
+            EventTriggered?.Invoke(EUpdateTimelineEventType.CUSTOM, id);
         }
 
         #endregion
@@ -227,37 +271,41 @@ namespace Dhs5.Utility.Updates
                 return -1f;
             }
         }
+        /// <inheritdoc cref="UpdateTimelineState.Timescale"/>
+        public readonly float Timescale
+        {
+            get
+            {
+                if (TryGetState(out var state))
+                {
+                    return state.Timescale;
+                }
+                return -1f;
+            }
+            set
+            {
+                if (value >= 0f && TryGetState(out var state))
+                {
+                    state.Timescale = value;
+                }
+            }
+        }
 
         #endregion
 
         #region Events
 
+        /// <inheritdoc cref="UpdateTimelineState.Updated"/>
         public event UpdateTimelineCallback Updated 
         { 
             add { if (TryGetState(out var state)) state.Updated += value; } 
             remove { if (TryGetState(out var state)) state.Updated -= value; } 
         }
-
-        public event Action OnStart
+        /// <inheritdoc cref="UpdateTimelineState.EventTriggered"/>
+        public event UpdateTimelineEvent EventTriggered
         {
-            add { if (TryGetState(out var state)) state.OnStart += value; }
-            remove { if (TryGetState(out var state)) state.OnStart -= value; }
-        }
-        public event Action OnEnd
-        {
-            add { if (TryGetState(out var state)) state.OnEnd += value; }
-            remove { if (TryGetState(out var state)) state.OnEnd -= value; }
-        }
-
-        public event Action Paused
-        {
-            add { if (TryGetState(out var state)) state.Paused += value; }
-            remove { if (TryGetState(out var state)) state.Paused -= value; }
-        }
-        public event Action Unpaused
-        {
-            add { if (TryGetState(out var state)) state.Unpaused += value; }
-            remove { if (TryGetState(out var state)) state.Unpaused -= value; }
+            add { if (TryGetState(out var state)) state.EventTriggered += value; }
+            remove { if (TryGetState(out var state)) state.EventTriggered -= value; }
         }
 
         #endregion

@@ -118,6 +118,11 @@ namespace Dhs5.Utility.Databases
                 databaseType = fieldType.GetGenericArguments()[0];
                 return true;
             }
+            if (fieldType.BaseType.IsGenericType)
+            {
+                databaseType = fieldType.BaseType.GetGenericArguments()[0];
+                return true;
+            }
 
             databaseType = null;
             return false;
