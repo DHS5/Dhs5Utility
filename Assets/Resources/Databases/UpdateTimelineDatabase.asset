@@ -29,10 +29,10 @@ MonoBehaviour:
   m_uid: 1
   m_update:
     m_container: {fileID: 11400000, guid: f21412fbeabfe814fbc9f17efcabd932, type: 2}
-    m_currentSelectionUID: 1
+    m_currentSelectionUID: 2
   m_minutesDuration: 0
   m_secondsDuration: 30
-  m_loop: 0
+  m_loop: 1
   m_timescale: 1
   m_events:
   - time: 20

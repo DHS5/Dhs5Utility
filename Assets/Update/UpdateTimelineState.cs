@@ -19,9 +19,10 @@ namespace Dhs5.Utility.Updates
             Timescale = updateTimeline.Timescale;
 
             this.eventQueue = new();
+            this.customEvents = new();
             foreach (var e in updateTimeline.GetSortedEvents())
             {
-                this.eventQueue.Enqueue(e);
+                this.customEvents.Add(e);
             }
         }
 
@@ -33,6 +34,7 @@ namespace Dhs5.Utility.Updates
         public readonly float duration;
         public readonly bool loop;
 
+        private readonly List<UpdateTimelineDatabaseElement.Event> customEvents;
         private Queue<UpdateTimelineDatabaseElement.Event> eventQueue;
 
         #endregion
@@ -111,11 +113,11 @@ namespace Dhs5.Utility.Updates
                         // End
                         Time = duration;
                         TriggerUpdate(deltaTime - surplus);
-                        EventTriggered?.Invoke(EUpdateTimelineEventType.END, 0);
+                        OnEnd();
 
                         // Restart
                         Time = 0f;
-                        EventTriggered?.Invoke(EUpdateTimelineEventType.START, 0);
+                        OnStart();
 
                         // Surplus update
                         if (surplus > 0f)
@@ -149,16 +151,36 @@ namespace Dhs5.Utility.Updates
                 TriggerCustomEvent(eventQueue.Dequeue().id);
             }
         }
+        private void FillCustomEventsQueue()
+        {
+            if (customEvents.IsValid())
+            {
+                foreach (var e in customEvents)
+                {
+                    eventQueue.Enqueue(e);
+                }
+            }
+        }
 
         #endregion
 
         #region Callbacks
 
+        private void OnStart()
+        {
+            FillCustomEventsQueue();
+            EventTriggered?.Invoke(EUpdateTimelineEventType.START, 0);
+        }
+        private void OnEnd()
+        {
+            EventTriggered?.Invoke(EUpdateTimelineEventType.END, 0);
+        }
+
         private void OnSetActive()
         {
             if (Time == 0f)
             {
-                EventTriggered?.Invoke(EUpdateTimelineEventType.START, 0);
+                OnStart();
             }
             else
             {
@@ -169,7 +191,7 @@ namespace Dhs5.Utility.Updates
         {
             if (Time == duration)
             {
-                EventTriggered?.Invoke(EUpdateTimelineEventType.END, 0);
+                OnEnd();
             }
             else
             {

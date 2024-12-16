@@ -59,23 +59,29 @@ namespace Dhs5.Utility.Updates
 
         private Dictionary<int, UpdateCallback> m_registeredCallbacks = new();
 
-        internal void RegisterCallback(int key, UpdateCallback callback)
+        internal void RegisterCallback(int category, UpdateCallback callback)
         {
-            if (m_registeredCallbacks.ContainsKey(key))
+            if (m_registeredCallbacks.ContainsKey(category))
             {
-                m_registeredCallbacks[key] += callback;
+                m_registeredCallbacks[category] += callback;
             }
             else
             {
-                m_registeredCallbacks.Add(key, callback);
+                m_registeredCallbacks.Add(category, callback);
+                SetFirstUpdateTime(category);
             }
         }
-        internal void UnregisterCallback(int key, UpdateCallback callback)
+        internal void UnregisterCallback(int category, UpdateCallback callback)
         {
-            if (m_registeredCallbacks.ContainsKey(key))
+            if (m_registeredCallbacks.ContainsKey(category))
             {
-                m_registeredCallbacks[key] -= callback;
+                m_registeredCallbacks[category] -= callback;
             }
+        }
+
+        private bool IsCategoryRegistered(int category)
+        {
+            return m_registeredCallbacks.ContainsKey(category);
         }
 
         #endregion
@@ -177,10 +183,10 @@ namespace Dhs5.Utility.Updates
 
         private void InvokePassEvents(UpdatePass pass, float deltaTime, float realDeltaTime)
         {
-            foreach (var category in GetPassValidCategories(pass))
+            foreach (var categoryElement in GetPassValidCategories(pass))
             {
-                bool timescaleIndependant = m_updaterElements[category].TimescaleIndependent;
-                InvokeCategoryEvents(category, timescaleIndependant ? realDeltaTime : deltaTime, timescaleIndependant ? RealTime : Time);
+                bool timescaleIndependant = categoryElement.TimescaleIndependent;
+                InvokeCategoryEvents(categoryElement, timescaleIndependant ? realDeltaTime : deltaTime, timescaleIndependant ? RealTime : Time);
             }
 
             InvokeDefaultEvents(pass, deltaTime);
@@ -199,41 +205,53 @@ namespace Dhs5.Utility.Updates
 
         #region Category Management
 
-        private Dictionary<int, float> m_lastUpdateTimes = new();
-
-        private void InvokeCategoryEvents(int category, float deltaTime, float time)
+        private void InvokeCategoryEvents(UpdaterDatabaseElement categoryElement, float deltaTime, float time)
         {
+            int category = categoryElement.EnumIndex;
             if (m_registeredCallbacks.ContainsKey(category))
             {
+                if (categoryElement.HasCustomFrequency(out _))
+                {
+                    if (TryGetLastUpdateTime(category, out float lastUpdateTime))
+                    {
+                        deltaTime = time - lastUpdateTime;
+                    }
+                    else
+                    {
+                        deltaTime = 0f;
+                    }
+                }
                 m_registeredCallbacks[category]?.Invoke(deltaTime);
-                m_lastUpdateTimes[category] = time;
+                SetLastUpdateTime(category, time);
             }
         }
 
-        private List<int> GetPassValidCategories(UpdatePass pass)
+        private List<UpdaterDatabaseElement> GetPassValidCategories(UpdatePass pass)
         {
-            List<int> list = new();
+            List<UpdaterDatabaseElement> list = new();
 
             foreach (var (category, element) in m_updaterElements)
             {
-                if (element.Pass == pass && CanUpdate(category, element))
+                if (IsCategoryRegistered(category) && 
+                    element.Pass == pass && 
+                    CanUpdate(element))
                 {
-                    list.Add(category);
+                    list.Add(element);
                 }
             }
 
-            list.Sort((c1, c2) => m_updaterElements[c1].Order.CompareTo(m_updaterElements[c2].Order));
+            list.Sort((e1, e2) => e1.CompareTo(e2));
 
             return list;
         }
-        protected virtual bool CanUpdate(int category, UpdaterDatabaseElement updaterElement)
+        protected virtual bool CanUpdate(UpdaterDatabaseElement categoryElement)
         {
-            if (updaterElement.Condition.IsFullfilled())
+            if (categoryElement.Condition.IsFullfilled())
             {
-                if (updaterElement.HasCustomFrequency(out float frequency)
-                    && m_lastUpdateTimes.TryGetValue(category, out float lastUpdate))
+                if (categoryElement.HasCustomFrequency(out float frequency)
+                    && TryGetLastUpdateTime(categoryElement.EnumIndex, out float lastUpdate))
                 {
-                    return (updaterElement.TimescaleIndependent ? RealTime : Time) >= lastUpdate + frequency;
+                    return (categoryElement.TimescaleIndependent ? RealTime : Time) >= lastUpdate + frequency;
                 }
                 return true;
             }
@@ -241,6 +259,29 @@ namespace Dhs5.Utility.Updates
         }
 
         #endregion
+
+        #region Update Times
+
+        private Dictionary<int, float> m_lastUpdateTimes = new();
+
+        private bool TryGetLastUpdateTime(int category, out float lastUpdateTime)
+        {
+            return m_lastUpdateTimes.TryGetValue(category, out lastUpdateTime);
+        }
+        private void SetLastUpdateTime(int category, float time)
+        {
+            m_lastUpdateTimes[category] = time;
+        }
+        private void SetFirstUpdateTime(int category)
+        {
+            if (m_updaterElements.TryGetValue(category, out var categoryElement))
+            {
+                m_lastUpdateTimes[category] = categoryElement.TimescaleIndependent ? RealTime : Time;
+            }
+        }
+
+        #endregion
+
 
         #region Updater Elements
 

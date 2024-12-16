@@ -42,16 +42,6 @@ namespace Dhs5.Utility.Updates
 
         #region Properties
 
-        // ACTIVATION
-        public static bool IsActive
-        {
-            get
-            {
-                if (IsInstanceValid()) return Instance.enabled;
-                return false;
-            }
-        }
-
         // TIME
         public static float Time
         {
@@ -121,6 +111,27 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #region Callbacks Registration
+
+        private static ulong _registrationCount = 0;
+        protected static void ResetRegistrationCount() => _registrationCount = 0;
+
+        protected static ulong GetUniqueRegistrationKey()
+        {
+            _registrationCount++;
+            return _registrationCount;
+        }
+
+        protected static void RegisterCallback(int category, UpdateCallback callback)
+        {
+            GetInstance().RegisterCallback(category, callback);
+        }
+        protected static void UnregisterCallback(int category, UpdateCallback callback)
+        {
+            GetInstance().UnregisterCallback(category, callback);
+        }
+
+        #endregion
 
         #region Timelines Management
 

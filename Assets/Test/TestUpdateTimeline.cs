@@ -14,9 +14,16 @@ public class TestUpdateTimeline : MonoBehaviour
     {
         if (m_updateTimeline.TryGetUpdateTimelineHandle(out m_timelineHandle))
         {
-            m_timelineHandle.Updated += OnUpdateTimeline;
-            m_timelineHandle.EventTriggered += OnTimelineEvent;
-            m_timelineHandle.Start();
+            if (!m_timelineHandle.IsActive)
+            {
+                m_timelineHandle.Updated += OnUpdateTimeline;
+                m_timelineHandle.EventTriggered += OnTimelineEvent;
+                m_timelineHandle.Start();
+            }
+            else
+            {
+                Debug.Log("already active");
+            }
         }
     }
 
@@ -36,6 +43,10 @@ public class TestUpdateTimeline : MonoBehaviour
         {
             m_timelineHandle.Timescale = 2f;
             m_timelineHandle.Start();
+        }
+        else if (type == EUpdateTimelineEventType.START)
+        {
+            m_timelineHandle.Timescale = 1f;
         }
     }
 }

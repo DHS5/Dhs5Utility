@@ -8,14 +8,7 @@ namespace Dhs5.Utility.Updates
     {
         #region Callbacks Registration
 
-        private static ulong _registrationCount = 0;
         private static Dictionary<UpdateEnum, HashSet<ulong>> _registeredCallbackKeys = new();
-
-        private static ulong GetUniqueRegistrationKey()
-        {
-            _registrationCount++;
-            return _registrationCount;
-        }
 
         public static bool Register(bool register, UpdateEnum category, UpdateCallback callback, ref ulong key)
         {
@@ -30,7 +23,7 @@ namespace Dhs5.Utility.Updates
 
                     key = GetUniqueRegistrationKey();
                     keys.Add(key);
-                    GetInstance().RegisterCallback(Convert.ToInt32(category), callback);
+                    RegisterCallback(Convert.ToInt32(category), callback);
 
                     return true;
                 }
@@ -38,7 +31,7 @@ namespace Dhs5.Utility.Updates
                 {
                     key = GetUniqueRegistrationKey();
                     _registeredCallbackKeys.Add(category, new HashSet<ulong>() { key });
-                    GetInstance().RegisterCallback(Convert.ToInt32(category), callback);
+                    RegisterCallback(Convert.ToInt32(category), callback);
 
                     return true;
                 }
@@ -49,7 +42,7 @@ namespace Dhs5.Utility.Updates
                 if (_registeredCallbackKeys.TryGetValue(category, out var keys) // The callback category exists
                     && keys.Remove(key)) // AND the key was registered and removed successfully
                 {
-                    GetInstance().UnregisterCallback(Convert.ToInt32(category), callback);
+                    UnregisterCallback(Convert.ToInt32(category), callback);
                     return true;
                 }
             }
@@ -64,7 +57,7 @@ namespace Dhs5.Utility.Updates
 
         public static void Clear()
         {
-            _registrationCount = 0;
+            BaseUpdater.ResetRegistrationCount();
             _registeredCallbackKeys.Clear();
 
             GetInstance().Clear();

@@ -10,7 +10,7 @@ using UnityEditor;
 
 namespace Dhs5.Utility.Updates
 {
-    public class UpdaterDatabaseElement : BaseEnumDatabaseElement
+    public class UpdaterDatabaseElement : BaseEnumDatabaseElement, IComparable<UpdaterDatabaseElement>
     {
         #region Members
 
@@ -38,6 +38,15 @@ namespace Dhs5.Utility.Updates
                 return frequency > 0f;
             }
             return false;
+        }
+
+        #endregion
+
+        #region IComparable
+
+        public int CompareTo(UpdaterDatabaseElement other)
+        {
+            return Order.CompareTo(other.Order);
         }
 
         #endregion

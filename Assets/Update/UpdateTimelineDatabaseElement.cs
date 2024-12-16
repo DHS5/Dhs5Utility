@@ -81,6 +81,8 @@ namespace Dhs5.Utility.Updates
         // GUI Parameters
         protected GUIStyle m_eventTimeStyle;
         protected GUIStyle m_eventTimeSelectedStyle;
+        protected Color m_timelineColor = new Color(.4f, .4f, .4f);
+        protected Color m_timelineTimesColor = new Color(.6f, .6f, .6f);
         private float m_handleDemiWidth = 10f;
 
         #endregion
@@ -173,10 +175,13 @@ namespace Dhs5.Utility.Updates
             {
                 rect = EditorGUILayout.GetControlRect(false, 50f);
 
-                EditorGUI.DrawRect(rect, Color.gray);
+                float timesRectHeight = 15f;
+                float handlesRectHeight = 22f;
+                var eventsTimeRect = new Rect(rect.x, rect.y, rect.width, timesRectHeight);
+                var eventsHandleRect = new Rect(rect.x, rect.y + rect.height - handlesRectHeight, rect.width, handlesRectHeight);
 
-                var eventsTimeRect = new Rect(rect.x, rect.y, rect.width, 20f);
-                var eventsHandleRect = new Rect(rect.x, rect.y + rect.height - 20f, rect.width, 20f);
+                EditorGUI.DrawRect(rect, m_timelineColor);
+                EditorGUI.DrawRect(eventsTimeRect, m_timelineTimesColor);
 
                 if (m_element.Duration > 0f)
                 {
@@ -227,6 +232,11 @@ namespace Dhs5.Utility.Updates
             {
                 if (m_element.Duration > 0f && HasValidSelection)
                 {
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                    Color guiColor = GUI.color;
+                    GUI.color = Color.cyan;
+
                     SerializedProperty p_event = p_events.GetArrayElementAtIndex(m_selectedEventIndex);
 
                     SerializedProperty p_eventTime = p_event.FindPropertyRelative("time");
@@ -238,6 +248,10 @@ namespace Dhs5.Utility.Updates
                     p_eventTime.floatValue = EditorGUILayout.Slider(p_eventTime.floatValue, 0f, m_element.Duration);
                     EditorGUILayout.PropertyField(p_eventID, true);
                     EditorGUI.indentLevel--;
+
+                    GUI.color = guiColor;
+
+                    EditorGUILayout.EndVertical();
                 }
             }
         }
@@ -253,6 +267,8 @@ namespace Dhs5.Utility.Updates
             xPos = Mathf.Lerp(timeRect.x + m_handleDemiWidth, timeRect.x + timeRect.width - m_handleDemiWidth, eventTime / m_element.Duration);
 
             EditorGUI.LabelField(new Rect(xPos - 10f, timeRect.y, 20f, timeRect.height), eventTime.ToString(), selected ? m_eventTimeSelectedStyle : m_eventTimeStyle);
+
+            EditorGUI.DrawRect(new Rect(xPos - 2f, timeRect.y + timeRect.height, 4f, handleRect.y - timeRect.y - timeRect.height), m_timelineTimesColor);
 
             if (selected) GUI.color = Color.cyan;
             if (GUI.Button(new Rect(xPos - m_handleDemiWidth, handleRect.y, m_handleDemiWidth * 2f, handleRect.height), 
