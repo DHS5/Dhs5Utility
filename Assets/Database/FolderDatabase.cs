@@ -75,7 +75,7 @@ namespace Dhs5.Utility.Databases
             base.Editor_ShouldRecomputeContainerContent();
         }
 
-        internal override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
+        protected override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
         {
             if (m_folderContent != null)
             {

@@ -8,7 +8,7 @@ namespace Dhs5.Utility.Updates
     {
         #region Methods
 
-        public bool TryGetUpdateTimeline(out UpdateTimelineDatabaseElement element)
+        public bool TryGetUpdateTimeline(out UpdateTimeline element)
         {
             return TryGetObject(out element);
         }

@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.GUIs;
-using System.Linq;
-
 
 #if UNITY_EDITOR
 using System.Reflection;
@@ -29,7 +27,14 @@ namespace Dhs5.Utility.Databases
         internal abstract bool Editor_ContainerHasValidDataType(out Type dataType);
         internal abstract bool Editor_IsElementValid(UnityEngine.Object element);
 
-        internal abstract IEnumerable<UnityEngine.Object> Editor_GetContainerContent();
+        protected abstract IEnumerable<UnityEngine.Object> Editor_GetContainerContent();
+        protected IEnumerable<T> Editor_GetContainerElements<T>() where T : class, IDataContainerElement
+        {
+            foreach (var obj in Editor_GetContainerContent())
+            {
+                yield return obj as T;
+            }
+        }
 
         internal bool Editor_DeleteElementAtIndex(int index)
         {
@@ -46,14 +51,18 @@ namespace Dhs5.Utility.Databases
 
         internal virtual void Editor_ShouldRecomputeContainerContent()
         {
-            foreach (var obj in Editor_GetContainerContent())
+            // Ensure UIDs unicity
+            HashSet<int> uids = new();
+            foreach (var elem in Editor_GetContainerElements<IDataContainerElement>())
             {
-                if (obj is IDataContainerElement elem && elem.UID == 0)
+                if (elem.UID == 0 || uids.Contains(elem.UID))
                 {
                     elem.Editor_SetUID(Editor_GenerateUID());
                 }
+                uids.Add(elem.UID);
             }
 
+            // Trigger event and save asset
             Editor_ContainerContentChanged?.Invoke();
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssetIfDirty(this);
@@ -61,19 +70,29 @@ namespace Dhs5.Utility.Databases
 
         /// <summary>
         /// Callback triggered when a new element has been created for the database<br></br>
-        /// At this moment, the database content has already been recomputed so the element is already in it
+        /// At this moment, the database content has not been recomputed yet so the element is not in it
         /// </summary>
-        /// <param name="element"></param>
         internal virtual void Editor_OnNewElementCreated(UnityEngine.Object element) { }
+        /// <summary>
+        /// Callback triggered when a new element has been added to the database<br></br>
+        /// At this moment, the database content has not been recomputed yet so the element is not in it
+        /// </summary>
+        internal virtual void Editor_OnAddingNewElement(UnityEngine.Object element)
+        {
+            IDataContainerElement dataContainerElem = element as IDataContainerElement;
+            if (dataContainerElem.UID == 0 || Editor_DoesUIDExistIn(dataContainerElem.UID))
+            {
+                dataContainerElem.Editor_SetUID(Editor_GenerateUID());
+            }
+        }
 
         // --- UIDs ---
         protected int Editor_GenerateUID()
         {
             int max = 0;
-            foreach (var obj in Editor_GetContainerContent())
+            foreach (var elem in Editor_GetContainerElements<IDataContainerElement>())
             {
-                if (obj is IDataContainerElement elem &&
-                    elem.UID > max)
+                if (elem.UID > max)
                 {
                     max = elem.UID;
                 }
@@ -85,22 +104,27 @@ namespace Dhs5.Utility.Databases
             }
             return max + 1;
         }
+        protected bool Editor_DoesUIDExistIn(int uid)
+        {
+            foreach (var elem in Editor_GetContainerElements<IDataContainerElement>())
+            {
+                if (elem.UID == uid) return true;
+            }
+            return false;
+        }
 
         public (string[], int[]) Editor_GetContainerDisplayContent()
         {
             List<string> names = new();
             List<int> uids = new();
 
-            foreach (var obj in Editor_GetContainerContent())
+            foreach (var elem in Editor_GetContainerElements<IDataContainerElement>())
             {
-                if (obj is IDataContainerElement elem)
-                {
-                    // Name
-                    if (elem.Editor_HasDataContainerElementName(out string name)) names.Add(name);
-                    else names.Add(obj.name);
-                    // UID
-                    uids.Add(elem.UID);
-                }
+                // Name
+                if (elem is IDataContainerNameableElement nameableElem) names.Add(nameableElem.DataDisplayName);
+                else names.Add(elem.name);
+                // UID
+                uids.Add(elem.UID);
             }
 
             return (names.ToArray(), uids.ToArray());
@@ -821,29 +845,27 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void OnContentListGameObjectElementGUI(Rect rect, int index, bool selected, GameObject element)
         {
-            string elementName = element.name;
-            Texture2D elementTexture = AssetPreview.GetAssetPreview(element);
-            if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
+            string elementName;
+            if (element.TryGetComponent(out IDataContainerNameableElement nameableElem)) elementName = nameableElem.DataDisplayName;
+            else elementName = element.name;
 
-            if (element.TryGetComponent(out IDataContainerElement elem))
-            {
-                if (elem.Editor_HasDataContainerElementName(out var newName)) elementName = newName;
-                if (elem.Editor_HasDataContainerElementTexture(out var newTexture)) elementTexture = newTexture;
-            }
+            Texture2D elementTexture;
+            if (element.TryGetComponent(out IDataContainerTexturableElement texturableElem)) elementTexture = texturableElem.DataTexture;
+            else elementTexture = AssetPreview.GetAssetPreview(element);
+            if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
 
             OnContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);
         }
         protected virtual void OnContentListScriptableObjectElementGUI(Rect rect, int index, bool selected, ScriptableObject element)
         {
-            string elementName = element.name;
-            Texture2D elementTexture = AssetPreview.GetAssetPreview(element);
-            if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
+            string elementName;
+            if (element is IDataContainerNameableElement nameableElem) elementName = nameableElem.DataDisplayName;
+            else elementName = element.name;
 
-            if (element is IDataContainerElement elem)
-            {
-                if (elem.Editor_HasDataContainerElementName(out var newName)) elementName = newName;
-                if (elem.Editor_HasDataContainerElementTexture(out var newTexture)) elementTexture = newTexture;
-            }
+            Texture2D elementTexture;
+            if (element is IDataContainerTexturableElement texturableElem) elementTexture = texturableElem.DataTexture;
+            else elementTexture = AssetPreview.GetAssetPreview(element);
+            if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
 
             OnContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);
         }
@@ -972,8 +994,8 @@ namespace Dhs5.Utility.Databases
         {
             if (OnCreateNewData(out var obj))
             {
-                OnAddNewDataToContainer(obj);
                 m_container.Editor_OnNewElementCreated(obj);
+                OnAddNewDataToContainer(obj);
                 return true;
             }
             return false;
@@ -995,6 +1017,7 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
+            m_container.Editor_OnAddingNewElement(obj);
             ForceContainerContentRefresh();
             ContentListWindowScrollPos = Vector2.zero;
             var root = GetRootElement(obj);

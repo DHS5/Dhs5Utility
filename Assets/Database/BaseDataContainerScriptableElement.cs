@@ -22,18 +22,6 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        public virtual bool Editor_HasDataContainerElementName(out string name)
-        {
-            name = null;
-            return false;
-        }
-
-        public virtual bool Editor_HasDataContainerElementTexture(out Texture2D texture)
-        {
-            texture = null;
-            return false;
-        }
-
         public void Editor_SetUID(int uid)
         {
             m_uid = uid;

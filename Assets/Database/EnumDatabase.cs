@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
-using System.Linq;
 using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
@@ -145,22 +144,15 @@ namespace Dhs5.Utility.Databases
         protected virtual void SaveCurrentContentOrder()
         {
             int i = 0;
-            foreach (var elem in Editor_GetContainerContent())
+            foreach (var elem in Editor_GetContainerElements<IEnumDatabaseElement>())
             {
-                if (elem is IEnumDatabaseElement enumElement)
-                {
-                    enumElement.Editor_SetIndex(i);
-                    i++;
-                }
+                elem.Editor_SetIndex(i);
+                i++;
             }
         }
-        protected override void Editor_SortContent()
+        protected override Comparison<ScriptableObject> Editor_SortComparison()
         {
-            var content = Editor_GetContainerContent().ToList().ConvertAll(o => o as ScriptableObject);
-            content.Sort((e1, e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex));
-
-            // Set new content
-            Editor_SetContent(content);
+            return (e1, e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex);
         }
 
 #endif

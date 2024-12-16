@@ -17,20 +17,11 @@ public class TestScriptable : ScriptableObject, IDataContainerElement
     public int UID => m_uid;
 
 #if UNITY_EDITOR
+
     public void Editor_SetUID(int uid)
     {
         m_uid = uid;
     }
-    public bool Editor_HasDataContainerElementName(out string name)
-    {
-        name = this.name;
-        return true;
-    }
 
-    public bool Editor_HasDataContainerElementTexture(out Texture2D texture)
-    {
-        texture = null;
-        return false;
-    }
 #endif
 }

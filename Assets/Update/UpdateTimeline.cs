@@ -11,7 +11,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Updates
 {
-    public class UpdateTimelineDatabaseElement : BaseDataContainerScriptableElement
+    public class UpdateTimeline : BaseDataContainerScriptableElement
     {
         #region STRUCT Event
 
@@ -62,12 +62,12 @@ namespace Dhs5.Utility.Updates
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(UpdateTimelineDatabaseElement))]
+    [CustomEditor(typeof(UpdateTimeline))]
     public class UpdateTimelineDatabaseElementEditor : BaseDataContainerScriptableElementEditor
     {
         #region Members
 
-        protected UpdateTimelineDatabaseElement m_element;
+        protected UpdateTimeline m_element;
 
         protected SerializedProperty p_update;
         protected SerializedProperty p_minutesDuration;
@@ -99,7 +99,7 @@ namespace Dhs5.Utility.Updates
         {
             base.OnEnable();
 
-            m_element = (UpdateTimelineDatabaseElement)target;
+            m_element = (UpdateTimeline)target;
 
             p_update = serializedObject.FindProperty("m_update");
             p_minutesDuration = serializedObject.FindProperty("m_minutesDuration");

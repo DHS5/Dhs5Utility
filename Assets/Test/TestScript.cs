@@ -17,21 +17,12 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     public int UID => m_uid;
 
 #if UNITY_EDITOR
+
     public void Editor_SetUID(int uid)
     {
         m_uid = uid;
     }
-    public bool Editor_HasDataContainerElementName(out string name)
-    {
-        name = _name;
-        return _showName;
-    }
 
-    public bool Editor_HasDataContainerElementTexture(out Texture2D texture)
-    {
-        texture = _texture;
-        return _showTexture;
-    }
 #endif
 
     private ulong m_update1Key;

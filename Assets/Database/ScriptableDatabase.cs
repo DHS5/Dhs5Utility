@@ -103,7 +103,7 @@ namespace Dhs5.Utility.Databases
             base.Editor_ShouldRecomputeContainerContent();
         }
 
-        internal override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
+        protected override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
         {
             if (m_content != null)
             {
@@ -124,22 +124,13 @@ namespace Dhs5.Utility.Databases
             return false;
         }
 
-        protected void Editor_SetContent(List<ScriptableObject> content)
+        protected void Editor_SortContent()
         {
-            if (m_content != null)
-            {
-                m_content.Clear();
-                m_content.AddRange(content);
-            }
-            else
-            {
-                m_content = new(content);
-            }
+            m_content.Sort(Editor_SortComparison());
         }
-
-        protected virtual void Editor_SortContent()
+        protected virtual Comparison<ScriptableObject> Editor_SortComparison()
         {
-            m_content.Sort(BaseDataContainer.Sort_ByName);
+            return BaseDataContainer.Sort_ByName;
         }
 
 #endif

@@ -25,7 +25,7 @@ public class TestEmptyDB : BaseDatabase
         throw new System.NotImplementedException();
     }
 
-    internal override IEnumerable<Object> Editor_GetContainerContent()
+    protected override IEnumerable<Object> Editor_GetContainerContent()
     {
         throw new System.NotImplementedException();
     }

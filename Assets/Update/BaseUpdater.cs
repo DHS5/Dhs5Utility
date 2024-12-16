@@ -141,7 +141,7 @@ namespace Dhs5.Utility.Updates
         /// <remarks>
         /// If the UpdateTimeline is not registered yet, this method will register it
         /// </remarks>
-        public static bool TryGetUpdateTimelineHandle(UpdateTimelineDatabaseElement updateTimeline, out UpdateTimelineHandle handle)
+        public static bool TryGetUpdateTimelineHandle(UpdateTimeline updateTimeline, out UpdateTimelineHandle handle)
         {
             return GetInstance().TryGetOrCreateUpdateTimelineHandle(updateTimeline, out handle);
         }

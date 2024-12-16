@@ -8,7 +8,7 @@ namespace Dhs5.Utility.Updates
     {
         #region Constructor
 
-        public UpdateTimelineState(UpdateTimelineDatabaseElement updateTimeline, int updateKey)
+        public UpdateTimelineState(UpdateTimeline updateTimeline, int updateKey)
         {
             IsActive = false;
             Time = 0f;
@@ -34,8 +34,8 @@ namespace Dhs5.Utility.Updates
         public readonly float duration;
         public readonly bool loop;
 
-        private readonly List<UpdateTimelineDatabaseElement.Event> customEvents;
-        private Queue<UpdateTimelineDatabaseElement.Event> eventQueue;
+        private readonly List<UpdateTimeline.Event> customEvents;
+        private Queue<UpdateTimeline.Event> eventQueue;
 
         #endregion
 

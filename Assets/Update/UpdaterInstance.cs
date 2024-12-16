@@ -90,7 +90,7 @@ namespace Dhs5.Utility.Updates
 
         private Dictionary<int, UpdateTimelineState> m_updateTimelines = new();
 
-        internal bool RegisterUpdateTimeline(UpdateTimelineDatabaseElement updateTimeline)
+        internal bool RegisterUpdateTimeline(UpdateTimeline updateTimeline)
         {
             if (updateTimeline == null) return false;
             if (m_updateTimelines.ContainsKey(updateTimeline.UID)) return true;
@@ -303,7 +303,7 @@ namespace Dhs5.Utility.Updates
 
         internal bool IsUpdateTimelineRegistered(int uid) => m_updateTimelines.ContainsKey(uid);
         internal bool TryGetUpdateTimelineState(int uid, out UpdateTimelineState state) => m_updateTimelines.TryGetValue(uid, out state);
-        internal bool TryGetOrCreateUpdateTimelineHandle(UpdateTimelineDatabaseElement updateTimeline, out UpdateTimelineHandle handle)
+        internal bool TryGetOrCreateUpdateTimelineHandle(UpdateTimeline updateTimeline, out UpdateTimelineHandle handle)
         {
             if (updateTimeline == null)
             {
