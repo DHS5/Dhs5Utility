@@ -86,34 +86,39 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Timeline Registrations
+        #region Timeline Instance Creations
 
-        private Dictionary<int, UpdateTimelineState> m_updateTimelines = new();
+        private Dictionary<ulong, UpdateTimelineInstance> m_updateTimelineInstances = new();
 
-        internal bool RegisterUpdateTimeline(UpdateTimeline updateTimeline)
+        internal bool CreateUpdateTimelineInstance(UpdateTimeline updateTimeline, ulong key, out UpdateTimelineInstanceHandle handle)
         {
-            if (updateTimeline == null) return false;
-            if (m_updateTimelines.ContainsKey(updateTimeline.UID)) return true;
-
-            if (updateTimeline.HasValidUpdate(out int updateKey))
+            if (updateTimeline == null || m_updateTimelineInstances.ContainsKey(key))
             {
-                var state = new UpdateTimelineState(updateTimeline, updateKey);
-                m_updateTimelines[updateTimeline.UID] = state;
-                RegisterCallback(updateKey, state.OnUpdate);
+                handle = UpdateTimelineInstanceHandle.Empty;
+                return false;
+            }
+
+            if (updateTimeline.HasValidUpdate(out int updateCategory))
+            {
+                var state = new UpdateTimelineInstance(updateTimeline, updateCategory);
+                m_updateTimelineInstances[key] = state;
+                RegisterCallback(updateCategory, state.OnUpdate);
+                handle = new UpdateTimelineInstanceHandle(this, key);
                 return true;
             }
             else
             {
                 Debug.LogError("You tried to register an UpdateTimeline that has no valid update");
+                handle = UpdateTimelineInstanceHandle.Empty;
                 return false;
             }
         }
-        internal void UnregisterUpdateTimeline(int updateTimelineUID)
+        internal void DestroyUpdateTimelineInstance(ulong key)
         {
-            if (m_updateTimelines.TryGetValue(updateTimelineUID, out UpdateTimelineState state))
+            if (m_updateTimelineInstances.TryGetValue(key, out UpdateTimelineInstance state))
             {
-                UnregisterCallback(state.updateKey, state.OnUpdate);
-                m_updateTimelines.Remove(updateTimelineUID);
+                UnregisterCallback(state.updateCategory, state.OnUpdate);
+                m_updateTimelineInstances.Remove(key);
             }
         }
 
@@ -299,40 +304,43 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Update Timeline Management
+        #region Timeline Instances Management
 
-        internal bool IsUpdateTimelineRegistered(int uid) => m_updateTimelines.ContainsKey(uid);
-        internal bool TryGetUpdateTimelineState(int uid, out UpdateTimelineState state) => m_updateTimelines.TryGetValue(uid, out state);
-        internal bool TryGetOrCreateUpdateTimelineHandle(UpdateTimeline updateTimeline, out UpdateTimelineHandle handle)
+        internal bool TimelineInstanceExist(ulong key) => m_updateTimelineInstances.ContainsKey(key);
+        internal bool TryGetUpdateTimelineInstance(ulong key, out UpdateTimelineInstance state) => m_updateTimelineInstances.TryGetValue(key, out state);
+        internal bool TryGetUpdateTimelineInstanceHandle(ulong key, out UpdateTimelineInstanceHandle handle)
         {
-            if (updateTimeline == null)
+            if (m_updateTimelineInstances.ContainsKey(key))
             {
-                handle = UpdateTimelineHandle.Empty;
-                return false;
-            }
-
-            if (m_updateTimelines.ContainsKey(updateTimeline.UID))
-            {
-                handle = new(this, updateTimeline.UID);
-                return true;
-            }
-            else if (RegisterUpdateTimeline(updateTimeline))
-            {
-                handle = new(this, updateTimeline.UID);
+                handle = new(this, key);
                 return true;
             }
 
-            handle = UpdateTimelineHandle.Empty;
+            handle = UpdateTimelineInstanceHandle.Empty;
+            return false;
+        }
+        internal bool TryGetUpdateTimelineInstanceHandle(UpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
+        {
+            foreach (var (key, instance) in m_updateTimelineInstances)
+            {
+                if (instance.timelineUID == timeline.UID)
+                {
+                    handle = new(this, key);
+                    return true;
+                }
+            }
+
+            handle = UpdateTimelineInstanceHandle.Empty;
             return false;
         }
 
-        private void ClearUpdateTimelines()
+        private void ClearUpdateTimelineInstances()
         {
-            foreach (var updateTimelineUID in m_updateTimelines.Keys)
+            foreach (var key in m_updateTimelineInstances.Keys)
             {
-                UnregisterUpdateTimeline(updateTimelineUID);
+                DestroyUpdateTimelineInstance(key);
             }
-            m_updateTimelines.Clear();
+            m_updateTimelineInstances.Clear();
         }
 
         #endregion
@@ -417,7 +425,7 @@ namespace Dhs5.Utility.Updates
             m_preciseFrameCallbacks.Clear();
             m_lastUpdateTimes.Clear();
 
-            ClearUpdateTimelines();
+            ClearUpdateTimelineInstances();
 
             m_oneShotLateUpdateCallback = null;
 

@@ -4,16 +4,17 @@ using System.Collections.Generic;
 
 namespace Dhs5.Utility.Updates
 {
-    internal class UpdateTimelineState
+    internal class UpdateTimelineInstance
     {
         #region Constructor
 
-        public UpdateTimelineState(UpdateTimeline updateTimeline, int updateKey)
+        public UpdateTimelineInstance(UpdateTimeline updateTimeline, int updateCategory)
         {
             IsActive = false;
             Time = 0f;
 
-            this.updateKey = updateKey;
+            this.timelineUID = updateTimeline.UID;
+            this.updateCategory = updateCategory;
             this.duration = updateTimeline.Duration;
             this.loop = updateTimeline.Loop;
             Timescale = updateTimeline.Timescale;
@@ -30,7 +31,8 @@ namespace Dhs5.Utility.Updates
 
         #region Members
 
-        public readonly int updateKey;
+        public readonly int timelineUID;
+        public readonly int updateCategory;
         public readonly float duration;
         public readonly bool loop;
 
@@ -67,14 +69,14 @@ namespace Dhs5.Utility.Updates
         /// Callback triggered when this UpdateTimeline is updated
         /// </summary>
         /// <remarks>
-        /// This is called AFTER the Custom Event callback
+        /// This is called BEFORE the Custom Event callback
         /// </remarks>
         public event UpdateTimelineCallback Updated;
         /// <summary>
         /// Event triggered when this UpdateTimeline encounters an Event
         /// </summary>
         /// <remarks>
-        /// For a Custom Event, this is called BEFORE the Update callback
+        /// For a Custom Event, this is called JUST AFTER the Update callback
         /// </remarks>
         public event UpdateTimelineEvent EventTriggered;
 
@@ -83,9 +85,10 @@ namespace Dhs5.Utility.Updates
 
         #region Methods
 
-        public void SetActive(bool active)
+        public void SetActive(bool active) => SetActive(active, false);
+        private void SetActive(bool active, bool force)
         {
-            if (IsActive == active) return;
+            if (IsActive == active && !force) return;
 
             IsActive = active;
 
@@ -95,14 +98,38 @@ namespace Dhs5.Utility.Updates
                 OnSetInactive();
         }
 
+        public void Complete(bool triggerCustomEvents)
+        {
+            if (Time == duration) return;
+
+            Time = duration;
+
+            if (triggerCustomEvents)
+            {
+                CheckCustomEvents(); // Will trigger all custom events left   
+            }
+            SetActive(false, true); // Will trigger end event
+        }
+        public void Restart(bool complete)
+        {
+            if (Time > 0f && complete)
+            {
+                Complete(true);
+            }
+            Time = 0f;
+            SetActive(true, true);
+        }
+
+        #endregion
+
+        #region Update Method
+
         public void OnUpdate(float deltaTime)
         {
             if (IsActive)
             {
                 deltaTime *= Timescale;
                 Time += deltaTime; // Increments time
-
-                CheckCustomEvents();
 
                 // Arrive to the end
                 if (Time >= duration)
@@ -153,6 +180,7 @@ namespace Dhs5.Utility.Updates
         }
         private void FillCustomEventsQueue()
         {
+            eventQueue.Clear();
             if (customEvents.IsValid())
             {
                 foreach (var e in customEvents)
@@ -206,6 +234,7 @@ namespace Dhs5.Utility.Updates
         private void TriggerUpdate(float deltaTime)
         {
             Updated?.Invoke(deltaTime, Time, NormalizedTime);
+            CheckCustomEvents();
         }
 
         private void TriggerCustomEvent(ushort id)
@@ -216,34 +245,34 @@ namespace Dhs5.Utility.Updates
         #endregion
     }
 
-    public struct UpdateTimelineHandle
+    public struct UpdateTimelineInstanceHandle
     {
         #region Constructors
 
-        internal UpdateTimelineHandle(UpdaterInstance updaterInstance, int updateTimelineUID)
+        internal UpdateTimelineInstanceHandle(UpdaterInstance updaterInstance, ulong key)
         {
-            this.updaterInstance = updaterInstance;
-            this.updateTimelineUID = updateTimelineUID;
+            this.updater = updaterInstance;
+            this.key = key;
         }
 
-        public static UpdateTimelineHandle Empty = new();
+        public static UpdateTimelineInstanceHandle Empty = new();
 
         #endregion
 
         #region Members
 
-        private readonly UpdaterInstance updaterInstance;
-        private readonly int updateTimelineUID;
+        private readonly UpdaterInstance updater;
+        public readonly ulong key;
 
         #endregion
 
         #region Accessor
 
-        private readonly bool TryGetState(out UpdateTimelineState state)
+        private readonly bool TryGetInstance(out UpdateTimelineInstance instance)
         {
-            if (updaterInstance != null) return updaterInstance.TryGetUpdateTimelineState(updateTimelineUID, out state);
+            if (updater != null) return updater.TryGetUpdateTimelineInstance(key, out instance);
 
-            state = null;
+            instance = null;
             return false;
         }
 
@@ -255,60 +284,60 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Whether this handle is valid
         /// </summary>
-        public readonly bool IsValid => updaterInstance != null && updaterInstance.IsUpdateTimelineRegistered(updateTimelineUID);
+        public readonly bool IsValid => updater != null && updater.TimelineInstanceExist(key);
 
-        /// <inheritdoc cref="UpdateTimelineState.IsActive"/>
+        /// <inheritdoc cref="UpdateTimelineInstance.IsActive"/>
         public readonly bool IsActive
         {
             get
             {
-                if (TryGetState(out var state))
+                if (TryGetInstance(out var instance))
                 {
-                    return state.IsActive;
+                    return instance.IsActive;
                 }
                 return false;
             }
         }
-        /// <inheritdoc cref="UpdateTimelineState.Time"/>
+        /// <inheritdoc cref="UpdateTimelineInstance.Time"/>
         public readonly float Time
         {
             get
             {
-                if (TryGetState(out var state))
+                if (TryGetInstance(out var instance))
                 {
-                    return state.Time;
+                    return instance.Time;
                 }
                 return -1f;
             }
         }
-        /// <inheritdoc cref="UpdateTimelineState.NormalizedTime"/>
+        /// <inheritdoc cref="UpdateTimelineInstance.NormalizedTime"/>
         public readonly float NormalizedTime
         {
             get
             {
-                if (TryGetState(out var state))
+                if (TryGetInstance(out var instance))
                 {
-                    return state.NormalizedTime;
+                    return instance.NormalizedTime;
                 }
                 return -1f;
             }
         }
-        /// <inheritdoc cref="UpdateTimelineState.Timescale"/>
+        /// <inheritdoc cref="UpdateTimelineInstance.Timescale"/>
         public readonly float Timescale
         {
             get
             {
-                if (TryGetState(out var state))
+                if (TryGetInstance(out var instance))
                 {
-                    return state.Timescale;
+                    return instance.Timescale;
                 }
                 return -1f;
             }
             set
             {
-                if (value >= 0f && TryGetState(out var state))
+                if (value >= 0f && TryGetInstance(out var instance))
                 {
-                    state.Timescale = value;
+                    instance.Timescale = value;
                 }
             }
         }
@@ -317,17 +346,17 @@ namespace Dhs5.Utility.Updates
 
         #region Events
 
-        /// <inheritdoc cref="UpdateTimelineState.Updated"/>
+        /// <inheritdoc cref="UpdateTimelineInstance.Updated"/>
         public event UpdateTimelineCallback Updated 
         { 
-            add { if (TryGetState(out var state)) state.Updated += value; } 
-            remove { if (TryGetState(out var state)) state.Updated -= value; } 
+            add { if (TryGetInstance(out var instance)) instance.Updated += value; } 
+            remove { if (TryGetInstance(out var instance)) instance.Updated -= value; } 
         }
-        /// <inheritdoc cref="UpdateTimelineState.EventTriggered"/>
+        /// <inheritdoc cref="UpdateTimelineInstance.EventTriggered"/>
         public event UpdateTimelineEvent EventTriggered
         {
-            add { if (TryGetState(out var state)) state.EventTriggered += value; }
-            remove { if (TryGetState(out var state)) state.EventTriggered -= value; }
+            add { if (TryGetInstance(out var instance)) instance.EventTriggered += value; }
+            remove { if (TryGetInstance(out var instance)) instance.EventTriggered -= value; }
         }
 
         #endregion
@@ -339,16 +368,42 @@ namespace Dhs5.Utility.Updates
         /// </summary>
         public readonly void Start()
         {
-            if (TryGetState(out var state))
-                state.SetActive(true);
+            if (TryGetInstance(out var instance))
+                instance.SetActive(true);
         }
         /// <summary>
         /// Pause the UpdateTimeline
         /// </summary>
         public readonly void Stop()
         {
-            if (TryGetState(out var state))
-                state.SetActive(false);
+            if (TryGetInstance(out var instance))
+                instance.SetActive(false);
+        }
+
+        /// <summary>
+        /// Complete this UpdateTimeline
+        /// </summary>
+        /// <remarks>
+        /// The END event is always triggered on complete
+        /// </remarks>
+        /// <param name="triggerCustomEvents">Whether to trigger the remaining custom events</param>
+        public readonly void Complete(bool triggerCustomEvents = false)
+        {
+            if (TryGetInstance(out var instance))
+            {
+                instance.Complete(triggerCustomEvents);
+            }
+        }
+        /// <summary>
+        /// Restart this UpdateTimeline
+        /// </summary>
+        /// <param name="complete">Whether to complete the UpdateTimeline first, thus triggering the remaining custom events and the END event</param>
+        public readonly void Restart(bool complete = false)
+        {
+            if (TryGetInstance(out var instance))
+            {
+                instance.Restart(complete);
+            }
         }
 
         /// <summary>
@@ -356,10 +411,7 @@ namespace Dhs5.Utility.Updates
         /// </summary>
         public readonly void Unregister()
         {
-            if (updaterInstance != null)
-            {
-                updaterInstance.UnregisterUpdateTimeline(updateTimelineUID);
-            }
+            BaseUpdater.DestroyTimelineInstance(key);
         }
 
         #endregion

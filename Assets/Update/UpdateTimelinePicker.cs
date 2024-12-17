@@ -12,14 +12,14 @@ namespace Dhs5.Utility.Updates
         {
             return TryGetObject(out element);
         }
-        public bool TryGetUpdateTimelineHandle(out UpdateTimelineHandle handle)
+        public bool TryCreateUpdateTimelineInstance(out UpdateTimelineInstanceHandle handle)
         {
             if (TryGetUpdateTimeline(out var element) &&
-                BaseUpdater.TryGetUpdateTimelineHandle(element, out handle))
+                BaseUpdater.CreateTimelineInstance(element, out handle))
             {
                 return true;
             }
-            handle = UpdateTimelineHandle.Empty;
+            handle = UpdateTimelineInstanceHandle.Empty;
             return false;
         }
 

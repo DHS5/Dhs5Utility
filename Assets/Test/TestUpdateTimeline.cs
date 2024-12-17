@@ -8,22 +8,15 @@ public class TestUpdateTimeline : MonoBehaviour
 {
     [SerializeField] private UpdateTimelinePicker m_updateTimeline;
 
-    private UpdateTimelineHandle m_timelineHandle;
+    private UpdateTimelineInstanceHandle m_timelineHandle;
 
     private void Start()
     {
-        if (m_updateTimeline.TryGetUpdateTimelineHandle(out m_timelineHandle))
+        if (m_updateTimeline.TryCreateUpdateTimelineInstance(out m_timelineHandle))
         {
-            if (!m_timelineHandle.IsActive)
-            {
-                m_timelineHandle.Updated += OnUpdateTimeline;
-                m_timelineHandle.EventTriggered += OnTimelineEvent;
-                m_timelineHandle.Start();
-            }
-            else
-            {
-                Debug.Log("already active");
-            }
+            m_timelineHandle.Updated += OnUpdateTimeline;
+            m_timelineHandle.EventTriggered += OnTimelineEvent;
+            m_timelineHandle.Start();
         }
     }
 
@@ -35,18 +28,22 @@ public class TestUpdateTimeline : MonoBehaviour
     {
         Debug.Log("Timeline Event received at " + m_timelineHandle.Time + " : " + type + " (id = " + id + ")");
 
-        if (type == EUpdateTimelineEventType.CUSTOM && id == 1 && m_timelineHandle.Time > 15f)
+        if (type == EUpdateTimelineEventType.CUSTOM && id == 0)
         {
-            m_timelineHandle.Stop();
+            m_timelineHandle.Unregister();
         }
-        else if (type == EUpdateTimelineEventType.PAUSE)
-        {
-            m_timelineHandle.Timescale = 2f;
-            m_timelineHandle.Start();
-        }
-        else if (type == EUpdateTimelineEventType.START)
-        {
-            m_timelineHandle.Timescale = 1f;
-        }
+        //else if (type == EUpdateTimelineEventType.CUSTOM && id == 1 && m_timelineHandle.Time > 15f)
+        //{
+        //    m_timelineHandle.Stop();
+        //}
+        //else if (type == EUpdateTimelineEventType.PAUSE)
+        //{
+        //    m_timelineHandle.Timescale = 2f;
+        //    m_timelineHandle.Start();
+        //}
+        //else if (type == EUpdateTimelineEventType.START)
+        //{
+        //    m_timelineHandle.Timescale = 1f;
+        //}
     }
 }

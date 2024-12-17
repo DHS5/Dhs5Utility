@@ -136,14 +136,37 @@ namespace Dhs5.Utility.Updates
         #region Timelines Management
 
         /// <summary>
-        /// Attempts to get a handle for the UpdateTimeline
+        /// Creates an Instance of <paramref name="timeline"/> and out a handle for it
         /// </summary>
-        /// <remarks>
-        /// If the UpdateTimeline is not registered yet, this method will register it
-        /// </remarks>
-        public static bool TryGetUpdateTimelineHandle(UpdateTimeline updateTimeline, out UpdateTimelineHandle handle)
+        /// <returns>Whether the instance was successfully registered</returns>
+        public static bool CreateTimelineInstance(UpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
         {
-            return GetInstance().TryGetOrCreateUpdateTimelineHandle(updateTimeline, out handle);
+            return GetInstance().CreateUpdateTimelineInstance(timeline, GetUniqueRegistrationKey(), out handle);
+        }
+        /// <summary>
+        /// Destroys the <see cref="UpdateTimelineInstance"/> with <paramref name="key"/>
+        /// </summary>
+        public static void DestroyTimelineInstance(ulong key)
+        {
+            if (IsInstanceValid())
+            {
+                Instance.DestroyUpdateTimelineInstance(key);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to get a handle for the <see cref="UpdateTimelineInstance"/> with <paramref name="key"/>
+        /// </summary>
+        public static bool TryGetTimelineInstanceHandle(ulong key, out UpdateTimelineInstanceHandle handle)
+        {
+            return GetInstance().TryGetUpdateTimelineInstanceHandle(key, out handle);
+        }
+        /// <summary>
+        /// Attempts to get a handle for the first <see cref="UpdateTimelineInstance"/> of type <paramref name="timeline"/>
+        /// </summary>
+        public static bool GetFirstTimelineInstanceHandleOfType(UpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
+        {
+            return GetInstance().TryGetUpdateTimelineInstanceHandle(timeline, out handle);
         }
 
         #endregion
