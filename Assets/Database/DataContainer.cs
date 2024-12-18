@@ -4,6 +4,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.GUIs;
 using static UnityEditor.Rendering.FilterWindow;
+using static UnityEngine.Rendering.VolumeComponent;
+using Unity.VisualScripting;
+
+
 
 
 #if UNITY_EDITOR
@@ -40,12 +44,22 @@ namespace Dhs5.Utility.Databases
                     yield return go.GetComponent<T>();
             }
         }
-        public Dictionary<int, IDataContainerElement> Editor_GetContainerDicoContent()
+        public Dictionary<int, UnityEngine.Object> Editor_GetContainerDicoContent()
         {
-            Dictionary<int, IDataContainerElement> dico = new();
-            foreach (var elem in Editor_GetContainerElements<IDataContainerElement>())
+            Dictionary<int, UnityEngine.Object> dico = new();
+
+            IDataContainerElement elem = null;
+            foreach (var obj in Editor_GetContainerContent())
             {
-                dico[elem.UID] = elem;
+                if (obj is ScriptableObject)
+                {
+                    elem = obj as IDataContainerElement;
+                }
+                else if (obj is GameObject go)
+                {
+                    elem = go.GetComponent<IDataContainerElement>();
+                }
+                dico[elem.UID] = obj;
             }
             return dico;
         }
@@ -155,6 +169,16 @@ namespace Dhs5.Utility.Databases
         public static int Sort_ByType(UnityEngine.Object obj1, UnityEngine.Object obj2)
         {
             return obj1.GetType().FullName.CompareTo(obj2.GetType().FullName);
+        }
+
+        #endregion
+
+        #region Static Utility
+
+        public static string GetDataName(UnityEngine.Object obj)
+        {
+            if (obj is IDataContainerNameableElement nameableElement) return nameableElement.DataDisplayName;
+            return obj.name;
         }
 
         #endregion
@@ -648,21 +672,21 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        protected virtual void OnComputeFolderStructure_ByINDEX(FolderStructure structure, Dictionary<int, IDataContainerElement> contentDico)
+        protected virtual void OnComputeFolderStructure_ByINDEX(FolderStructure structure, Dictionary<int, UnityEngine.Object> contentDico)
         {
-            foreach (var (uid, elem) in contentDico)
+            foreach (var (uid, obj) in contentDico)
             {
-                structure.Add(new FolderStructureEntry(elem.GetName(), data: uid));
+                structure.Add(new FolderStructureEntry(BaseDataContainer.GetDataName(obj), data: uid));
             }
         }
-        protected virtual void OnComputeFolderStructure_ByFOLDERS(FolderStructure structure, Dictionary<int, IDataContainerElement> contentDico)
+        protected virtual void OnComputeFolderStructure_ByFOLDERS(FolderStructure structure, Dictionary<int, UnityEngine.Object> contentDico)
         {
             Dictionary<string, object> folderStructureDatas = new(); 
-            foreach (var (uid, elem) in contentDico)
+            foreach (var (uid, obj) in contentDico)
             {
-                if (!folderStructureDatas.TryAdd(elem.GetName(), uid))
+                if (!folderStructureDatas.TryAdd(BaseDataContainer.GetDataName(obj), uid))
                 {
-                    Debug.LogError("Two elements have the same name : " + elem.GetName());
+                    folderStructureDatas.Add(BaseDataContainer.GetDataName(obj) + "_" + uid, uid);
                 }
             }
 
@@ -679,9 +703,9 @@ namespace Dhs5.Utility.Databases
 
         #region Container Content
 
-        private Dictionary<int, IDataContainerElement> m_containerContent;
+        private Dictionary<int, UnityEngine.Object> m_containerContent;
 
-        protected IDataContainerElement GetDataContainerElementByUID(int uid)
+        protected UnityEngine.Object GetDataContainerElementByUID(int uid)
         {
             if (m_containerContent.TryGetValue(uid, out var element)) return element;
             return null;
@@ -692,7 +716,7 @@ namespace Dhs5.Utility.Databases
             var entry = GetEntryAtIndex(index);
             if (entry != null && entry.data is int uid && uid > 0)
             {
-                return GetDataContainerElementByUID(uid) as UnityEngine.Object;
+                return GetDataContainerElementByUID(uid);
             }
             return null;
         }
@@ -813,7 +837,6 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnCompleteRenaming(UnityEngine.Object obj)
         {
             BaseDatabase.RenameAsset(obj, RenamingString);
-            ForceContainerContentRefresh();
         }
 
         #endregion
@@ -866,10 +889,49 @@ namespace Dhs5.Utility.Databases
             PopulateContainerElementContextMenu(index, menu);
             menu.ShowAsContext();
         }
-        protected virtual void PopulateContainerElementContextMenu(int index, GenericMenu menu)
+        protected void PopulateContainerElementContextMenu(int index, GenericMenu menu)
         {
-            menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(GetDataContainerElementAtIndex(index)));
+            var obj = GetDataContainerElementAtIndex(index);
+
+            if (obj != null)
+            {
+                PopulateContainerDataContextMenu(obj, index, menu);
+            }
+            else if (GetEntryAtIndex(index) is FolderStructureGroupEntry group)
+            {
+                PopulateGroupContextMenu(group, index, menu);
+            }
+        }
+        protected virtual void PopulateContainerDataContextMenu(UnityEngine.Object obj, int index, GenericMenu menu)
+        {
+            menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(obj));
             menu.AddItem(new GUIContent("Remove"), false, () => OnTryDeleteElementAtIndex(index));
+        }
+        protected virtual void PopulateGroupContextMenu(FolderStructureGroupEntry group, int index, GenericMenu menu)
+        {
+            menu.AddDisabledItem(new GUIContent("Nothing yet"));
+        }
+
+        // --- GUI ---
+        protected virtual void OnContentListElementContextButtonGUI(Rect rect, int index, bool selected)
+        {
+            bool hover = false;
+            if (IsContainerContentListInteractable()
+                && rect.Contains(CurrentEvent.mousePosition))
+            {
+                hover = true;
+                if (EventReceived
+                    && CurrentEvent.type == EventType.MouseDown)
+                {
+                    ShowContainerElementContextMenu(index);
+                    GUI.changed = true;
+                    UseCurrentEvent();
+                }
+            }
+            if (CurrentEvent.type == EventType.Repaint)
+            {
+                GUIHelper.simpleIconButton.Draw(rect, EditorGUIHelper.MenuIcon, 0, false, hover);
+            }
         }
 
         #endregion
@@ -889,6 +951,7 @@ namespace Dhs5.Utility.Databases
             EditorGUI.DrawRect(ContentListRect, GUIHelper.transparentBlack01);
 
             int visibleContentListCount = GetContentListVisibleCount();
+            int visibleIndex = 0;
             ContentListNeedsScrollRect = visibleContentListCount * ContentListElementHeight > ContentListRect.height;
             if (ContentListNeedsScrollRect)
             {
@@ -898,8 +961,9 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(0, 0, viewRect.width, ContentListElementHeight);
                 foreach (var index in GetValidEntriesIndexes())
                 {
-                    OnContentListElementGUI(dataRect, index, GetEntryAtIndex(index), contextButtons);
+                    OnContentListElementGUI(dataRect, index, visibleIndex, contextButtons);
                     dataRect.y += ContentListElementHeight;
+                    visibleIndex++;
                 }
 
                 GUI.EndScrollView();
@@ -909,8 +973,9 @@ namespace Dhs5.Utility.Databases
                 Rect dataRect = new Rect(ContentListRect.x, ContentListRect.y, ContentListRect.width, ContentListElementHeight);
                 foreach (var index in GetValidEntriesIndexes())
                 {
-                    OnContentListElementGUI(dataRect, index, GetEntryAtIndex(index), contextButtons);
+                    OnContentListElementGUI(dataRect, index, visibleIndex, contextButtons);
                     dataRect.y += ContentListElementHeight;
+                    visibleIndex++;
                 }
             }
 
@@ -943,18 +1008,17 @@ namespace Dhs5.Utility.Databases
 
         #region Content List Elements GUI
 
-        protected virtual void OnContentListElementGUI(Rect rect, int index, FolderStructureEntry entry, bool contextButton)
+        protected virtual void OnContentListElementGUI(Rect rect, int index, int visibleIndex, bool contextButton)
         {
-            bool isGroup = entry is FolderStructureGroupEntry;
+            FolderStructureEntry entry = GetEntryAtIndex(index);
             bool selected = ContainerSelectionIndex == index;
-            if (isGroup) contextButton = false;
 
             float alinea = ContentListElementAlinea * entry.level;
             Rect elementRect = new Rect(rect.x + alinea, rect.y, rect.width - alinea - (contextButton ? ContentListElementContextButtonWidth : 0f), rect.height);
             Rect buttonRect = GetButtonRectForContentListElement(rect, index, entry, contextButton);
             bool isHovered = buttonRect.Contains(CurrentEvent.mousePosition);
             bool clicked = false, doubleClicked = false, contextClicked = false;
-            if (isHovered && EventReceived)
+            if (IsContainerContentListInteractable() && isHovered && EventReceived)
             {
                 switch (CurrentEvent.type)
                 {
@@ -975,13 +1039,25 @@ namespace Dhs5.Utility.Databases
                 }
             }
 
-            if (isGroup)
+            // Background
+            OnContentListElementBackgroundGUI(rect, visibleIndex, selected);
+            
+            // Element GUI
+            if (entry is FolderStructureGroupEntry group)
             {
-                OnContentListFolderGUI(rect, elementRect, index, entry as FolderStructureGroupEntry, selected, clicked, doubleClicked, contextClicked);
+                OnContentListFolderGUI(rect, elementRect, index, group, selected, clicked, doubleClicked, contextClicked);
             }
             else
             {
-                OnContentListDataGUI(rect, elementRect, index, entry, contextButton, GetDataContainerElementAtIndex(index), selected, clicked, doubleClicked, contextClicked);
+                var element = GetDataContainerElementAtIndex(index);
+                OnContentListDataGUI(rect, elementRect, index, entry, contextButton, element, selected, clicked, doubleClicked, contextClicked);
+            }
+
+            // Context Button
+            if (contextButton)
+            {
+                Rect contextButtonRect = new Rect(rect.x + rect.width - ContentListElementContextButtonWidth, rect.y, ContentListElementContextButtonWidth, rect.height);
+                OnContentListElementContextButtonGUI(contextButtonRect, index, selected);
             }
         }
         protected virtual Rect GetButtonRectForContentListElement(Rect rect, int index, FolderStructureEntry entry, bool contextButton)
@@ -994,20 +1070,13 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnContentListFolderGUI(Rect totalRect, Rect elementRect, int index, FolderStructureGroupEntry group,
             bool selected, bool clicked, bool doubleClicked, bool contextClicked)
         {
-            OnContentListElementBackgroundGUI(totalRect, index, selected);
-
             if (clicked)
             {
-                if (group.open)
-                {
-                    group.open = false;
-                    SetSelectionIndex(-1, false);
-                }
-                else
-                {
-                    group.open = true;
-                    SetSelectionIndex(index, false);
-                }
+                group.open = !group.open;
+            }
+            else if (contextClicked)
+            {
+                ShowContainerElementContextMenu(index);
             }
             GUIContent content = group.open ? EditorGUIHelper.DownIcon : EditorGUIHelper.RightIcon;
             content.text = group.content;
@@ -1019,107 +1088,78 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnContentListDataGUI(Rect totalRect, Rect elementRect, int index, FolderStructureEntry entry, bool contextButton, 
             UnityEngine.Object element, bool selected, bool clicked, bool doubleClicked, bool contextClicked)
         {
-            if (IsContainerContentListInteractable())
+            if (clicked)
             {
-                if (clicked)
+                m_lastSelectionTime = EditorApplication.timeSinceStartup;
+                if (doubleClicked)
                 {
-                    m_lastSelectionTime = EditorApplication.timeSinceStartup;
-                    if (doubleClicked)
-                    {
-                        // Double click
-                        Select();
-                        EditorUtils.FullPingObject(element);
-                    }
-                    else if (selected)
-                    {
-                        Deselect();
-                    }
-                    else
-                    {
-                        Select();
-                    }
+                    // Double click
+                    SetSelectionIndex(index, false);
+                    selected = true;
+                    EditorUtils.FullPingObject(element);
                 }
-                else if (contextClicked)
+                else if (selected)
                 {
-                    ShowContainerElementContextMenu(index);
+                    SetSelectionIndex(-1, false);
+                    selected = false;
+                }
+                else
+                {
+                    SetSelectionIndex(index, false);
+                    selected = true;
                 }
             }
-
-            OnContentListElementBackgroundGUI(totalRect, index, selected);
+            else if (contextClicked)
+            {
+                ShowContainerElementContextMenu(index);
+            }
 
             if (element == null)
             {
-                OnContentListNullElementGUI(elementRect, index, selected);
+                OnContentListNullElementGUI(elementRect, entry, index, selected);
                 return;
             }
             switch (element)
             {
                 case GameObject go:
-                    OnContentListGameObjectElementGUI(elementRect, index, selected, go); break;
+                    OnContentListGameObjectElementGUI(elementRect, entry, index, selected, go); break;
                 case ScriptableObject so:
-                    OnContentListScriptableObjectElementGUI(elementRect, index, selected, so); break;
+                    OnContentListScriptableObjectElementGUI(elementRect, entry, index, selected, so); break;
                 default:
-                    OnContentListOtherObjectElementGUI(elementRect, index, selected, element); break;
-            }
-
-            if (contextButton)
-            {
-                EditorGUI.BeginDisabledGroup(!IsContainerContentListInteractable());
-                Rect contextButtonRect = new Rect(totalRect.x + totalRect.width - ContentListElementContextButtonWidth, totalRect.y, ContentListElementContextButtonWidth, totalRect.height);
-                OnContentListElementContextButtonGUI(contextButtonRect, index, selected, element);
-                EditorGUI.EndDisabledGroup();
-            }
-
-            void Select()
-            {
-                SetSelectionIndex(index, false);
-                selected = true;
-            }
-            void Deselect()
-            {
-                SetSelectionIndex(-1, false);
-                selected = false;
+                    OnContentListOtherObjectElementGUI(elementRect, entry, index, selected, element); break;
             }
         }
 
-        protected virtual void OnContentListElementBackgroundGUI(Rect rect, int index, bool selected)
+        protected virtual void OnContentListElementBackgroundGUI(Rect rect, int visibleIndex, bool selected)
         {
-            EditorGUI.DrawRect(rect, selected ? GUIHelper.transparentWhite01 : (index % 2 == 0 ? GUIHelper.transparentBlack02 : GUIHelper.transparentBlack04));
+            EditorGUI.DrawRect(rect, selected ? GUIHelper.transparentWhite01 : (visibleIndex % 2 == 0 ? GUIHelper.transparentBlack02 : GUIHelper.transparentBlack04));
         }
 
-        protected virtual void OnContentListNullElementGUI(Rect rect, int index, bool selected)
+        protected virtual void OnContentListNullElementGUI(Rect rect, FolderStructureEntry entry, int index, bool selected)
         {
             ForceContainerContentRefresh();
         }
-        protected virtual void OnContentListGameObjectElementGUI(Rect rect, int index, bool selected, GameObject element)
+        protected virtual void OnContentListGameObjectElementGUI(Rect rect, FolderStructureEntry entry, int index, bool selected, GameObject element)
         {
-            string elementName;
-            if (element.TryGetComponent(out IDataContainerNameableElement nameableElem)) elementName = nameableElem.DataDisplayName;
-            else elementName = element.name;
-
             Texture2D elementTexture;
             if (element.TryGetComponent(out IDataContainerTexturableElement texturableElem)) elementTexture = texturableElem.DataTexture;
             else elementTexture = AssetPreview.GetAssetPreview(element);
             if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
 
-            OnContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);
+            OnContentListElementWithNameAndTextureGUI(rect, index, selected, element, entry.content, elementTexture);
         }
-        protected virtual void OnContentListScriptableObjectElementGUI(Rect rect, int index, bool selected, ScriptableObject element)
+        protected virtual void OnContentListScriptableObjectElementGUI(Rect rect, FolderStructureEntry entry, int index, bool selected, ScriptableObject element)
         {
-            string elementName;
-            if (element is IDataContainerNameableElement nameableElem) elementName = nameableElem.DataDisplayName;
-            else elementName = element.name;
-
             Texture2D elementTexture;
             if (element is IDataContainerTexturableElement texturableElem) elementTexture = texturableElem.DataTexture;
             else elementTexture = AssetPreview.GetAssetPreview(element);
             if (elementTexture == null) elementTexture = AssetPreview.GetMiniThumbnail(element);
 
-            OnContentListElementWithNameAndTextureGUI(rect, index, selected, element, elementName, elementTexture);
+            OnContentListElementWithNameAndTextureGUI(rect, index, selected, element, entry.content, elementTexture);
         }
-        protected virtual void OnContentListOtherObjectElementGUI(Rect rect, int index, bool selected, UnityEngine.Object obj)
+        protected virtual void OnContentListOtherObjectElementGUI(Rect rect, FolderStructureEntry entry, int index, bool selected, UnityEngine.Object obj)
         {
-            OnContentListElementWithNameAndTextureGUI(rect, index, selected, obj, obj.name, AssetPreview.GetMiniThumbnail(obj));
+            OnContentListElementWithNameAndTextureGUI(rect, index, selected, obj, entry.content, AssetPreview.GetMiniThumbnail(obj));
         }
 
         protected virtual void OnContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name, Texture2D texture)
@@ -1157,27 +1197,6 @@ namespace Dhs5.Utility.Databases
             else
             {
                 EditorGUI.LabelField(rect, name, selected ? EditorStyles.boldLabel : EditorStyles.label);
-            }
-        }
-
-        protected virtual void OnContentListElementContextButtonGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
-        {
-            bool hover = false;
-            if (element != null
-                && rect.Contains(CurrentEvent.mousePosition))
-            {
-                hover = true;
-                if (EventReceived
-                    && CurrentEvent.type == EventType.MouseDown)
-                {
-                    ShowContainerElementContextMenu(index);
-                    GUI.changed = true;
-                    UseCurrentEvent();
-                }
-            }
-            if (CurrentEvent.type == EventType.Repaint)
-            {
-                GUIHelper.simpleIconButton.Draw(rect, EditorGUIHelper.MenuIcon, 0, false, hover);
             }
         }
 

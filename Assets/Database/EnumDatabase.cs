@@ -285,6 +285,16 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Data Renaming
+
+        protected override void OnCompleteRenaming(UnityEngine.Object obj)
+        {
+            base.OnCompleteRenaming(obj);
+            ForceContainerContentRefresh();
+        }
+
+        #endregion
+
         #region Database Element
 
         protected override void DisplayContainerElement(UnityEngine.Object element)
@@ -300,9 +310,9 @@ namespace Dhs5.Utility.Databases
 
         #region Context Menu
 
-        protected override void PopulateContainerElementContextMenu(int index, GenericMenu menu)
+        protected override void PopulateContainerDataContextMenu(UnityEngine.Object obj, int index, GenericMenu menu)
         {
-            base.PopulateContainerElementContextMenu(index, menu);
+            base.PopulateContainerDataContextMenu(obj, index, menu);
 
             if (index > 0)
             {

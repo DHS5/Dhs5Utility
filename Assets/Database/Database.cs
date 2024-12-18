@@ -87,17 +87,12 @@ namespace Dhs5.Utility.Databases
                 Type elementType = element.GetType();
 
                 // Scriptable
-                if (type == typeof(ScriptableObject) || type.IsSubclassOf(typeof(ScriptableObject)))
+                if (type.IsSubclassOf(typeof(ScriptableObject)))
                 {
                     return elementType == type || elementType.IsSubclassOf(type);
                 }
-                // Game Object
-                if (type == typeof(GameObject))
-                {
-                    return elementType == type;
-                }
                 // Component
-                if (type == typeof(Component) || type.IsSubclassOf(typeof(Component)))
+                if (type.IsSubclassOf(typeof(Component)))
                 {
                     return element is GameObject go && go.TryGetComponent(type, out _);
                 }
