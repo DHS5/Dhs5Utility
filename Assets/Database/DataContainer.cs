@@ -34,7 +34,10 @@ namespace Dhs5.Utility.Databases
         {
             foreach (var obj in Editor_GetContainerContent())
             {
-                yield return obj as T;
+                if (obj is ScriptableObject)
+                    yield return obj as T;
+                else if (obj is GameObject go)
+                    yield return go.GetComponent<T>();
             }
         }
         public Dictionary<int, IDataContainerElement> Editor_GetContainerDicoContent()

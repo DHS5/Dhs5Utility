@@ -259,6 +259,11 @@ namespace Dhs5.Utility.Databases
 
         #region Database Content List
 
+        protected override EContentListDisplayType GetContentListDisplayType()
+        {
+            return EContentListDisplayType.INDEX;
+        }
+
         protected override void OnContentListElementNameGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name)
         {
             base.OnContentListElementNameGUI(rect, index, selected, obj, index + ": " + name);

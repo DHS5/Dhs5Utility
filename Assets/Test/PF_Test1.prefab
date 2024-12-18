@@ -150,7 +150,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca3bd3a30c49c714bb18459a0cd83ab8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_uid: 1
   _showTexture: 0
   _texture: {fileID: 0}
   _showName: 0
   _name: 
+  _dataPicker1:
+    m_container: {fileID: 0}
+    m_currentSelectionUID: 0
+  _dataPicker2:
+    m_container: {fileID: 11400000, guid: 72e73dbeecb35e64488c260f895d793c, type: 2}
+    m_currentSelectionUID: 0
