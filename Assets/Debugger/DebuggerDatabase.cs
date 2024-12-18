@@ -83,9 +83,9 @@ namespace Dhs5.Utility.Debuggers
 
         float m_extraInfosWidth = 150f;
 
-        protected override Rect GetButtonRectForContentListElement(Rect rect, int index, Object element, bool contextButton)
+        protected override Rect GetButtonRectForContentListElement(Rect rect, int index, FolderStructureEntry entry, bool contextButton)
         {
-            var resultRect = base.GetButtonRectForContentListElement(rect, index, element, contextButton);
+            var resultRect = base.GetButtonRectForContentListElement(rect, index, entry, contextButton);
             resultRect.width -= m_extraInfosWidth;
             return resultRect;
         }

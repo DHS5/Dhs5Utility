@@ -406,14 +406,6 @@ namespace Dhs5.Utility.Updates
             }
         }
 
-        /// <summary>
-        /// Unregisters this UpdateTimeline from the Updater
-        /// </summary>
-        public readonly void Unregister()
-        {
-            BaseUpdater.DestroyTimelineInstance(key);
-        }
-
         #endregion
     }
 }

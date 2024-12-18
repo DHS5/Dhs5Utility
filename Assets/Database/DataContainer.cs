@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.GUIs;
+using static UnityEditor.Rendering.FilterWindow;
+
 
 #if UNITY_EDITOR
 using System.Reflection;
@@ -34,6 +36,15 @@ namespace Dhs5.Utility.Databases
             {
                 yield return obj as T;
             }
+        }
+        public Dictionary<int, IDataContainerElement> Editor_GetContainerDicoContent()
+        {
+            Dictionary<int, IDataContainerElement> dico = new();
+            foreach (var elem in Editor_GetContainerElements<IDataContainerElement>())
+            {
+                dico[elem.UID] = elem;
+            }
+            return dico;
         }
 
         internal bool Editor_DeleteElementAtIndex(int index)
@@ -211,6 +222,16 @@ namespace Dhs5.Utility.Databases
 
     public abstract class BaseDataContainerEditor : Editor
     {
+        #region ENUM : ContentListDisplayType
+
+        protected enum EContentListDisplayType
+        {
+            INDEX = 0,
+            FOLDERS = 1,
+        }
+
+        #endregion
+
         #region Consts
 
         protected const string RenamingControlName = "RenameControl";
@@ -242,10 +263,11 @@ namespace Dhs5.Utility.Databases
         protected bool DatabaseInformationsFoldoutOpen { get; set; }
 
         // Content List Window
-        protected abstract int ContentListCount { get; }
-        protected int ContainerSelectionIndex { get; set; } = -1;
+        protected int ContainerSelectionIndex { get; private set; } = -1;
         protected Rect ContentListRect { get; set; }
+        protected bool ContentListNeedsScrollRect { get; private set; }
         protected Vector2 ContentListWindowScrollPos { get; set; }
+        protected float ContentListElementAlinea { get; set; } = 20f;
         protected float ContentListElementHeight { get; set; } = 20f;
         protected float ContentListElementContextButtonWidth { get; set; } = 30f;
         protected float ContentListButtonsHeight { get; set; } = 20f;
@@ -279,6 +301,8 @@ namespace Dhs5.Utility.Databases
             {
                 p_script.propertyPath,
             };
+
+            OnContainerContentChanged();
         }
         protected virtual void OnDisable()
         {
@@ -293,7 +317,14 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnContainerContentChanged()
         {
+            SetSelectionIndex(-1, false);
+
             serializedObject.Update();
+
+            m_containerContent = m_container.Editor_GetContainerDicoContent();
+
+            m_folderStructure.Clear();
+            ComputeFolderStructure();
         }
 
         #endregion
@@ -450,10 +481,10 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnEventReceived_Validate(Event e)
         {
-            var obj = GetContainerCurrentSelection();
-            if (obj != null)
+            var entry = GetCurrentSelectionEntry();
+            if (entry is FolderStructureGroupEntry group)
             {
-                EditorUtils.FullPingObject(obj);
+                group.open = !group.open;
                 UseCurrentEvent();
             }
         }
@@ -461,19 +492,13 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnEventReceived_Up(Event e)
         {
-            if (CanSelectUp())
-            {
-                ContainerSelectionIndex--;
-                UseCurrentEvent();
-            }
+            TrySelectUp();
+            UseCurrentEvent();
         }
         protected virtual void OnEventReceived_Down(Event e)
         {
-            if (CanSelectDown())
-            {
-                ContainerSelectionIndex++;
-                UseCurrentEvent();
-            }
+            TrySelectDown();
+            UseCurrentEvent();
         }
 
         #endregion
@@ -552,40 +577,214 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Container Folder Structure
+
+        private FolderStructure m_folderStructure = new();
+        protected int ContentListCount => m_folderStructure.Count;
+        protected int GetContentListVisibleCount() => m_folderStructure.GetValidEntryCount();
+
+        protected FolderStructureEntry GetEntryAtIndex(int index) => m_folderStructure.GetEntryAtIndex(index);
+        protected FolderStructureEntry GetCurrentSelectionEntry() => m_folderStructure.GetEntryAtIndex(ContainerSelectionIndex);
+
+        protected int GetFirstValidEntryIndexUp()
+        {
+            int validIndex = 0;
+            foreach (var index in m_folderStructure.GetValidEntriesIndexes())
+            {
+                if (index < ContainerSelectionIndex)
+                {
+                    validIndex = index;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return validIndex;
+        }
+        protected int GetFirstValidEntryIndexDown()
+        {
+            foreach (var index in m_folderStructure.GetValidEntriesIndexes())
+            {
+                if (index > ContainerSelectionIndex)
+                {
+                    return index;
+                }
+            }
+            return ContainerSelectionIndex;
+        }
+
+        private IEnumerable<int> GetValidEntriesIndexes() => m_folderStructure.GetValidEntriesIndexes();
+        protected int GetVisibleIndex(int containerIndex)
+        {
+            if (containerIndex < 0) return -1;
+
+            int index = 0;
+            foreach (var i in GetValidEntriesIndexes())
+            {
+                if (i == containerIndex)
+                    return index;
+                index++;
+            }
+            return 0;
+        }
+
+        // --- COMPUTATION ---
+        private void ComputeFolderStructure()
+        {
+            switch (GetContentListDisplayType())
+            {
+                case EContentListDisplayType.INDEX:
+                    OnComputeFolderStructure_ByINDEX(m_folderStructure, m_containerContent);
+                    break;
+                case EContentListDisplayType.FOLDERS:
+                    OnComputeFolderStructure_ByFOLDERS(m_folderStructure, m_containerContent);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        protected virtual void OnComputeFolderStructure_ByINDEX(FolderStructure structure, Dictionary<int, IDataContainerElement> contentDico)
+        {
+            foreach (var (uid, elem) in contentDico)
+            {
+                structure.Add(new FolderStructureEntry(elem.GetName(), data: uid));
+            }
+        }
+        protected virtual void OnComputeFolderStructure_ByFOLDERS(FolderStructure structure, Dictionary<int, IDataContainerElement> contentDico)
+        {
+            Dictionary<string, object> folderStructureDatas = new(); 
+            foreach (var (uid, elem) in contentDico)
+            {
+                if (!folderStructureDatas.TryAdd(elem.GetName(), uid))
+                {
+                    Debug.LogError("Two elements have the same name : " + elem.GetName());
+                }
+            }
+
+            structure.FillFromNamesAndDatas(folderStructureDatas);
+        }
+
+        #endregion
+
+        #region Content List Display Type
+
+        protected abstract EContentListDisplayType GetContentListDisplayType();
+
+        #endregion
+
         #region Container Content
 
-        protected bool CanSelectUp() => ContainerSelectionIndex > 0;
-        protected bool CanSelectDown() => ContainerSelectionIndex < ContentListCount - 1;
+        private Dictionary<int, IDataContainerElement> m_containerContent;
 
+        protected IDataContainerElement GetDataContainerElementByUID(int uid)
+        {
+            if (m_containerContent.TryGetValue(uid, out var element)) return element;
+            return null;
+        }
+
+        protected UnityEngine.Object GetDataContainerElementAtIndex(int index)
+        {
+            var entry = GetEntryAtIndex(index);
+            if (entry != null && entry.data is int uid && uid > 0)
+            {
+                return GetDataContainerElementByUID(uid) as UnityEngine.Object;
+            }
+            return null;
+        }
         protected UnityEngine.Object GetContainerCurrentSelection()
         {
-            return GetContainerElementAtIndex(ContainerSelectionIndex);
-        }
-        protected virtual UnityEngine.Object GetContainerElementAtIndex(int index)
-        {
-            throw new NotImplementedException();
-        }
+            return GetDataContainerElementAtIndex(ContainerSelectionIndex);
+        }        
 
         protected void ForceContainerContentRefresh() { m_container.Editor_ShouldRecomputeContainerContent(); }
 
         #endregion
 
+        #region Content List Navigation
+
+        protected void TrySelectUp()
+        {
+            if (CanSelectUp())
+            {
+                SetSelectionIndex(GetFirstValidEntryIndexUp(), true);
+            }
+        }
+        protected void TrySelectDown()
+        {
+            if (CanSelectDown())
+            {
+                SetSelectionIndex(GetFirstValidEntryIndexDown(), true);
+            }
+        }
+
+        protected bool CanSelectUp() => ContainerSelectionIndex > 0;
+        protected bool CanSelectDown() => ContainerSelectionIndex < ContentListCount - 1;
+
+        #endregion
+
         #region Selection
+
+        protected void SetSelectionIndex(int index, bool ensureVisibility)
+        {
+            var entry = GetEntryAtIndex(ContainerSelectionIndex);
+            if (entry != null)
+            {
+                OnDeselectContentListElement(entry);
+            }
+
+            ContainerSelectionIndex = index;
+
+            entry = GetEntryAtIndex(ContainerSelectionIndex);
+            if (entry != null)
+            {
+                OnSelectContentListElement(entry, ContainerSelectionIndex, ensureVisibility);
+            }
+        }
 
         protected bool Select(UnityEngine.Object obj)
         {
             for (int i = 0; i < ContentListCount; i++)
             {
-                if (GetContainerElementAtIndex(i) == obj)
+                if (GetDataContainerElementAtIndex(i) == obj)
                 {
-                    ContainerSelectionIndex = i;
+                    SetSelectionIndex(i, true);
                     return true;
                 }
             }
             return false;
         }
 
+        protected virtual void OnSelectContentListElement(FolderStructureEntry entry, int index, bool ensureVisibility) 
+        {
+            if (ensureVisibility)
+            {
+                m_folderStructure.EnsureVisibilityOfEntryAtIndex(index);
+                if (ContentListNeedsScrollRect)
+                {
+                    int visibleIndex = GetVisibleIndex(index);
+
+                    float elementYPos = visibleIndex * ContentListElementHeight;
+                    if (elementYPos < ContentListWindowScrollPos.y)
+                    {
+                        ContentListWindowScrollPos = new(ContentListWindowScrollPos.x, elementYPos);
+                    }
+                    else
+                    {
+                        elementYPos += ContentListElementHeight;
+                        if (elementYPos > ContentListWindowScrollPos.y + ContentListRect.height)
+                        {
+                            ContentListWindowScrollPos = new(ContentListWindowScrollPos.x, elementYPos - ContentListRect.height);
+                        }
+                    }
+                }
+            }
+        }
+        protected virtual void OnDeselectContentListElement(FolderStructureEntry entry) { }
+
         #endregion
+
 
         #region Data Renaming
 
@@ -666,14 +865,14 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void PopulateContainerElementContextMenu(int index, GenericMenu menu)
         {
-            menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(GetContainerElementAtIndex(index)));
+            menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(GetDataContainerElementAtIndex(index)));
             menu.AddItem(new GUIContent("Remove"), false, () => OnTryDeleteElementAtIndex(index));
         }
 
         #endregion
 
 
-        #region Database Content List
+        #region Content List GUI
 
         protected virtual bool IsContainerContentListInteractable()
         {
@@ -686,16 +885,17 @@ namespace Dhs5.Utility.Databases
             ContentListRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? ContentListButtonsHeight : 0f));
             EditorGUI.DrawRect(ContentListRect, GUIHelper.transparentBlack01);
 
-            bool needScrollRect = ContentListCount * ContentListElementHeight > ContentListRect.height;
-            if (needScrollRect)
+            int visibleContentListCount = GetContentListVisibleCount();
+            ContentListNeedsScrollRect = visibleContentListCount * ContentListElementHeight > ContentListRect.height;
+            if (ContentListNeedsScrollRect)
             {
-                Rect viewRect = new Rect(0, 0, ContentListRect.width - 15f, ContentListCount * ContentListElementHeight);
+                Rect viewRect = new Rect(0, 0, ContentListRect.width - 15f, visibleContentListCount * ContentListElementHeight);
                 ContentListWindowScrollPos = GUI.BeginScrollView(ContentListRect, ContentListWindowScrollPos, viewRect);
 
                 Rect dataRect = new Rect(0, 0, viewRect.width, ContentListElementHeight);
-                for (int i = 0; i < ContentListCount; i++)
+                foreach (var index in GetValidEntriesIndexes())
                 {
-                    OnContentListElementGUI(dataRect, i, GetContainerElementAtIndex(i), contextButtons);
+                    OnContentListElementGUI(dataRect, index, GetEntryAtIndex(index), contextButtons);
                     dataRect.y += ContentListElementHeight;
                 }
 
@@ -704,9 +904,9 @@ namespace Dhs5.Utility.Databases
             else
             {
                 Rect dataRect = new Rect(ContentListRect.x, ContentListRect.y, ContentListRect.width, ContentListElementHeight);
-                for (int i = 0; i < ContentListCount; i++)
+                foreach (var index in GetValidEntriesIndexes())
                 {
-                    OnContentListElementGUI(dataRect, i, GetContainerElementAtIndex(i), contextButtons);
+                    OnContentListElementGUI(dataRect, index, GetEntryAtIndex(index), contextButtons);
                     dataRect.y += ContentListElementHeight;
                 }
             }
@@ -736,16 +936,19 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        protected virtual Rect GetButtonRectForContentListElement(Rect rect, int index, UnityEngine.Object element, bool contextButton)
-        {
-            return new Rect(rect.x, rect.y, rect.width - (contextButton ? ContentListElementContextButtonWidth : 0f), rect.height);
-        }
-        protected virtual void OnContentListElementGUI(Rect rect, int index, UnityEngine.Object element, bool contextButton)
-        {
-            bool selected = ContainerSelectionIndex == index;
+        #endregion
 
-            Rect elementRect = new Rect(rect.x, rect.y, rect.width - (contextButton ? ContentListElementContextButtonWidth : 0f), rect.height);
-            Rect buttonRect = GetButtonRectForContentListElement(rect, index, element, contextButton);
+        #region Content List Elements GUI
+
+        protected virtual void OnContentListElementGUI(Rect rect, int index, FolderStructureEntry entry, bool contextButton)
+        {
+            bool isGroup = entry is FolderStructureGroupEntry;
+            bool selected = ContainerSelectionIndex == index;
+            if (isGroup) contextButton = false;
+
+            float alinea = ContentListElementAlinea * entry.level;
+            Rect elementRect = new Rect(rect.x + alinea, rect.y, rect.width - alinea - (contextButton ? ContentListElementContextButtonWidth : 0f), rect.height);
+            Rect buttonRect = GetButtonRectForContentListElement(rect, index, entry, contextButton);
             bool isHovered = buttonRect.Contains(CurrentEvent.mousePosition);
             bool clicked = false, doubleClicked = false, contextClicked = false;
             if (isHovered && EventReceived)
@@ -769,6 +972,50 @@ namespace Dhs5.Utility.Databases
                 }
             }
 
+            if (isGroup)
+            {
+                OnContentListFolderGUI(rect, elementRect, index, entry as FolderStructureGroupEntry, selected, clicked, doubleClicked, contextClicked);
+            }
+            else
+            {
+                OnContentListDataGUI(rect, elementRect, index, entry, contextButton, GetDataContainerElementAtIndex(index), selected, clicked, doubleClicked, contextClicked);
+            }
+        }
+        protected virtual Rect GetButtonRectForContentListElement(Rect rect, int index, FolderStructureEntry entry, bool contextButton)
+        {
+            return new Rect(rect.x, rect.y, rect.width - (contextButton ? ContentListElementContextButtonWidth : 0f), rect.height);
+        }
+
+        #region Folder
+
+        protected virtual void OnContentListFolderGUI(Rect totalRect, Rect elementRect, int index, FolderStructureGroupEntry group,
+            bool selected, bool clicked, bool doubleClicked, bool contextClicked)
+        {
+            OnContentListElementBackgroundGUI(totalRect, index, selected);
+
+            if (clicked)
+            {
+                if (group.open)
+                {
+                    group.open = false;
+                    SetSelectionIndex(-1, false);
+                }
+                else
+                {
+                    group.open = true;
+                    SetSelectionIndex(index, false);
+                }
+            }
+            GUIContent content = group.open ? EditorGUIHelper.DownIcon : EditorGUIHelper.RightIcon;
+            content.text = group.content;
+            EditorGUI.LabelField(elementRect, content);
+        }
+
+        #endregion
+
+        protected virtual void OnContentListDataGUI(Rect totalRect, Rect elementRect, int index, FolderStructureEntry entry, bool contextButton, 
+            UnityEngine.Object element, bool selected, bool clicked, bool doubleClicked, bool contextClicked)
+        {
             if (IsContainerContentListInteractable())
             {
                 if (clicked)
@@ -795,7 +1042,7 @@ namespace Dhs5.Utility.Databases
                 }
             }
 
-            OnContentListElementBackgroundGUI(rect, index, selected, element);
+            OnContentListElementBackgroundGUI(totalRect, index, selected);
 
             if (element == null)
             {
@@ -815,26 +1062,24 @@ namespace Dhs5.Utility.Databases
             if (contextButton)
             {
                 EditorGUI.BeginDisabledGroup(!IsContainerContentListInteractable());
-                Rect contextButtonRect = new Rect(rect.x + rect.width - ContentListElementContextButtonWidth, rect.y, ContentListElementContextButtonWidth, rect.height);
+                Rect contextButtonRect = new Rect(totalRect.x + totalRect.width - ContentListElementContextButtonWidth, totalRect.y, ContentListElementContextButtonWidth, totalRect.height);
                 OnContentListElementContextButtonGUI(contextButtonRect, index, selected, element);
                 EditorGUI.EndDisabledGroup();
             }
 
             void Select()
             {
-                ContainerSelectionIndex = index;
-                OnSelectContentListElement(element);
+                SetSelectionIndex(index, false);
                 selected = true;
             }
             void Deselect()
             {
-                ContainerSelectionIndex = -1;
-                OnDeselectContentListElement(element);
+                SetSelectionIndex(-1, false);
                 selected = false;
             }
         }
 
-        protected virtual void OnContentListElementBackgroundGUI(Rect rect, int index, bool selected, UnityEngine.Object element)
+        protected virtual void OnContentListElementBackgroundGUI(Rect rect, int index, bool selected)
         {
             EditorGUI.DrawRect(rect, selected ? GUIHelper.transparentWhite01 : (index % 2 == 0 ? GUIHelper.transparentBlack02 : GUIHelper.transparentBlack04));
         }
@@ -932,10 +1177,6 @@ namespace Dhs5.Utility.Databases
                 GUIHelper.simpleIconButton.Draw(rect, EditorGUIHelper.MenuIcon, 0, false, hover);
             }
         }
-
-
-        protected virtual void OnSelectContentListElement(UnityEngine.Object element) { }
-        protected virtual void OnDeselectContentListElement(UnityEngine.Object element) { }
 
         #endregion
 

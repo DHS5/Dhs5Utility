@@ -125,18 +125,6 @@ namespace Dhs5.Utility.Databases
 
         protected string FolderName => p_folderName.stringValue;
 
-        protected override int ContentListCount
-        {
-            get
-            {
-                if (p_folderContent != null)
-                {
-                    return p_folderContent.arraySize;
-                }
-                return -1;
-            }
-        }
-
         #endregion
 
         #region Core Behaviour
@@ -201,25 +189,35 @@ namespace Dhs5.Utility.Databases
             ForceContainerContentRefresh();
         }
 
-        protected override void OnContainerContentChanged()
-        {
-            base.OnContainerContentChanged();
-
-            ContainerSelectionIndex = -1;
-        }
-
         #endregion
 
         #region Database Content
 
-        protected override UnityEngine.Object GetContainerElementAtIndex(int index)
+        //protected override int ContentListCount
+        //{
+        //    get
+        //    {
+        //        if (p_folderContent != null)
+        //        {
+        //            return p_folderContent.arraySize;
+        //        }
+        //        return -1;
+        //    }
+        //}
+
+        //protected override UnityEngine.Object GetContainerElementAtIndex(int index)
+        //{
+        //    int count = ContentListCount;
+        //    if (count > 0 && index >= 0 && index < count)
+        //    {
+        //        return p_folderContent.GetArrayElementAtIndex(index).objectReferenceValue;
+        //    }
+        //    return null;
+        //}
+
+        protected override EContentListDisplayType GetContentListDisplayType()
         {
-            int count = ContentListCount;
-            if (count > 0 && index >= 0 && index < count)
-            {
-                return p_folderContent.GetArrayElementAtIndex(index).objectReferenceValue;
-            }
-            return null;
+            return EContentListDisplayType.FOLDERS;
         }
 
         #endregion

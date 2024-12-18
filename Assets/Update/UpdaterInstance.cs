@@ -215,19 +215,24 @@ namespace Dhs5.Utility.Updates
             int category = categoryElement.EnumIndex;
             if (m_registeredCallbacks.ContainsKey(category))
             {
-                if (categoryElement.HasCustomFrequency(out _))
+                if (categoryElement.HasCustomFrequency(out float frequency))
                 {
                     if (TryGetLastUpdateTime(category, out float lastUpdateTime))
                     {
-                        deltaTime = time - lastUpdateTime;
+                        deltaTime = time - lastUpdateTime; // Ensure elapsed time since last update accuracy
+                        SetLastUpdateTime(category, lastUpdateTime + frequency); // Ensure update frequency without gradual offset
                     }
                     else
                     {
                         deltaTime = 0f;
+                        SetLastUpdateTime(category, time);
                     }
                 }
+                else
+                {
+                    SetLastUpdateTime(category, time);
+                }
                 m_registeredCallbacks[category]?.Invoke(deltaTime);
-                SetLastUpdateTime(category, time);
             }
         }
 

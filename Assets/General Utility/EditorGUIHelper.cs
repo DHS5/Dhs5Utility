@@ -34,6 +34,8 @@ namespace Dhs5.Utility.Editors
         public static GUIContent SearchIcon => EditorGUIUtility.IconContent("d_SearchOverlay");
         public static GUIContent UpIcon => EditorGUIUtility.IconContent("d_icon dropdown open");
         public static GUIContent DownIcon => EditorGUIUtility.IconContent("d_icon dropdown");
+        public static GUIContent RightIcon => EditorGUIUtility.IconContent("d_forward");
+        public static GUIContent LeftIcon => EditorGUIUtility.IconContent("d_back");
         public static GUIContent SceneIcon => EditorGUIUtility.IconContent("d_SceneAsset Icon");
         public static GUIContent SceneSmallIcon => EditorGUIUtility.IconContent("d_Scene");
         public static GUIContent DatabaseIcon => EditorGUIUtility.IconContent("d_PreMatCylinder");

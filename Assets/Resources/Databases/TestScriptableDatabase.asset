@@ -12,13 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 2
   m_EditorClassIdentifier: 
+  m_name: ThirdFolder/InsideFolder/Elem4
   m_uid: 3
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &-2079159008995707789
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31,13 +26,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 0
   m_EditorClassIdentifier: 
+  m_name: FirstFolder/Elem1
   m_uid: 1
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -74,13 +64,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 4
   m_EditorClassIdentifier: 
+  m_name: FirstFolder/InsideFolder/Elem6
   m_uid: 5
-  m_int0: 1
-  m_int1: 2
-  m_int2: 3
-  m_int3: 4
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &5105363124211243941
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -93,13 +78,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 3
   m_EditorClassIdentifier: 
+  m_name: SecondFolder/InsideFolder/Elem5
   m_uid: 4
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &5596107765150596522
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -112,13 +92,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 10
   m_EditorClassIdentifier: 
+  m_name: FirstFolder/InsideFolder/Elem3
   m_uid: 11
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &6770308619647356288
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -131,13 +106,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 8
   m_EditorClassIdentifier: 
+  m_name: ThirdFolder/Elem10
   m_uid: 9
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &7287231918435737972
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -150,13 +120,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 7
   m_EditorClassIdentifier: 
+  m_name: SecondFolder/Elem9
   m_uid: 8
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &7705983467486257958
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169,13 +134,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 9
   m_EditorClassIdentifier: 
+  m_name: ThirdFolder/InsideFolder/Elem11
   m_uid: 10
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &7932424927533018366
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -188,13 +148,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 6
   m_EditorClassIdentifier: 
+  m_name: FirstFolder/Elem8
   m_uid: 7
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &8432820606193298123
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,13 +162,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 1
   m_EditorClassIdentifier: 
+  m_name: SecondFolder/Elem2
   m_uid: 2
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0
 --- !u!114 &9007500453691237680
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -226,10 +176,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 5
   m_EditorClassIdentifier: 
+  m_name: FirstFolder/OtherInsideFolder/Elem7
   m_uid: 6
-  m_int0: 0
-  m_int1: 0
-  m_int2: 0
-  m_int3: 0
-  m_int4: 0
-  m_int5: 0

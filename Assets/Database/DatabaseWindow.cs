@@ -23,7 +23,7 @@ namespace Dhs5.Utility.Databases
 
         #region Members
 
-        private Dictionary<BaseDatabase, Editor> m_editors;
+        private Editor m_editor;
         private BaseDatabase[] m_databases;
         private string[] m_names;
         private string[] m_paths;
@@ -176,7 +176,7 @@ namespace Dhs5.Utility.Databases
 
         private void GetDatabases()
         {
-            m_editors = new();
+            m_editor = null;
 
             // Settings
             m_databases = BaseDatabase.GetAllInstances((da) => da.showInDatabaseWindow);
@@ -195,26 +195,22 @@ namespace Dhs5.Utility.Databases
 
         private Editor GetOrCreateEditor(BaseDatabase database)
         {
-            if (m_editors.TryGetValue(database, out var editor)
-                && editor != null)
+            if (m_editor != null && m_editor.target == database) return m_editor;
+
+            // Destroy current
+            if (m_editor != null)
             {
-                return editor;
+                DestroyImmediate(m_editor);
             }
 
-            m_editors[database] = Editor.CreateEditor(database);
-            return m_editors[database];
+            m_editor = Editor.CreateEditor(database);
+            return m_editor;
         }
         private void ClearEditors()
         {
-            if (m_editors != null)
+            if (m_editor != null)
             {
-                foreach (var editor in m_editors.Values)
-                {
-                    if (editor != null)
-                    {
-                        DestroyImmediate(editor);
-                    }
-                }
+                DestroyImmediate(m_editor);
             }
         }
 

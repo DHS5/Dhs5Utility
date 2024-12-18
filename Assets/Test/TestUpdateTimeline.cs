@@ -12,7 +12,11 @@ public class TestUpdateTimeline : MonoBehaviour
 
     private void Start()
     {
-        if (m_updateTimeline.TryCreateUpdateTimelineInstance(out m_timelineHandle))
+        if (TestUpdater.GetFirstTimelineInstanceHandleOfType(m_updateTimeline.Get(), out m_timelineHandle))
+        {
+            Debug.Log("Timeline already active");
+        }
+        else if (m_updateTimeline.TryCreateUpdateTimelineInstance(out m_timelineHandle))
         {
             m_timelineHandle.Updated += OnUpdateTimeline;
             m_timelineHandle.EventTriggered += OnTimelineEvent;
@@ -30,7 +34,7 @@ public class TestUpdateTimeline : MonoBehaviour
 
         if (type == EUpdateTimelineEventType.CUSTOM && id == 0)
         {
-            m_timelineHandle.Unregister();
+            TestUpdater.DestroyTimelineInstance(m_timelineHandle);
         }
         //else if (type == EUpdateTimelineEventType.CUSTOM && id == 1 && m_timelineHandle.Time > 15f)
         //{

@@ -24,7 +24,7 @@ namespace Dhs5.Utility.Settings
 
         #region Members
 
-        private Dictionary<BaseSettings, Editor> m_editors;
+        private Editor m_editor;
         private BaseSettings[] m_settings;
         private string[] m_names;
         private string[] m_paths;
@@ -131,7 +131,7 @@ namespace Dhs5.Utility.Settings
 
         private void GetSettings()
         {
-            m_editors = new();
+            m_editor = null;
 
             // Settings
             m_settings = BaseSettings.GetAllInstances();// t => BaseSettings.GetScope(t) == SettingsScope.Project);
@@ -153,26 +153,22 @@ namespace Dhs5.Utility.Settings
 
         private Editor GetOrCreateEditor(BaseSettings settings)
         {
-            if (m_editors.TryGetValue(settings, out var editor)
-                && editor != null)
+            if (m_editor != null && m_editor.target == settings) return m_editor;
+
+            // Destroy current
+            if (m_editor != null)
             {
-                return editor;
+                DestroyImmediate(m_editor);
             }
 
-            m_editors[settings] = Editor.CreateEditor(settings);
-            return m_editors[settings];
+            m_editor = Editor.CreateEditor(settings);
+            return m_editor;
         }
         private void ClearEditors()
         {
-            if (m_editors != null)
+            if (m_editor != null)
             {
-                foreach (var editor in m_editors.Values)
-                {
-                    if (editor != null)
-                    {
-                        DestroyImmediate(editor);
-                    }
-                }
+                DestroyImmediate(m_editor);
             }
         }
 

@@ -143,6 +143,11 @@ namespace Dhs5.Utility.Updates
         {
             return GetInstance().CreateUpdateTimelineInstance(timeline, GetUniqueRegistrationKey(), out handle);
         }
+
+        /// <summary>
+        /// Destroys the <see cref="UpdateTimelineInstance"/> with <paramref name="handle"/>.key
+        /// </summary>
+        public static void DestroyTimelineInstance(UpdateTimelineInstanceHandle handle) => DestroyTimelineInstance(handle.key);
         /// <summary>
         /// Destroys the <see cref="UpdateTimelineInstance"/> with <paramref name="key"/>
         /// </summary>

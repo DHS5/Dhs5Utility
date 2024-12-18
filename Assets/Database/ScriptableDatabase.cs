@@ -195,27 +195,32 @@ namespace Dhs5.Utility.Databases
 
         #region Database Content
 
-        protected override int ContentListCount
+        //protected override int ContentListCount
+        //{
+        //    get
+        //    {
+        //        if (p_content != null)
+        //        {
+        //            return p_content.arraySize;
+        //        }
+        //        return -1;
+        //    }
+        //}
+
+        protected override EContentListDisplayType GetContentListDisplayType()
         {
-            get
-            {
-                if (p_content != null)
-                {
-                    return p_content.arraySize;
-                }
-                return -1;
-            }
+            return EContentListDisplayType.FOLDERS;
         }
 
-        protected override UnityEngine.Object GetContainerElementAtIndex(int index)
-        {
-            int count = ContentListCount;
-            if (count > 0 && index >= 0 && index < count)
-            {
-                return p_content.GetArrayElementAtIndex(index).objectReferenceValue;
-            }
-            return null;
-        }
+        //protected override UnityEngine.Object GetContainerElementAtIndex(int index)
+        //{
+        //    int count = ContentListCount;
+        //    if (count > 0 && index >= 0 && index < count)
+        //    {
+        //        return p_content.GetArrayElementAtIndex(index).objectReferenceValue;
+        //    }
+        //    return null;
+        //}
 
         #endregion
 

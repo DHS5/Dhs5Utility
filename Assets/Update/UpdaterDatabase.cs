@@ -27,7 +27,7 @@ namespace Dhs5.Utility.Updates
             extensions.Add("    Updater<" + enumName + ">.Register(true, category, callback, ref key);");
             extensions.Add("}");
             
-            extensions.Add("public static void Unregister(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
+            extensions.Add("public static void Destroy(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
             extensions.Add("{");
             extensions.Add("    Updater<" + enumName + ">.Register(false, category, callback, ref key);");
             extensions.Add("}");
@@ -82,12 +82,7 @@ namespace Dhs5.Utility.Updates
 
         #region Database Content List
 
-        protected override Rect GetButtonRectForContentListElement(Rect rect, int index, Object element, bool contextButton)
-        {
-            return base.GetButtonRectForContentListElement(rect, index, element, contextButton);
-        }
-
-        protected override void OnContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, Object obj, string name, Texture2D texture)
+        protected override void OnContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name, Texture2D texture)
         {
             if (obj is UpdaterDatabaseElement elem)
             {

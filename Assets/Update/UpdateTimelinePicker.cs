@@ -8,6 +8,11 @@ namespace Dhs5.Utility.Updates
     {
         #region Methods
 
+        public UpdateTimeline Get()
+        {
+            if (TryGetUpdateTimeline(out var timeline)) return timeline;
+            return null;
+        }
         public bool TryGetUpdateTimeline(out UpdateTimeline element)
         {
             return TryGetObject(out element);
