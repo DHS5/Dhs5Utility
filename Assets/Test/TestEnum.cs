@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Dhs5.Utility.Databases;
 
 namespace Dhs5.Test
 {
@@ -26,8 +27,8 @@ namespace Dhs5.Test
     {
         public static TestScriptable GetValue(this TestEnum e)
         {
-            return TestEnumDB.I
-.GetValueAtIndex<TestScriptable>((int)e);        }
+            return BaseDatabase.Get<TestEnumDB>().GetValueAtIndex<TestScriptable>((int)e);        
+        }
 
         public static bool Contains(this TestEnumFlags flag, TestEnum e)
         {

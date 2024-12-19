@@ -43,6 +43,10 @@ namespace Dhs5.Utility.Databases
 
             return instance;
         }
+        public static T Get<T>() where T : BaseDatabase
+        {
+            return GetInstance(typeof(T)) as T;
+        }
 
         internal static BaseDatabase[] GetAllInstances() => GetAllInstances(GetAllChildTypes());
         internal static BaseDatabase[] GetAllInstances(Func<Type, bool> predicate) => GetAllInstances(GetAllChildTypes(t => predicate.Invoke(t)));
@@ -404,30 +408,6 @@ namespace Dhs5.Utility.Databases
         #endregion
 
 #endif
-
-        #endregion
-    }
-
-    public abstract class Database<T> : BaseDatabase where T : Database<T>
-    {
-        #region Instance
-
-        private static T _instance;
-        public static T I
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    if (GetInstance(typeof(T)) is T t)
-                    {
-                        _instance = t;
-                    }
-                }
-
-                return _instance;
-            }
-        }
 
         #endregion
     }

@@ -11,7 +11,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
-    public class FolderDatabase<T> : Database<T> where T : FolderDatabase<T>
+    public class FolderDatabase : BaseDatabase
     {
         #region Members
 
@@ -80,12 +80,12 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        internal override string Editor_GetDataName(UnityEngine.Object obj)
+        internal override string Editor_GetDataPrefixedName(UnityEngine.Object obj)
         {
-            if (string.IsNullOrWhiteSpace(m_folderName)) return base.Editor_GetDataName(obj);
+            if (string.IsNullOrWhiteSpace(m_folderName)) return base.Editor_GetDataPrefixedName(obj);
 
             var assetPath = AssetDatabase.GetAssetPath(obj).Substring(m_folderName.Length).TrimStart('/');
-            return assetPath.Substring(0, assetPath.LastIndexOf("."));
+            return assetPath.Substring(0, assetPath.LastIndexOf('.'));
         }
 
         protected override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
@@ -120,7 +120,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(FolderDatabase<>), editorForChildClasses:true)]
+    [CustomEditor(typeof(FolderDatabase), editorForChildClasses:true)]
     public class FolderDatabaseEditor : BaseDatabaseEditor
     {
         #region Members
@@ -205,28 +205,6 @@ namespace Dhs5.Utility.Databases
         #endregion
 
         #region Database Content
-
-        //protected override int ContentListCount
-        //{
-        //    get
-        //    {
-        //        if (p_folderContent != null)
-        //        {
-        //            return p_folderContent.arraySize;
-        //        }
-        //        return -1;
-        //    }
-        //}
-
-        //protected override UnityEngine.Object GetContainerElementAtIndex(int index)
-        //{
-        //    int count = ContentListCount;
-        //    if (count > 0 && index >= 0 && index < count)
-        //    {
-        //        return p_folderContent.GetArrayElementAtIndex(index).objectReferenceValue;
-        //    }
-        //    return null;
-        //}
 
         protected override EContentListDisplayType GetContentListDisplayType()
         {

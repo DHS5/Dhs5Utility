@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Dhs5.Utility.Databases;
 using Dhs5.Utility.Updates;
 
 
@@ -20,7 +21,7 @@ public static class UpdateCategoryExtension
 {
     public static UpdaterDatabaseElement GetValue(this UpdateCategory e)
     {
-        return UpdaterDatabase.I.GetValueAtIndex<UpdaterDatabaseElement>((int)e);    }
+        return BaseDatabase.Get<UpdaterDatabase>().GetValueAtIndex<UpdaterDatabaseElement>((int)e);    }
 
     public static bool Contains(this UpdateCategoryFlags flag, UpdateCategory e)
     {

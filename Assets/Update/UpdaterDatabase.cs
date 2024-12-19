@@ -10,7 +10,7 @@ using UnityEditor;
 namespace Dhs5.Utility.Updates
 {
     [Database("Update/Updater", typeof(UpdaterDatabaseElement))]
-    public class UpdaterDatabase : EnumDatabase<UpdaterDatabase>
+    public class UpdaterDatabase : EnumDatabase
     {
         #region Editor Utility
 
@@ -27,7 +27,7 @@ namespace Dhs5.Utility.Updates
             extensions.Add("    Updater<" + enumName + ">.Register(true, category, callback, ref key);");
             extensions.Add("}");
             
-            extensions.Add("public static void Destroy(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
+            extensions.Add("public static void Unregister(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
             extensions.Add("{");
             extensions.Add("    Updater<" + enumName + ">.Register(false, category, callback, ref key);");
             extensions.Add("}");

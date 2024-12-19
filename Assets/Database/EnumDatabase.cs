@@ -13,7 +13,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
-    public class EnumDatabase<T> : ScriptableDatabase<T> where T : EnumDatabase<T>
+    public class EnumDatabase : ScriptableDatabase
     {
         #region Members
 
@@ -155,6 +155,11 @@ namespace Dhs5.Utility.Databases
             return (e1, e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex);
         }
 
+        internal override string Editor_GetDataPrefixedName(UnityEngine.Object obj)
+        {
+            return obj.name;
+        }
+
 #endif
 
         #endregion
@@ -162,7 +167,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(EnumDatabase<>), editorForChildClasses:true)]
+    [CustomEditor(typeof(EnumDatabase), editorForChildClasses:true)]
     public class EnumDatabaseEditor : ScriptableDatabaseEditor
     {
         #region Members
@@ -237,7 +242,7 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Database Informations
+        #region Container Informations
 
         protected override void OnContainerInformationsContentGUI()
         {
@@ -287,10 +292,14 @@ namespace Dhs5.Utility.Databases
 
         #region Data Renaming
 
-        protected override void OnCompleteRenaming(UnityEngine.Object obj)
+        protected override bool OnCompleteRenaming(UnityEngine.Object obj, int index)
         {
-            base.OnCompleteRenaming(obj);
-            ForceContainerContentRefresh();
+            if (base.OnCompleteRenaming(obj, index))
+            {
+                ForceContainerContentRefresh();
+                return true;
+            }
+            return false;
         }
 
         #endregion
@@ -407,7 +416,7 @@ namespace Dhs5.Utility.Databases
             string databaseTypeName = hasDatabase ? databaseType.Name : null;
             bool hasExtensions = extensions != null;
 
-            string defaultUsings = "using UnityEngine;\nusing System;\n";
+            string defaultUsings = "using UnityEngine;\nusing System;\nusing Dhs5.Utility.Databases;\n";
 
             // Utility Functions
             string prefix = "";
@@ -529,9 +538,9 @@ namespace Dhs5.Utility.Databases
                 OpenBracket();
                 Increment();
                 AppendPrefix();
-                sb.Append("return ");
+                sb.Append("return BaseDatabase.Get<");
                 sb.Append(databaseTypeName);
-                sb.Append(".I");
+                sb.Append(">()");
                 sb.Append(".GetValueAtIndex<");
                 sb.Append(paramTypeName);
                 sb.Append(">((int)e);");

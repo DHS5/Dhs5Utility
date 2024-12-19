@@ -6,6 +6,8 @@ using Dhs5.Utility.GUIs;
 using static UnityEditor.Rendering.FilterWindow;
 using static UnityEngine.Rendering.VolumeComponent;
 using Unity.VisualScripting;
+using System.Text;
+
 
 
 
@@ -32,12 +34,6 @@ namespace Dhs5.Utility.Databases
 
         internal abstract bool Editor_ContainerHasValidDataType(out Type dataType);
         internal abstract bool Editor_IsElementValid(UnityEngine.Object element);
-
-        internal virtual string Editor_GetDataName(UnityEngine.Object obj)
-        {
-            if (obj is IDataContainerNameableElement nameableElement) return nameableElement.DataDisplayName;
-            return obj.name;
-        }
 
         protected abstract IEnumerable<UnityEngine.Object> Editor_GetContainerContent();
         protected IEnumerable<T> Editor_GetContainerElements<T>() where T : class, IDataContainerElement
@@ -155,12 +151,26 @@ namespace Dhs5.Utility.Databases
             foreach (var (uid, obj) in Editor_GetContainerDicoContent())
             {
                 // Name
-                names.Add(Editor_GetDataName(obj));
+                names.Add(Editor_GetDataPrefixedName(obj));
                 // UID
                 uids.Add(uid);
             }
 
             return (names.ToArray(), uids.ToArray());
+        }
+
+        // --- NAMING ---
+        internal virtual string Editor_GetDataPrefixedName(UnityEngine.Object obj)
+        {
+            if (obj is IDataContainerPrefixableElement prefixableElement && !string.IsNullOrWhiteSpace(prefixableElement.DataNamePrefix))
+            {
+                StringBuilder sb = new();
+                sb.Append(prefixableElement.DataNamePrefix);
+                if (!prefixableElement.DataNamePrefix.EndsWith("/")) sb.Append("/");
+                sb.Append(obj.name);
+                return sb.ToString();
+            }
+            return obj.name;
         }
 
         #endregion
@@ -303,6 +313,7 @@ namespace Dhs5.Utility.Databases
         protected bool IsRenamingElement { get; set; }
         protected string RenamingString { get; set; }
         protected UnityEngine.Object RenamingElement { get; set; }
+        protected int RenamingElementIndex { get; set; }
         private bool m_justStartedRename;
 
         #endregion
@@ -491,7 +502,7 @@ namespace Dhs5.Utility.Databases
             {
                 if (ContainerSelectionIndex >= 0)
                 {
-                    BeginRenaming(GetContainerCurrentSelection());
+                    BeginRenaming(GetContainerCurrentSelection(), ContainerSelectionIndex);
                     UseCurrentEvent();
                 }
             }
@@ -671,7 +682,7 @@ namespace Dhs5.Utility.Databases
         {
             foreach (var (uid, obj) in contentDico)
             {
-                structure.Add(new FolderStructureEntry(m_container.Editor_GetDataName(obj), data: uid));
+                structure.Add(new FolderStructureEntry(m_container.Editor_GetDataPrefixedName(obj), data: uid));
             }
         }
         protected virtual void OnComputeFolderStructure_ByFOLDERS(FolderStructure structure, Dictionary<int, UnityEngine.Object> contentDico)
@@ -679,9 +690,9 @@ namespace Dhs5.Utility.Databases
             Dictionary<string, object> folderStructureDatas = new(); 
             foreach (var (uid, obj) in contentDico)
             {
-                if (!folderStructureDatas.TryAdd(m_container.Editor_GetDataName(obj), uid))
+                if (!folderStructureDatas.TryAdd(m_container.Editor_GetDataPrefixedName(obj), uid))
                 {
-                    folderStructureDatas.Add(m_container.Editor_GetDataName(obj) + "_" + uid, uid);
+                    folderStructureDatas.Add(m_container.Editor_GetDataPrefixedName(obj) + "_" + uid, uid);
                 }
             }
 
@@ -780,6 +791,7 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnSelectContentListElement(FolderStructureEntry entry, int index, bool ensureVisibility) 
         {
+            GUI.FocusControl(null);
             if (ensureVisibility)
             {
                 m_folderStructure.EnsureVisibilityOfEntryAtIndex(index);
@@ -810,10 +822,11 @@ namespace Dhs5.Utility.Databases
 
         #region Data Renaming
 
-        protected void BeginRenaming(UnityEngine.Object obj)
+        protected void BeginRenaming(UnityEngine.Object obj, int index)
         {
             RenamingElement = obj;
             RenamingString = obj.name;
+            RenamingElementIndex = index;
             IsRenamingElement = true;
             m_justStartedRename = true;
         }
@@ -821,7 +834,7 @@ namespace Dhs5.Utility.Databases
         {
             if (IsRenamingElement)
             {
-                OnCompleteRenaming(RenamingElement);
+                OnCompleteRenaming(RenamingElement, RenamingElementIndex);
                 IsRenamingElement = false;
                 RenamingElement = null;
                 GUI.changed = true;
@@ -829,9 +842,15 @@ namespace Dhs5.Utility.Databases
             }
             return false;
         }
-        protected virtual void OnCompleteRenaming(UnityEngine.Object obj)
+        protected virtual bool OnCompleteRenaming(UnityEngine.Object obj, int index)
         {
-            BaseDatabase.RenameAsset(obj, RenamingString);
+            if (obj.name != RenamingString)
+            {
+                BaseDatabase.RenameAsset(obj, RenamingString);
+                GetEntryAtIndex(index).content = RenamingString;
+                return true;
+            }
+            return false;
         }
 
         #endregion
@@ -900,6 +919,7 @@ namespace Dhs5.Utility.Databases
         protected virtual void PopulateContainerDataContextMenu(UnityEngine.Object obj, int index, GenericMenu menu)
         {
             menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(obj));
+            menu.AddItem(new GUIContent("Open Asset"), false, () => { if (AssetDatabase.CanOpenAssetInEditor(obj.GetInstanceID())) AssetDatabase.OpenAsset(obj); });
             menu.AddItem(new GUIContent("Remove"), false, () => OnTryDeleteElementAtIndex(index));
         }
         protected virtual void PopulateGroupContextMenu(FolderStructureGroupEntry group, int index, GenericMenu menu)
@@ -976,26 +996,32 @@ namespace Dhs5.Utility.Databases
 
             if (hasAtLeastOneButton)
             {
+                var guiColor = GUI.color;
+
                 EditorGUI.BeginDisabledGroup(!IsContainerContentListInteractable());
                 if (refreshButton)
                 {
+                    GUI.color = Color.cyan;
                     // Refresh Button
                     Rect refreshButtonRect = new Rect(rect.x, rect.y + rect.height - ContentListButtonsHeight, rect.width * (addButton ? 0.5f : 1f), ContentListButtonsHeight);
-                    if (GUI.Button(refreshButtonRect, new GUIContent(EditorGUIHelper.RefreshIcon) { text = "Refresh" }))
+                    if (GUI.Button(refreshButtonRect, "REFRESH"))
                     {
                         ForceContainerContentRefresh();
                     }
                 }
                 if (addButton)
                 {
+                    GUI.color = Color.green;
                     // Add Button
                     Rect addButtonRect = new Rect(rect.x + (refreshButton ? rect.width * 0.5f : 0f), rect.y + rect.height - ContentListButtonsHeight, rect.width * (refreshButton ? 0.5f : 1f), ContentListButtonsHeight);
-                    if (GUI.Button(addButtonRect, new GUIContent(EditorGUIHelper.AddIcon) { text = "Add" }))
+                    if (GUI.Button(addButtonRect, "ADD"))
                     {
                         CreateNewData();
                     }
                 }
                 EditorGUI.EndDisabledGroup();
+
+                GUI.color = guiColor;
             }
         }
 
@@ -1022,6 +1048,7 @@ namespace Dhs5.Utility.Databases
                         {
                             clicked = true;
                             doubleClicked = EditorApplication.timeSinceStartup <= m_lastSelectionTime + m_doubleClickDelay;
+                            GUI.FocusControl(null);
                             UseCurrentEvent();
                             GUI.changed = true;
                         }
@@ -1281,7 +1308,7 @@ namespace Dhs5.Utility.Databases
             var root = GetRootElement(obj);
             if (Select(root))
             {
-                BeginRenaming(root);
+                BeginRenaming(root, ContainerSelectionIndex);
             }
         }
 

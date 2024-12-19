@@ -10,7 +10,7 @@ using System.IO;
 
 namespace Dhs5.Utility.Databases
 {
-    public class ScriptableDatabase<T> : Database<T> where T : ScriptableDatabase<T>
+    public class ScriptableDatabase : BaseDatabase
     {
         #region Members
 
@@ -142,7 +142,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(ScriptableDatabase<>), editorForChildClasses:true)]
+    [CustomEditor(typeof(ScriptableDatabase), editorForChildClasses:true)]
     public class ScriptableDatabaseEditor : BaseDatabaseEditor
     {
         #region Members
@@ -195,32 +195,10 @@ namespace Dhs5.Utility.Databases
 
         #region Database Content
 
-        //protected override int ContentListCount
-        //{
-        //    get
-        //    {
-        //        if (p_content != null)
-        //        {
-        //            return p_content.arraySize;
-        //        }
-        //        return -1;
-        //    }
-        //}
-
         protected override EContentListDisplayType GetContentListDisplayType()
         {
             return EContentListDisplayType.FOLDERS;
         }
-
-        //protected override UnityEngine.Object GetContainerElementAtIndex(int index)
-        //{
-        //    int count = ContentListCount;
-        //    if (count > 0 && index >= 0 && index < count)
-        //    {
-        //        return p_content.GetArrayElementAtIndex(index).objectReferenceValue;
-        //    }
-        //    return null;
-        //}
 
         #endregion
 
@@ -230,7 +208,7 @@ namespace Dhs5.Utility.Databases
         {
             if (ContainerHasValidDataType)
             {
-                obj = BaseDatabase.CreateScriptableAndAddToAsset(DataType, m_database);
+                obj = BaseDatabase.CreateScriptableAndAddToAsset(DataType, m_container);
                 return obj != null;
             }
             obj = null;
@@ -240,7 +218,7 @@ namespace Dhs5.Utility.Databases
         {
             if (AssetDatabase.IsMainAsset(obj))
             {
-                BaseDatabase.AddAssetToOtherAsset(obj, m_database);
+                BaseDatabase.AddAssetToOtherAsset(obj, m_container);
             }
 
             base.OnAddNewDataToContainer(obj);

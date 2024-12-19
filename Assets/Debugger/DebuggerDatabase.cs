@@ -12,7 +12,7 @@ using Dhs5.Utility.Editors;
 namespace Dhs5.Utility.Debuggers
 {
     [Database("Debugger", typeof(DebuggerDatabaseElement))]
-    public class DebuggerDatabase : EnumDatabase<DebuggerDatabase>
+    public class DebuggerDatabase : EnumDatabase
     {
         #region Editor Utility
 

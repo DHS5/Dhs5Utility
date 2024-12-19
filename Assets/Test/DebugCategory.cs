@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Dhs5.Utility.Databases;
 using Dhs5.Utility.Debuggers;
 
 
@@ -24,7 +25,7 @@ public static class DebugCategoryExtension
 {
     public static DebuggerDatabaseElement GetValue(this DebugCategory e)
     {
-        return DebuggerDatabase.I.GetValueAtIndex<DebuggerDatabaseElement>((int)e);    }
+        return BaseDatabase.Get<DebuggerDatabase>().GetValueAtIndex<DebuggerDatabaseElement>((int)e);    }
 
     public static bool Contains(this DebugCategoryFlags flag, DebugCategory e)
     {

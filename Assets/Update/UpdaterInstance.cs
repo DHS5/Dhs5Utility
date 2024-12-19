@@ -1,3 +1,4 @@
+using Dhs5.Utility.Databases;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -301,9 +302,9 @@ namespace Dhs5.Utility.Updates
         {
             m_updaterElements.Clear();
 
-            for (int i = 0; i < UpdaterDatabase.I.Count; i++)
+            for (int i = 0; i < BaseDatabase.Get<UpdaterDatabase>().Count; i++)
             {
-                m_updaterElements.Add(i, UpdaterDatabase.I.GetValueAtIndex<UpdaterDatabaseElement>(i));
+                m_updaterElements.Add(i, BaseDatabase.Get<UpdaterDatabase>().GetValueAtIndex<UpdaterDatabaseElement>(i));
             }
         }
 

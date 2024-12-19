@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 2
   m_EditorClassIdentifier: 
-  m_name: ThirdFolder/InsideFolder/Elem4
+  m_prefix: ThirdFolder/InsideFolder
   m_uid: 3
 --- !u!114 &-2079159008995707789
 MonoBehaviour:
@@ -26,7 +26,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 0
   m_EditorClassIdentifier: 
-  m_name: FirstFolder/Elem1
+  m_prefix: FirstFolder
   m_uid: 1
 --- !u!114 &11400000
 MonoBehaviour:
@@ -64,7 +64,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 4
   m_EditorClassIdentifier: 
-  m_name: FirstFolder/InsideFolder/Elem6
+  m_prefix: FirstFolder/InsideFolder
   m_uid: 5
 --- !u!114 &5105363124211243941
 MonoBehaviour:
@@ -78,7 +78,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 3
   m_EditorClassIdentifier: 
-  m_name: SecondFolder/InsideFolder/Elem5
+  m_prefix: SecondFolder/InsideFolder
   m_uid: 4
 --- !u!114 &5596107765150596522
 MonoBehaviour:
@@ -92,7 +92,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 10
   m_EditorClassIdentifier: 
-  m_name: FirstFolder/InsideFolder/Elem3
+  m_prefix: FirstFolder/InsideFolder
   m_uid: 11
 --- !u!114 &6770308619647356288
 MonoBehaviour:
@@ -104,9 +104,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
-  m_Name: Element 8
+  m_Name: Element 12
   m_EditorClassIdentifier: 
-  m_name: ThirdFolder/Elem10
+  m_prefix: ThirdFolder
   m_uid: 9
 --- !u!114 &7287231918435737972
 MonoBehaviour:
@@ -120,7 +120,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 7
   m_EditorClassIdentifier: 
-  m_name: SecondFolder/Elem9
+  m_prefix: SecondFolder
   m_uid: 8
 --- !u!114 &7705983467486257958
 MonoBehaviour:
@@ -134,7 +134,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 9
   m_EditorClassIdentifier: 
-  m_name: ThirdFolder/InsideFolder/Elem11
+  m_prefix: ThirdFolder/InsideFolder
   m_uid: 10
 --- !u!114 &7932424927533018366
 MonoBehaviour:
@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 6
   m_EditorClassIdentifier: 
-  m_name: FirstFolder/Elem8
+  m_prefix: FirstFolder
   m_uid: 7
 --- !u!114 &8432820606193298123
 MonoBehaviour:
@@ -162,7 +162,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 1
   m_EditorClassIdentifier: 
-  m_name: SecondFolder/Elem2
+  m_prefix: SecondFolder
   m_uid: 2
 --- !u!114 &9007500453691237680
 MonoBehaviour:
@@ -176,5 +176,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Element 5
   m_EditorClassIdentifier: 
-  m_name: FirstFolder/OtherInsideFolder/Elem7
+  m_prefix: FirstFolder/OtherInsideFolder
   m_uid: 6

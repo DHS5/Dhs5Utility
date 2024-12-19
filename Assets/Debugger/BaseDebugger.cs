@@ -1,3 +1,4 @@
+using Dhs5.Utility.Databases;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -15,11 +16,11 @@ namespace Dhs5.Utility.Debuggers
 
         private static DebuggerDatabaseElement GetElement(Enum e)
         {
-            return DebuggerDatabase.I.GetElementAtIndex(Convert.ToInt32(e)) as DebuggerDatabaseElement;
+            return BaseDatabase.Get<DebuggerDatabase>().GetElementAtIndex(Convert.ToInt32(e)) as DebuggerDatabaseElement;
         }
         private static DebuggerDatabaseElement GetElement(int index)
         {
-            return DebuggerDatabase.I.GetElementAtIndex(index) as DebuggerDatabaseElement;
+            return BaseDatabase.Get<DebuggerDatabase>().GetElementAtIndex(index) as DebuggerDatabaseElement;
         }
 
         #endregion

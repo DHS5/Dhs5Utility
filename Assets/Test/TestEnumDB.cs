@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Database(path:"Enum/Test", dataType:typeof(TestScriptable))]
-public class TestEnumDB : EnumDatabase<TestEnumDB>
+public class TestEnumDB : EnumDatabase
 {
     
 }

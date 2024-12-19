@@ -17,13 +17,4 @@ namespace Dhs5.Utility.Databases
         void Editor_SetUID(int uid);
 #endif
     }
-
-    public static class DataContainerElementExtensions
-    {
-        public static string GetName(this IDataContainerElement element)
-        {
-            if (element is IDataContainerNameableElement nameableElement) return nameableElement.DataDisplayName;
-            return element.name;
-        }
-    }
 }

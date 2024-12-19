@@ -8,9 +8,9 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
-        public readonly string content;
+        public string content;
         public readonly int level;
-        public readonly object data;
+        public object data;
 
         #endregion
 
