@@ -50,22 +50,12 @@ namespace Dhs5.Utility.Databases
             if (m_folderContent == null) m_folderContent = new();
             else m_folderContent.Clear();
 
-            UnityEngine.Object obj;
-            string objPath;
             string dataPath = Application.dataPath.Replace("Assets", "");
             string folderPath = dataPath + m_folderName;
             
             if (Directory.Exists(folderPath))
             {
-                foreach (var path in Directory.GetFiles(folderPath))
-                {
-                    objPath = path.Substring(dataPath.Length);
-                    obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(objPath);
-                    if (Editor_IsElementValid(obj))
-                    {
-                        m_folderContent.Add(obj);
-                    }
-                }
+                Editor_AddAllValidElementsInFolder(folderPath, dataPath.Length);
             }
             else
             {
@@ -73,6 +63,29 @@ namespace Dhs5.Utility.Databases
             }
 
             base.Editor_ShouldRecomputeContainerContent();
+        }
+        private void Editor_AddAllValidElementsInFolder(string folderPath, int dataPathLength)
+        {
+            foreach (var insideFolderPath in Directory.GetDirectories(folderPath))
+            {
+                Editor_AddAllValidElementsInFolder(insideFolderPath, dataPathLength);
+            }
+            foreach (var path in Directory.GetFiles(folderPath))
+            {
+                var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path.Substring(dataPathLength));
+                if (obj != null && Editor_IsElementValid(obj))
+                {
+                    m_folderContent.Add(obj);
+                }
+            }
+        }
+
+        internal override string Editor_GetDataName(UnityEngine.Object obj)
+        {
+            if (string.IsNullOrWhiteSpace(m_folderName)) return base.Editor_GetDataName(obj);
+
+            var assetPath = AssetDatabase.GetAssetPath(obj).Substring(m_folderName.Length).TrimStart('/');
+            return assetPath.Substring(0, assetPath.LastIndexOf("."));
         }
 
         protected override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()

@@ -33,6 +33,12 @@ namespace Dhs5.Utility.Databases
         internal abstract bool Editor_ContainerHasValidDataType(out Type dataType);
         internal abstract bool Editor_IsElementValid(UnityEngine.Object element);
 
+        internal virtual string Editor_GetDataName(UnityEngine.Object obj)
+        {
+            if (obj is IDataContainerNameableElement nameableElement) return nameableElement.DataDisplayName;
+            return obj.name;
+        }
+
         protected abstract IEnumerable<UnityEngine.Object> Editor_GetContainerContent();
         protected IEnumerable<T> Editor_GetContainerElements<T>() where T : class, IDataContainerElement
         {
@@ -146,13 +152,12 @@ namespace Dhs5.Utility.Databases
             List<string> names = new();
             List<int> uids = new();
 
-            foreach (var elem in Editor_GetContainerElements<IDataContainerElement>())
+            foreach (var (uid, obj) in Editor_GetContainerDicoContent())
             {
                 // Name
-                if (elem is IDataContainerNameableElement nameableElem) names.Add(nameableElem.DataDisplayName);
-                else names.Add(elem.name);
+                names.Add(Editor_GetDataName(obj));
                 // UID
-                uids.Add(elem.UID);
+                uids.Add(uid);
             }
 
             return (names.ToArray(), uids.ToArray());
@@ -169,16 +174,6 @@ namespace Dhs5.Utility.Databases
         public static int Sort_ByType(UnityEngine.Object obj1, UnityEngine.Object obj2)
         {
             return obj1.GetType().FullName.CompareTo(obj2.GetType().FullName);
-        }
-
-        #endregion
-
-        #region Static Utility
-
-        public static string GetDataName(UnityEngine.Object obj)
-        {
-            if (obj is IDataContainerNameableElement nameableElement) return nameableElement.DataDisplayName;
-            return obj.name;
         }
 
         #endregion
@@ -587,7 +582,7 @@ namespace Dhs5.Utility.Databases
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            DatabaseInformationsFoldoutOpen = EditorGUIHelper.Foldout(EditorGUILayout.GetControlRect(false, 20f), title, DatabaseInformationsFoldoutOpen);
+            DatabaseInformationsFoldoutOpen = EditorGUIHelper.Foldout(EditorGUILayout.GetControlRect(false, 20f), title, DatabaseInformationsFoldoutOpen, GUIHelper.foldoutStyle);
             if (DatabaseInformationsFoldoutOpen)
             {
                 EditorGUI.indentLevel++;
@@ -676,7 +671,7 @@ namespace Dhs5.Utility.Databases
         {
             foreach (var (uid, obj) in contentDico)
             {
-                structure.Add(new FolderStructureEntry(BaseDataContainer.GetDataName(obj), data: uid));
+                structure.Add(new FolderStructureEntry(m_container.Editor_GetDataName(obj), data: uid));
             }
         }
         protected virtual void OnComputeFolderStructure_ByFOLDERS(FolderStructure structure, Dictionary<int, UnityEngine.Object> contentDico)
@@ -684,9 +679,9 @@ namespace Dhs5.Utility.Databases
             Dictionary<string, object> folderStructureDatas = new(); 
             foreach (var (uid, obj) in contentDico)
             {
-                if (!folderStructureDatas.TryAdd(BaseDataContainer.GetDataName(obj), uid))
+                if (!folderStructureDatas.TryAdd(m_container.Editor_GetDataName(obj), uid))
                 {
-                    folderStructureDatas.Add(BaseDataContainer.GetDataName(obj) + "_" + uid, uid);
+                    folderStructureDatas.Add(m_container.Editor_GetDataName(obj) + "_" + uid, uid);
                 }
             }
 

@@ -130,15 +130,17 @@ namespace Dhs5.Utility.Editors
 
             float labelWidth = EditorGUIUtility.labelWidth;
             float buttonWidth = 32f;
-            float fieldWidth = rect.width - labelWidth - buttonWidth;
-            EditorGUI.LabelField(new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height), label);
+            float fieldWidth = rect.width - labelWidth - buttonWidth * 2f;
+
+            Rect labelRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height);
+            EditorGUI.LabelField(labelRect, label);
 
             Rect fieldRect = new Rect(rect.x + labelWidth, rect.y, fieldWidth, rect.height);
             GUI.Box(fieldRect, "", EditorStyles.helpBox);
             fieldRect.x += 3f;
             fieldRect.width -= 3f;
             EditorGUI.SelectableLabel(fieldRect, property.stringValue);
-            if (GUI.Button(new Rect(rect.x + rect.width - buttonWidth + 2f, rect.y, buttonWidth - 2f, rect.height), FolderOpenedIcon))
+            if (GUI.Button(new Rect(fieldRect.x + fieldWidth + 2f, rect.y, buttonWidth - 2f, rect.height), FolderOpenedIcon))
             {
                 string absPath = EditorUtility.OpenFolderPanel(label.text, property.stringValue, "");
                 if (!string.IsNullOrEmpty(absPath))
@@ -151,6 +153,10 @@ namespace Dhs5.Utility.Editors
                     onChange?.Invoke();
                 }
                 GUIUtility.ExitGUI();
+            }
+            if (GUI.Button(new Rect(fieldRect.x + fieldWidth + buttonWidth, rect.y, buttonWidth - 2f, rect.height), CanSeeIcon))
+            {
+                EditorUtils.OpenFolder(property.stringValue);
             }
         }
 
@@ -188,12 +194,12 @@ namespace Dhs5.Utility.Editors
 
         #region Foldout
 
-        public static bool Foldout(Rect rect, string label, bool value)
+        public static bool Foldout(Rect rect, string label, bool value, GUIStyle style)
         {
             var content = value ? UpIcon : DownIcon;
             content.text = label;
 
-            if (GUI.Button(rect, content, GUIHelper.foldoutStyle))
+            if (GUI.Button(rect, content, style))
             {
                 return !value;
             }

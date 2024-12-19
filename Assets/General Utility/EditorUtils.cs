@@ -198,6 +198,22 @@ namespace Dhs5.Utility.Editors
 
         #region Directory Utility
 
+        public static void OpenFolder(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                FocusProjectWindow();
+                var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                
+                AssetDatabase.OpenAsset(obj);
+                DelayCall(0.05d, () => AssetDatabase.OpenAsset(obj));
+            }
+            else
+            {
+                Debug.LogWarning("Directory doesn't exists");
+            }
+        }
+
         public static void EnsureDirectoryExistence(string directoryPath)
         {
             if (!Directory.Exists(directoryPath))
