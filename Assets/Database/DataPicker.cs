@@ -49,7 +49,7 @@ namespace Dhs5.Utility.Databases
     }
 
     [Serializable]
-    public class DataPicker<DatabaseType> where DatabaseType : BaseDatabase
+    public class DataPicker<DatabaseType> where DatabaseType : BaseDataContainer
     {
         #region Members
 
@@ -148,9 +148,9 @@ namespace Dhs5.Utility.Databases
             if (isDatabaseDataPicker)
             {
                 // CONTAINER
-                p_container.objectReferenceValue = BaseDatabase.GetInstance(databaseType);
+                p_container.objectReferenceValue = Database.Get(databaseType);
                 // PICKER
-                if (p_container.objectReferenceValue is BaseDatabase database)
+                if (p_container.objectReferenceValue is BaseDataContainer database)
                 {
                     (var names, var uids) = database.Editor_GetContainerDisplayContent();
                     p_currentSelectionUID.intValue = EditorGUI.IntPopup(rect, label.text, p_currentSelectionUID.intValue, names, uids);

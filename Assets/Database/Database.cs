@@ -13,14 +13,14 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
-    public abstract class BaseDatabase : BaseDataContainer
+    public static class Database
     {
         #region Instance
 
-        private static Dictionary<Type, BaseDatabase> _instances = new();
-        internal static BaseDatabase GetInstance(Type type)
+        private static Dictionary<Type, BaseDataContainer> _instances = new();
+        private static BaseDataContainer GetInstance(Type type)
         {
-            if (!type.IsSubclassOf(typeof(BaseDatabase))) return null;
+            if (!type.IsSubclassOf(typeof(BaseDataContainer))) return null;
 
             if (!_instances.TryGetValue(type, out var instance)
                 || instance == null)
@@ -29,13 +29,13 @@ namespace Dhs5.Utility.Databases
 
                 if (list != null && list.Length > 0)
                 {
-                    instance = list[0] as BaseDatabase;
+                    instance = list[0] as BaseDataContainer;
                     _instances[type] = instance;
                 }
 #if UNITY_EDITOR
-                else
+                else // CREATION
                 {
-                    instance = BaseDatabase.CreateAssetOfType(type, "Assets/Resources/Databases/" + type.Name + ".asset") as BaseDatabase;
+                    instance = Database.CreateAssetOfType(type, "Assets/Resources/Databases/" + type.Name + ".asset") as BaseDataContainer;
                     AssetDatabase.SaveAssets();
                 }
 #endif
@@ -43,72 +43,16 @@ namespace Dhs5.Utility.Databases
 
             return instance;
         }
-        public static T Get<T>() where T : BaseDatabase
+
+        // --- ACCESSORS ---
+        public static T Get<T>() where T : BaseDataContainer
         {
             return GetInstance(typeof(T)) as T;
         }
-
-        internal static BaseDatabase[] GetAllInstances() => GetAllInstances(GetAllChildTypes());
-        internal static BaseDatabase[] GetAllInstances(Func<Type, bool> predicate) => GetAllInstances(GetAllChildTypes(t => predicate.Invoke(t)));
-        internal static BaseDatabase[] GetAllInstances(Func<DatabaseAttribute, bool> predicate) => GetAllInstances(GetAllChildTypes(da => predicate.Invoke(da)));
-        private static BaseDatabase[] GetAllInstances(Type[] childTypes)
+        public static BaseDataContainer Get(Type type)
         {
-            BaseDatabase[] databases = new BaseDatabase[childTypes.Length];
-
-            for (int i = 0; i < databases.Length; i++)
-            {
-                databases[i] = GetInstance(childTypes[i]);
-            }
-
-            return databases;
+            return GetInstance(type);
         }
-
-        #endregion
-
-        #region Instance Editor Methods
-
-#if UNITY_EDITOR
-
-        #region Instance Attribute
-
-        internal string Editor_GetPath()
-        {
-            return GetPath(GetType());
-        }
-
-        internal override bool Editor_ContainerHasValidDataType(out Type dataType)
-        {
-            return HasDataType(GetType(), out dataType) &&
-                typeof(IDataContainerElement).IsAssignableFrom(dataType);
-        }
-
-        internal override bool Editor_IsElementValid(UnityEngine.Object element)
-        {
-            if (element == null || element == this) return false;
-
-            if (Editor_ContainerHasValidDataType(out var type))
-            {
-                Type elementType = element.GetType();
-
-                // Scriptable
-                if (type.IsSubclassOf(typeof(ScriptableObject)))
-                {
-                    return elementType == type || elementType.IsSubclassOf(type);
-                }
-                // Component
-                if (type.IsSubclassOf(typeof(Component)))
-                {
-                    return element is GameObject go && go.TryGetComponent(type, out _);
-                }
-
-                return false;
-            }
-            return !HasDataType(GetType(), out _); // True if anyType and false if has data type cause the type is invalid
-        }
-
-        #endregion
-
-#endif
 
         #endregion
 
@@ -116,63 +60,46 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        #region Attributes & Child Types
+        #region Database Instances
 
-        private static Dictionary<Type, DatabaseAttribute> _attributes = new();
-        protected static bool TryGetAttribute(Type type, out DatabaseAttribute attribute)
+        internal static BaseDataContainer[] GetAllDatabaseInstances() => GetAllDatabaseInstances(GetDatabaseTypes());
+        internal static BaseDataContainer[] GetAllDatabaseInstances(Func<Type, bool> predicate) => GetAllDatabaseInstances(GetDatabaseTypes(t => predicate.Invoke(t)));
+        internal static BaseDataContainer[] GetAllDatabaseInstances(Func<DatabaseAttribute, bool> predicate) => GetAllDatabaseInstances(GetDatabaseTypes(da => predicate.Invoke(da)));
+        private static BaseDataContainer[] GetAllDatabaseInstances(Type[] types)
         {
-            if (_attributes.TryGetValue(type, out attribute))
+            BaseDataContainer[] databases = new BaseDataContainer[types.Length];
+
+            for (int i = 0; i < databases.Length; i++)
             {
-                return true;
+                databases[i] = GetInstance(types[i]);
             }
 
-            attribute = type.GetCustomAttribute<DatabaseAttribute>(inherit: true);
-
-            if (attribute != null)
-            {
-                _attributes.Add(type, attribute);
-                return true;
-            }
-            return false;
-        }
-        internal static string GetPath(Type type)
-        {
-            if (TryGetAttribute(type, out var attribute))
-            {
-                return attribute.path;
-            }
-            return "Null path";
-        }
-        internal static bool HasDataType(Type type, out Type dataType)
-        {
-            if (TryGetAttribute(type, out var attribute))
-            {
-                dataType = attribute.dataType;
-                return !attribute.anyType;
-            }
-            dataType = null;
-            return false;
+            return databases;
         }
 
-        private static Type[] GetAllChildTypes()
+        #endregion
+
+        #region Database Types
+
+        private static Type[] GetDatabaseTypes()
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseDatabase)) && !t.IsAbstract && TryGetAttribute(t, out _))
+                .Where(t => t.IsSubclassOf(typeof(BaseDataContainer)) && !t.IsAbstract && BaseDataContainer.TryGetDatabaseAttribute(t, out _))
                 .ToArray();
         }
-        private static Type[] GetAllChildTypes(Func<Type, bool> predicate)
+        private static Type[] GetDatabaseTypes(Func<Type, bool> predicate)
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseDatabase)) && !t.IsAbstract && TryGetAttribute(t, out _) && predicate.Invoke(t))
+                .Where(t => t.IsSubclassOf(typeof(BaseDataContainer)) && !t.IsAbstract && BaseDataContainer.TryGetDatabaseAttribute(t, out _) && predicate.Invoke(t))
                 .ToArray();
         }
-        private static Type[] GetAllChildTypes(Func<DatabaseAttribute, bool> predicate)
+        private static Type[] GetDatabaseTypes(Func<DatabaseAttribute, bool> predicate)
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseDatabase)) && !t.IsAbstract && TryGetAttribute(t, out var att) && predicate.Invoke(att))
+                .Where(t => t.IsSubclassOf(typeof(BaseDataContainer)) && !t.IsAbstract && BaseDataContainer.TryGetDatabaseAttribute(t, out var att) && predicate.Invoke(att))
                 .ToArray();
         }
 
@@ -257,7 +184,7 @@ namespace Dhs5.Utility.Databases
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var template = new GameObject();
             var obj = PrefabUtility.SaveAsPrefabAsset(template, path, out var success);
-            DestroyImmediate(template);
+            UnityEngine.Object.DestroyImmediate(template);
             if (success)
             {
                 if (triggerRename) EditorUtils.TriggerAssetRename(obj);
@@ -391,7 +318,7 @@ namespace Dhs5.Utility.Databases
 
         public static void AddAssetToOtherAsset(UnityEngine.Object objToAdd, UnityEngine.Object asset)
         {
-            var duplicate = Instantiate(objToAdd);
+            var duplicate = UnityEngine.Object.Instantiate(objToAdd);
             if (AssetDatabase.MoveAssetToTrash(AssetDatabase.GetAssetPath(objToAdd))
                 && duplicate != null)
             {
@@ -411,50 +338,4 @@ namespace Dhs5.Utility.Databases
 
         #endregion
     }
-
-    #region Editor
-
-#if UNITY_EDITOR
-
-    public abstract class BaseDatabaseEditor : BaseDataContainerEditor
-    {
-        #region Members
-
-        protected BaseDatabase m_database;
-
-        #endregion
-
-        #region Properties
-
-        
-
-        #endregion
-
-        #region Core Behaviour
-
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-
-            m_database = (BaseDatabase)target;
-        }
-
-        #endregion
-
-
-        #region Base GUI
-
-        protected override string ContainerInvalidDataTypeMessage()
-        {
-            return "The data type of this Database is not valid.\n\n" +
-                    "- Add the DatabaseAttribute to the top of your script.\n" +
-                    "- Make sure the dataType parameter implements at least the IDataContainerElement interface.";
-        }
-
-        #endregion
-    }
-
-#endif
-
-    #endregion
 }

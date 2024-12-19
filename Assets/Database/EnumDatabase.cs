@@ -127,11 +127,11 @@ namespace Dhs5.Utility.Databases
             }
             if (pathValid && (differentContent || differentPath))
             {
-                var newTextAsset = BaseDatabase.CreateOrOverwriteScript(path, content);
+                var newTextAsset = Database.CreateOrOverwriteScript(path, content);
                 if (m_textAsset != null 
                     && newTextAsset != m_textAsset)
                 {
-                    BaseDatabase.DeleteAsset(m_textAsset, false);
+                    Database.DeleteAsset(m_textAsset, false);
                 }
 
                 m_textAsset = newTextAsset;
@@ -538,7 +538,7 @@ namespace Dhs5.Utility.Databases
                 OpenBracket();
                 Increment();
                 AppendPrefix();
-                sb.Append("return BaseDatabase.Get<");
+                sb.Append("return Database.Get<");
                 sb.Append(databaseTypeName);
                 sb.Append(">()");
                 sb.Append(".GetValueAtIndex<");

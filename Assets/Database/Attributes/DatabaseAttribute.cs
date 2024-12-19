@@ -2,7 +2,7 @@ using System;
 
 namespace Dhs5.Utility.Databases
 {
-    public class DatabaseAttribute : Attribute
+    public class DatabaseAttribute : DataContainerAttribute
     {
         #region Constructor
 
@@ -10,21 +10,18 @@ namespace Dhs5.Utility.Databases
         /// Use this attribute to implement your own database that will be shown in the <see cref="DatabaseWindow"/>
         /// </summary>
         /// <param name="path">Path of your database in the <see cref="DatabaseWindow"/></param>
-        public DatabaseAttribute(string path)
+        public DatabaseAttribute(string path) : base()
         {
             this.path = path;
-            this.anyType = true;
         }
         /// <summary>
         /// Use this attribute to implement a database with out-of-the-box editor features that will be shown in the <see cref="DatabaseWindow"/>
         /// </summary>
         /// <param name="path"></param>
         /// <param name="dataType"></param>
-        public DatabaseAttribute(string path, Type dataType)
+        public DatabaseAttribute(string path, Type dataType) : base(dataType)
         {
             this.path = path;
-            this.dataType = dataType;
-            this.anyType = false;
         }
 
         #endregion
@@ -35,11 +32,6 @@ namespace Dhs5.Utility.Databases
         /// Path of your database in the <see cref="DatabaseWindow"/>
         /// </summary>
         public readonly string path;
-        /// <summary>
-        /// Type of the data contained in the database, must implement at least <see cref="IDataContainerElement"/> interface
-        /// </summary>
-        public readonly Type dataType;
-        public readonly bool anyType;
 
         public bool showInDatabaseWindow = true;
 

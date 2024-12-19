@@ -36,7 +36,7 @@ namespace Dhs5.Utility.Settings
 #if UNITY_EDITOR
                 else
                 {
-                    instance = BaseDatabase.CreateAssetOfType(type, "Assets/Resources/Settings/" + type.Name + ".asset") as BaseSettings;
+                    instance = Database.CreateAssetOfType(type, "Assets/Resources/Settings/" + type.Name + ".asset") as BaseSettings;
                     AssetDatabase.SaveAssets();
                 }
 #endif

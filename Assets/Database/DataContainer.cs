@@ -3,14 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.GUIs;
-using static UnityEditor.Rendering.FilterWindow;
-using static UnityEngine.Rendering.VolumeComponent;
-using Unity.VisualScripting;
 using System.Text;
-
-
-
-
 
 #if UNITY_EDITOR
 using System.Reflection;
@@ -32,8 +25,34 @@ namespace Dhs5.Utility.Databases
 
         #region Instance Content Management
 
-        internal abstract bool Editor_ContainerHasValidDataType(out Type dataType);
-        internal abstract bool Editor_IsElementValid(UnityEngine.Object element);
+        internal virtual bool Editor_ContainerHasValidDataType(out Type dataType)
+        {
+            return HasDataType(GetType(), out dataType) &&
+                typeof(IDataContainerElement).IsAssignableFrom(dataType);
+        }
+        internal virtual bool Editor_IsElementValid(UnityEngine.Object element)
+        {
+            if (element == null || element == this) return false;
+
+            if (Editor_ContainerHasValidDataType(out var type))
+            {
+                Type elementType = element.GetType();
+
+                // Scriptable
+                if (type.IsSubclassOf(typeof(ScriptableObject)))
+                {
+                    return elementType == type || elementType.IsSubclassOf(type);
+                }
+                // Component
+                if (type.IsSubclassOf(typeof(Component)))
+                {
+                    return element is GameObject go && go.TryGetComponent(type, out _);
+                }
+
+                return false;
+            }
+            return !HasDataType(GetType(), out _); // True if anyType and false if has data type cause the type is invalid
+        }
 
         protected abstract IEnumerable<UnityEngine.Object> Editor_GetContainerContent();
         protected IEnumerable<T> Editor_GetContainerElements<T>() where T : class, IDataContainerElement
@@ -188,24 +207,14 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-#endif
-    }
-
-    public abstract class DataContainer : BaseDataContainer
-    {
-        #region Instance Editor Methods
-
-#if UNITY_EDITOR
-
-        internal override bool Editor_ContainerHasValidDataType(out Type dataType)
+        /// <summary>
+        /// The path will be null if the DataContainer doesn't have the DatabaseAttribute
+        /// </summary>
+        /// <returns></returns>
+        internal string Editor_GetPath()
         {
-            return HasDataType(GetType(), out dataType) &&
-                typeof(IDataContainerElement).IsAssignableFrom(dataType);
+            return GetPath(GetType());
         }
-
-#endif
-
-        #endregion
 
         #region Static Editor Methods
 
@@ -230,7 +239,17 @@ namespace Dhs5.Utility.Databases
             }
             return false;
         }
-        internal static bool HasDataType(Type type, out Type dataType)
+        internal static bool TryGetDatabaseAttribute(Type type, out DatabaseAttribute attribute)
+        {
+            if (TryGetAttribute(type, out var dataContainerAtt) && dataContainerAtt is DatabaseAttribute databaseAtt)
+            {
+                attribute = databaseAtt;
+                return true;
+            }
+            attribute = null;
+            return false;
+        }
+        protected static bool HasDataType(Type type, out Type dataType)
         {
             if (TryGetAttribute(type, out var attribute))
             {
@@ -240,12 +259,22 @@ namespace Dhs5.Utility.Databases
             dataType = null;
             return false;
         }
+        protected static string GetPath(Type type)
+        {
+            if (TryGetDatabaseAttribute(type, out var attribute))
+            {
+                return attribute.path;
+            }
+            return null;
+        }
 
         #endregion
 
 #endif
 
         #endregion
+
+#endif
     }
 
     #region Editor
@@ -846,7 +875,7 @@ namespace Dhs5.Utility.Databases
         {
             if (obj.name != RenamingString)
             {
-                BaseDatabase.RenameAsset(obj, RenamingString);
+                Database.RenameAsset(obj, RenamingString);
                 GetEntryAtIndex(index).content = RenamingString;
                 return true;
             }
@@ -1289,15 +1318,15 @@ namespace Dhs5.Utility.Databases
 
         protected virtual GameObject OnCreateNewEmptyPrefab(string path)
         {
-            return BaseDatabase.CreateEmptyPrefab(path);
+            return Database.CreateEmptyPrefab(path);
         }
         protected virtual Component OnCreateNewPrefabWithComponent(string path, Type componentType)
         {
-            return BaseDatabase.CreatePrefabWithComponent(componentType, path);
+            return Database.CreatePrefabWithComponent(componentType, path);
         }
         protected virtual ScriptableObject OnCreateNewScriptableObject(string path, Type scriptableType)
         {
-            return BaseDatabase.CreateScriptableAsset(scriptableType, path);
+            return Database.CreateScriptableAsset(scriptableType, path);
         }
 
         protected virtual void OnAddNewDataToContainer(UnityEngine.Object obj)

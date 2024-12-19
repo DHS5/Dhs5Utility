@@ -24,7 +24,7 @@ namespace Dhs5.Utility.Databases
         #region Members
 
         private Editor m_editor;
-        private BaseDatabase[] m_databases;
+        private BaseDataContainer[] m_databases;
         private string[] m_names;
         private string[] m_paths;
         private int[] m_options;
@@ -179,7 +179,7 @@ namespace Dhs5.Utility.Databases
             m_editor = null;
 
             // Settings
-            m_databases = BaseDatabase.GetAllInstances((da) => da.showInDatabaseWindow);
+            m_databases = Database.GetAllDatabaseInstances((da) => da.showInDatabaseWindow);
 
             // Paths, names & options
             m_names = new string[m_databases.Length];
@@ -193,7 +193,7 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        private Editor GetOrCreateEditor(BaseDatabase database)
+        private Editor GetOrCreateEditor(BaseDataContainer database)
         {
             if (m_editor != null && m_editor.target == database) return m_editor;
 
@@ -216,7 +216,7 @@ namespace Dhs5.Utility.Databases
 
         private bool TryGetEditorAtIndex(int index, out Editor editor)
         {
-            BaseDatabase database = m_databases[index];
+            BaseDataContainer database = m_databases[index];
             if (database != null)
             {
                 editor = GetOrCreateEditor(database);

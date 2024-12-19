@@ -10,7 +10,7 @@ using System.IO;
 
 namespace Dhs5.Utility.Databases
 {
-    public class ScriptableDatabase : BaseDatabase
+    public class ScriptableDatabase : BaseDataContainer
     {
         #region Members
 
@@ -118,7 +118,7 @@ namespace Dhs5.Utility.Databases
         {
             if (index >= 0 && index < m_content.Count)
             {
-                BaseDatabase.DeleteAsset(m_content[index], true);
+                Database.DeleteAsset(m_content[index], true);
                 return true;
             }
             return false;
@@ -143,7 +143,7 @@ namespace Dhs5.Utility.Databases
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(ScriptableDatabase), editorForChildClasses:true)]
-    public class ScriptableDatabaseEditor : BaseDatabaseEditor
+    public class ScriptableDatabaseEditor : BaseDataContainerEditor
     {
         #region Members
 
@@ -208,7 +208,7 @@ namespace Dhs5.Utility.Databases
         {
             if (ContainerHasValidDataType)
             {
-                obj = BaseDatabase.CreateScriptableAndAddToAsset(DataType, m_container);
+                obj = Database.CreateScriptableAndAddToAsset(DataType, m_container);
                 return obj != null;
             }
             obj = null;
@@ -218,7 +218,7 @@ namespace Dhs5.Utility.Databases
         {
             if (AssetDatabase.IsMainAsset(obj))
             {
-                BaseDatabase.AddAssetToOtherAsset(obj, m_container);
+                Database.AddAssetToOtherAsset(obj, m_container);
             }
 
             base.OnAddNewDataToContainer(obj);

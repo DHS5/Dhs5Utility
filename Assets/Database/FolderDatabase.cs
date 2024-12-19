@@ -11,7 +11,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
-    public class FolderDatabase : BaseDatabase
+    public class FolderDatabase : BaseDataContainer
     {
         #region Members
 
@@ -103,9 +103,9 @@ namespace Dhs5.Utility.Databases
         {
             if (index >= 0 
                 && index < m_folderContent.Count
-                && BaseDatabase.IsAssetDeletableFromCode(m_folderContent[index]))
+                && Database.IsAssetDeletableFromCode(m_folderContent[index]))
             {
-                BaseDatabase.DeleteAsset(m_folderContent[index], true);
+                Database.DeleteAsset(m_folderContent[index], true);
                 return true;
             }
             return false;
@@ -121,7 +121,7 @@ namespace Dhs5.Utility.Databases
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(FolderDatabase), editorForChildClasses:true)]
-    public class FolderDatabaseEditor : BaseDatabaseEditor
+    public class FolderDatabaseEditor : BaseDataContainerEditor
     {
         #region Members
 
@@ -182,6 +182,13 @@ namespace Dhs5.Utility.Databases
         protected override void OnContainerInformationsContentGUI()
         {
             EditorGUIHelper.FolderPicker(p_folderName, new GUIContent("Folder"), OnFolderSelected);
+        }
+
+        protected override string ContainerInvalidDataTypeMessage()
+        {
+            return "The data type of this Database is not valid.\n\n" +
+                    "- Add the DatabaseAttribute to the top of your script.\n" +
+                    "- Make sure the dataType parameter implements at least the IDataContainerElement interface.";
         }
 
         #endregion
@@ -248,7 +255,7 @@ namespace Dhs5.Utility.Databases
         protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
             if (EditorUtils.GetAssetContainingFolder(obj) == FolderName
-                || BaseDatabase.MoveAssetToFolder(obj, FolderName))
+                || Database.MoveAssetToFolder(obj, FolderName))
             {
                 base.OnAddNewDataToContainer(obj);
             }

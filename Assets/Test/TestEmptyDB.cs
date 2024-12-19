@@ -8,7 +8,7 @@ using UnityEditor;
 #endif
 
 [Database("Test/Empty", showInDatabaseWindow = false)]
-public class TestEmptyDB : BaseDatabase
+public class TestEmptyDB : BaseDataContainer
 {
     [SerializeField] private string emptyStr;
 
