@@ -25,10 +25,10 @@ namespace Dhs5.Test
     
     public static class TestEnumExtension
     {
-        public static TestScriptable GetValue(this TestEnum e)
-        {
-            return Database.Get<TestEnumDB>().GetValueAtIndex<TestScriptable>((int)e);        
-        }
+        //public static TestScriptable GetValue(this TestEnum e)
+        //{
+        //    //return Database.Get<TestEnumDB>().GetValueAtIndex<TestScriptable>((int)e);        
+        //}
 
         public static bool Contains(this TestEnumFlags flag, TestEnum e)
         {

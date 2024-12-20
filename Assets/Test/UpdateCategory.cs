@@ -21,7 +21,8 @@ public static class UpdateCategoryExtension
 {
     public static UpdaterDatabaseElement GetValue(this UpdateCategory e)
     {
-        return Database.Get<UpdaterDatabase>().GetValueAtIndex<UpdaterDatabaseElement>((int)e);    }
+        return EnumDatabase.GetAtIndex<UpdaterDatabase,UpdaterDatabaseElement>((int)e);
+    }
 
     public static bool Contains(this UpdateCategoryFlags flag, UpdateCategory e)
     {

@@ -36,7 +36,7 @@ namespace Dhs5.Utility.Databases
 
         #region Accessors
 
-        public U GetValueAtIndex<U>(int index) where U : ScriptableObject
+        public U GetValueAtIndex<U>(int index) where U : ScriptableObject, IEnumDatabaseElement
         {
             if (TryGetElementAtIndex<U>(index, out var value))
             {
@@ -51,6 +51,15 @@ namespace Dhs5.Utility.Databases
             {
                 yield return GetElementAtIndex(i);
             }
+        }
+
+        #endregion
+
+        #region Static Accessors
+
+        public static U GetAtIndex<T, U>(int index) where T : EnumDatabase where U : ScriptableObject, IEnumDatabaseElement
+        {
+            return Database.Get<T>().GetValueAtIndex<U>(index);
         }
 
         #endregion
@@ -552,12 +561,11 @@ namespace Dhs5.Utility.Databases
                 OpenBracket();
                 Increment();
                 AppendPrefix();
-                sb.Append("return Database.Get<");
+                sb.Append("return EnumDatabase.GetAtIndex<");
                 sb.Append(databaseTypeName);
-                sb.Append(">()");
-                sb.Append(".GetValueAtIndex<");
+                sb.Append(",");
                 sb.Append(paramTypeName);
-                sb.Append(">((int)e);");
+                sb.AppendLine(">((int)e);");
 
                 Decrement();
                 CloseBracket();
