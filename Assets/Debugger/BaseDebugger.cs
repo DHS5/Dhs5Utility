@@ -16,11 +16,11 @@ namespace Dhs5.Utility.Debuggers
 
         private static DebuggerDatabaseElement GetElement(Enum e)
         {
-            return Database.Get<DebuggerDatabase>().GetElementAtIndex(Convert.ToInt32(e)) as DebuggerDatabaseElement;
+            return DebuggerDatabase.GetAtIndex(Convert.ToInt32(e));
         }
         private static DebuggerDatabaseElement GetElement(int index)
         {
-            return Database.Get<DebuggerDatabase>().GetElementAtIndex(index) as DebuggerDatabaseElement;
+            return DebuggerDatabase.GetAtIndex(index);
         }
 
         #endregion

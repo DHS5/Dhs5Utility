@@ -11,7 +11,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
-    public class FolderDatabase : BaseDataContainer
+    public class FolderDataContainer : BaseDataContainer
     {
         #region Members
 
@@ -120,8 +120,8 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(FolderDatabase), editorForChildClasses:true)]
-    public class FolderDatabaseEditor : BaseDataContainerEditor
+    [CustomEditor(typeof(FolderDataContainer), editorForChildClasses:true)]
+    public class FolderDataContainerEditor : BaseDataContainerEditor
     {
         #region Members
 

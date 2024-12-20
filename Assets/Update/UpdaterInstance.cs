@@ -302,9 +302,11 @@ namespace Dhs5.Utility.Updates
         {
             m_updaterElements.Clear();
 
-            for (int i = 0; i < Database.Get<UpdaterDatabase>().Count; i++)
+            int i = 0;
+            foreach (var updaterElement in Database.Get<UpdaterDatabase>())
             {
-                m_updaterElements.Add(i, Database.Get<UpdaterDatabase>().GetValueAtIndex<UpdaterDatabaseElement>(i));
+                m_updaterElements.Add(i, updaterElement);
+                i++;
             }
         }
 

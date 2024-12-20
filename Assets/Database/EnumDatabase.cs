@@ -3,17 +3,23 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
-using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using System.IO;
 using Dhs5.Utility.Editors;
+using Dhs5.Utility.GUIs;
 #endif
 
 namespace Dhs5.Utility.Databases
 {
-    public class EnumDatabase : ScriptableDatabase
+    /// <summary>
+    /// Base class for a database managed by an auto-generated ENUM
+    /// </summary>
+    /// <remarks>
+    /// EnumDatabases should always use the <see cref="DatabaseAttribute"/> and never the <see cref="DataContainerAttribute"/>
+    /// </remarks>
+    public class EnumDatabase : ScriptableDataContainer, IEnumerable
     {
         #region Members
 
@@ -37,6 +43,14 @@ namespace Dhs5.Utility.Databases
                 return value;
             }
             return null;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                yield return GetElementAtIndex(i);
+            }
         }
 
         #endregion
@@ -168,7 +182,7 @@ namespace Dhs5.Utility.Databases
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(EnumDatabase), editorForChildClasses:true)]
-    public class EnumDatabaseEditor : ScriptableDatabaseEditor
+    public class EnumDatabaseEditor : ScriptableDataContainerEditor
     {
         #region Members
 

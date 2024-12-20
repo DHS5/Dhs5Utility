@@ -10,8 +10,20 @@ using UnityEditor;
 namespace Dhs5.Utility.Updates
 {
     [Database("Update/Updater", typeof(UpdaterDatabaseElement))]
-    public class UpdaterDatabase : EnumDatabase
+    public class UpdaterDatabase : EnumDatabase, IEnumerable<UpdaterDatabaseElement>
     {
+        #region Accessors
+
+        IEnumerator<UpdaterDatabaseElement> IEnumerable<UpdaterDatabaseElement>.GetEnumerator()
+        {
+            foreach (var obj in (this as IEnumerable))
+            {
+                yield return obj as UpdaterDatabaseElement;
+            }
+        }
+
+        #endregion
+
         #region Editor Utility
 
 #if UNITY_EDITOR

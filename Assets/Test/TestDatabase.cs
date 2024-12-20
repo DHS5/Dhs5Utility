@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Database("Test/Folder Database", typeof(TestScript))]
-public class TestDatabase : FolderDatabase
+public class TestDatabase : FolderDataContainer
 {
     
 }

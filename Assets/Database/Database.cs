@@ -20,7 +20,7 @@ namespace Dhs5.Utility.Databases
         private static Dictionary<Type, BaseDataContainer> _instances = new();
         private static BaseDataContainer GetInstance(Type type)
         {
-            if (!type.IsSubclassOf(typeof(BaseDataContainer))) return null;
+            if (!IsTypeDatabase(type)) return null;
 
             if (!_instances.TryGetValue(type, out var instance)
                 || instance == null)
@@ -81,25 +81,37 @@ namespace Dhs5.Utility.Databases
 
         #region Database Types
 
+        public static bool IsTypeDatabase(Type type)
+        {
+            return IsTypeDatabase(type, out _);
+        }
+        private static bool IsTypeDatabase(Type type, out DatabaseAttribute att)
+        {
+            att = null;
+            return type.IsSubclassOf(typeof(BaseDataContainer))
+                && !type.IsAbstract
+                && BaseDataContainer.TryGetDatabaseAttribute(type, out att);
+        }
+
         private static Type[] GetDatabaseTypes()
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseDataContainer)) && !t.IsAbstract && BaseDataContainer.TryGetDatabaseAttribute(t, out _))
+                .Where(t => IsTypeDatabase(t, out _))
                 .ToArray();
         }
         private static Type[] GetDatabaseTypes(Func<Type, bool> predicate)
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseDataContainer)) && !t.IsAbstract && BaseDataContainer.TryGetDatabaseAttribute(t, out _) && predicate.Invoke(t))
+                .Where(t => IsTypeDatabase(t, out _) && predicate.Invoke(t))
                 .ToArray();
         }
         private static Type[] GetDatabaseTypes(Func<DatabaseAttribute, bool> predicate)
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseDataContainer)) && !t.IsAbstract && BaseDataContainer.TryGetDatabaseAttribute(t, out var att) && predicate.Invoke(att))
+                .Where(t => IsTypeDatabase(t, out var att) && predicate.Invoke(att))
                 .ToArray();
         }
 

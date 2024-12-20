@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Dhs5.Utility.Updates
 {
     [Database("Update/Timelines", typeof(UpdateTimeline))]
-    public class UpdateTimelineDatabase : ScriptableDatabase
+    public class UpdateTimelineDatabase : ScriptableDataContainer
     {
 
     }

@@ -2,19 +2,22 @@ using System;
 
 namespace Dhs5.Utility.Databases
 {
+    /// <summary>
+    /// Attribute used to specify the type of the objects contained in a <see cref="BaseDataContainer"/>
+    /// </summary>
     public class DataContainerAttribute : Attribute
     {
         #region Constructor
 
         /// <summary>
-        /// Use this attribute to implement your own data container
+        /// Use this constructor to implement your own data container
         /// </summary>
         public DataContainerAttribute()
         {
             this.anyType = true;
         }
         /// <summary>
-        /// Use this attribute to implement a data container with out-of-the-box editor features
+        /// Use this constructor to implement a data container with out-of-the-box editor features
         /// </summary>
         /// <param name="path"></param>
         /// <param name="dataType"></param>

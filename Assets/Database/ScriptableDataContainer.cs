@@ -10,7 +10,7 @@ using System.IO;
 
 namespace Dhs5.Utility.Databases
 {
-    public class ScriptableDatabase : BaseDataContainer
+    public class ScriptableDataContainer : BaseDataContainer
     {
         #region Members
 
@@ -40,10 +40,6 @@ namespace Dhs5.Utility.Databases
             obj = null;
             return false;
         }
-
-        #endregion
-
-        #region Utility
 
         public ScriptableObject GetElementAtIndex(int index)
         {
@@ -142,8 +138,8 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(ScriptableDatabase), editorForChildClasses:true)]
-    public class ScriptableDatabaseEditor : BaseDataContainerEditor
+    [CustomEditor(typeof(ScriptableDataContainer), editorForChildClasses:true)]
+    public class ScriptableDataContainerEditor : BaseDataContainerEditor
     {
         #region Members
 

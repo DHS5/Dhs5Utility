@@ -194,18 +194,7 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Sort Functions
-
-        public static int Sort_ByName(UnityEngine.Object obj1, UnityEngine.Object obj2)
-        {
-            return obj1.name.CompareTo(obj2.name);
-        }
-        public static int Sort_ByType(UnityEngine.Object obj1, UnityEngine.Object obj2)
-        {
-            return obj1.GetType().FullName.CompareTo(obj2.GetType().FullName);
-        }
-
-        #endregion
+        #region Type Informations
 
         /// <summary>
         /// The path will be null if the DataContainer doesn't have the DatabaseAttribute
@@ -215,6 +204,21 @@ namespace Dhs5.Utility.Databases
         {
             return GetPath(GetType());
         }
+
+        #endregion
+
+        #region Sort Functions
+
+        internal static int Sort_ByName(UnityEngine.Object obj1, UnityEngine.Object obj2)
+        {
+            return obj1.name.CompareTo(obj2.name);
+        }
+        internal static int Sort_ByType(UnityEngine.Object obj1, UnityEngine.Object obj2)
+        {
+            return obj1.GetType().FullName.CompareTo(obj2.GetType().FullName);
+        }
+
+        #endregion
 
         #region Static Editor Methods
 

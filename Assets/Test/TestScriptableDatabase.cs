@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Database("Test/Scriptable", typeof(TestScriptable))]
-public class TestScriptableDatabase : ScriptableDatabase
+public class TestScriptableDatabase : ScriptableDataContainer
 {
 
 }

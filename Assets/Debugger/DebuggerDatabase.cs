@@ -2,11 +2,11 @@ using Dhs5.Utility.Databases;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using Dhs5.Utility.Editors;
+using Dhs5.Utility.GUIs;
 #endif
 
 namespace Dhs5.Utility.Debuggers
@@ -14,6 +14,13 @@ namespace Dhs5.Utility.Debuggers
     [Database("Debugger", typeof(DebuggerDatabaseElement))]
     public class DebuggerDatabase : EnumDatabase
     {
+        #region Static Accessors
+
+        public static DebuggerDatabaseElement GetAtIndex(int index) 
+            => Database.Get<DebuggerDatabase>().GetElementAtIndex(index) as DebuggerDatabaseElement;
+
+        #endregion
+
         #region Editor Utility
 
 #if UNITY_EDITOR
