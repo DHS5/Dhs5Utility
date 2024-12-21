@@ -8,6 +8,7 @@ using System.Linq;
 
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Scenes
 {
@@ -29,44 +30,71 @@ namespace Dhs5.Utility.Scenes
 
         // --- DATA ---
         private SceneFolderStructure m_sceneFolderStructure;
+        private Dictionary<string, Scene> m_loadedScenes;
 
         // --- GUI VARIABLES ---
+        private float m_limit;
+        private Vector2 m_activeScenesScrollPos;
         private Vector2 m_sceneBrowserScrollPos;
 
         #endregion
 
         #region Styles
 
+        private GUIStyle m_toolbarStyle;
         private GUIStyle m_groupStyle;
         private GUIStyle m_sceneStyle;
+        private GUIStyle m_buildIndexStyle;
 
+        private Color m_activeScenesBackgroundColor;
         private Color m_groupOpenBackgroundColor;
         private Color m_groupClosedBackgroundColor;
 
-        private Color m_sceneBackgroundColor;
-        private Color m_sceneBackgroundFilterColor;
-
         private void RefreshStyle()
         {
+            m_activeScenesBackgroundColor = new Color(0.4f, 0.4f, 0.4f);
             m_groupOpenBackgroundColor = new Color(0.4f, 0.4f, 0.4f);
             m_groupClosedBackgroundColor = new Color(0.3f, 0.3f, 0.3f);
 
-            m_sceneBackgroundColor = new Color(0.7f, 0.7f, 0.7f);
-            m_sceneBackgroundFilterColor = new Color(0f, 0f, 0f, 0.1f);
-
-            m_groupStyle = new GUIStyle()
+            m_toolbarStyle = new GUIStyle()
             {
-                fontStyle = FontStyle.Bold,
-                fontSize = 16,
+                fontStyle = FontStyle.Normal,
+                fontSize = 12,
                 alignment = TextAnchor.MiddleLeft,
                 normal = new GUIStyleState()
                 {
                     textColor = Color.white,
                 },
-                onNormal = new GUIStyleState()
+            };
+            m_groupStyle = new GUIStyle()
+            {
+                fontStyle = FontStyle.Bold,
+                fontSize = 14,
+                alignment = TextAnchor.MiddleLeft,
+                normal = new GUIStyleState()
                 {
                     textColor = Color.white,
-                }
+                },
+            };
+            m_sceneStyle = new GUIStyle()
+            {
+                fontStyle = FontStyle.Bold,
+                fontSize = 13,
+                alignment = TextAnchor.MiddleLeft,
+                normal = new GUIStyleState()
+                {
+                    textColor = Color.white,
+                },
+            };
+            m_buildIndexStyle = new GUIStyle()
+            {
+                fontStyle = FontStyle.Italic,
+                fontSize = 12,
+                alignment = TextAnchor.MiddleRight,
+                normal = new GUIStyleState()
+                {
+                    textColor = Color.white,
+                },
             };
         }
 
@@ -78,11 +106,21 @@ namespace Dhs5.Utility.Scenes
         {
             Refresh();
 
+            m_limit = position.height / 3f;
+
             EditorBuildSettings.sceneListChanged += ComputeSceneFolderStructure;
+
+            EditorSceneManager.sceneLoaded += OnSceneLoaded;
+            EditorSceneManager.sceneClosing += OnSceneClosing;
+            EditorSceneManager.sceneOpened += OnSceneOpened;
         }
         private void OnDisable()
         {
             EditorBuildSettings.sceneListChanged -= ComputeSceneFolderStructure;
+
+            EditorSceneManager.sceneLoaded -= OnSceneLoaded;
+            EditorSceneManager.sceneClosing += OnSceneClosing;
+            EditorSceneManager.sceneOpened -= OnSceneOpened;
         }
 
 
@@ -90,6 +128,7 @@ namespace Dhs5.Utility.Scenes
         {
             RefreshStyle();
             ComputeSceneFolderStructure();
+            GetLoadedScenes();
         }
 
         #endregion
@@ -100,8 +139,31 @@ namespace Dhs5.Utility.Scenes
         private void OnGUI()
         {
             // Active Scenes
+            ActiveScenesToolbar();
+            Rect rect = EditorGUILayout.BeginVertical( GUILayout.Height(m_limit - 20f) );
+            EditorGUI.DrawRect(rect, m_activeScenesBackgroundColor);
+
+            m_activeScenesScrollPos = EditorGUILayout.BeginScrollView(m_activeScenesScrollPos);
+
+            EditorGUILayout.Space(5f);
+
+            foreach (var group in m_sceneFolderStructure)
+            {
+                foreach (var scene in group)
+                {
+                    if (IsSceneOpen(scene))
+                    {
+                        OnSceneInfosGUI(scene);
+                        EditorGUILayout.Space(3f);
+                    }
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
 
             // Scene Browser
+            SceneBrowserToolbar();
             m_sceneBrowserScrollPos = EditorGUILayout.BeginScrollView(m_sceneBrowserScrollPos);
 
             foreach (var group in m_sceneFolderStructure)
@@ -112,19 +174,59 @@ namespace Dhs5.Utility.Scenes
             EditorGUILayout.EndScrollView();
         }
 
+        private void ActiveScenesToolbar()
+        {
+            Rect rect = new Rect(0f, 0f, position.width, 20f);
+            EditorGUILayout.GetControlRect(false, 18f);
+
+            // Background
+            GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
+            
+            // Label
+            EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f, rect.height), "Active Scenes", m_toolbarStyle);
+        }
+        
+        private void SceneBrowserToolbar()
+        {
+            Rect rect = EditorGUILayout.GetControlRect(false, 18f);
+            rect.x = 0f; rect.height = 20f; rect.width = position.width;
+
+            if (rect.Contains(Event.current.mousePosition)
+                && Event.current.type is EventType.MouseDrag)
+            {
+                m_limit = Event.current.mousePosition.y * 2 - (rect.y + rect.height / 2f);
+                Event.current.Use();
+            }
+
+            // Background
+            GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
+
+            // Buttons
+            float buttonsWidth = 40f;
+            var refreshButtonRect = new Rect(rect.width + - buttonsWidth, rect.y, buttonsWidth, rect.height);
+            if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
+            {
+                Refresh();
+            }
+
+            // Label
+            EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f, rect.height), "Scene Browser", m_toolbarStyle);
+        }
+
         #endregion
 
         #region GUI Elements
 
         private void OnSceneGroupGUI(SceneGroup group)
         {
-            Rect rect = EditorGUILayout.GetControlRect(false, 30f);
-            rect.x = 0f; rect.width = position.width;
-            
+            Rect rect = EditorGUILayout.BeginVertical();
+
             // Background
+            rect.x = 0f; rect.width = position.width;
             EditorGUI.DrawRect(rect, group.open ? m_groupOpenBackgroundColor : m_groupClosedBackgroundColor);
 
             // Custom Foldout
+            rect = EditorGUILayout.GetControlRect(false, 25f);
             EditorGUI.indentLevel++;
             {
                 if (Event.current.type == EventType.MouseDown
@@ -142,33 +244,106 @@ namespace Dhs5.Utility.Scenes
             // Group Content
             if (group.open)
             {
-                rect.y += rect.height;
+                EditorGUILayout.Space(5f);
 
-                int i = 0;
                 foreach (var scene in group)
                 {
-                    OnSceneInfosGUI(rect, scene, i);
-                    rect.y += rect.height;
-                    i++;
+                    OnSceneInfosGUI(scene);
+                    EditorGUILayout.Space(3f);
                 }
             }
+
+            EditorGUILayout.EndVertical();
         }
 
-        private void OnSceneInfosGUI(Rect rect, SceneInfos infos, int index)
+        private void OnSceneInfosGUI(SceneInfos infos)
         {
-            rect.x = 0f; rect.width = position.width;
+            bool opened = IsSceneOpen(infos);
+            bool loaded = IsSceneLoaded(infos);
+
+            Rect rect = EditorGUILayout.GetControlRect(false, 30f);
+            rect.x = 10f; rect.width = position.width - 25f;
 
             // Background
-            EditorGUI.DrawRect(rect, m_sceneBackgroundColor);
-            if (index % 2 == 0) EditorGUI.DrawRect(rect, m_sceneBackgroundFilterColor);
+            var guiColor = GUI.backgroundColor;
+            GUI.backgroundColor = loaded ? Color.green : opened ? Color.yellow : guiColor;
+            GUI.Box(rect, GUIContent.none, GUI.skin.window);
+            GUI.backgroundColor = guiColor;
 
-            EditorGUI.LabelField(rect, infos.name, m_sceneStyle);
+            // Toggle
+            float toggleWidth = 20f;
+            var toggleRect = new Rect(rect.x + 5f, rect.y + 5f, toggleWidth, 20f);
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.Toggle(toggleRect, infos.enabledInBuild);
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
+                scenes[infos.settingsIndex].enabled = !infos.enabledInBuild;
+                EditorBuildSettings.scenes = scenes;
+                ComputeSceneFolderStructure();
+            }
+
+            // --- BUTTONS ---
+            float buttonsHeight = rect.height - 4f;
+            float buttonsY = rect.y + 2f;
+
+            EditorGUI.BeginDisabledGroup(Application.isPlaying);
+            // Play Button
+            float playButtonWidth = 32f;
+            var playButtonRect = new Rect(rect.x + rect.width - playButtonWidth - 2f, buttonsY, playButtonWidth, buttonsHeight);
+            if (GUI.Button(playButtonRect, EditorGUIUtility.IconContent("d_Animation.Play")))
+            {
+                EditorSceneManager.OpenScene(infos.path, OpenSceneMode.Single);
+                EditorApplication.EnterPlaymode();
+            }
+
+            // Open Button
+            float openButtonWidth = 60f;
+            var openButtonRect = new Rect(playButtonRect.x - openButtonWidth, buttonsY, openButtonWidth, buttonsHeight);
+            if (GUI.Button(openButtonRect, opened ? "Remove" : "Open"))
+            {
+                if (opened) EditorSceneManager.CloseScene(m_loadedScenes[infos.name], true);
+                else EditorSceneManager.OpenScene(infos.path, OpenSceneMode.Single);
+            }
+
+            EditorGUI.EndDisabledGroup();
+            
+            // Load Button
+            float loadButtonWidth = 60f;
+            var loadButtonRect = new Rect(openButtonRect.x - loadButtonWidth, buttonsY, loadButtonWidth, buttonsHeight);
+            if (GUI.Button(loadButtonRect, loaded ? "Unload" : opened ? "Load" : "Add"))
+            {
+                if (loaded) EditorSceneManager.CloseScene(m_loadedScenes[infos.name], false);
+                else EditorSceneManager.OpenScene(infos.path, OpenSceneMode.Additive);
+            }
+
+            // --- LABELS ---
+            float labelsY = rect.y + 5f;
+            float labelsHeight = 20f;
+
+            // Build Index Label
+            float buildIndexLabelWidth = 0f;
+            if (infos.enabledInBuild)
+            {
+                buildIndexLabelWidth = 20f;
+                var buildIndexLabelRect = new Rect(loadButtonRect.x - buildIndexLabelWidth - 5f, labelsY, buildIndexLabelWidth, labelsHeight);
+                EditorGUI.LabelField(buildIndexLabelRect, infos.buildIndex, m_buildIndexStyle);
+            }
+            // Main Label
+            float labelRectX = toggleRect.x + toggleWidth + 5f;
+            var labelRect = new Rect(labelRectX, labelsY, loadButtonRect.x - labelRectX - buildIndexLabelWidth - 5f, labelsHeight);
+            EditorGUI.LabelField(labelRect, infos.name, m_sceneStyle);
         }
 
         #endregion
 
 
         #region Scene Folder Structure
+
+        private void ComputeSceneFolderStructure()
+        {
+            m_sceneFolderStructure = new();
+        }
 
         public class SceneFolderStructure : IEnumerable<SceneGroup>
         {
@@ -187,9 +362,20 @@ namespace Dhs5.Utility.Scenes
                 m_orderedGroupList = new();
 
                 SceneInfos scene;
+                EditorBuildSettingsScene buildSettingsScene;
+                int buildIndex = 0;
                 for (int i = 0; i < EditorBuildSettings.scenes.Length; i++)
                 {
-                    scene = new(EditorBuildSettings.scenes[i], i);
+                    buildSettingsScene = EditorBuildSettings.scenes[i];
+                    if (buildSettingsScene.enabled)
+                    {
+                        scene = new(buildSettingsScene, buildIndex, i);
+                        buildIndex++;
+                    }
+                    else
+                    {
+                        scene = new(buildSettingsScene, -1, i);
+                    }
 
                     if (m_groups.TryGetValue(scene.folder, out var group))
                     {
@@ -240,7 +426,7 @@ namespace Dhs5.Utility.Scenes
 
             public SceneGroup(SceneInfos sceneInfos)
             {
-                name = sceneInfos.name;
+                name = sceneInfos.folder;
                 open = false;
 
                 m_scenes = new HashSet<SceneInfos>() { sceneInfos };
@@ -283,24 +469,23 @@ namespace Dhs5.Utility.Scenes
             public readonly string folder;
             public readonly string path;
 
-            public readonly int buildIndex;
+            public readonly int settingsIndex;
+            public readonly string buildIndex;
             public readonly bool enabledInBuild;
 
             #endregion
 
             #region Constructor
 
-            public SceneInfos(EditorBuildSettingsScene scene, int buildIndex)
+            public SceneInfos(EditorBuildSettingsScene scene, int buildIndex, int settingsIndex)
             {
                 this.path = scene.path;
                 this.name = path[(path.LastIndexOf('/') + 1)..path.LastIndexOf('.')];
                 this.folder = path.Substring(0, path.LastIndexOf('/')).Split('/', System.StringSplitOptions.RemoveEmptyEntries).Last();
                 this.enabledInBuild = scene.enabled;
-                //this.name = path.Substring(path.LastIndexOf('/') + 1).Replace(".unity", "");
-                //string temp = path.Replace("/" + name + ".unity", "");
-                //folder = temp.Substring(temp.LastIndexOf('/') + 1);
 
-                this.buildIndex = buildIndex;
+                this.settingsIndex = settingsIndex;
+                this.buildIndex = "(" + buildIndex + ")";
             }
 
             #endregion
@@ -309,7 +494,7 @@ namespace Dhs5.Utility.Scenes
 
             public override int GetHashCode()
             {
-                return buildIndex;
+                return settingsIndex;
             }
 
             #endregion
@@ -317,12 +502,42 @@ namespace Dhs5.Utility.Scenes
 
         #endregion
 
-        #region Scenes Computation
+        #region Loaded Scenes Management
 
-        private void ComputeSceneFolderStructure()
+        private bool IsSceneOpen(SceneInfos infos)
         {
-            m_sceneFolderStructure = new();
+            return m_loadedScenes.ContainsKey(infos.name);
         }
+        private bool IsSceneLoaded(SceneInfos infos)
+        {
+            return m_loadedScenes.TryGetValue(infos.name, out var scene) && scene.isLoaded;
+        }
+
+        private void GetLoadedScenes()
+        {
+            m_loadedScenes = new();
+
+            Scene scene;
+            for (int i = 0; i < EditorSceneManager.sceneCount; i++)
+            {
+                scene = EditorSceneManager.GetSceneAt(i);
+                m_loadedScenes.TryAdd(scene.name, scene);
+            }
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            m_loadedScenes.TryAdd(scene.name, scene);
+        }
+        private void OnSceneOpened(Scene scene, OpenSceneMode mode)
+        {
+            m_loadedScenes.TryAdd(scene.name, scene);
+        }
+        private void OnSceneClosing(Scene scene, bool removingScene)
+        {
+            if (removingScene) m_loadedScenes.Remove(scene.name);
+        }
+        
 
         #endregion
     }
