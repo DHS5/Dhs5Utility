@@ -56,6 +56,86 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Static Database Accessors
+
+        private static bool TryGetDatabaseInstance<T>(out T database) where T : BaseDataContainer
+        {
+            var db = Get<T>();
+            if (db != null)
+            {
+                database = db;
+                return true;
+            }
+            else
+            {
+                Debug.LogError("This DataContainer type is not a Database");
+                database = null;
+                return false;
+            }
+        }
+
+        // --- DATA AT INDEX ---
+        public static UnityEngine.Object GetDataAtIndex<T>(int index) where T : BaseDataContainer
+        {
+            if (TryGetDatabaseInstance<T>(out var db))
+            {
+                return db.GetDataAtIndex(index);
+            }
+            return null;
+        }
+        public static U GetDataAtIndex<T, U>(int index) where T : BaseDataContainer where U : UnityEngine.Object, IDataContainerElement
+        {
+            if (TryGetDatabaseInstance<T>(out var db))
+            {
+                return db.GetDataAtIndex<U>(index);
+            }
+            return null;
+        }
+
+        // --- DATA BY UID ---
+        public static bool GetDataByUID<T>(int uid, out UnityEngine.Object obj) where T : BaseDataContainer
+        {
+            if (TryGetDatabaseInstance<T>(out var db))
+            {
+                return db.TryGetDataByUID(uid, out obj);
+            }
+            obj = null;
+            return false;
+        }
+        public static bool GetDataByUID<T, U>(int uid, out U data) where T : BaseDataContainer where U : UnityEngine.Object, IDataContainerElement
+        {
+            if (TryGetDatabaseInstance<T>(out var db))
+            {
+                return db.TryGetDataByUID<U>(uid, out data);
+            }
+            data = null;
+            return false;
+        }
+
+        // --- ENUMERATOR ---
+        public static IEnumerator Enumerate<T>() where T : BaseDataContainer
+        {
+            if (TryGetDatabaseInstance<T>(out var db))
+            {
+                foreach (var item in db)
+                {
+                    yield return item;
+                }
+            }
+        }
+        public static IEnumerable<U> Enumerate<T, U>() where T : BaseDataContainer where U : UnityEngine.Object, IDataContainerElement
+        {
+            if (TryGetDatabaseInstance<T>(out var db))
+            {
+                foreach (var item in db.GetDataEnumerator<U>())
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        #endregion
+
         #region Static Editor Functions
 
 #if UNITY_EDITOR

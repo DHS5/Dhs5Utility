@@ -15,7 +15,7 @@ namespace Dhs5.Utility.Updates
         }
         public bool TryGetUpdateTimeline(out UpdateTimeline element)
         {
-            return TryGetObject(out element);
+            return TryGetData(out element);
         }
         public bool TryCreateUpdateTimelineInstance(out UpdateTimelineInstanceHandle handle)
         {

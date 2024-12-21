@@ -18,43 +18,31 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Properties
-
-        public int Count => m_content.Count;
-
-        #endregion
-
         #region Accessors
 
-        public override bool TryGetObjectByUID(int uid, out IDataContainerElement obj)
+        public override int Count => m_content.Count;
+
+        public override UnityEngine.Object GetDataAtIndex(int index)
+        {
+            if (m_content.IsIndexValid(index))
+            {
+                return m_content[index];
+            }
+            return null;
+        }
+
+        public override bool TryGetDataByUID(int uid, out UnityEngine.Object obj)
         {
             foreach (var item in m_content)
             {
                 if (item is IDataContainerElement elem && elem.UID == uid)
                 {
-                    obj = elem;
+                    obj = item;
                     return true;
                 }
             }
 
             obj = null;
-            return false;
-        }
-
-        public ScriptableObject GetElementAtIndex(int index)
-        {
-            if (m_content.IsIndexValid(index)) return m_content[index];
-            return null;
-        }
-        public bool TryGetElementAtIndex<U>(int index, out U uValue) where U : ScriptableObject
-        {
-            if (m_content.IsIndexValid(index)
-                && m_content[index] is U u)
-            {
-                uValue = u;
-                return true;
-            }
-            uValue = null;
             return false;
         }
 

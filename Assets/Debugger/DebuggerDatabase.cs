@@ -17,7 +17,7 @@ namespace Dhs5.Utility.Debuggers
         #region Static Accessors
 
         public static DebuggerDatabaseElement GetAtIndex(int index) 
-            => Database.Get<DebuggerDatabase>().GetElementAtIndex(index) as DebuggerDatabaseElement;
+            => Database.Get<DebuggerDatabase>().GetDataAtIndex(index) as DebuggerDatabaseElement;
 
         #endregion
 

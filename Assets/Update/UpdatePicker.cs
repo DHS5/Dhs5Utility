@@ -10,7 +10,7 @@ namespace Dhs5.Utility.Updates
 
         public bool TryGetUpdaterElement(out UpdaterDatabaseElement element)
         {
-            return TryGetObject(out element);
+            return TryGetData(out element);
         }
         public bool TryGetUpdateKey(out int updateKey)
         {

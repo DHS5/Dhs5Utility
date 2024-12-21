@@ -22,13 +22,24 @@ namespace Dhs5.Utility.Databases
 
         #region Accessors
 
-        public override bool TryGetObjectByUID(int uid, out IDataContainerElement obj)
+        public override int Count => m_folderContent.Count;
+
+        public override UnityEngine.Object GetDataAtIndex(int index)
+        {
+            if (m_folderContent.IsIndexValid(index))
+            {
+                return m_folderContent[index];
+            }
+            return null;
+        }
+
+        public override bool TryGetDataByUID(int uid, out UnityEngine.Object obj)
         {
             foreach (var item in m_folderContent)
             {
                 if (item is IDataContainerElement elem && elem.UID == uid)
                 {
-                    obj = elem;
+                    obj = item;
                     return true;
                 }
             }

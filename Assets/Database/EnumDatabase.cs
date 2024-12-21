@@ -19,7 +19,7 @@ namespace Dhs5.Utility.Databases
     /// <remarks>
     /// EnumDatabases should always use the <see cref="DatabaseAttribute"/> and never the <see cref="DataContainerAttribute"/>
     /// </remarks>
-    public class EnumDatabase : ScriptableDataContainer, IEnumerable
+    public class EnumDatabase : ScriptableDataContainer
     {
         #region Members
 
@@ -31,36 +31,6 @@ namespace Dhs5.Utility.Databases
         // Script Properties
         [SerializeField] private string m_scriptFolder;
         [SerializeField] private TextAsset m_textAsset;
-
-        #endregion
-
-        #region Accessors
-
-        public U GetValueAtIndex<U>(int index) where U : ScriptableObject, IEnumDatabaseElement
-        {
-            if (TryGetElementAtIndex<U>(index, out var value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            for (int i = 0; i < Count; i++)
-            {
-                yield return GetElementAtIndex(i);
-            }
-        }
-
-        #endregion
-
-        #region Static Accessors
-
-        public static U GetAtIndex<T, U>(int index) where T : EnumDatabase where U : ScriptableObject, IEnumDatabaseElement
-        {
-            return Database.Get<T>().GetValueAtIndex<U>(index);
-        }
 
         #endregion
 
@@ -110,7 +80,7 @@ namespace Dhs5.Utility.Databases
             string[] enumContent = new string[Count];
             for (int i = 0; i < enumContent.Length; i++)
             {
-                enumContent[i] = GetElementAtIndex(i).name;
+                enumContent[i] = GetDataAtIndex(i).name;
             }
 
             if (Editor_ContainerHasValidDataType(out var dataType))
@@ -561,9 +531,9 @@ namespace Dhs5.Utility.Databases
                 OpenBracket();
                 Increment();
                 AppendPrefix();
-                sb.Append("return EnumDatabase.GetAtIndex<");
+                sb.Append("return Database.Get<");
                 sb.Append(databaseTypeName);
-                sb.Append(",");
+                sb.Append(">().GetDataAtIndex<");
                 sb.Append(paramTypeName);
                 sb.AppendLine(">((int)e);");
 

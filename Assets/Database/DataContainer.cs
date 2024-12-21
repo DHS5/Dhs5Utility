@@ -13,17 +13,51 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
-    public abstract class BaseDataContainer : ScriptableObject
+    public abstract class BaseDataContainer : ScriptableObject, IEnumerable
     {
         #region Accessors
 
-        public abstract bool TryGetObjectByUID(int uid, out IDataContainerElement obj);
+        public abstract int Count { get; }
+
+        public abstract UnityEngine.Object GetDataAtIndex(int index); 
+        public T GetDataAtIndex<T>(int index) where T : UnityEngine.Object, IDataContainerElement
+        {
+            if (GetDataAtIndex(index) is T elem) return elem;
+            return null;
+        }
+
+        public abstract bool TryGetDataByUID(int uid, out UnityEngine.Object obj);
+        public bool TryGetDataByUID<T>(int uid, out T data) where T : UnityEngine.Object, IDataContainerElement
+        {
+            if (TryGetDataByUID(uid, out UnityEngine.Object obj) && obj is T elem)
+            {
+                data = elem;
+                return true;
+            }
+            data = null;
+            return false;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                yield return GetDataAtIndex(i);
+            }
+        }
+        public IEnumerable<T> GetDataEnumerator<T>() where T : UnityEngine.Object, IDataContainerElement
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                yield return GetDataAtIndex<T>(i);
+            }
+        }
 
         #endregion
 
 #if UNITY_EDITOR
 
-        #region Instance Content Management
+            #region Instance Content Management
 
         internal virtual bool Editor_ContainerHasValidDataType(out Type dataType)
         {

@@ -25,7 +25,7 @@ public static class DebugCategoryExtension
 {
     public static DebuggerDatabaseElement GetValue(this DebugCategory e)
     {
-        return EnumDatabase.GetAtIndex<DebuggerDatabase,DebuggerDatabaseElement>((int)e);
+        return Database.Get<DebuggerDatabase>().GetDataAtIndex<DebuggerDatabaseElement>((int)e);
     }
 
     public static bool Contains(this DebugCategoryFlags flag, DebugCategory e)

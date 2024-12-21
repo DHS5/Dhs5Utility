@@ -12,10 +12,16 @@ public class TestEmptyDB : BaseDataContainer
 {
     [SerializeField] private string emptyStr;
 
-    public override bool TryGetObjectByUID(int uid, out IDataContainerElement obj)
+    public override int Count => throw new System.NotImplementedException();
+
+    public override Object GetDataAtIndex(int index)
     {
-        obj = null;
-        return false;
+        throw new System.NotImplementedException();
+    }
+
+    public override bool TryGetDataByUID(int uid, out Object obj)
+    {
+        throw new System.NotImplementedException();
     }
 
 #if UNITY_EDITOR

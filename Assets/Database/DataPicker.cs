@@ -21,25 +21,20 @@ namespace Dhs5.Utility.Databases
 
         #region Methods
 
-        public bool TryGetObject(out IDataContainerElement obj)
+        public bool TryGetObject(out UnityEngine.Object obj)
         {
             if (m_container != null && m_currentSelectionUID > 0)
             {
-                return m_container.TryGetObjectByUID(m_currentSelectionUID, out obj);
+                return m_container.TryGetDataByUID(m_currentSelectionUID, out obj);
             }
             obj = null;
             return false;
         }
-        public bool TryGetObject<T>(out T objOfTypeT) where T : UnityEngine.Object, IDataContainerElement
+        public bool TryGetData<T>(out T objOfTypeT) where T : UnityEngine.Object, IDataContainerElement
         {
             if (m_container != null && m_currentSelectionUID > 0)
             {
-                if (m_container.TryGetObjectByUID(m_currentSelectionUID, out var obj)
-                    && obj is T t)
-                {
-                    objOfTypeT = t;
-                    return true;
-                }
+                return m_container.TryGetDataByUID(m_currentSelectionUID, out objOfTypeT);
             }
             objOfTypeT = null;
             return false;
@@ -60,25 +55,20 @@ namespace Dhs5.Utility.Databases
 
         #region Methods
 
-        public bool TryGetObject(out IDataContainerElement obj)
+        public bool TryGetObject(out UnityEngine.Object obj)
         {
             if (m_container != null && m_currentSelectionUID > 0)
             {
-                return m_container.TryGetObjectByUID(m_currentSelectionUID, out obj);
+                return m_container.TryGetDataByUID(m_currentSelectionUID, out obj);
             }
             obj = null;
             return false;
         }
-        public bool TryGetObject<T>(out T objOfTypeT) where T : UnityEngine.Object, IDataContainerElement
+        public bool TryGetData<T>(out T objOfTypeT) where T : UnityEngine.Object, IDataContainerElement
         {
             if (m_container != null && m_currentSelectionUID > 0)
             {
-                if (m_container.TryGetObjectByUID(m_currentSelectionUID, out var obj)
-                    && obj is T t)
-                {
-                    objOfTypeT = t;
-                    return true;
-                }
+                return m_container.TryGetDataByUID(m_currentSelectionUID, out objOfTypeT);
             }
             objOfTypeT = null;
             return false;

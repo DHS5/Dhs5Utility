@@ -303,7 +303,7 @@ namespace Dhs5.Utility.Updates
             m_updaterElements.Clear();
 
             int i = 0;
-            foreach (var updaterElement in Database.Get<UpdaterDatabase>())
+            foreach (var updaterElement in Database.Enumerate<UpdaterDatabase, UpdaterDatabaseElement>())
             {
                 m_updaterElements.Add(i, updaterElement);
                 i++;
