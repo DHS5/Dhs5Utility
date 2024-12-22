@@ -1,4 +1,3 @@
-
 #if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
@@ -8,7 +7,6 @@ using System.Linq;
 
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Scenes
 {
@@ -33,14 +31,18 @@ namespace Dhs5.Utility.Scenes
         private Dictionary<string, Scene> m_loadedScenes;
 
         // --- GUI VARIABLES ---
+        private bool m_activeScenesOpened;
         private float m_limit;
+        private bool m_isResizing;
         private Vector2 m_activeScenesScrollPos;
         private Vector2 m_sceneBrowserScrollPos;
+        private string m_searchString;
 
         #endregion
 
         #region Consts
 
+        private const string EditorPref_ActiveScenesOpenedKey = "ScW_activeScenesOpened";
         private const string EditorPref_LimitKey = "ScW_limit";
         private const string EditorPref_GroupKey = "ScW_group_";
 
@@ -113,6 +115,7 @@ namespace Dhs5.Utility.Scenes
         {
             Refresh();
 
+            m_activeScenesOpened = EditorPrefs.GetBool(EditorPref_ActiveScenesOpenedKey, true);
             m_limit = EditorPrefs.GetFloat(EditorPref_LimitKey, position.height / 3f);
 
             EditorBuildSettings.sceneListChanged += ComputeSceneFolderStructure;
@@ -123,6 +126,7 @@ namespace Dhs5.Utility.Scenes
         }
         private void OnDisable()
         {
+            EditorPrefs.SetBool(EditorPref_ActiveScenesOpenedKey, m_activeScenesOpened);
             EditorPrefs.SetFloat(EditorPref_LimitKey, m_limit);
 
             EditorBuildSettings.sceneListChanged -= ComputeSceneFolderStructure;
@@ -147,41 +151,82 @@ namespace Dhs5.Utility.Scenes
 
         private void OnGUI()
         {
-            // Active Scenes
-            ActiveScenesToolbar();
-            Rect rect = EditorGUILayout.BeginVertical( GUILayout.Height(m_limit - 20f) );
-            EditorGUI.DrawRect(rect, m_activeScenesBackgroundColor);
-
-            m_activeScenesScrollPos = EditorGUILayout.BeginScrollView(m_activeScenesScrollPos);
-
-            EditorGUILayout.Space(5f);
-
-            foreach (var group in m_sceneFolderStructure)
+            // Events
+            if (m_isResizing && Event.current.type == EventType.MouseUp)
             {
-                foreach (var scene in group)
+                m_isResizing = false;
+                Event.current.Use();
+            }
+
+            // Active Scenes
+            OnActiveScenesGUI();
+
+            // Scene Browser
+            OnSceneBrowserGUI();
+        }
+
+        private void OnActiveScenesGUI()
+        {
+            ActiveScenesToolbar();
+
+            if (m_activeScenesOpened)
+            {
+                Rect rect = EditorGUILayout.BeginVertical(GUILayout.Height(m_limit - 20f));
+                EditorGUI.DrawRect(rect, m_activeScenesBackgroundColor);
+
+                m_activeScenesScrollPos = EditorGUILayout.BeginScrollView(m_activeScenesScrollPos);
+
+                EditorGUILayout.Space(5f);
+
+                foreach (var group in m_sceneFolderStructure)
                 {
-                    if (IsSceneOpen(scene))
+                    foreach (var scene in group)
                     {
-                        OnSceneInfosGUI(scene);
-                        EditorGUILayout.Space(3f);
+                        if (IsSceneOpen(scene))
+                        {
+                            OnSceneInfosGUI(scene);
+                            EditorGUILayout.Space(3f);
+                        }
+                    }
+                }
+
+                EditorGUILayout.EndScrollView();
+                EditorGUILayout.EndVertical();
+            }
+        }
+        private void OnSceneBrowserGUI()
+        {
+            SceneBrowserToolbar();
+            m_sceneBrowserScrollPos = EditorGUILayout.BeginScrollView(m_sceneBrowserScrollPos);
+
+            if (string.IsNullOrWhiteSpace(m_searchString))
+            {
+                foreach (var group in m_sceneFolderStructure)
+                {
+                    OnSceneGroupGUI(group);
+                }
+            }
+            else // Searching
+            {
+                foreach (var group in m_sceneFolderStructure)
+                {
+                    foreach (var scene in group)
+                    {
+                        if (scene.name.StartsWith(m_searchString, System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            OnSceneInfosGUI(scene);
+                            EditorGUILayout.Space(3f);
+                        }
                     }
                 }
             }
 
             EditorGUILayout.EndScrollView();
-            EditorGUILayout.EndVertical();
-
-            // Scene Browser
-            SceneBrowserToolbar();
-            m_sceneBrowserScrollPos = EditorGUILayout.BeginScrollView(m_sceneBrowserScrollPos);
-
-            foreach (var group in m_sceneFolderStructure)
-            {
-                OnSceneGroupGUI(group);
-            }
-
-            EditorGUILayout.EndScrollView();
         }
+
+        #endregion
+
+        #region Toolbars GUI
 
         private void ActiveScenesToolbar()
         {
@@ -192,6 +237,7 @@ namespace Dhs5.Utility.Scenes
             GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
             
             // Label
+            m_activeScenesOpened = EditorGUI.Toggle(rect, GUIContent.none, m_activeScenesOpened, EditorStyles.toolbarButton);
             EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f, rect.height), "Active Scenes", m_toolbarStyle);
         }
         
@@ -206,22 +252,37 @@ namespace Dhs5.Utility.Scenes
             // Buttons
             float buttonsWidth = 40f;
             var refreshButtonRect = new Rect(rect.width + - buttonsWidth, rect.y, buttonsWidth, rect.height);
-            if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
+            if (GUI.Button(refreshButtonRect, EditorGUIUtility.IconContent("d_Refresh"), EditorStyles.toolbarButton))
             {
                 Refresh();
             }
 
             // Label
-            EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f - buttonsWidth, rect.height), "Scene Browser", m_toolbarStyle);
+            var labelRect = new Rect(rect.x + 10f, rect.y, 100f, rect.height);
+            EditorGUI.LabelField(labelRect, "Scene Browser", m_toolbarStyle);
+
+            // Search Field
+            float searchFieldRectX = labelRect.x + labelRect.width;
+            var searchFieldRect = new Rect(searchFieldRectX, rect.y + 2f, refreshButtonRect.x - searchFieldRectX - 2f, rect.height - 4f);
+            m_searchString = EditorGUI.TextField(searchFieldRect, m_searchString, EditorStyles.toolbarSearchField);
 
             // Resize
-            var resizeRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth, rect.height);
-            EditorGUIUtility.AddCursorRect(resizeRect, MouseCursor.ResizeVertical);
-            if (resizeRect.Contains(Event.current.mousePosition)
-                && Event.current.type is EventType.MouseDrag)
+            if (m_activeScenesOpened)
             {
-                m_limit = Mathf.Clamp(m_limit + Event.current.delta.y, 100f, position.height - 100f);
-                Event.current.Use();
+                var resizeRect = new Rect(rect.x, rect.y - 2f, rect.width - buttonsWidth, 4f);
+                EditorGUIUtility.AddCursorRect(resizeRect, MouseCursor.ResizeVertical);
+                if (!m_isResizing
+                    && resizeRect.Contains(Event.current.mousePosition)
+                    && Event.current.type is EventType.MouseDown)
+                {
+                    m_isResizing = true;
+                    Event.current.Use();
+                }
+                else if (m_isResizing && Event.current.type is EventType.MouseDrag)
+                {
+                    m_limit = Mathf.Clamp(m_limit + Event.current.delta.y, 100f, position.height - 100f);
+                    Event.current.Use();
+                }
             }
         }
 
