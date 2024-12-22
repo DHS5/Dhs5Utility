@@ -1,5 +1,6 @@
 using Dhs5.Utility.Databases;
 using Dhs5.Utility.Debuggers;
+using Dhs5.Utility.Scenes;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,6 +14,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private string _name;
     [SerializeField] private DataPicker _dataPicker1;
     [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
+    [SerializeField] private SceneReference m_sceneRef;
 
     public int UID => m_uid;
 

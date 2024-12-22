@@ -7,6 +7,7 @@ using System.Linq;
 
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using static UnityEditor.PlayerSettings;
 
 namespace Dhs5.Utility.Scenes
 {
@@ -395,17 +396,20 @@ namespace Dhs5.Utility.Scenes
             float labelsHeight = 20f;
 
             // Build Index Label
-            float buildIndexLabelWidth = 0f;
+            float buildIndexLabelWidth = 20f;
             if (infos.enabledInBuild)
             {
-                buildIndexLabelWidth = 20f;
                 var buildIndexLabelRect = new Rect(loadButtonRect.x - buildIndexLabelWidth - 5f, labelsY, buildIndexLabelWidth, labelsHeight);
                 EditorGUI.LabelField(buildIndexLabelRect, infos.buildIndex, m_buildIndexStyle);
             }
             // Main Label
             float labelRectX = toggleRect.x + toggleWidth + 5f;
             var labelRect = new Rect(labelRectX, labelsY, loadButtonRect.x - labelRectX - buildIndexLabelWidth - 5f, labelsHeight);
-            EditorGUI.LabelField(labelRect, infos.name, m_sceneStyle);
+            if (GUI.Button(labelRect, infos.name, m_sceneStyle))
+            {
+                EditorUtility.FocusProjectWindow();
+                EditorGUIUtility.PingObject(infos.Asset);
+            }
         }
 
         #endregion
@@ -435,20 +439,9 @@ namespace Dhs5.Utility.Scenes
                 m_orderedGroupList = new();
 
                 SceneInfos scene;
-                EditorBuildSettingsScene buildSettingsScene;
-                int buildIndex = 0;
                 for (int i = 0; i < EditorBuildSettings.scenes.Length; i++)
                 {
-                    buildSettingsScene = EditorBuildSettings.scenes[i];
-                    if (buildSettingsScene.enabled)
-                    {
-                        scene = new(buildSettingsScene, buildIndex, i);
-                        buildIndex++;
-                    }
-                    else
-                    {
-                        scene = new(buildSettingsScene, -1, i);
-                    }
+                    scene = new(EditorBuildSettings.scenes[i], i);
 
                     if (m_groups.TryGetValue(scene.folder, out var group))
                     {
@@ -554,9 +547,15 @@ namespace Dhs5.Utility.Scenes
 
             #endregion
 
+            #region Properties
+
+            public SceneAsset Asset => AssetDatabase.LoadAssetAtPath<SceneAsset>(path);
+
+            #endregion
+
             #region Constructor
 
-            public SceneInfos(EditorBuildSettingsScene scene, int buildIndex, int settingsIndex)
+            public SceneInfos(EditorBuildSettingsScene scene, int settingsIndex)
             {
                 this.path = scene.path;
                 this.name = path[(path.LastIndexOf('/') + 1)..path.LastIndexOf('.')];
@@ -564,7 +563,7 @@ namespace Dhs5.Utility.Scenes
                 this.enabledInBuild = scene.enabled;
 
                 this.settingsIndex = settingsIndex;
-                this.buildIndex = "(" + buildIndex + ")";
+                this.buildIndex = "(" + SceneUtility.GetBuildIndexByScenePath(path) + ")";
             }
 
             #endregion
