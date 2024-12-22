@@ -57,7 +57,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-            #region Instance Content Management
+        #region Instance Content Management
 
         internal virtual bool Editor_ContainerHasValidDataType(out Type dataType)
         {

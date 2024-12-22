@@ -39,6 +39,13 @@ namespace Dhs5.Utility.Scenes
 
         #endregion
 
+        #region Consts
+
+        private const string EditorPref_LimitKey = "ScW_limit";
+        private const string EditorPref_GroupKey = "ScW_group_";
+
+        #endregion
+
         #region Styles
 
         private GUIStyle m_toolbarStyle;
@@ -106,7 +113,7 @@ namespace Dhs5.Utility.Scenes
         {
             Refresh();
 
-            m_limit = position.height / 3f;
+            m_limit = EditorPrefs.GetFloat(EditorPref_LimitKey, position.height / 3f);
 
             EditorBuildSettings.sceneListChanged += ComputeSceneFolderStructure;
 
@@ -116,10 +123,12 @@ namespace Dhs5.Utility.Scenes
         }
         private void OnDisable()
         {
+            EditorPrefs.SetFloat(EditorPref_LimitKey, m_limit);
+
             EditorBuildSettings.sceneListChanged -= ComputeSceneFolderStructure;
 
             EditorSceneManager.sceneLoaded -= OnSceneLoaded;
-            EditorSceneManager.sceneClosing += OnSceneClosing;
+            EditorSceneManager.sceneClosing -= OnSceneClosing;
             EditorSceneManager.sceneOpened -= OnSceneOpened;
         }
 
@@ -191,13 +200,6 @@ namespace Dhs5.Utility.Scenes
             Rect rect = EditorGUILayout.GetControlRect(false, 18f);
             rect.x = 0f; rect.height = 20f; rect.width = position.width;
 
-            if (rect.Contains(Event.current.mousePosition)
-                && Event.current.type is EventType.MouseDrag)
-            {
-                m_limit = Event.current.mousePosition.y * 2 - (rect.y + rect.height / 2f);
-                Event.current.Use();
-            }
-
             // Background
             GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
 
@@ -210,7 +212,17 @@ namespace Dhs5.Utility.Scenes
             }
 
             // Label
-            EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f, rect.height), "Scene Browser", m_toolbarStyle);
+            EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f - buttonsWidth, rect.height), "Scene Browser", m_toolbarStyle);
+
+            // Resize
+            var resizeRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth, rect.height);
+            EditorGUIUtility.AddCursorRect(resizeRect, MouseCursor.ResizeVertical);
+            if (resizeRect.Contains(Event.current.mousePosition)
+                && Event.current.type is EventType.MouseDrag)
+            {
+                m_limit = Mathf.Clamp(m_limit + Event.current.delta.y, 100f, position.height - 100f);
+                Event.current.Use();
+            }
         }
 
         #endregion
@@ -223,7 +235,7 @@ namespace Dhs5.Utility.Scenes
 
             // Background
             rect.x = 0f; rect.width = position.width;
-            EditorGUI.DrawRect(rect, group.open ? m_groupOpenBackgroundColor : m_groupClosedBackgroundColor);
+            EditorGUI.DrawRect(rect, group.Open ? m_groupOpenBackgroundColor : m_groupClosedBackgroundColor);
 
             // Custom Foldout
             rect = EditorGUILayout.GetControlRect(false, 25f);
@@ -232,17 +244,17 @@ namespace Dhs5.Utility.Scenes
                 if (Event.current.type == EventType.MouseDown
                     && rect.Contains(Event.current.mousePosition))
                 {
-                    group.open = !group.open;
+                    group.SetOpen(!group.Open);
                     Event.current.Use();
                 }
-                GUIContent content = group.open ? EditorGUIUtility.IconContent("d_icon dropdown open") : EditorGUIUtility.IconContent("d_icon dropdown");
+                GUIContent content = group.Open ? EditorGUIUtility.IconContent("d_icon dropdown open") : EditorGUIUtility.IconContent("d_icon dropdown");
                 content.text = group.name;
                 EditorGUI.LabelField(rect, content, m_groupStyle);
             }
             EditorGUI.indentLevel--;
 
             // Group Content
-            if (group.open)
+            if (group.Open)
             {
                 EditorGUILayout.Space(5f);
 
@@ -416,9 +428,10 @@ namespace Dhs5.Utility.Scenes
             #region Members
 
             public readonly string name;
-            public bool open;
 
             private HashSet<SceneInfos> m_scenes;
+
+            public bool Open { get; private set; }
 
             #endregion
 
@@ -427,7 +440,7 @@ namespace Dhs5.Utility.Scenes
             public SceneGroup(SceneInfos sceneInfos)
             {
                 name = sceneInfos.folder;
-                open = false;
+                Open = EditorPrefs.GetBool(EditorPref_GroupKey + name, false);
 
                 m_scenes = new HashSet<SceneInfos>() { sceneInfos };
             }
@@ -456,6 +469,11 @@ namespace Dhs5.Utility.Scenes
             public void Add(SceneInfos scene)
             {
                 m_scenes.Add(scene);
+            }
+            public void SetOpen(bool open)
+            {
+                this.Open = open;
+                EditorPrefs.SetBool(EditorPref_GroupKey + name, open);
             }
 
             #endregion
