@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
+using Dhs5.Utility.Attributes;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -29,7 +31,7 @@ namespace Dhs5.Utility.Databases
         [SerializeField, TextArea] private string m_usings;
 
         // Script Properties
-        [SerializeField] private string m_scriptFolder;
+        [SerializeField, FolderPicker] private string m_scriptFolder;
         [SerializeField] private TextAsset m_textAsset;
 
         #endregion
@@ -247,7 +249,14 @@ namespace Dhs5.Utility.Databases
 
             EditorGUILayout.Space(8f);
 
-            EditorGUIHelper.FolderPicker(p_scriptFolder, ForceContainerContentRefresh);
+            //EditorGUIHelper.FolderPicker(p_scriptFolder, ForceContainerContentRefresh);
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(p_scriptFolder, true);
+            if (EditorGUI.EndChangeCheck())
+            {
+                ForceContainerContentRefresh();
+            }
+
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(p_textAsset);
             EditorGUI.EndDisabledGroup();

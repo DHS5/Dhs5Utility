@@ -35,11 +35,12 @@ namespace Dhs5.Utility.Attributes
 
                 // Label path
                 Rect folderRect = new Rect(labelRect.x + labelRect.width, position.y, position.width - labelRect.width - buttonsWidth * buttonsCount, 20f);
-                EditorGUI.SelectableLabel(folderRect, property.stringValue);
+                GUI.Box(folderRect, GUIContent.none, EditorStyles.helpBox);
+                EditorGUI.SelectableLabel(new Rect(folderRect.x - EditorGUI.indentLevel * 15f + 4f, folderRect.y, folderRect.width, folderRect.height), property.stringValue);
                 if (!property.stringValue.StartsWith("Assets") || !Directory.Exists(property.stringValue))
                 {
+                    GUI.changed = property.stringValue != "Assets";
                     property.stringValue = "Assets";
-                    GUI.changed = true;
                 }
 
                 // Buttons
@@ -58,8 +59,8 @@ namespace Dhs5.Utility.Attributes
                         {
                             path = "Assets";
                         }
+                        GUI.changed = property.stringValue != path;
                         property.stringValue = path;
-                        GUI.changed = true;
                     }
 
                     GUI.FocusControl(null);
