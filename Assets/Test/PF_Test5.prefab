@@ -55,3 +55,9 @@ MonoBehaviour:
   _dataPicker2:
     m_container: {fileID: 11400000, guid: 72e73dbeecb35e64488c260f895d793c, type: 2}
     m_currentSelectionUID: 0
+  m_sceneRef:
+    m_sceneAsset: {fileID: 0}
+    m_sceneIndex: -1
+    m_sceneName: 
+    m_scenePath: 
+  m_folder: Assets

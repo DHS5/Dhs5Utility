@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Dhs5.Utility.Attributes;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -15,7 +17,7 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
-        [SerializeField] private string m_folderName;
+        [SerializeField, FolderPicker] private string m_folderName;
         [SerializeField] private List<UnityEngine.Object> m_folderContent;
 
         #endregion
@@ -192,7 +194,13 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnContainerInformationsContentGUI()
         {
-            EditorGUIHelper.FolderPicker(p_folderName, new GUIContent("Folder"), OnFolderSelected);
+            //EditorGUIHelper.FolderPicker(p_folderName, new GUIContent("Folder"), OnFolderSelected);
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(p_folderName, true);
+            if (EditorGUI.EndChangeCheck())
+            {
+                OnFolderSelected();
+            }
         }
 
         protected override string ContainerInvalidDataTypeMessage()
@@ -216,6 +224,7 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnFolderChanged(string former, string current)
         {
             m_currentFolderName = current;
+            serializedObject.ApplyModifiedProperties();
 
             ForceContainerContentRefresh();
         }

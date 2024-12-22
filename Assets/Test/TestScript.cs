@@ -1,3 +1,4 @@
+using Dhs5.Utility.Attributes;
 using Dhs5.Utility.Databases;
 using Dhs5.Utility.Debuggers;
 using Dhs5.Utility.Scenes;
@@ -15,6 +16,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private DataPicker _dataPicker1;
     [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
     [SerializeField] private SceneReference m_sceneRef;
+    [SerializeField, FolderPicker] private string m_folder;
 
     public int UID => m_uid;
 
