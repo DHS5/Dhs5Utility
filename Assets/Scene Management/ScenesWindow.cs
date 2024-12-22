@@ -237,7 +237,7 @@ namespace Dhs5.Utility.Scenes
             GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
             
             // Label
-            m_activeScenesOpened = EditorGUI.Toggle(rect, GUIContent.none, m_activeScenesOpened, EditorStyles.toolbarButton);
+            if (GUI.Button(rect, GUIContent.none, EditorStyles.toolbarButton)) m_activeScenesOpened = !m_activeScenesOpened;
             EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f, rect.height), "Active Scenes", m_toolbarStyle);
         }
         
