@@ -17,6 +17,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
     [SerializeField] private SceneReference m_sceneRef;
     [SerializeField, FolderPicker] private string m_folder;
+    [SerializeField, FolderPicker("Assets/Test")] private string m_folder2;
 
     public int UID => m_uid;
 

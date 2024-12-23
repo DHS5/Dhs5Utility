@@ -329,6 +329,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
+      propertyPath: m_folder2
+      value: Assets/Test
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
       propertyPath: m_sceneRef.m_sceneName
       value: Brain
       objectReference: {fileID: 0}
