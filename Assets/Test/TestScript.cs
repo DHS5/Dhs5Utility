@@ -19,6 +19,8 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, FolderPicker] private string m_folder;
     [SerializeField, FolderPicker("Assets/Test")] private string m_folder2;
     [SerializeField, Layer] private int m_layer;
+    [SerializeField, VectorRange(5f, 45f)] private Vector2 m_ranges;
+    [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
 
     public int UID => m_uid;
 

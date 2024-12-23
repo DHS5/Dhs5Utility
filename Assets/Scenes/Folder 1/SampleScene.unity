@@ -334,6 +334,46 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
+      propertyPath: m_range.x
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_range.y
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_ranges.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_ranges.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_intRange.x
+      value: 34
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_intRange.y
+      value: 34
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_intRanges.x
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_intRanges.y
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
       propertyPath: _dataPicker1.m_currentSelection
       value: 1
       objectReference: {fileID: 0}
