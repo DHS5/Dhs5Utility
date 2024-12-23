@@ -66,7 +66,7 @@ namespace Dhs5.Utility.Attributes
                 float buttonsWidth = 32f;
 
                 Rect labelRect = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, 20f);
-                Rect folderRect = new Rect(labelRect.x + labelRect.width, position.y, position.width - labelRect.width - buttonsWidth, 20f);
+                Rect folderRect = new Rect(labelRect.x + labelRect.width + 2f, position.y, position.width - labelRect.width - buttonsWidth - 2f, 20f);
                 Rect folderButtonRect = new Rect(folderRect.x + folderRect.width, position.y, buttonsWidth, 20f);
 
                 // --- CONTEXT MENU ---
@@ -123,6 +123,15 @@ namespace Dhs5.Utility.Attributes
             }
 
             EditorGUI.EndProperty();
+        }
+
+        #endregion
+
+        #region GUI Height
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
+            return 20f;
         }
 
         #endregion

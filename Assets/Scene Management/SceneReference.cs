@@ -144,12 +144,16 @@ namespace Dhs5.Utility.Scenes
 
             Rect rect = new Rect(position.x, position.y, position.width, 20f);
             float buttonWidth = 30f;
-
-            label.image = property.isExpanded ? EditorGUIUtility.IconContent("d_icon dropdown open").image : EditorGUIUtility.IconContent("d_icon dropdown").image;
-            if (GUI.Button(new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height), GUIContent.none, GUIStyle.none))
+            var buttonRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height);
+            if (Event.current.type == EventType.MouseDown
+                && Event.current.button == 0
+                && buttonRect.Contains(Event.current.mousePosition))
             {
                 property.isExpanded = !property.isExpanded;
+                Event.current.Use();
             }
+
+            label.image = property.isExpanded ? EditorGUIUtility.IconContent("d_icon dropdown open").image : EditorGUIUtility.IconContent("d_icon dropdown").image;
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width - buttonWidth, rect.height), p_sceneAsset, label, true);

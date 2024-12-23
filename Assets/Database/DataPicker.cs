@@ -160,7 +160,7 @@ namespace Dhs5.Utility.Databases
                 if (p_container.objectReferenceValue is BaseDataContainer dataContainer)
                 {
                     (var names, var uids) = dataContainer.Editor_GetContainerDisplayContent();
-                    var pickerRect = new Rect(rect.x + EditorGUIUtility.labelWidth, rect.y, rect.width - EditorGUIUtility.labelWidth, rect.height);
+                    var pickerRect = new Rect(rect.x + EditorGUIUtility.labelWidth + 2f, rect.y, rect.width - EditorGUIUtility.labelWidth - 2f, rect.height);
                     p_currentSelectionUID.intValue = EditorGUI.IntPopup(pickerRect, p_currentSelectionUID.intValue, names, uids);
                 }
             }

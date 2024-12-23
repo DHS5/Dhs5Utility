@@ -12,12 +12,13 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private bool _showTexture;
     [SerializeField] private Texture2D _texture;
     [SerializeField] private bool _showName;
-    [SerializeField] private string _name;
+    [SerializeField, ReadOnly()] private string _name;
     [SerializeField] private DataPicker _dataPicker1;
     [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
     [SerializeField] private SceneReference m_sceneRef;
     [SerializeField, FolderPicker] private string m_folder;
     [SerializeField, FolderPicker("Assets/Test")] private string m_folder2;
+    [SerializeField, Layer] private int m_layer;
 
     public int UID => m_uid;
 

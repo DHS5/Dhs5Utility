@@ -329,42 +329,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
-      propertyPath: m_folder2
-      value: Assets/Test
+      propertyPath: _showName
+      value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_sceneRef.m_sceneName
-      value: Brain
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_sceneRef.m_scenePath
-      value: Assets/Scenes/Folder 1/Brain.unity
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_sceneRef.m_sceneAsset
-      value: 
-      objectReference: {fileID: 102900000, guid: e88f533a825537548b034f50b75f11d8,
-        type: 3}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_sceneRef.m_sceneIndex
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: _dataPicker1.m_container
-      value: 
-      objectReference: {fileID: 11400000, guid: 6e66cc9ceee7cd240bb7f43da56a027d,
-        type: 2}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: _dataPicker2.m_container
-      value: 
-      objectReference: {fileID: 11400000, guid: 72e73dbeecb35e64488c260f895d793c,
-        type: 2}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
       propertyPath: _dataPicker1.m_currentSelection
@@ -374,16 +341,6 @@ PrefabInstance:
         type: 3}
       propertyPath: _dataPicker2.m_currentSelection
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: _dataPicker1.m_currentSelectionUID
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: _dataPicker2.m_currentSelectionUID
-      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
