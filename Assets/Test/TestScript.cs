@@ -24,6 +24,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, VectorRange(5f, 45f)] private Vector2 m_ranges;
     [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
     [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
+    [SerializeField, FoldoutContent] private UpdaterDatabaseElement m_foldoutElem;
 
     public int UID => m_uid;
 

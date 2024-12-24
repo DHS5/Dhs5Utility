@@ -6,7 +6,6 @@ using System;
 #if UNITY_EDITOR
 using System.Linq;
 using UnityEditor;
-using System.Reflection;
 #endif
 
 namespace Dhs5.Utility.Attributes
@@ -37,7 +36,6 @@ namespace Dhs5.Utility.Attributes
                     property.objectReferenceValue = obj;
                 }
 
-                FieldInfo fieldInfo = property.serializedObject.targetObject.GetType().GetField(property.name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
                 if (fieldInfo != null && fieldInfo.FieldType.IsSubclassOf(typeof(ScriptableObject)))
                 {
                     Type fieldType = fieldInfo.FieldType;
