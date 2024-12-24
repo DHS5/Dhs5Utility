@@ -21,7 +21,7 @@ namespace Dhs5.Utility.Databases
     /// <remarks>
     /// EnumDatabases should always use the <see cref="DatabaseAttribute"/> and never the <see cref="DataContainerAttribute"/>
     /// </remarks>
-    public class EnumDatabase : ScriptableDataContainer
+    public abstract class EnumDatabase : ScriptableDataContainer
     {
         #region Members
 
@@ -210,8 +210,6 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnGUI()
         {
-            DrawDefault();
-
             OnContainerInformationsGUI("Enum Informations");
 
             EditorGUILayout.Space(10f);
@@ -260,6 +258,8 @@ namespace Dhs5.Utility.Databases
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(p_textAsset);
             EditorGUI.EndDisabledGroup();
+
+            base.OnContainerInformationsContentGUI();
         }
 
         #endregion

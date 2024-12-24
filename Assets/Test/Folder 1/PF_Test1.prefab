@@ -168,3 +168,8 @@ MonoBehaviour:
     m_scenePath: Assets/Scenes/Folder 1/Brain.unity
   m_folder: Assets/Console/Implementation/Predefined Commands
   m_folder2: Assets/Test
+  m_folder3: {fileID: 102900000, guid: b1b999856f83dab468cbcc3325593d61, type: 3}
+  m_layer: 0
+  m_ranges: {x: 0, y: 0}
+  m_intRange: {x: 0, y: 0}
+  m_creator: {fileID: 0}

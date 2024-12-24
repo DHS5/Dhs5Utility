@@ -13,7 +13,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
-    public class FolderDataContainer : BaseDataContainer
+    public abstract class FolderDataContainer : BaseDataContainer
     {
         #region Members
 
@@ -173,9 +173,7 @@ namespace Dhs5.Utility.Databases
         #region GUI
 
         protected override void OnGUI()
-        {
-            DrawDefault();
-            
+        {            
             OnContainerInformationsGUI("Folder Informations");
             
             EditorGUILayout.Space(10f);
@@ -194,13 +192,14 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnContainerInformationsContentGUI()
         {
-            //EditorGUIHelper.FolderPicker(p_folderName, new GUIContent("Folder"), OnFolderSelected);
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(p_folderName, true);
             if (EditorGUI.EndChangeCheck())
             {
                 OnFolderSelected();
             }
+
+            base.OnContainerInformationsContentGUI();
         }
 
         protected override string ContainerInvalidDataTypeMessage()

@@ -6,6 +6,7 @@ using System.IO;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using System.Reflection;
 #endif
 
 namespace Dhs5.Utility.Attributes
@@ -60,6 +61,7 @@ namespace Dhs5.Utility.Attributes
 
             EditorGUI.BeginProperty(position, label, property);
 
+            // --- FOLDER PATH ---
             if (property.propertyType == SerializedPropertyType.String)
             {
                 // --- RECTS COMPUTATIONS ---
@@ -117,6 +119,50 @@ namespace Dhs5.Utility.Attributes
                     GUI.FocusControl(null);
                 }
             }
+
+            // --- FOLDER PATH ---
+            else if (property.propertyType == SerializedPropertyType.ObjectReference)
+            {
+                FieldInfo fieldInfo = property.serializedObject.targetObject.GetType().GetField(property.name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+                if (fieldInfo != null && fieldInfo.FieldType == typeof(UnityEngine.Object))
+                {
+                    float buttonsWidth = 32f;
+
+                    // Label
+                    Rect labelRect = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, 18f);
+                    EditorGUI.LabelField(labelRect, label);
+                    // Object
+                    Rect objectRect = new Rect(position.x + EditorGUIUtility.labelWidth + 2f, position.y, position.width - EditorGUIUtility.labelWidth - 2f - buttonsWidth, 18f);
+
+                    EditorGUI.BeginDisabledGroup(true);
+                    EditorGUI.PropertyField(objectRect, property, GUIContent.none, true);
+                    EditorGUI.EndDisabledGroup();
+
+                    // Folder Button
+                    Rect folderButtonRect = new Rect(objectRect.x + objectRect.width, position.y, buttonsWidth, 20f);
+
+                    if (GUI.Button(folderButtonRect, EditorGUIUtility.IconContent("FolderOpened On Icon")))
+                    {
+                        string currentPath = property.objectReferenceValue != null ? AssetDatabase.GetAssetPath(property.objectReferenceValue) : defaultRoot;
+                        string path = EditorUtility.OpenFolderPanel(label.text, currentPath, defaultRoot);
+                        if (!string.IsNullOrWhiteSpace(path))
+                        {
+                            if (path.Contains(defaultRoot))
+                            {
+                                path = path.Substring(path.IndexOf("Assets"));
+                            }
+                            else
+                            {
+                                path = defaultRoot;
+                            }
+                            var folderObj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                            GUI.changed = property.objectReferenceValue != folderObj;
+                            property.objectReferenceValue = folderObj;
+                        }
+                    }
+                }
+            }
+
             else
             {
                 EditorGUI.PropertyField(position, property, label, true);

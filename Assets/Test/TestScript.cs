@@ -2,6 +2,7 @@ using Dhs5.Utility.Attributes;
 using Dhs5.Utility.Databases;
 using Dhs5.Utility.Debuggers;
 using Dhs5.Utility.Scenes;
+using Dhs5.Utility.Updates;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,9 +19,11 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private SceneReference m_sceneRef;
     [SerializeField, FolderPicker] private string m_folder;
     [SerializeField, FolderPicker("Assets/Test")] private string m_folder2;
+    [SerializeField, FolderPicker("Assets/Test")] private UnityEngine.Object m_folder3;
     [SerializeField, Layer] private int m_layer;
     [SerializeField, VectorRange(5f, 45f)] private Vector2 m_ranges;
     [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
+    [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
 
     public int UID => m_uid;
 

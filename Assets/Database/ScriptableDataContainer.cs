@@ -10,7 +10,7 @@ using System.IO;
 
 namespace Dhs5.Utility.Databases
 {
-    public class ScriptableDataContainer : BaseDataContainer
+    public abstract class ScriptableDataContainer : BaseDataContainer
     {
         #region Members
 

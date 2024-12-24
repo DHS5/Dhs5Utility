@@ -7,7 +7,6 @@ using System.Linq;
 
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using static UnityEditor.PlayerSettings;
 
 namespace Dhs5.Utility.Scenes
 {
@@ -213,7 +212,7 @@ namespace Dhs5.Utility.Scenes
                 {
                     foreach (var scene in group)
                     {
-                        if (scene.name.StartsWith(m_searchString, System.StringComparison.OrdinalIgnoreCase))
+                        if (scene.name.Contains(m_searchString.Trim(), System.StringComparison.OrdinalIgnoreCase))
                         {
                             OnSceneInfosGUI(scene);
                             EditorGUILayout.Space(3f);

@@ -82,8 +82,9 @@ namespace Dhs5.Utility.Databases
                 }
 
                 EditorGUILayout.Space(5f);
-                EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
-                EditorGUILayout.Space(5f);
+                var rect = EditorGUILayout.GetControlRect(false, 2f);
+                rect.x = 0f; rect.width = position.width;
+                EditorGUI.DrawRect(rect, Color.white);
 
                 if (TryGetEditorAtIndex(m_currentSelection, out Editor editor))
                 {

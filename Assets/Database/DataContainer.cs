@@ -673,7 +673,10 @@ namespace Dhs5.Utility.Databases
 
             EditorGUILayout.EndVertical();
         }
-        protected virtual void OnContainerInformationsContentGUI() { }
+        protected virtual void OnContainerInformationsContentGUI() 
+        {
+            DrawDefault();
+        }
 
         #endregion
 
@@ -926,7 +929,9 @@ namespace Dhs5.Utility.Databases
 
         protected void Separator(float height, Color color)
         {
-            EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, height), color);
+            var rect = EditorGUILayout.GetControlRect(false, height);
+            rect.x = 0f; rect.width = Screen.width;
+            EditorGUI.DrawRect(rect, color);
         }
 
         #endregion

@@ -71,7 +71,9 @@ namespace Dhs5.Utility.Settings
                 }
 
                 EditorGUILayout.Space(5f);
-                EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 2f), Color.white);
+                var rect = EditorGUILayout.GetControlRect(false, 2f);
+                rect.x = 0f; rect.width = position.width;
+                EditorGUI.DrawRect(rect, Color.white);
                 EditorGUILayout.Space(5f);
 
                 m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition);
