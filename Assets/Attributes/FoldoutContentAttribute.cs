@@ -60,6 +60,25 @@ namespace Dhs5.Utility.Attributes
                 // Base Property
                 Rect basePropertyRect = new Rect(position.x + EditorGUIUtility.labelWidth + 2f, position.y, position.width - EditorGUIUtility.labelWidth - 2f, 18f);
                 EditorGUI.PropertyField(basePropertyRect, property, GUIContent.none, true);
+
+                // Foldout Content
+                if (property.isExpanded)
+                {
+                    SerializedObject serializedObject = new(property.objectReferenceValue);
+
+                    var objProperty = serializedObject.GetIterator();
+                    if (objProperty.Next(true))
+                    {
+                        int count = 0;
+                        while (objProperty.NextVisible(false) && count < 100)
+                        {
+                            Debug.Log(objProperty.name + (objProperty.hasVisibleChildren ? " child" : ""));
+                            count++;
+                        }
+                    }
+
+                    serializedObject.ApplyModifiedProperties();
+                }
             }
             else
             {
