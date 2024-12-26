@@ -8,17 +8,19 @@ using UnityEditor;
 #endif
 
 [Serializable]
-public class EnumValues<T, U> : IEnumerable<KeyValuePair<T, U>> where T : Enum
+public class EnumFlagValues<TE, TF, U> : IEnumerable<KeyValuePair<TE, U>> where TE : Enum where TF : Enum
 {
     #region Members
 
+    [SerializeField] private TF m_flag;
     [SerializeField] private U[] m_enumValues;
 
     #endregion
 
     #region Properties
 
-    public U this[T enumValue]
+    public TF Flag { get => m_flag; set => m_flag = value; }
+    public U this[TE enumValue]
     {
         get => Get(enumValue);
         set => Set(enumValue, value);
@@ -28,7 +30,24 @@ public class EnumValues<T, U> : IEnumerable<KeyValuePair<T, U>> where T : Enum
 
     #region Accessors
 
-    private U Get(T enumValue)
+    public bool TryGet(TE enumValue, out U value)
+    {
+        value = default;
+        if (!m_enumValues.IsValid()) return false;
+
+        int index = Convert.ToInt32(enumValue);
+        if (index < m_enumValues.Length)
+        {
+            value = m_enumValues[index];
+            return IsIndexValid(index);
+        }
+        else
+        {
+            Debug.LogError("Enum Values for type " + typeof(U) + " not complete, might need to serialize it in the inspector");
+            return false;
+        }
+    }
+    private U Get(TE enumValue)
     {
         if (!m_enumValues.IsValid()) return default;
 
@@ -41,7 +60,7 @@ public class EnumValues<T, U> : IEnumerable<KeyValuePair<T, U>> where T : Enum
             return default;
         }
     }
-    private void Set(T enumValue, U value)
+    private void Set(TE enumValue, U value)
     {
         if (!m_enumValues.IsValid()) return;
 
@@ -66,23 +85,32 @@ public class EnumValues<T, U> : IEnumerable<KeyValuePair<T, U>> where T : Enum
     {
         return GetEnumerator();
     }
-    public IEnumerator<KeyValuePair<T, U>> GetEnumerator()
+    public IEnumerator<KeyValuePair<TE, U>> GetEnumerator()
     {
         for (int i = 0; i < m_enumValues.Length; i++)
         {
-            if (Enum.IsDefined(typeof(T), i))
+            if (Enum.IsDefined(typeof(TE), i) && IsIndexValid(i))
             {
-                yield return new KeyValuePair<T, U>((T)Enum.ToObject(typeof(T), i), m_enumValues[i]);
+                yield return new KeyValuePair<TE, U>((TE)Enum.ToObject(typeof(TE), i), m_enumValues[i]);
             }
         }
     }
 
-    public IEnumerator<U> GetSimpleEnumerator()
+    public IEnumerable<U> GetSimpleEnumerator()
     {
-        foreach (var u in m_enumValues)
+        foreach (var kvp in this)
         {
-            yield return u;
+            yield return kvp.Value;
         }
+    }
+
+    #endregion
+
+    #region Utility
+
+    private bool IsIndexValid(int index)
+    {
+        return (Convert.ToInt32(m_flag) & (1 << index)) != 0;
     }
 
     #endregion
@@ -92,19 +120,21 @@ public class EnumValues<T, U> : IEnumerable<KeyValuePair<T, U>> where T : Enum
 
 #if UNITY_EDITOR
 
-[CustomPropertyDrawer(typeof(EnumValues<,>))]
-public class EnumValuesDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(EnumFlagValues<,,>))]
+public class EnumFlagValuesDrawer : PropertyDrawer
 {
     #region GUI
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        var flagType = GetFlagType();
         var enumType = GetEnumType();
         var enumValues = Enum.GetValues(enumType);
 
+        var p_flag = property.FindPropertyRelative("m_flag");
         var p_enumValues = property.FindPropertyRelative("m_enumValues");
 
-        // Get the array size
+        // Get array size
         int arraySize = 0;
         int intValue;
         for (int i = 0; i < enumValues.Length; i++)
@@ -119,7 +149,14 @@ public class EnumValuesDrawer : PropertyDrawer
 
         Rect rect = new(position.x, position.y, position.width, 20f);
 
-        property.isExpanded = EditorGUI.Foldout(rect, property.isExpanded, label, true);
+        // Foldout
+        Rect foldoutRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height);
+        property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, label, true);
+
+        // Flag Field
+        Rect flagRect = new Rect(rect.x + EditorGUIUtility.labelWidth + 2f, rect.y, rect.width - EditorGUIUtility.labelWidth - 2f, rect.height);
+        EditorGUI.PropertyField(flagRect, p_flag, GUIContent.none);
+
         if (property.isExpanded)
         {
             EditorGUI.indentLevel++;
@@ -130,7 +167,7 @@ public class EnumValuesDrawer : PropertyDrawer
             foreach (var v in enumValues)
             {
                 index = (int)v;
-                if (index >= 0 && index < arraySize)
+                if (index >= 0 && index < arraySize && (p_flag.enumValueFlag & 1 << index) != 0)
                 {
                     EditorGUI.PropertyField(rect, p_enumValues.GetArrayElementAtIndex(index), new GUIContent(v.ToString()), true);
                     rect.y += Mathf.Max(20f, EditorGUI.GetPropertyHeight(p_enumValues.GetArrayElementAtIndex(index)));
@@ -153,12 +190,13 @@ public class EnumValuesDrawer : PropertyDrawer
         {
             float height = 25f;
 
+            var p_flag = property.FindPropertyRelative("m_flag");
             var p_enumValues = property.FindPropertyRelative("m_enumValues");
             int index;
             foreach (var v in Enum.GetValues(GetEnumType()))
             {
                 index = (int)v;
-                if (index >= 0 && index < p_enumValues.arraySize)
+                if (index >= 0 && index < p_enumValues.arraySize && (p_flag.enumValueFlag & 1 << index) != 0)
                 {
                     height += Mathf.Max(20f, EditorGUI.GetPropertyHeight(p_enumValues.GetArrayElementAtIndex(index)));
                 }
@@ -178,6 +216,12 @@ public class EnumValuesDrawer : PropertyDrawer
         var enumType = fieldInfo.FieldType;
         while (enumType.IsGenericType) enumType = enumType.GetGenericArguments()[0];
         return enumType;
+    }
+    private Type GetFlagType()
+    {
+        var flagType = fieldInfo.FieldType;
+        while (flagType.IsGenericType) flagType = flagType.GetGenericArguments()[1];
+        return flagType;
     }
 
     #endregion

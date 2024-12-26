@@ -384,6 +384,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
+      propertyPath: m_enumFlagValues.m_flag
+      value: 14
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
       propertyPath: m_animCurve.m_PreInfinity
       value: 2
       objectReference: {fileID: 0}
@@ -409,6 +414,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
+      propertyPath: m_enumValues.m_enumValues.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
       propertyPath: m_animCurve.m_Curve.Array.data[0].time
       value: -0.53045654
       objectReference: {fileID: 0}
@@ -426,6 +436,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_animCurve.m_Curve.Array.data[1].value
       value: 3.0023193
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_enumFlagValues.m_enumValues.Array.size
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}

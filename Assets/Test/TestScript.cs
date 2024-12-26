@@ -34,6 +34,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
     [SerializeField, FoldoutContent] private UpdaterDatabaseElement m_foldoutElem;
     [SerializeField] private EnumValues<EUpdateTimelineEventType, int> m_enumValues;
+    [SerializeField] private EnumFlagValues<DebugCategory, DebugCategoryFlags, int> m_enumFlagValues;
 
     public int UID => m_uid;
 
