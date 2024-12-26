@@ -6,6 +6,8 @@ using Dhs5.Utility.Updates;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.VisualScripting;
+
 
 #if UNITY_EDITOR
 using UnityEditorInternal;
@@ -18,6 +20,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private Texture2D _texture;
     [SerializeField] private bool _showName;
     [SerializeField, ReadOnly()] private string _name;
+    [SerializeField, Show(nameof(_showName))] private string _name2;
     [SerializeField] private DataPicker _dataPicker1;
     [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
     [SerializeField] private SceneReference m_sceneRef;
@@ -30,6 +33,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
     [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
     [SerializeField, FoldoutContent] private UpdaterDatabaseElement m_foldoutElem;
+    [SerializeField] private EnumValues<EUpdateTimelineEventType, int> m_enumValues;
 
     public int UID => m_uid;
 
