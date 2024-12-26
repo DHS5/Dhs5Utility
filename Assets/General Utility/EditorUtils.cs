@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -255,6 +256,46 @@ namespace Dhs5.Utility.Editors
                 }
             }
         }
+
+        #endregion
+
+
+        #region Menu Items
+
+        #region Scenes
+
+        [MenuItem("Assets/Add to build settings", priority = 101)]
+        private static void AddToBuildSettings(MenuCommand menuCommand)
+        {
+            List<EditorBuildSettingsScene> newScenes = new();
+            var currentScenes = EditorBuildSettings.scenes.ToList();
+            var currentScenePaths = currentScenes.Select(s => s.path).ToList();
+
+            string path;
+            foreach (var obj in Selection.objects)
+            {
+                if (obj is SceneAsset asset)
+                {
+                    path = AssetDatabase.GetAssetPath(asset);
+                    if (!currentScenePaths.Contains(path))
+                        newScenes.Add(new EditorBuildSettingsScene(path, true));
+                }
+            }
+
+            currentScenes.AddRange(newScenes);
+            EditorBuildSettings.scenes = currentScenes.ToArray();
+        }
+        [MenuItem("Assets/Add to build settings", isValidateFunction:true)]
+        private static bool AddToBuildSettings_Validation(MenuCommand menuCommand)
+        {
+            foreach (var obj in Selection.objects)
+            {
+                if (obj is SceneAsset) return true;
+            }
+            return false;
+        }
+
+        #endregion
 
         #endregion
     }

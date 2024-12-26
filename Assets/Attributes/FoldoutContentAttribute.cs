@@ -22,12 +22,6 @@ namespace Dhs5.Utility.Attributes
     [CustomPropertyDrawer(typeof(FoldoutContentAttribute))]
     public class FoldoutContentAttributeDrawer : PropertyDrawer
     {
-        #region Members
-
-        private Editor m_editor;
-
-        #endregion
-
         #region GUI
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -46,12 +40,9 @@ namespace Dhs5.Utility.Attributes
                         && labelRect.Contains(Event.current.mousePosition))
                     {
                         property.isExpanded = !property.isExpanded;
+                        if (!property.isExpanded) DisposeSerializedObject();
                         Event.current.Use();
                     }
-                }
-                else
-                {
-                    property.isExpanded = false;
                 }
 
                 label.image = EditorGUIUtility.IconContent(property.isExpanded ? "d_icon dropdown open" : "d_icon dropdown").image;
@@ -59,24 +50,40 @@ namespace Dhs5.Utility.Attributes
 
                 // Base Property
                 Rect basePropertyRect = new Rect(position.x + EditorGUIUtility.labelWidth + 2f, position.y, position.width - EditorGUIUtility.labelWidth - 2f, 18f);
+                EditorGUI.BeginChangeCheck();
                 EditorGUI.PropertyField(basePropertyRect, property, GUIContent.none, true);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    if (property.objectReferenceValue == null)
+                    {
+                        property.isExpanded = false;
+                        DisposeSerializedObject();
+                    }
+                }
 
                 // Foldout Content
                 if (property.isExpanded)
                 {
-                    SerializedObject serializedObject = new(property.objectReferenceValue);
+                    EditorGUI.indentLevel++;
+                    Rect rect = new Rect(position.x, position.y + 20f, position.width, 18f);
+                    SerializedObject serializedObject = GetSerializedObject(property);
 
                     var objProperty = serializedObject.GetIterator();
                     if (objProperty.Next(true))
                     {
-                        int count = 0;
+                        int count = 0; // Fail safe
                         while (objProperty.NextVisible(false) && count < 100)
                         {
-                            Debug.Log(objProperty.name + (objProperty.hasVisibleChildren ? " child" : ""));
+                            if (objProperty.propertyPath != "m_Script")
+                            {
+                                EditorGUI.PropertyField(rect, objProperty, true);
+                                rect.y += EditorGUI.GetPropertyHeight(objProperty) + 2f;
+                            }
                             count++;
                         }
                     }
 
+                    EditorGUI.indentLevel--;
                     serializedObject.ApplyModifiedProperties();
                 }
             }
@@ -86,6 +93,68 @@ namespace Dhs5.Utility.Attributes
             }
 
             EditorGUI.EndProperty();
+        }
+
+        #endregion
+
+        #region GUI Height
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
+            if (property.propertyType == SerializedPropertyType.ObjectReference &&
+                fieldInfo != null && fieldInfo.FieldType.IsSubclassOf(typeof(ScriptableObject)) &&
+                property.isExpanded)
+            {
+                float height = 20f;
+
+                SerializedObject serializedObject = GetSerializedObject(property);
+
+                var objProperty = serializedObject.GetIterator();
+                if (objProperty.Next(true))
+                {
+                    int count = 0; // Fail safe
+                    while (objProperty.NextVisible(false) && count < 100)
+                    {
+                        if (objProperty.propertyPath != "m_Script")
+                            height += EditorGUI.GetPropertyHeight(objProperty) + 2f;
+                        count++;
+                    }
+                }
+
+                return height;
+            }
+            return base.GetPropertyHeight(property, label);
+        }
+
+        #endregion
+
+        #region Utility
+
+        private static SerializedObject _serializedObject;
+
+        private static SerializedObject GetSerializedObject(SerializedProperty property)
+        {
+            if (_serializedObject != null && _serializedObject.targetObject == property.objectReferenceValue)
+            {
+                _serializedObject.UpdateIfRequiredOrScript();
+                return _serializedObject;
+            }
+
+            if (_serializedObject != null)
+            {
+                _serializedObject.Dispose();
+            }
+
+            _serializedObject = new SerializedObject(property.objectReferenceValue);
+            return _serializedObject;
+        }
+        private static void DisposeSerializedObject()
+        {
+            if (_serializedObject != null)
+            {
+                _serializedObject.Dispose();
+                _serializedObject = null;
+            }
         }
 
         #endregion

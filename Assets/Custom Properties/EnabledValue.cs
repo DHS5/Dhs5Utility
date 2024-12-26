@@ -8,8 +8,14 @@ using UnityEditor;
 [Serializable]
 public class EnabledValue<T>
 {
+    #region Members
+
     [SerializeField] private bool m_enabled;
     [SerializeField] private T m_value;
+
+    #endregion
+
+    #region Accessors
 
     public bool IsEnabled(out T value)
     {
@@ -22,6 +28,8 @@ public class EnabledValue<T>
         m_enabled = enabled;
         m_value = value;
     }
+
+    #endregion
 }
 
 #region Drawer
@@ -43,7 +51,7 @@ public class EnabledValueDrawer : PropertyDrawer
 
         EditorGUI.BeginProperty(position, label, property);
 
-        p_enabled.boolValue = EditorGUI.ToggleLeft(new Rect(rect.x, rect.y, toggleWidth, rect.height), GUIContent.none, p_enabled.boolValue);
+        p_enabled.boolValue = EditorGUI.ToggleLeft(new Rect(rect.x, rect.y, toggleWidth + EditorGUI.indentLevel * 15f, rect.height), GUIContent.none, p_enabled.boolValue);
         property.isExpanded = p_enabled.boolValue;
 
         Rect propertyRect = new Rect(rect.x + toggleWidth, rect.y, rect.width - toggleWidth, rect.height);

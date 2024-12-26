@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Dhs5.Utility.Attributes;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -12,7 +13,7 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
-        [SerializeField] protected int m_enumIndex;
+        [SerializeField, ReadOnly] protected int m_enumIndex;
 
         #endregion
 

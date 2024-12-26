@@ -20,4 +20,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Folder 1/Brain.unity
     guid: e88f533a825537548b034f50b75f11d8
+  - enabled: 0
+    path: Assets/Scenes/Folder 2/NewTestScene.unity
+    guid: 2d181c668bea579438eed48153b36fba
   m_configObjects: {}

@@ -7,6 +7,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditorInternal;
+#endif
+
 public class TestScript : MonoBehaviour, IDataContainerElement
 {
     [SerializeField] private int m_uid;
@@ -21,6 +25,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, FolderPicker("Assets/Test")] private string m_folder2;
     [SerializeField, FolderPicker("Assets/Test")] private UnityEngine.Object m_folder3;
     [SerializeField, Layer] private int m_layer;
+    [SerializeField, Tag] private string m_tag;
     [SerializeField, VectorRange(5f, 45f)] private Vector2 m_ranges;
     [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
     [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
