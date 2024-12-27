@@ -215,6 +215,12 @@ namespace Dhs5.Utility.Databases
 
             for (int i = 0; i < splittedNames.Count; i++)
             {
+                if (splittedNames[i].Length == 0)
+                {
+                    structure.Add(new FolderStructureEntry("_", 0, dico[sortedNames[i]]));
+                    continue;
+                }
+
                 if (i == 0)
                 {
                     for (int g = 0; g < splittedNames[i].Length - 1; g++)

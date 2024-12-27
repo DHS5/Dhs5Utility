@@ -7,6 +7,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.VisualScripting;
+using Dhs5.Utility.Tags;
+
 
 
 #if UNITY_EDITOR
@@ -35,6 +37,8 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, FoldoutContent] private UpdaterDatabaseElement m_foldoutElem;
     [SerializeField] private EnumValues<EUpdateTimelineEventType, int> m_enumValues;
     [SerializeField] private EnumFlagValues<DebugCategory, DebugCategoryFlags, int> m_enumFlagValues;
+    [SerializeField] private GameplayTagsList m_tags;
+    [SerializeField] private GameplayTagsList m_tags2;
 
     public int UID => m_uid;
 

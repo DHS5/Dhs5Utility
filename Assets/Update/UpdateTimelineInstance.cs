@@ -98,6 +98,14 @@ namespace Dhs5.Utility.Updates
                 OnSetInactive();
         }
 
+        public void PlayAtTime(float time)
+        {
+            if (IsActive) return;
+
+            Time = time;
+            FillCustomEventsQueue(time);
+            OnSetActive();
+        }
         public void Complete(bool triggerCustomEvents)
         {
             if (Time == duration) return;
@@ -178,14 +186,17 @@ namespace Dhs5.Utility.Updates
                 TriggerCustomEvent(eventQueue.Dequeue().id);
             }
         }
-        private void FillCustomEventsQueue()
+        private void FillCustomEventsQueue(float time)
         {
             eventQueue.Clear();
             if (customEvents.IsValid())
             {
                 foreach (var e in customEvents)
                 {
-                    eventQueue.Enqueue(e);
+                    if (e.time >= time)
+                    {
+                        eventQueue.Enqueue(e);
+                    }
                 }
             }
         }
@@ -196,7 +207,7 @@ namespace Dhs5.Utility.Updates
 
         private void OnStart()
         {
-            FillCustomEventsQueue();
+            FillCustomEventsQueue(0f);
             EventTriggered?.Invoke(EUpdateTimelineEventType.START, 0);
         }
         private void OnEnd()
@@ -366,10 +377,18 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Starts or Unpause the UpdateTimeline
         /// </summary>
-        public readonly void Start()
+        public readonly void Play()
         {
             if (TryGetInstance(out var instance))
                 instance.SetActive(true);
+        }
+        /// <summary>
+        /// Starts or Unpause the UpdateTimeline at <paramref name="time"/>
+        /// </summary>
+        public readonly void Play(float time)
+        {
+            if (TryGetInstance(out var instance))
+                instance.PlayAtTime(time);
         }
         /// <summary>
         /// Pause the UpdateTimeline

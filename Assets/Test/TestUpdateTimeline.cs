@@ -20,7 +20,7 @@ public class TestUpdateTimeline : MonoBehaviour
         {
             m_timelineHandle.Updated += OnUpdateTimeline;
             m_timelineHandle.EventTriggered += OnTimelineEvent;
-            m_timelineHandle.Start();
+            m_timelineHandle.Play();
         }
     }
 

@@ -250,6 +250,7 @@ namespace Dhs5.Utility.Databases
         public static ScriptableObject CreateScriptableAndAddToAsset(Type type, UnityEngine.Object asset)
         {
             var obj = ScriptableObject.CreateInstance(type);
+            obj.name = "New";
             if (obj != null)
             {
                 AssetDatabase.AddObjectToAsset(obj, AssetDatabase.GetAssetPath(asset));
