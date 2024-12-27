@@ -13,14 +13,71 @@ using Dhs5.Utility.Databases;
 namespace Dhs5.Utility.Tags
 {
     [Serializable]
-    public class GameplayTagsList
+    public class GameplayTagsList : IEnumerable<int>
     {
+        #region Constructor
+
+        public GameplayTagsList(HashSet<int> tags)
+        {
+            m_tags = new();
+            foreach (var tag in tags)
+            {
+                m_tags.Add(tag);
+            }
+        }
+
+        #endregion
+
         #region Members
 
         [SerializeField] private List<int> m_tags;
 
         #endregion
+
+        #region Properties
+
+        public int Count => m_tags != null ? m_tags.Count : 0;
+
+        #endregion
+
+        #region IEnumerable<int>
+
+        public IEnumerator<int> GetEnumerator()
+        {
+            foreach (var tag in m_tags)
+            {
+                yield return tag; 
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        #region Utility
+
+        public bool Contains(int uid)
+        {
+            return m_tags.Contains(uid);
+        }
+
+        #endregion
     }
+
+    #region Extensions
+
+    public static class GameplayTagsListExtension
+    {
+        public static bool IsValid(this GameplayTagsList gameplayTagsList)
+        {
+            return gameplayTagsList != null && gameplayTagsList.Count > 0;
+        }
+    }
+
+    #endregion
 
     #region Drawer
 
@@ -38,8 +95,12 @@ namespace Dhs5.Utility.Tags
             var p_tags = property.FindPropertyRelative("m_tags");
 
             // Events
-            if (GameplayTagsSelector.TagsUpdated && GameplayTagsSelector.CurrentID == id)
+            if (Event.current.type == EventType.ExecuteCommand 
+                && Event.current.commandName == GameplayTagsSelector.CommandName 
+                && GameplayTagsSelector.CurrentID == id)
             {
+                Event.current.Use();
+
                 var updatedTags = GameplayTagsSelector.GetUpdatedTags().ToList();
                 p_tags.arraySize = updatedTags.Count;
                 for (int i = 0; i < updatedTags.Count; i++)
@@ -77,8 +138,7 @@ namespace Dhs5.Utility.Tags
             Rect buttonRect = new Rect(position.x + EditorGUIUtility.labelWidth + 2f, position.y, position.width - EditorGUIUtility.labelWidth - 2f, 18f);
             if (GUI.Button(buttonRect, EditorGUIUtility.TrTempContent(sb.ToString()), EditorStyles.popup))
             {
-                Vector2 mousePos = EditorGUIUtility.GUIToScreenPoint(Event.current.mousePosition);
-                GameplayTagsSelector.OpenTagsSelector(id, mousePos, tags);
+                GameplayTagsSelector.OpenTagsSelector(id, tags);
             }
 
             EditorGUI.EndProperty();
