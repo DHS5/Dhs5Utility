@@ -155,6 +155,7 @@ MonoBehaviour:
   _texture: {fileID: 0}
   _showName: 0
   _name: 
+  _name2: 
   _dataPicker1:
     m_container: {fileID: 11400000, guid: 6e66cc9ceee7cd240bb7f43da56a027d, type: 2}
     m_currentSelectionUID: 1
@@ -170,8 +171,18 @@ MonoBehaviour:
   m_folder2: Assets/Test
   m_folder3: {fileID: 102900000, guid: b1b999856f83dab468cbcc3325593d61, type: 3}
   m_layer: 0
-  m_ranges: {x: 0, y: 0}
-  m_intRange: {x: 0, y: 0}
+  m_tag: GameController
+  m_ranges: {x: 15.1, y: 23.05}
+  m_intRange: {x: 15, y: 23}
   m_creator: {fileID: 0}
   m_foldoutElem: {fileID: -4751636560149229809, guid: f21412fbeabfe814fbc9f17efcabd932,
     type: 2}
+  m_enumValues:
+    m_enumValues: 0000000000000000000000000000000000000000
+  m_enumFlagValues:
+    m_flag: 14
+    m_enumValues: 00000000000000000000000000000000
+  m_tags:
+    m_tags: 01000000
+  m_tags2:
+    m_tags: 03000000

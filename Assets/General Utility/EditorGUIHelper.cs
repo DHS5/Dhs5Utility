@@ -32,8 +32,8 @@ namespace Dhs5.Utility.Editors
         public static GUIContent LockedIcon => EditorGUIUtility.IconContent("LockIcon-on");
         public static GUIContent UnlockedIcon => EditorGUIUtility.IconContent("LockIcon");
         public static GUIContent SearchIcon => EditorGUIUtility.IconContent("d_SearchOverlay");
-        public static GUIContent UpIcon => EditorGUIUtility.IconContent("d_icon dropdown open");
-        public static GUIContent DownIcon => EditorGUIUtility.IconContent("d_icon dropdown");
+        public static GUIContent UpIcon => EditorGUIUtility.IconContent("HoverBar_Up");
+        public static GUIContent DownIcon => EditorGUIUtility.IconContent("HoverBar_Down");
         public static GUIContent RightIcon => EditorGUIUtility.IconContent("d_forward");
         public static GUIContent LeftIcon => EditorGUIUtility.IconContent("d_back");
         public static GUIContent SceneIcon => EditorGUIUtility.IconContent("d_SceneAsset Icon");
@@ -195,14 +195,31 @@ namespace Dhs5.Utility.Editors
 
         #region Foldout
 
+        public static GUIStyle foldoutStyle = new(EditorStyles.foldout)
+        {
+            fontSize = 14,
+            fontStyle = FontStyle.Bold,
+            onNormal = new GUIStyleState()
+            {
+                textColor = Color.white,
+            },
+        };
+
         public static bool Foldout(Rect rect, string label, bool value, GUIStyle style)
         {
-            var content = value ? UpIcon : DownIcon;
-            content.text = label;
-
-            if (GUI.Button(rect, content, style))
+            switch (Event.current.type)
             {
-                return !value;
+                case EventType.MouseDown:
+                    if (Event.current.button == 0 && rect.Contains(Event.current.mousePosition))
+                    {
+                        Event.current.Use();
+                        return !value;
+                    }
+                    break;
+                case EventType.Repaint:
+                    GUIContent content = new GUIContent(label);
+                    style.Draw(rect, content, 0, value);
+                    break;
             }
             return value;
         }

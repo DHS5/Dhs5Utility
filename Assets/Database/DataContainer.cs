@@ -660,7 +660,7 @@ namespace Dhs5.Utility.Databases
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            DatabaseInformationsFoldoutOpen = EditorGUIHelper.Foldout(EditorGUILayout.GetControlRect(false, 20f), title, DatabaseInformationsFoldoutOpen, GUIHelper.foldoutStyle);
+            DatabaseInformationsFoldoutOpen = EditorGUIHelper.Foldout(EditorGUILayout.GetControlRect(false, 20f), title, DatabaseInformationsFoldoutOpen, EditorGUIHelper.foldoutStyle);
             if (DatabaseInformationsFoldoutOpen)
             {
                 EditorGUI.indentLevel++;
@@ -1172,9 +1172,11 @@ namespace Dhs5.Utility.Databases
             {
                 ShowContainerElementContextMenu(index);
             }
-            GUIContent content = group.open ? EditorGUIHelper.DownIcon : EditorGUIHelper.RightIcon;
-            content.text = group.content;
-            EditorGUI.LabelField(elementRect, content);
+            if (Event.current.type == EventType.Repaint)
+            {
+                GUIContent content = new GUIContent(group.content);
+                EditorStyles.foldout.Draw(elementRect, content, 0, group.open);
+            }
         }
 
         #endregion

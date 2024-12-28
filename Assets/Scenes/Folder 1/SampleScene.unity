@@ -329,18 +329,8 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
-      propertyPath: m_tag
-      value: GameController
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
       propertyPath: _showName
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_creator
-      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
@@ -354,26 +344,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
-      propertyPath: m_ranges.x
-      value: 15.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_ranges.y
-      value: 23.05
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_intRange.x
-      value: 15
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_intRange.y
-      value: 23
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
       propertyPath: m_intRanges.x
       value: 12
       objectReference: {fileID: 0}
@@ -384,23 +354,8 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
-      propertyPath: m_enumFlagValues.m_flag
-      value: 14
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_tags.m_tags.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
       propertyPath: m_animCurve.m_PreInfinity
       value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_tags2.m_tags.Array.size
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
@@ -409,48 +364,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
-      propertyPath: m_tags.m_tags.Array.data[0]
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_tags.m_tags.Array.data[1]
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_tags.m_tags.Array.data[2]
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_tags2.m_tags.Array.data[0]
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_tags2.m_tags.Array.data[1]
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
       propertyPath: m_animCurve.m_Curve.Array.size
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
-      propertyPath: _dataPicker1.m_currentSelection
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: _dataPicker2.m_currentSelection
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_enumValues.m_enumValues.Array.size
-      value: 5
+      propertyPath: m_testStruct.m_enumValues.Array.size
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
@@ -471,11 +391,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_animCurve.m_Curve.Array.data[1].value
       value: 3.0023193
-      objectReference: {fileID: 0}
-    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
-        type: 3}
-      propertyPath: m_enumFlagValues.m_enumValues.Array.size
-      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
         type: 3}
@@ -516,6 +431,31 @@ PrefabInstance:
         type: 3}
       propertyPath: m_animCurve.m_Curve.Array.data[1].tangentMode
       value: 34
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_testStruct.m_enumValues.m_enumValues.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_testStruct.m_enumValues.Array.data[0].m_sceneIndex
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_testStruct.m_enumValues.Array.data[0].m_enumValues.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_testStruct.m_enumValues.Array.data[1].m_enumValues.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8069578678352860188, guid: 66d0f96ee3c08aa4b9bc0893b760d41d,
+        type: 3}
+      propertyPath: m_testStruct.m_enumValues.Array.data[2].m_enumValues.Array.size
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

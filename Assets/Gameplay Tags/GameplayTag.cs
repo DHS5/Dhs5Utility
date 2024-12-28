@@ -3,12 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
-using Dhs5.Utility.GUIs;
-
-
 
 #if UNITY_EDITOR
 using UnityEditor;
+using Dhs5.Utility.GUIs;
 #endif
 
 namespace Dhs5.Utility.Tags

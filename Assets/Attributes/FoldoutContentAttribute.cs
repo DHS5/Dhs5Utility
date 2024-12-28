@@ -44,9 +44,13 @@ namespace Dhs5.Utility.Attributes
                         Event.current.Use();
                     }
                 }
-
-                label.image = EditorGUIUtility.IconContent(property.isExpanded ? "d_icon dropdown open" : "d_icon dropdown").image;
-                EditorGUI.LabelField(labelRect, label);
+                // Repaint
+                if (Event.current.type == EventType.Repaint)
+                {
+                    EditorStyles.foldout.Draw(labelRect, label, 0, property.isExpanded);
+                }
+                //label.image = EditorGUIUtility.IconContent(property.isExpanded ? "HoverBar_Down" : "d_tab_next").image;
+                //EditorGUI.LabelField(labelRect, label);
 
                 // Base Property
                 Rect basePropertyRect = new Rect(position.x + EditorGUIUtility.labelWidth + 2f, position.y, position.width - EditorGUIUtility.labelWidth - 2f, 18f);

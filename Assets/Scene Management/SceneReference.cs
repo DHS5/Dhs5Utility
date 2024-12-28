@@ -145,6 +145,7 @@ namespace Dhs5.Utility.Scenes
             Rect rect = new Rect(position.x, position.y, position.width, 20f);
             float buttonWidth = 30f;
             var buttonRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height);
+            // Click
             if (Event.current.type == EventType.MouseDown
                 && Event.current.button == 0
                 && buttonRect.Contains(Event.current.mousePosition))
@@ -152,11 +153,15 @@ namespace Dhs5.Utility.Scenes
                 property.isExpanded = !property.isExpanded;
                 Event.current.Use();
             }
+            // Repaint
+            if (Event.current.type == EventType.Repaint)
+            {
+                EditorStyles.foldout.Draw(buttonRect, label, 0, property.isExpanded);
+            }
 
-            label.image = property.isExpanded ? EditorGUIUtility.IconContent("d_icon dropdown open").image : EditorGUIUtility.IconContent("d_icon dropdown").image;
-
+            Rect propertyRect = new Rect(rect.x + EditorGUIUtility.labelWidth + 2f, rect.y, rect.width - EditorGUIUtility.labelWidth - 2f - buttonWidth, rect.height);
             EditorGUI.BeginChangeCheck();
-            EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width - buttonWidth, rect.height), p_sceneAsset, label, true);
+            EditorGUI.PropertyField(propertyRect, p_sceneAsset, GUIContent.none, true);
             if (EditorGUI.EndChangeCheck() | GUI.Button(new Rect(rect.width - buttonWidth, rect.y - 1f, buttonWidth, rect.height - 1f), EditorGUIUtility.IconContent("d_Refresh")))
             {
                 if (p_sceneAsset.objectReferenceValue != null)
