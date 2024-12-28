@@ -229,6 +229,11 @@ namespace Dhs5.Utility.Debuggers
                 EditorGUILayout.EndVertical();
             }
 
+            if (Database.DebugModeEnabled)
+            {
+                OnDatabaseDebugModeGUI();
+            }
+
             serializedObject.ApplyModifiedProperties();
         }
 

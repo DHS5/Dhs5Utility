@@ -78,10 +78,20 @@ namespace Dhs5.Utility.Databases
 
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
 
+            if (Database.DebugModeEnabled)
+            {
+                OnDatabaseDebugModeGUI();
+            }
+
             serializedObject.ApplyModifiedProperties();
         }
 
         protected virtual void OnGUI() { }
+
+        protected virtual void OnDatabaseDebugModeGUI()
+        {
+            p_uid.intValue = EditorGUILayout.IntField(p_uid.displayName, p_uid.intValue);
+        }
 
         #endregion
     }

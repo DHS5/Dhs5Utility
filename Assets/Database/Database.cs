@@ -56,6 +56,16 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Static Editor Properties
+
+#if UNITY_EDITOR
+
+        public static bool DebugModeEnabled { get; set; } = false;
+
+#endif
+
+        #endregion
+
         #region Static Database Accessors
 
         private static bool TryGetDatabaseInstance<T>(out T database) where T : BaseDataContainer

@@ -58,6 +58,17 @@ namespace Dhs5.Utility.Databases
         }
 
         #endregion
+
+        #region GUI
+
+        protected override void OnDatabaseDebugModeGUI()
+        {
+            base.OnDatabaseDebugModeGUI();
+
+            p_enumIndex.intValue = EditorGUILayout.IntField(p_enumIndex.displayName, p_enumIndex.intValue);
+        }
+
+        #endregion
     }
 
 #endif

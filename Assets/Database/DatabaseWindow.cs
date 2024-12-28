@@ -144,12 +144,18 @@ namespace Dhs5.Utility.Databases
             GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
 
             float buttonsWidth = 40f;
-            int buttonsCount = 1;
+            int buttonsCount = 2;
 
+            // Popup
             var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
             m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
 
-            var refreshButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
+            // Debug Button
+            var debugButtonRect = new Rect(rect.x + rect.width - buttonsWidth * 2, rect.y, buttonsWidth, rect.height);
+            Database.DebugModeEnabled = EditorGUIHelper.ToolbarToggle(debugButtonRect, EditorGUIHelper.DebugIcon, Database.DebugModeEnabled);
+
+            // Refresh Button
+            var refreshButtonRect = new Rect(rect.x + rect.width - buttonsWidth, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
             {
                 GetDatabases();
