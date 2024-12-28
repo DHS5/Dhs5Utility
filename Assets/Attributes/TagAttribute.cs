@@ -7,36 +7,33 @@ using System;
 using UnityEditor;
 #endif
 
-namespace Dhs5.Utility.Attributes
-{
-    [AttributeUsage(AttributeTargets.Field)]
-    public class TagAttribute : PropertyAttribute { }
+[AttributeUsage(AttributeTargets.Field)]
+public class TagAttribute : PropertyAttribute { }
 
 #if UNITY_EDITOR
 
-    [CustomPropertyDrawer(typeof(TagAttribute))]
-    public class TagAttributeDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(TagAttribute))]
+public class TagAttributeDrawer : PropertyDrawer
+{
+    #region GUI
+
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        #region GUI
+        EditorGUI.BeginProperty(position, label, property);
 
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        if (property.propertyType != SerializedPropertyType.String)
         {
-            EditorGUI.BeginProperty(position, label, property);
-
-            if (property.propertyType != SerializedPropertyType.String)
-            {
-                EditorGUI.PropertyField(position, property, label, true);
-            }
-            else
-            {
-                property.stringValue = EditorGUI.TagField(position, label, property.stringValue);
-            }
-
-            EditorGUI.EndProperty();
+            EditorGUI.PropertyField(position, property, label, true);
+        }
+        else
+        {
+            property.stringValue = EditorGUI.TagField(position, label, property.stringValue);
         }
 
-        #endregion
+        EditorGUI.EndProperty();
     }
 
-#endif
+    #endregion
 }
+
+#endif

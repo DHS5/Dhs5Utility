@@ -45,6 +45,8 @@ namespace Dhs5.Utility.Settings
             return instance;
         }
 
+#if UNITY_EDITOR
+
         internal static BaseSettings[] GetAllInstances() => GetAllInstances(GetAllChildTypes());
         internal static BaseSettings[] GetAllInstances(Func<Type, bool> predicate) => GetAllInstances(GetAllChildTypes(t => predicate.Invoke(t)));
         private static BaseSettings[] GetAllInstances(Type[] childTypes)
@@ -58,6 +60,8 @@ namespace Dhs5.Utility.Settings
 
             return settings;
         }
+
+#endif
 
         #endregion
 
@@ -126,6 +130,7 @@ namespace Dhs5.Utility.Settings
                 .Where(t => t.IsSubclassOf(typeof(BaseSettings)) && !t.IsAbstract && TryGetAttribute(t, out _) && predicate.Invoke(t))
                 .ToArray();
         }
+
         [SettingsProviderGroup]
         public static SettingsProvider[] GetCustomSettingsProviders()
         {

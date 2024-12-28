@@ -7,36 +7,33 @@ using System;
 using UnityEditor;
 #endif
 
-namespace Dhs5.Utility.Attributes
-{
-    [AttributeUsage(AttributeTargets.Field)]
-    public class LayerAttribute : PropertyAttribute { }
+[AttributeUsage(AttributeTargets.Field)]
+public class LayerAttribute : PropertyAttribute { }
 
 #if UNITY_EDITOR
 
-    [CustomPropertyDrawer(typeof(LayerAttribute))]
-    public class LayerAttributeDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(LayerAttribute))]
+public class LayerAttributeDrawer : PropertyDrawer
+{
+    #region GUI
+
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        #region GUI
+        EditorGUI.BeginProperty(position, label, property);
 
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        if (property.propertyType != SerializedPropertyType.Integer)
         {
-            EditorGUI.BeginProperty(position, label, property);
-
-            if (property.propertyType != SerializedPropertyType.Integer)
-            {
-                EditorGUI.PropertyField(position, property, label, true);
-            }
-            else
-            {
-                property.intValue = EditorGUI.LayerField(position, label, property.intValue);
-            }
-
-            EditorGUI.EndProperty();
+            EditorGUI.PropertyField(position, property, label, true);
+        }
+        else
+        {
+            property.intValue = EditorGUI.LayerField(position, label, property.intValue);
         }
 
-        #endregion
+        EditorGUI.EndProperty();
     }
 
-#endif
+    #endregion
 }
+
+#endif

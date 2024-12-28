@@ -6,7 +6,6 @@ using System;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using System.Reflection;
 using System.IO;
 using Dhs5.Utility.Editors;
 #endif
@@ -55,6 +54,26 @@ namespace Dhs5.Utility.Databases
         }
 
         #endregion
+
+        #region Database Types
+
+        public static bool IsTypeDatabase(Type type)
+        {
+            return IsTypeDatabase(type, out _);
+        }
+        private static bool IsTypeDatabase(Type type, out DatabaseAttribute att)
+        {
+            att = null;
+            return type.IsSubclassOf(typeof(BaseDataContainer))
+                && !type.IsAbstract
+#if UNITY_EDITOR
+                && BaseDataContainer.TryGetDatabaseAttribute(type, out att)
+#endif
+                ;
+        }
+
+        #endregion
+
 
         #region Static Editor Properties
 
@@ -170,18 +189,6 @@ namespace Dhs5.Utility.Databases
         #endregion
 
         #region Database Types
-
-        public static bool IsTypeDatabase(Type type)
-        {
-            return IsTypeDatabase(type, out _);
-        }
-        private static bool IsTypeDatabase(Type type, out DatabaseAttribute att)
-        {
-            att = null;
-            return type.IsSubclassOf(typeof(BaseDataContainer))
-                && !type.IsAbstract
-                && BaseDataContainer.TryGetDatabaseAttribute(type, out att);
-        }
 
         private static Type[] GetDatabaseTypes()
         {

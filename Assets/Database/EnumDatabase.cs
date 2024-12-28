@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
-using Dhs5.Utility.Attributes;
 
 
 #if UNITY_EDITOR

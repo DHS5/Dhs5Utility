@@ -254,10 +254,6 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
-        #region Static Editor Methods
-
-#if UNITY_EDITOR
-
         #region Attributes
 
         private static Dictionary<Type, DataContainerAttribute> _attributes = new();
@@ -305,10 +301,6 @@ namespace Dhs5.Utility.Databases
             }
             return null;
         }
-
-        #endregion
-
-#endif
 
         #endregion
 
