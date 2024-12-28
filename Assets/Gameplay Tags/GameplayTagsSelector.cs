@@ -148,7 +148,7 @@ namespace Dhs5.Utility.Tags
 
             // GUI
             var guiColor = GUI.contentColor;
-            if (hasContentOn) GUI.color = Color.green;
+            if (hasContentOn) GUI.color = Color.cyan;
             group.open = EditorGUI.Foldout(rect, group.open, group.content, true);
             GUI.color = guiColor;
         }
@@ -167,7 +167,7 @@ namespace Dhs5.Utility.Tags
 
             // GUI
             var guiColor = GUI.contentColor;
-            if (isOn) GUI.color = Color.green;
+            if (isOn) GUI.color = Color.cyan;
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.ToggleLeft(rect, entry.content, isOn);

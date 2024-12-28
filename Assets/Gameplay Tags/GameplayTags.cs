@@ -31,7 +31,12 @@ namespace Dhs5.Utility.Tags
             }
             _tags[go.GetInstanceID()] = tags;
         }
-        /// <inheritdoc cref="Register(GameObject, GameplayTagsList)"/>
+        /// <summary>
+        /// Registers the Gameplay Tags from <paramref name="tagsList"/>
+        /// </summary>
+        /// <remarks>
+        /// If <paramref name="component"/>'s game object has already registered tags, <paramref name="tagsList"/> will override the former ones
+        /// </remarks>
         public static void Register(Component component, GameplayTagsList tagsList)
         {
             if (component == null) return;
@@ -39,17 +44,40 @@ namespace Dhs5.Utility.Tags
             Register(component.gameObject, tagsList);
         }
 
+        /// <summary>
+        /// Unregisters the Gameplay Tags associated with <paramref name="go"/>
+        /// </summary>
         public static void Unregister(GameObject go)
         {
             if (go == null) return;
 
             _tags.Remove(go.GetInstanceID());
         }
+        /// <summary>
+        /// Unregisters the Gameplay Tags associated with <paramref name="component"/>'s game object
+        /// </summary>
         public static void Unregister(Component component)
         {
             if (component == null) return;
 
             Unregister(component.gameObject);
+        }
+
+        #endregion
+
+        #region Get
+
+        public static GameplayTagsList Get(GameObject go)
+        {
+            if (go == null || !_tags.TryGetValue(go.GetInstanceID(), out var tags)) return null;
+
+            return new GameplayTagsList(tags);
+        }
+        public static GameplayTagsList Get(Component component)
+        {
+            if (component == null) return null;
+
+            return Get(component.gameObject);
         }
 
         #endregion
@@ -108,23 +136,6 @@ namespace Dhs5.Utility.Tags
 
         #endregion
 
-
-        #region Get
-
-        public static GameplayTagsList Get(GameObject go)
-        {
-            if (go == null || !_tags.TryGetValue(go.GetInstanceID(), out var tags)) return null;
-
-            return new GameplayTagsList(tags);
-        }
-        public static GameplayTagsList Get(Component component)
-        {
-            if (component == null) return null;
-
-            return Get(component.gameObject);
-        }
-
-        #endregion
 
         #region Contains
 
@@ -278,6 +289,98 @@ namespace Dhs5.Utility.Tags
             if (component == null) return null;
 
             return Intersection(component.gameObject, tagsList);
+        }
+
+        #endregion
+    }
+
+    public static class GameplayTagsExtension
+    {
+        #region Registration
+
+        /// <inheritdoc cref="GameplayTags.Register(GameObject, GameplayTagsList)"/>
+        public static void RegisterGameplayTags(this GameObject gameObject, GameplayTagsList tagsList)
+        {
+            GameplayTags.Register(gameObject, tagsList);
+        }
+        /// <inheritdoc cref="GameplayTags.Register(Component, GameplayTagsList)"/>
+        public static void RegisterGameplayTags(this Component component, GameplayTagsList tagsList)
+        {
+            GameplayTags.Register(component, tagsList);
+        }
+
+        /// <inheritdoc cref="GameplayTags.Unregister(GameObject)"/>
+        public static void UnregisterGameplayTags(this GameObject gameObject)
+        {
+            GameplayTags.Unregister(gameObject);
+        }
+        /// <inheritdoc cref="GameplayTags.Unregister(Component)"/>
+        public static void UnregisterGameplayTags(this Component component)
+        {
+            GameplayTags.Unregister(component);
+        }
+
+        #endregion
+
+        #region Get
+
+        public static GameplayTagsList GetGameplayTags(this GameObject gameObject)
+        {
+            return GameplayTags.Get(gameObject);
+        }
+        public static GameplayTagsList GetGameplayTags(this Component component)
+        {
+            return GameplayTags.Get(component);
+        }
+
+        #endregion
+
+
+        #region ADD
+
+        public static void AddGameplayTags(this GameObject gameObject, GameplayTagsList tagsList)
+        {
+            GameplayTags.AddTags(gameObject, tagsList);
+        }
+        public static void AddGameplayTags(this Component component, GameplayTagsList tagsList)
+        {
+            GameplayTags.AddTags(component, tagsList);
+        }
+
+        #endregion
+
+        #region REMOVE
+
+        public static void RemoveGameplayTags(this GameObject gameObject, GameplayTagsList tagsList)
+        {
+            GameplayTags.RemoveTags(gameObject, tagsList);
+        }
+        public static void RemoveGameplayTags(this Component component, GameplayTagsList tagsList)
+        {
+            GameplayTags.RemoveTags(component, tagsList);
+        }
+
+        #endregion
+
+
+        #region Contains
+
+        public static bool ContainsGameplayTags(this GameObject gameObject, GameplayTagsList tagsList)
+        {
+            return GameplayTags.Contains(gameObject, tagsList);
+        }
+        public static bool ContainsGameplayTags(this Component component, GameplayTagsList tagsList)
+        {
+            return GameplayTags.Contains(component, tagsList);
+        }
+        
+        public static bool ContainsAnyGameplayTags(this GameObject gameObject, GameplayTagsList tagsList)
+        {
+            return GameplayTags.ContainsAny(gameObject, tagsList);
+        }
+        public static bool ContainsAnyGameplayTags(this Component component, GameplayTagsList tagsList)
+        {
+            return GameplayTags.ContainsAny(component, tagsList);
         }
 
         #endregion
