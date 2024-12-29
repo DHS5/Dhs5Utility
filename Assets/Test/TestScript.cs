@@ -5,6 +5,7 @@ using Dhs5.Utility.Updates;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Dhs5.Utility.Tags;
 using System;
 
@@ -89,5 +90,10 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     private void OnNextUpdate(float deltaTime)
     {
         TestDebugger.Log(DebugCategory.GAME, "On Next update, Frame : " + TestUpdater.Frame, 0);
+    }
+
+    private void OnInputTest()
+    {
+        
     }
 }
