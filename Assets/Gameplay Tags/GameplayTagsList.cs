@@ -40,6 +40,19 @@ namespace Dhs5.Utility.Tags
 
         #endregion
 
+        #region Setters
+
+        public void Set(HashSet<int> tags)
+        {
+            m_tags.Clear();
+            foreach (var tag in tags)
+            {
+                m_tags.Add(tag);
+            }
+        }
+
+        #endregion
+
         #region IEnumerable<int>
 
         public IEnumerator<int> GetEnumerator()

@@ -80,6 +80,19 @@ namespace Dhs5.Utility.Tags
             return Get(component.gameObject);
         }
 
+        public static void Get_NoAlloc(GameObject go, GameplayTagsList tagsList)
+        {
+            if (go == null || !_tags.TryGetValue(go.GetInstanceID(), out var tags)) return;
+
+            tagsList.Set(tags);
+        }
+        public static void Get_NoAlloc(Component component, GameplayTagsList tagsList)
+        {
+            if (component == null) return;
+
+            Get_NoAlloc(component.gameObject, tagsList);
+        }
+
         #endregion
 
 
