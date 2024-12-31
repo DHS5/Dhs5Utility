@@ -108,7 +108,12 @@ namespace Dhs5.Utility.Debuggers
                 // Color
                 float colorRectWidth = 40f;
                 var colorRect = new Rect(rect.x + rect.width - m_extraInfosWidth, rect.y, colorRectWidth, rect.height);
-                elem.Color = EditorGUI.ColorField(colorRect, GUIContent.none, elem.Color, false, false, false);
+                EditorGUI.BeginChangeCheck();
+                var newColor = EditorGUI.ColorField(colorRect, GUIContent.none, elem.Color, false, false, false);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    elem.Color = new Color(newColor.r, newColor.g, newColor.b, 1f);
+                }
 
                 // Level
                 float levelLabelWidth = 20f;

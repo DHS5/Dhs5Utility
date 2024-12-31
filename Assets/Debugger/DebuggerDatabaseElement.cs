@@ -32,7 +32,11 @@ namespace Dhs5.Utility.Debuggers
         public Color Color
         {
             get => m_color;
-            internal set => m_color = value;
+            internal set
+            {
+                m_color = value;
+                RefreshColorString();
+            }
         }
         public string ColorString => m_colorString;
 
@@ -62,6 +66,15 @@ namespace Dhs5.Utility.Debuggers
                     return m_showErrors;
                 default: return false;
             }
+        }
+
+        #endregion
+
+        #region Utility
+
+        private void RefreshColorString()
+        {
+            m_colorString = ColorUtility.ToHtmlStringRGB(Color);
         }
 
         #endregion
@@ -195,9 +208,10 @@ namespace Dhs5.Utility.Debuggers
             // Color
             {
                 EditorGUI.BeginChangeCheck();
-                EditorGUILayout.ColorField(new GUIContent(p_color.displayName), p_color.colorValue, true, false, false);
+                p_color.colorValue = EditorGUILayout.ColorField(new GUIContent(p_color.displayName), p_color.colorValue, true, false, false);
                 if (EditorGUI.EndChangeCheck())
                 {
+                    p_color.colorValue = new Color(p_color.colorValue.r, p_color.colorValue.g, p_color.colorValue.b, 1f);
                     p_colorString.stringValue = ColorUtility.ToHtmlStringRGB(p_color.colorValue);
                 }
 

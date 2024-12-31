@@ -151,7 +151,7 @@ namespace Dhs5.Utility.Databases
 
         internal override string Editor_GetDataPrefixedName(UnityEngine.Object obj)
         {
-            return obj.name;
+            return obj != null ? obj.name : null; 
         }
 
 #endif
@@ -246,7 +246,6 @@ namespace Dhs5.Utility.Databases
 
             EditorGUILayout.Space(8f);
 
-            //EditorGUIHelper.FolderPicker(p_scriptFolder, ForceContainerContentRefresh);
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(p_scriptFolder, true);
             if (EditorGUI.EndChangeCheck())

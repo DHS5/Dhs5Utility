@@ -55,6 +55,18 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Context Menu
+
+        [ContextMenu("Clean")]
+        private void Clean()
+        {
+#if UNITY_EDITOR
+            Editor_CleanUp();
+#endif
+        }
+
+        #endregion
+
 #if UNITY_EDITOR
 
         #region Instance Content Management
@@ -223,8 +235,11 @@ namespace Dhs5.Utility.Databases
                 sb.Append(obj.name);
                 return sb.ToString();
             }
-            return obj.name;
+            return obj != null ? obj.name : null;
         }
+
+        // --- CLEAN ---
+        protected abstract void Editor_CleanUp();
 
         #endregion
 

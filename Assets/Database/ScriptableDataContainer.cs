@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -74,6 +76,7 @@ namespace Dhs5.Utility.Databases
             if (m_content == null) m_content = new();
             else m_content.Clear();
 
+            List<UnityEngine.Object> toDestroy = new();
             foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(this)))
             {
                 if (Editor_IsElementValid(obj)
@@ -81,7 +84,16 @@ namespace Dhs5.Utility.Databases
                 {
                     m_content.Add(so);
                 }
+                else
+                {
+                    toDestroy.Add(obj);
+                }
             }
+            foreach (var item in toDestroy)
+            {
+                DestroyImmediate(item, true);
+            }
+
             Editor_SortContent();
 
             base.Editor_ShouldRecomputeContainerContent();
@@ -96,6 +108,32 @@ namespace Dhs5.Utility.Databases
                     yield return item;
                 }
             }
+        }
+
+        protected override void Editor_CleanUp()
+        {
+            for (int i = m_content.Count - 1; i >= 0; i--)
+            {
+                if (m_content[i] == null)
+                {
+                    m_content.RemoveAt(i);
+                }
+            }
+
+            List<UnityEngine.Object> toDestroy = new();
+            foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(this)))
+            {
+                if (!m_content.Contains(obj))
+                {
+                    toDestroy.Add(obj);
+                }
+            }
+            foreach (var item in toDestroy)
+            {
+                DestroyImmediate(item);
+            }
+
+            Debug.Log("cleaned up");
         }
 
         protected override bool Editor_OnDeleteElementAtIndex(int index)

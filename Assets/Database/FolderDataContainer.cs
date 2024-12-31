@@ -95,8 +95,12 @@ namespace Dhs5.Utility.Databases
         {
             if (string.IsNullOrWhiteSpace(m_folderName)) return base.Editor_GetDataPrefixedName(obj);
 
-            var assetPath = AssetDatabase.GetAssetPath(obj).Substring(m_folderName.Length).TrimStart('/');
-            return assetPath.Substring(0, assetPath.LastIndexOf('.'));
+            if (obj != null)
+            {
+                var assetPath = AssetDatabase.GetAssetPath(obj).Substring(m_folderName.Length).TrimStart('/');
+                return assetPath.Substring(0, assetPath.LastIndexOf('.'));
+            }
+            return null;
         }
 
         protected override IEnumerable<UnityEngine.Object> Editor_GetContainerContent()
@@ -120,6 +124,11 @@ namespace Dhs5.Utility.Databases
                 return true;
             }
             return false;
+        }
+
+        protected override void Editor_CleanUp()
+        {
+            
         }
 
 #endif
