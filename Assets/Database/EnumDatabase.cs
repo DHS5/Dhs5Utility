@@ -110,7 +110,9 @@ namespace Dhs5.Utility.Databases
             SaveCurrentContentOrder();
 
             base.Editor_ShouldRecomputeContainerContent();
-
+        }
+        internal void Editor_UpdateEnumScript()
+        {
             string content = GetEnumScriptContent();
             bool differentContent = content != null && content != GetCurrentScriptContent();
             bool differentPath = false;
@@ -122,7 +124,7 @@ namespace Dhs5.Utility.Databases
             if (pathValid && (differentContent || differentPath))
             {
                 var newTextAsset = Database.CreateOrOverwriteScript(path, content);
-                if (m_textAsset != null 
+                if (m_textAsset != null
                     && newTextAsset != m_textAsset)
                 {
                     Database.DeleteAsset(m_textAsset, false);
@@ -166,6 +168,8 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
+        protected EnumDatabase m_enumDatabase;
+
         protected SerializedProperty p_enumName;
         protected SerializedProperty p_enumNamespace;
         protected SerializedProperty p_usings;
@@ -189,6 +193,8 @@ namespace Dhs5.Utility.Databases
         protected override void OnEnable()
         {
             base.OnEnable();
+
+            m_enumDatabase = target as EnumDatabase;
 
             p_enumName = serializedObject.FindProperty("m_enumName");
             p_enumNamespace = serializedObject.FindProperty("m_enumNamespace");
@@ -256,6 +262,13 @@ namespace Dhs5.Utility.Databases
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(p_textAsset);
             EditorGUI.EndDisabledGroup();
+
+            EditorGUILayout.Space(5f);
+
+            if (GUILayout.Button("Update Script"))
+            {
+                m_enumDatabase.Editor_UpdateEnumScript();
+            }
 
             base.OnContainerInformationsContentGUI();
         }

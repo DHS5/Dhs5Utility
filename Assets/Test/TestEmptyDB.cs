@@ -26,7 +26,7 @@ public class TestEmptyDB : BaseDataContainer
 
 #if UNITY_EDITOR
 
-    protected override bool Editor_OnDeleteElementAtIndex(int index)
+    protected override bool Editor_OnDeleteElementByUID(int index)
     {
         throw new System.NotImplementedException();
     }

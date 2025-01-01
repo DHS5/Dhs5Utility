@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.GUIs;
 using System.Text;
+using static UnityEngine.Rendering.VolumeComponent;
+
 
 #if UNITY_EDITOR
 using System.Reflection;
@@ -131,16 +133,16 @@ namespace Dhs5.Utility.Databases
             return dico;
         }
 
-        internal bool Editor_DeleteElementAtIndex(int index)
+        internal bool Editor_DeleteElementByUID(int uid)
         {
-            if (Editor_OnDeleteElementAtIndex(index))
+            if (Editor_OnDeleteElementByUID(uid))
             {
-                Editor_ContainerContentChanged?.Invoke();
+                Editor_ShouldRecomputeContainerContent();
                 return true;
             }
             return false;
         }
-        protected abstract bool Editor_OnDeleteElementAtIndex(int index);
+        protected abstract bool Editor_OnDeleteElementByUID(int uid);
 
         internal event Action Editor_ContainerContentChanged;
 
@@ -1408,7 +1410,18 @@ namespace Dhs5.Utility.Databases
         }
         protected virtual void OnTryDeleteElementAtIndex(int index)
         {
-            m_container.Editor_DeleteElementAtIndex(index);
+            var entry = GetEntryAtIndex(index);
+            if (entry != null)
+            {
+                if (entry is FolderStructureGroupEntry)
+                {
+
+                }
+                else if (entry.data is int uid)
+                {
+                    m_container.Editor_DeleteElementByUID(uid);
+                }
+            }
         }
 
         #endregion

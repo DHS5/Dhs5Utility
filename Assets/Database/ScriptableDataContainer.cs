@@ -126,12 +126,16 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        protected override bool Editor_OnDeleteElementAtIndex(int index)
+        protected override bool Editor_OnDeleteElementByUID(int uid)
         {
-            if (index >= 0 && index < m_content.Count)
+            for (int i = Count - 1; i >= 0; i--)
             {
-                Database.DeleteAsset(m_content[index], true);
-                return true;
+                if (m_content[i] is IDataContainerElement elem
+                    && elem.UID == uid)
+                {
+                    Database.DeleteAsset(m_content[i], true);
+                    return true;
+                }
             }
             return false;
         }

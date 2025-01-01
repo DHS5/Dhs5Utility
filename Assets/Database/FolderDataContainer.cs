@@ -114,14 +114,16 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        protected override bool Editor_OnDeleteElementAtIndex(int index)
+        protected override bool Editor_OnDeleteElementByUID(int uid)
         {
-            if (index >= 0 
-                && index < m_folderContent.Count
-                && Database.IsAssetDeletableFromCode(m_folderContent[index]))
+            for (int i = Count - 1; i >= 0; i--)
             {
-                Database.DeleteAsset(m_folderContent[index], true);
-                return true;
+                if (m_folderContent[i] is IDataContainerElement elem 
+                    && elem.UID == uid)
+                {
+                    Database.DeleteAsset(m_folderContent[i], true);
+                    return true;
+                }
             }
             return false;
         }
