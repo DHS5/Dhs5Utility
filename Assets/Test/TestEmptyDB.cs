@@ -36,6 +36,11 @@ public class TestEmptyDB : BaseDataContainer
         throw new System.NotImplementedException();
     }
 
+    protected override void Editor_CleanUp()
+    {
+        throw new System.NotImplementedException();
+    }
+
 #endif
 }
 
