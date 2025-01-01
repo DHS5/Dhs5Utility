@@ -76,7 +76,6 @@ namespace Dhs5.Utility.Databases
             if (m_content == null) m_content = new();
             else m_content.Clear();
 
-            List<UnityEngine.Object> toDestroy = new();
             foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(this)))
             {
                 if (Editor_IsElementValid(obj)
@@ -84,15 +83,8 @@ namespace Dhs5.Utility.Databases
                 {
                     m_content.Add(so);
                 }
-                else
-                {
-                    toDestroy.Add(obj);
-                }
             }
-            foreach (var item in toDestroy)
-            {
-                DestroyImmediate(item, true);
-            }
+            Editor_CleanUp();
 
             Editor_SortContent();
 
@@ -123,17 +115,15 @@ namespace Dhs5.Utility.Databases
             List<UnityEngine.Object> toDestroy = new();
             foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(this)))
             {
-                if (!m_content.Contains(obj))
+                if (obj != this && !m_content.Contains(obj))
                 {
                     toDestroy.Add(obj);
                 }
             }
             foreach (var item in toDestroy)
             {
-                DestroyImmediate(item);
+                DestroyImmediate(item, true);
             }
-
-            Debug.Log("cleaned up");
         }
 
         protected override bool Editor_OnDeleteElementAtIndex(int index)
