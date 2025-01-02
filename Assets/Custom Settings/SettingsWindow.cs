@@ -61,7 +61,7 @@ namespace Dhs5.Utility.Settings
             var toolbarRect = EditorGUILayout.GetControlRect(false, 20f);
             OnToolbarGUI(toolbarRect);
 
-            if (m_currentSelection >= 0)
+            if (m_currentSelection >= 0 && m_currentSelection < m_settings.Length)
             {
                 EditorGUILayout.Space(5f);
                 if (GUILayout.Button(m_names[m_currentSelection], GUIHelper.bigTitleLabel)
