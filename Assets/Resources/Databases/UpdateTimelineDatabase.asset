@@ -35,9 +35,9 @@ MonoBehaviour:
   m_loop: 0
   m_timescale: 1
   m_events:
-  - time: 20
+  - normalizedTime: 0.6666667
     id: 1
-  - time: 10
+  - normalizedTime: 0.33333334
     id: 0
-  - time: 5
+  - normalizedTime: 0.16666667
     id: 1

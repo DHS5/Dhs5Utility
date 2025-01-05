@@ -4,7 +4,6 @@ using UnityEngine;
 using System.Text;
 using System;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 using System.IO;
@@ -179,6 +178,17 @@ namespace Dhs5.Utility.Databases
 
         protected Vector2 PreviewScrollPos { get; set; }
 
+        private bool m_hasScriptChanges;
+        protected bool HasScriptChanges
+        {
+            get => m_hasScriptChanges;
+            set
+            {
+                m_hasScriptChanges = value;
+                EditorPrefs.SetBool(m_enumDatabase.name + "_hasScriptChanges", m_hasScriptChanges);
+            }
+        }
+
         #endregion
 
         #region Properties
@@ -195,6 +205,8 @@ namespace Dhs5.Utility.Databases
             base.OnEnable();
 
             m_enumDatabase = target as EnumDatabase;
+
+            m_hasScriptChanges = EditorPrefs.GetBool(m_enumDatabase.name + "_hasScriptChanges", false);
 
             p_enumName = serializedObject.FindProperty("m_enumName");
             p_enumNamespace = serializedObject.FindProperty("m_enumNamespace");
@@ -215,7 +227,7 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnGUI()
         {
-            OnContainerInformationsGUI("Enum Informations");
+            OnContainerInformationsGUI(HasScriptChanges ? "Enum Informations*" : "Enum Informations");
 
             EditorGUILayout.Space(10f);
 
@@ -244,6 +256,7 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnContainerInformationsContentGUI()
         {
+            EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(p_enumName);
             EditorGUILayout.PropertyField(p_enumNamespace);
 
@@ -252,11 +265,10 @@ namespace Dhs5.Utility.Databases
 
             EditorGUILayout.Space(8f);
 
-            EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(p_scriptFolder, true);
             if (EditorGUI.EndChangeCheck())
             {
-                ForceContainerContentRefresh();
+                HasScriptChanges = true;
             }
 
             EditorGUI.BeginDisabledGroup(true);
@@ -265,10 +277,14 @@ namespace Dhs5.Utility.Databases
 
             EditorGUILayout.Space(5f);
 
+            var guiColor = GUI.color;
+            if (HasScriptChanges) GUI.color = Color.cyan;
             if (GUILayout.Button("Update Script"))
             {
                 m_enumDatabase.Editor_UpdateEnumScript();
+                HasScriptChanges = false;
             }
+            GUI.color = guiColor;
 
             base.OnContainerInformationsContentGUI();
         }

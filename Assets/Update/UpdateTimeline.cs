@@ -18,7 +18,7 @@ namespace Dhs5.Utility.Updates
         [Serializable]
         public struct Event
         {
-            public float time;
+            public float normalizedTime;
             public ushort id;
         }
 
@@ -53,7 +53,7 @@ namespace Dhs5.Utility.Updates
         public IEnumerable<Event> GetSortedEvents()
         {
             List<Event> sortedEvents = new(m_events);
-            sortedEvents.Sort((e1, e2) => e1.time.CompareTo(e2.time));
+            sortedEvents.Sort((e1, e2) => e1.normalizedTime.CompareTo(e2.normalizedTime));
             return sortedEvents;
         }
 
@@ -211,7 +211,7 @@ namespace Dhs5.Utility.Updates
                 if (GUI.Button(new Rect(rect.x + rect.width - buttonsWidth, rect.y, buttonsWidth, rect.height), EditorGUIHelper.AddIcon))
                 {
                     p_events.InsertArrayElementAtIndex(0);
-                    p_events.GetArrayElementAtIndex(0).FindPropertyRelative("time").floatValue = m_element.Duration / 2f;
+                    p_events.GetArrayElementAtIndex(0).FindPropertyRelative("normalizedTime").floatValue = 0.5f;
                     p_events.GetArrayElementAtIndex(0).FindPropertyRelative("id").intValue = 0;
                     m_selectedEventIndex = 0;
                 }
@@ -239,13 +239,13 @@ namespace Dhs5.Utility.Updates
 
                     SerializedProperty p_event = p_events.GetArrayElementAtIndex(m_selectedEventIndex);
 
-                    SerializedProperty p_eventTime = p_event.FindPropertyRelative("time");
+                    SerializedProperty p_eventTime = p_event.FindPropertyRelative("normalizedTime");
                     SerializedProperty p_eventID = p_event.FindPropertyRelative("id");
 
                     EditorGUILayout.LabelField("Event " + p_eventID.intValue, EditorStyles.boldLabel);
 
                     EditorGUI.indentLevel++;
-                    p_eventTime.floatValue = EditorGUILayout.Slider(p_eventTime.floatValue, 0f, m_element.Duration);
+                    p_eventTime.floatValue = EditorGUILayout.Slider(p_eventTime.floatValue, 0f, 1f);
                     EditorGUILayout.PropertyField(p_eventID, true);
                     EditorGUI.indentLevel--;
 
@@ -258,15 +258,13 @@ namespace Dhs5.Utility.Updates
 
         private void DrawEventHandle(Rect timeRect, Rect handleRect, int index, SerializedProperty p_event, bool selected)
         {
-            float eventTime;
-            float xPos;
-
             Color guiColor = GUI.color;
 
-            eventTime = p_event.FindPropertyRelative("time").floatValue;
-            xPos = Mathf.Lerp(timeRect.x + m_handleDemiWidth, timeRect.x + timeRect.width - m_handleDemiWidth, eventTime / m_element.Duration);
+            float eventNormalizedTime = p_event.FindPropertyRelative("normalizedTime").floatValue;
+            float eventTime = eventNormalizedTime * m_element.Duration;
+            float xPos = Mathf.Lerp(timeRect.x + m_handleDemiWidth, timeRect.x + timeRect.width - m_handleDemiWidth, eventNormalizedTime);
 
-            EditorGUI.LabelField(new Rect(xPos - 10f, timeRect.y, 20f, timeRect.height), eventTime.ToString(), selected ? m_eventTimeSelectedStyle : m_eventTimeStyle);
+            EditorGUI.LabelField(new Rect(xPos - 10f, timeRect.y, 20f, timeRect.height), ((int)eventTime / 60) + ":" + (eventTime % 60), selected ? m_eventTimeSelectedStyle : m_eventTimeStyle);
 
             EditorGUI.DrawRect(new Rect(xPos - 2f, timeRect.y + timeRect.height, 4f, handleRect.y - timeRect.y - timeRect.height), m_timelineTimesColor);
 

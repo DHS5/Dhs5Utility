@@ -181,7 +181,7 @@ namespace Dhs5.Utility.Updates
 
         private void CheckCustomEvents()
         {
-            while (eventQueue.TryPeek(out var e) && e.time <= Time)
+            while (eventQueue.TryPeek(out var e) && e.normalizedTime <= Time)
             {
                 TriggerCustomEvent(eventQueue.Dequeue().id);
             }
@@ -193,7 +193,7 @@ namespace Dhs5.Utility.Updates
             {
                 foreach (var e in customEvents)
                 {
-                    if (e.time >= time)
+                    if (e.normalizedTime >= time)
                     {
                         eventQueue.Enqueue(e);
                     }
