@@ -13,7 +13,7 @@ namespace Dhs5.Utility.Settings
     {
         #region Static Constructor
 
-        [MenuItem("Tools/Windows/Settings")]
+        [MenuItem("Window/Dhs5 Utility/Settings", priority = 100)]
         public static void OpenWindow()
         {
             SettingsWindow window = GetWindow<SettingsWindow>();

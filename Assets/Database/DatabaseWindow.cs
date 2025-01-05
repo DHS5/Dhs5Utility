@@ -12,7 +12,7 @@ namespace Dhs5.Utility.Databases
     {
         #region Static Constructor
 
-        [MenuItem("Tools/Windows/Databases")]
+        [MenuItem("Window/Dhs5 Utility/Databases", priority = 100)]
         public static void OpenWindow()
         {
             DatabaseWindow window = GetWindow<DatabaseWindow>();

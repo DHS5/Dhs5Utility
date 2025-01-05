@@ -14,7 +14,7 @@ namespace Dhs5.Utility.Scenes
     {
         #region Window Creator
 
-        [MenuItem("Tools/Windows/Scenes")]
+        [MenuItem("Window/Dhs5 Utility/Scenes", priority = 100)]
         public static void OpenSceneWindow()
         {
             ScenesWindow window = CreateWindow<ScenesWindow>();
