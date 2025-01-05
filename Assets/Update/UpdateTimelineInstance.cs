@@ -103,7 +103,7 @@ namespace Dhs5.Utility.Updates
             if (IsActive) return;
 
             Time = time;
-            FillCustomEventsQueue(time);
+            FillCustomEventsQueue(NormalizedTime);
             OnSetActive();
         }
         public void Complete(bool triggerCustomEvents)
@@ -181,19 +181,19 @@ namespace Dhs5.Utility.Updates
 
         private void CheckCustomEvents()
         {
-            while (eventQueue.TryPeek(out var e) && e.normalizedTime <= Time)
+            while (eventQueue.TryPeek(out var e) && e.normalizedTime <= NormalizedTime)
             {
                 TriggerCustomEvent(eventQueue.Dequeue().id);
             }
         }
-        private void FillCustomEventsQueue(float time)
+        private void FillCustomEventsQueue(float normalizedTime)
         {
             eventQueue.Clear();
             if (customEvents.IsValid())
             {
                 foreach (var e in customEvents)
                 {
-                    if (e.normalizedTime >= time)
+                    if (e.normalizedTime >= normalizedTime)
                     {
                         eventQueue.Enqueue(e);
                     }
