@@ -185,7 +185,7 @@ namespace Dhs5.Utility.Databases
             set
             {
                 m_hasScriptChanges = value;
-                EditorPrefs.SetBool(m_enumDatabase.name + "_hasScriptChanges", m_hasScriptChanges);
+                EditorPrefs.SetBool(m_enumDatabase.GetType().Name + "_hasScriptChanges", m_hasScriptChanges);
             }
         }
 
@@ -206,7 +206,7 @@ namespace Dhs5.Utility.Databases
 
             m_enumDatabase = target as EnumDatabase;
 
-            m_hasScriptChanges = EditorPrefs.GetBool(m_enumDatabase.name + "_hasScriptChanges", false);
+            m_hasScriptChanges = EditorPrefs.GetBool(m_enumDatabase.GetType().Name + "_hasScriptChanges", false);
 
             p_enumName = serializedObject.FindProperty("m_enumName");
             p_enumNamespace = serializedObject.FindProperty("m_enumNamespace");
@@ -229,15 +229,13 @@ namespace Dhs5.Utility.Databases
         {
             OnContainerInformationsGUI(HasScriptChanges ? "Enum Informations*" : "Enum Informations");
 
-            EditorGUILayout.Space(10f);
+            //EditorGUILayout.Space(10f);
 
-            Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
+            Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
-            OnContainerContentListWindowGUI(dataListWindowRect, refreshButton: true, addButton: true, contextButtons: true);
-
-            EditorGUILayout.Space(5f);
-            Separator(2f, Color.white);
+            OnContainerContentListWindowGUI(dataListWindowRect, "Enum Content", refreshButton: true, addButton: true, contextButtons: true);
+            
             EditorGUILayout.Space(10f);
 
             DisplayContainerCurrentSelection();

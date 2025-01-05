@@ -2,12 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Dhs5.Utility.GUIs;
 using System.Text;
-using static UnityEngine.Rendering.VolumeComponent;
+using UnityEngine.UIElements;
 
 
 #if UNITY_EDITOR
+using Dhs5.Utility.GUIs;
 using System.Reflection;
 using UnityEditor;
 using Dhs5.Utility.Editors;
@@ -372,13 +372,15 @@ namespace Dhs5.Utility.Databases
 
         // Content List Window
         protected int ContainerSelectionIndex { get; private set; } = -1;
+        protected float ContentListRectHeight { get; private set; } = 170f;
+        protected bool IsResizingContentList { get; private set; }
+        protected string ContentListSearchString { get; private set; }
         protected Rect ContentListRect { get; set; }
         protected bool ContentListNeedsScrollRect { get; private set; }
         protected Vector2 ContentListWindowScrollPos { get; set; }
         protected float ContentListElementAlinea { get; set; } = 20f;
         protected float ContentListElementHeight { get; set; } = 20f;
         protected float ContentListElementContextButtonWidth { get; set; } = 30f;
-        protected float ContentListButtonsHeight { get; set; } = 20f;
         private double m_lastSelectionTime;
         private double m_doubleClickDelay = 0.2d;
 
@@ -402,6 +404,8 @@ namespace Dhs5.Utility.Databases
             ContainerHasValidDataType = m_container.Editor_ContainerHasValidDataType(out var dataType);
             if (ContainerHasValidDataType) DataType = dataType;
 
+            ContentListRectHeight = EditorPrefs.GetFloat(m_container.GetType().Name + "_contentListRectHeight", 170f);
+
             m_container.Editor_ContainerContentChanged += OnContainerContentChanged;
 
             p_script = serializedObject.FindProperty("m_Script");
@@ -416,6 +420,8 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnDisable()
         {
             ClearEditors();
+
+            EditorPrefs.SetFloat(m_container.GetType().Name + "_contentListRectHeight", ContentListRectHeight);
 
             m_container.Editor_ContainerContentChanged -= OnContainerContentChanged;
         }
@@ -667,20 +673,32 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnContainerInformationsGUI(string title)
         {
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            Rect rect = new Rect(0f, 0f, Screen.width, 20f);
+            EditorGUILayout.GetControlRect(false, 17f);
 
-            DatabaseInformationsFoldoutOpen = EditorGUIHelper.Foldout(EditorGUILayout.GetControlRect(false, 20f), title, DatabaseInformationsFoldoutOpen, EditorGUIHelper.foldoutStyle);
+            // Background
+            GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
+
+            // Label
+            if (GUI.Button(rect, GUIContent.none, EditorStyles.toolbarButton)) DatabaseInformationsFoldoutOpen = !DatabaseInformationsFoldoutOpen;
+            EditorGUI.LabelField(new Rect(rect.x + 10f, rect.y, rect.width - 10f, rect.height), title);
+
+            // Content
             if (DatabaseInformationsFoldoutOpen)
             {
+                var backgroundRect = EditorGUILayout.BeginVertical();
+                backgroundRect.x = 0f; backgroundRect.width = Screen.width;
+                EditorGUI.DrawRect(backgroundRect, GUIHelper.transparentBlack02);
                 EditorGUI.indentLevel++;
-
+            
                 EditorGUILayout.Space(5f);
                 OnContainerInformationsContentGUI();
+                EditorGUILayout.Space(2f);
+                EditorGUI.DrawRect(new Rect(backgroundRect.x, backgroundRect.y + backgroundRect.height - 1f, backgroundRect.width, 1f), Color.black);
 
                 EditorGUI.indentLevel--;
+                EditorGUILayout.EndVertical();
             }
-
-            EditorGUILayout.EndVertical();
         }
         protected virtual void OnContainerInformationsContentGUI() 
         {
@@ -1040,10 +1058,35 @@ namespace Dhs5.Utility.Databases
             return !IsRenamingElement;
         }
 
-        protected virtual void OnContainerContentListWindowGUI(Rect rect, bool refreshButton = false, bool addButton = false, bool contextButtons = false)
+        protected virtual void OnContainerContentListWindowGUI(Rect rect, string listName, bool refreshButton = false, bool addButton = false, bool contextButtons = false)
         {
-            bool hasAtLeastOneButton = (refreshButton || addButton);
-            ContentListRect = new Rect(rect.x, rect.y, rect.width, rect.height - (hasAtLeastOneButton ? ContentListButtonsHeight : 0f));
+            rect.x = 0f; rect.width = Screen.width;
+
+            // --- TOOLBAR ---
+            float toolbarHeight = 21f;
+            Rect toolbarRect = new Rect(0f, rect.y, Screen.width, toolbarHeight);
+            // Background
+            GUI.Box(toolbarRect, GUIContent.none, EditorStyles.toolbar);
+            // Label
+            EditorGUI.LabelField(new Rect(toolbarRect.x + 10f, toolbarRect.y, toolbarRect.width - 10f, toolbarHeight), listName);
+            // Buttons
+            int buttonsCount = 2;
+            float buttonsWidth = 40f;
+            Rect addButtonRect = new Rect(toolbarRect.width - buttonsWidth, toolbarRect.y, buttonsWidth, toolbarHeight);
+            if (GUI.Button(addButtonRect, EditorGUIHelper.AddIcon, EditorStyles.toolbarButton))
+            {
+                CreateNewData();
+            }
+            Rect refreshButtonRect = new Rect(toolbarRect.width - buttonsWidth * buttonsCount, toolbarRect.y, buttonsWidth, toolbarHeight);
+            if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
+            {
+                ForceContainerContentRefresh();
+            }
+            // Search Bar
+            Rect searchFieldRect = new Rect(toolbarRect.x + (toolbarRect.width / 3), toolbarRect.y + 2f, (toolbarRect.width * 2 / 3) - (buttonsWidth * buttonsCount) - 2f, toolbarHeight - 2f);
+            ContentListSearchString = EditorGUI.TextField(searchFieldRect, ContentListSearchString, EditorStyles.toolbarSearchField);
+
+            ContentListRect = new Rect(rect.x, rect.y + toolbarHeight, rect.width, rect.height - 7f - toolbarHeight);
             EditorGUI.DrawRect(ContentListRect, GUIHelper.transparentBlack01);
 
             int visibleContentListCount = GetContentListVisibleCount();
@@ -1075,34 +1118,34 @@ namespace Dhs5.Utility.Databases
                 }
             }
 
-            if (hasAtLeastOneButton)
+            ContentListResize(new Rect(rect.x, rect.y + rect.height - 7f, rect.width, 7f));
+        }
+
+        #endregion
+
+        #region Content List Resize
+
+        protected void ContentListResize(Rect rect)
+        {
+            rect.x = 0f;
+            rect.width = Screen.width;
+            EditorGUI.DrawRect(rect, GUIHelper.grey01);
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y + 1, rect.width, 1f), Color.white);
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y + rect.height - 2, rect.width, 1f), Color.white);
+
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeVertical);
+            if (!IsResizingContentList
+                && rect.Contains(Event.current.mousePosition)
+                && Event.current.type == EventType.MouseDown)
             {
-                var guiColor = GUI.color;
-
-                EditorGUI.BeginDisabledGroup(!IsContainerContentListInteractable());
-                if (refreshButton)
-                {
-                    GUI.color = Color.cyan;
-                    // Refresh Button
-                    Rect refreshButtonRect = new Rect(rect.x, rect.y + rect.height - ContentListButtonsHeight, rect.width * (addButton ? 0.5f : 1f), ContentListButtonsHeight);
-                    if (GUI.Button(refreshButtonRect, "REFRESH"))
-                    {
-                        ForceContainerContentRefresh();
-                    }
-                }
-                if (addButton)
-                {
-                    GUI.color = Color.green;
-                    // Add Button
-                    Rect addButtonRect = new Rect(rect.x + (refreshButton ? rect.width * 0.5f : 0f), rect.y + rect.height - ContentListButtonsHeight, rect.width * (refreshButton ? 0.5f : 1f), ContentListButtonsHeight);
-                    if (GUI.Button(addButtonRect, "ADD"))
-                    {
-                        CreateNewData();
-                    }
-                }
-                EditorGUI.EndDisabledGroup();
-
-                GUI.color = guiColor;
+                IsResizingContentList = true;
+                Event.current.Use();
+            }
+            else if (IsResizingContentList
+                && Event.current.type == EventType.MouseDrag)
+            {
+                ContentListRectHeight = Mathf.Clamp(ContentListRectHeight + Event.current.delta.y, 100f, 500f);
+                Event.current.Use();
             }
         }
 

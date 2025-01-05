@@ -165,8 +165,6 @@ namespace Dhs5.Utility.Databases
 
         protected SerializedProperty p_content;
 
-        protected float m_dataListWindowHeight = 170f;
-
         #endregion
 
         #region Core Behaviour
@@ -188,13 +186,11 @@ namespace Dhs5.Utility.Databases
         {
             DrawDefault();
 
-            Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
+            Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
-            OnContainerContentListWindowGUI(dataListWindowRect, refreshButton: true, addButton: true, contextButtons: true);
-
-            EditorGUILayout.Space(5f);
-            Separator(2f, Color.white);
+            OnContainerContentListWindowGUI(dataListWindowRect, "Content", refreshButton: true, addButton: true, contextButtons: true);
+            
             EditorGUILayout.Space(10f);
 
             DisplayContainerCurrentSelection();

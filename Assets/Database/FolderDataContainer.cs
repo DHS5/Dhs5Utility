@@ -152,8 +152,6 @@ namespace Dhs5.Utility.Databases
 
         protected string m_currentFolderName;
 
-        protected float m_dataListWindowHeight = 170f;
-
         #endregion
 
         #region Properties
@@ -185,15 +183,11 @@ namespace Dhs5.Utility.Databases
         {            
             OnContainerInformationsGUI("Folder Informations");
             
-            EditorGUILayout.Space(10f);
-            
-            Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, m_dataListWindowHeight);
+            Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
             dataListWindowRect.x += 10f;
             dataListWindowRect.width -= 20f;
-            OnContainerContentListWindowGUI(dataListWindowRect, refreshButton:true, addButton:true, contextButtons:true);
+            OnContainerContentListWindowGUI(dataListWindowRect, "Folder Content", refreshButton:true, addButton:true, contextButtons:true);
             
-            EditorGUILayout.Space(5f);
-            Separator(2f, Color.white);
             EditorGUILayout.Space(10f);
             
             DisplayContainerCurrentSelection();
