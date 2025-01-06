@@ -27,7 +27,7 @@ public class OnScreenConsoleSettings : CustomSettings<OnScreenConsoleSettings>
 
     public static bool HasOpenConsoleInput(out InputAction action)
     {
-        if (I != null)
+        if (I != null && I.m_openInputRef != null)
         {
             action = I.m_openInputRef.ToInputAction();
             return action != null;
@@ -37,7 +37,7 @@ public class OnScreenConsoleSettings : CustomSettings<OnScreenConsoleSettings>
     }
     public static bool HasCloseConsoleInput(out InputAction action)
     {
-        if (I != null)
+        if (I != null && I.m_closeInputRef != null)
         {
             action = I.m_closeInputRef.ToInputAction();
             return action != null;
