@@ -18,7 +18,7 @@ namespace Dhs5.Utility.Updates
         [Tooltip("Order in the selected update pass\n0 will be invoked first, bigger number last")]
         [SerializeField] private ushort m_order = 0;
 
-        [SerializeField] private UpdateCondition m_updateCondition = UpdateCondition.ALWAYS;
+        [SerializeField] private EUpdateCondition m_updateCondition = EUpdateCondition.ALWAYS;
         [SerializeField] private EnabledValue<float> m_customFrequency;
         [SerializeField] private bool m_timescaleIndependent = false;
 
@@ -28,7 +28,7 @@ namespace Dhs5.Utility.Updates
 
         public UpdatePass Pass => m_updatePass;
         public ushort Order => m_order;
-        public UpdateCondition Condition => m_updateCondition;
+        public EUpdateCondition Condition => m_updateCondition;
         public bool TimescaleIndependent => m_timescaleIndependent;
 
         public bool HasCustomFrequency(out float frequency)

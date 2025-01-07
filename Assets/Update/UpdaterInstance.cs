@@ -200,6 +200,7 @@ namespace Dhs5.Utility.Updates
             if (pass == UpdatePass.CLASSIC)
             {
                 InvokePreciseFramesUpdates(deltaTime);
+                UpdateDelayedCalls(deltaTime);
             }
             else if (pass == UpdatePass.LATE)
             {
@@ -257,7 +258,7 @@ namespace Dhs5.Utility.Updates
         }
         protected virtual bool CanUpdate(UpdaterDatabaseElement categoryElement)
         {
-            if (categoryElement.Condition.IsFullfilled())
+            if (BaseUpdater.IsConditionFullfilled(categoryElement.Condition))
             {
                 if (categoryElement.HasCustomFrequency(out float frequency)
                     && TryGetLastUpdateTime(categoryElement.EnumIndex, out float lastUpdate))
@@ -374,7 +375,7 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Precise Updates
+        #region Precise Frame Updates
 
         private Dictionary<int, UpdateCallback> m_preciseFrameCallbacks = new();
         private UpdateCallback m_oneShotLateUpdateCallback;
@@ -423,6 +424,63 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #region Delayed Calls
+
+        private struct DelayedCall
+        {
+            #region Members
+
+            private float m_remainingTime;
+            private Action m_callback;
+
+            #endregion
+
+            #region Constructor
+
+            public DelayedCall(float delay, Action callback)
+            {
+                m_remainingTime = delay;
+                m_callback = callback;
+            }
+
+            #endregion
+
+            #region Update
+
+            public bool Update(float deltaTime)
+            {
+                m_remainingTime -= deltaTime;
+                if (m_remainingTime <= 0f)
+                {
+                    m_callback?.Invoke();
+                    return true;
+                }
+                return false;
+            }
+
+            #endregion
+        }
+
+        private List<DelayedCall> m_delayedCalls = new();
+
+        internal void RegisterDelayedCall(float delay, Action callback)
+        {
+            m_delayedCalls.Add(new DelayedCall(delay, callback));
+        }
+
+        private void UpdateDelayedCalls(float deltaTime)
+        {
+            for (int i = m_delayedCalls.Count - 1; i >= 0; i--)
+            {
+                if (m_delayedCalls[i].Update(deltaTime))
+                {
+                    m_delayedCalls.RemoveAt(i);
+                }
+            }
+        }
+
+        #endregion
+
 
         #region Utility
 
@@ -431,6 +489,7 @@ namespace Dhs5.Utility.Updates
             m_updaterElements.Clear();
             m_registeredCallbacks.Clear();
             m_preciseFrameCallbacks.Clear();
+            m_delayedCalls.Clear();
             m_lastUpdateTimes.Clear();
 
             ClearUpdateTimelineInstances();

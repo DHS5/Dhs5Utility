@@ -211,6 +211,32 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #region Delayed Calls
+
+        public static void CallInXSeconds(float seconds, System.Action callback)
+        {
+            if (callback == null) return;
+
+            GetInstance().RegisterDelayedCall(seconds, callback);
+        }
+
+        #endregion
+
+        #region Update Conditions
+
+        public static bool IsConditionFullfilled(EUpdateCondition condition)
+        {
+            switch (condition)
+            {
+                case EUpdateCondition.ALWAYS: return true;
+                case EUpdateCondition.GAME_PLAYING: return UnityEngine.Time.timeScale > 0f;
+                case EUpdateCondition.GAME_PAUSED: return UnityEngine.Time.timeScale == 0f;
+            }
+            return false;
+        }
+
+        #endregion
+
 
         #region Utility
 
