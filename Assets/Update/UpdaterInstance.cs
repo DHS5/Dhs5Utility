@@ -426,7 +426,7 @@ namespace Dhs5.Utility.Updates
 
         #region Delayed Calls
 
-        private struct DelayedCall
+        private class DelayedCall
         {
             #region Members
 
