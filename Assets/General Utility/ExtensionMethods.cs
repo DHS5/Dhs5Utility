@@ -26,6 +26,15 @@ public static class ExtensionMethods
         return new Vector2(current.x + num / num4 * speed, current.y + num2 / num4 * speed);
     }
 
+    public static float GetRandomInRange(this Vector2 vector)
+    {
+        return UnityEngine.Random.Range(Mathf.Min(vector.x), Mathf.Max(vector.y));
+    }
+    public static int GetRandomInRange(this Vector2Int vector, bool maxInclusive)
+    {
+        return UnityEngine.Random.Range(Mathf.Min(vector.x), Mathf.Max(vector.y) + (maxInclusive ? 1 : 0));
+    }
+
     #endregion
 
     #region Collections
