@@ -101,25 +101,32 @@ namespace Dhs5.Utility.Debuggers
         {
             if (obj is DebuggerDatabaseElement elem)
             {
+                var so = new SerializedObject(elem);
+                SerializedProperty property;
+
                 // Light rim
                 var lightRimRect = new Rect(rect.x, rect.y, rect.height + 4f, rect.height);
                 EditorGUI.LabelField(lightRimRect, elem.Level > -1 ? EditorGUIHelper.GreenLightIcon : EditorGUIHelper.RedLightIcon);
 
                 // Color
+                property = so.FindProperty("m_color");
                 float colorRectWidth = 40f;
                 var colorRect = new Rect(rect.x + rect.width - m_extraInfosWidth, rect.y, colorRectWidth, rect.height);
                 EditorGUI.BeginChangeCheck();
-                var newColor = EditorGUI.ColorField(colorRect, GUIContent.none, elem.Color, false, false, false);
+                var newColor = EditorGUI.ColorField(colorRect, GUIContent.none, property.colorValue, false, false, false);
                 if (EditorGUI.EndChangeCheck())
                 {
-                    elem.Color = new Color(newColor.r, newColor.g, newColor.b, 1f);
+                    property.colorValue = new Color(newColor.r, newColor.g, newColor.b, 1f);
+                    so.ApplyModifiedProperties();
+                    elem.RefreshColorString();
                 }
 
                 // Level
+                property = so.FindProperty("m_level");
                 float levelLabelWidth = 20f;
                 float levelSliderWidth = m_extraInfosWidth - colorRectWidth - 5f - levelLabelWidth;
                 var levelSliderRect = new Rect(colorRect.x + colorRectWidth + 5f, rect.y, levelSliderWidth, rect.height);
-                elem.Level = (int)GUI.HorizontalSlider(levelSliderRect, elem.Level, -1, BaseDebugger.MAX_DEBUGGER_LEVEL);
+                property.intValue = (int)GUI.HorizontalSlider(levelSliderRect, property.intValue, -1, BaseDebugger.MAX_DEBUGGER_LEVEL);
                 //elem.Level = EditorGUI.IntSlider(levelSliderRect, elem.Level, -1, BaseDebugger.MAX_DEBUGGER_LEVEL);
                 var levelLabelRect = new Rect(levelSliderRect.x + levelSliderWidth, rect.y, levelLabelWidth, rect.height);
                 EditorGUI.LabelField(levelLabelRect, elem.Level.ToString(), GUIHelper.centeredLabel);
@@ -128,6 +135,9 @@ namespace Dhs5.Utility.Debuggers
                 float labelRectX = rect.x + lightRimRect.width + 5f;
                 var labelRect = new Rect(labelRectX, rect.y, colorRect.x - labelRectX - 5f, rect.height);
                 OnContentListElementNameGUI(labelRect, index, selected, obj, name);
+
+                so.ApplyModifiedProperties();
+                so.Dispose();
             }
             else
             {

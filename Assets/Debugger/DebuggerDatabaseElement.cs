@@ -29,23 +29,11 @@ namespace Dhs5.Utility.Debuggers
 
         #region Properties
 
-        public Color Color
-        {
-            get => m_color;
-            internal set
-            {
-                m_color = value;
-                RefreshColorString();
-            }
-        }
+        public Color Color => m_color;
         public string ColorString => m_colorString;
 
         public bool Active => Level >= 0;
-        public int Level
-        {
-            get => m_level;
-            internal set => m_level = value;
-        }
+        public int Level => m_level;
 
         public bool ShowInConsole => m_showInConsole;
         public bool ShowOnScreen => m_showOnScreen;
@@ -72,7 +60,7 @@ namespace Dhs5.Utility.Debuggers
 
         #region Utility
 
-        private void RefreshColorString()
+        public void RefreshColorString()
         {
             m_colorString = ColorUtility.ToHtmlStringRGB(Color);
         }
