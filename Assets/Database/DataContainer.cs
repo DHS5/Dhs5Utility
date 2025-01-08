@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using UnityEngine.UIElements;
+using System.Linq;
+
 
 
 #if UNITY_EDITOR
@@ -375,6 +377,7 @@ namespace Dhs5.Utility.Databases
         protected float ContentListRectHeight { get; private set; } = 170f;
         protected bool IsResizingContentList { get; private set; }
         protected string ContentListSearchString { get; private set; }
+        protected bool ContentListFiltered => !string.IsNullOrWhiteSpace(ContentListSearchString);
         protected Rect ContentListRect { get; set; }
         protected bool ContentListNeedsScrollRect { get; private set; }
         protected Vector2 ContentListWindowScrollPos { get; set; }
@@ -711,15 +714,26 @@ namespace Dhs5.Utility.Databases
 
         private FolderStructure m_folderStructure = new();
         protected int ContentListCount => m_folderStructure.Count;
-        protected int GetContentListVisibleCount() => m_folderStructure.GetValidEntryCount();
 
         protected FolderStructureEntry GetEntryAtIndex(int index) => m_folderStructure.GetEntryAtIndex(index);
         protected FolderStructureEntry GetCurrentSelectionEntry() => m_folderStructure.GetEntryAtIndex(ContainerSelectionIndex);
 
+        private IEnumerable<int> GetValidEntriesIndexes()
+        {
+            if (!ContentListFiltered)
+            {
+                return m_folderStructure.GetValidEntriesIndexes();
+            }
+            else
+            {
+                return m_folderStructure.GetFilteredEntriesIndexes(ContentListSearchString);
+            }
+        }
+
         protected int GetFirstValidEntryIndexUp()
         {
             int validIndex = 0;
-            foreach (var index in m_folderStructure.GetValidEntriesIndexes())
+            foreach (var index in GetValidEntriesIndexes())
             {
                 if (index < ContainerSelectionIndex)
                 {
@@ -734,7 +748,7 @@ namespace Dhs5.Utility.Databases
         }
         protected int GetFirstValidEntryIndexDown()
         {
-            foreach (var index in m_folderStructure.GetValidEntriesIndexes())
+            foreach (var index in GetValidEntriesIndexes())
             {
                 if (index > ContainerSelectionIndex)
                 {
@@ -744,7 +758,6 @@ namespace Dhs5.Utility.Databases
             return ContainerSelectionIndex;
         }
 
-        private IEnumerable<int> GetValidEntriesIndexes() => m_folderStructure.GetValidEntriesIndexes();
         protected int GetVisibleIndex(int containerIndex)
         {
             if (containerIndex < 0) return -1;
@@ -1086,36 +1099,37 @@ namespace Dhs5.Utility.Databases
             Rect searchFieldRect = new Rect(toolbarRect.x + (toolbarRect.width / 3), toolbarRect.y + 2f, (toolbarRect.width * 2 / 3) - (buttonsWidth * buttonsCount) - 2f, toolbarHeight - 2f);
             ContentListSearchString = EditorGUI.TextField(searchFieldRect, ContentListSearchString, EditorStyles.toolbarSearchField);
 
+            // --- CONTENT LIST ---
             ContentListRect = new Rect(rect.x, rect.y + toolbarHeight, rect.width, rect.height - 7f - toolbarHeight);
             EditorGUI.DrawRect(ContentListRect, GUIHelper.transparentBlack01);
 
-            int visibleContentListCount = GetContentListVisibleCount();
-            int visibleIndex = 0;
+            var validIndexes = GetValidEntriesIndexes().ToList();
+            int visibleContentListCount = validIndexes.Count;
             ContentListNeedsScrollRect = visibleContentListCount * ContentListElementHeight > ContentListRect.height;
+
+            Rect dataRect;
             if (ContentListNeedsScrollRect)
             {
                 Rect viewRect = new Rect(0, 0, ContentListRect.width - 15f, visibleContentListCount * ContentListElementHeight);
                 ContentListWindowScrollPos = GUI.BeginScrollView(ContentListRect, ContentListWindowScrollPos, viewRect);
-
-                Rect dataRect = new Rect(0, 0, viewRect.width, ContentListElementHeight);
-                foreach (var index in GetValidEntriesIndexes())
-                {
-                    OnContentListElementGUI(dataRect, index, visibleIndex, contextButtons);
-                    dataRect.y += ContentListElementHeight;
-                    visibleIndex++;
-                }
-
-                GUI.EndScrollView();
+                dataRect = new Rect(0, 0, viewRect.width, ContentListElementHeight);
             }
             else
             {
-                Rect dataRect = new Rect(ContentListRect.x, ContentListRect.y, ContentListRect.width, ContentListElementHeight);
-                foreach (var index in GetValidEntriesIndexes())
-                {
-                    OnContentListElementGUI(dataRect, index, visibleIndex, contextButtons);
-                    dataRect.y += ContentListElementHeight;
-                    visibleIndex++;
-                }
+                dataRect = new Rect(ContentListRect.x, ContentListRect.y, ContentListRect.width, ContentListElementHeight);
+            }
+
+            int visibleIndex = 0;
+            foreach (var index in validIndexes)
+            {
+                OnContentListElementGUI(dataRect, index, visibleIndex, contextButtons);
+                dataRect.y += ContentListElementHeight;
+                visibleIndex++;
+            }
+
+            if (ContentListNeedsScrollRect)
+            {
+                GUI.EndScrollView();
             }
 
             ContentListResize(new Rect(rect.x, rect.y + rect.height - 7f, rect.width, 7f));
@@ -1158,7 +1172,7 @@ namespace Dhs5.Utility.Databases
             FolderStructureEntry entry = GetEntryAtIndex(index);
             bool selected = ContainerSelectionIndex == index;
 
-            float alinea = ContentListElementAlinea * entry.level;
+            float alinea = ContentListFiltered ? 0f : ContentListElementAlinea * entry.level;
             Rect elementRect = new Rect(rect.x + alinea, rect.y, rect.width - alinea - (contextButton ? ContentListElementContextButtonWidth : 0f), rect.height);
             Rect buttonRect = GetButtonRectForContentListElement(rect, index, entry, contextButton);
             bool isHovered = buttonRect.Contains(CurrentEvent.mousePosition);
@@ -1481,20 +1495,6 @@ namespace Dhs5.Utility.Databases
         }
 
         #endregion
-
-        #endregion
-    }
-
-    public abstract class DataContainerEditor : BaseDataContainerEditor
-    {
-        #region Base GUI
-
-        protected override string ContainerInvalidDataTypeMessage()
-        {
-            return "The data type of this DataContainer is not valid.\n\n" +
-                    "- Add the DataContainerAttribute to the top of your script.\n" +
-                    "- Make sure the dataType parameter implements at least the IDataContainerElement interface.";
-        }
 
         #endregion
     }

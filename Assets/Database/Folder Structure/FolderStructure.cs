@@ -41,6 +41,8 @@ namespace Dhs5.Utility.Databases
             return null;
         }
 
+        #region Valid Entries
+
         public IEnumerable<FolderStructureEntry> GetValidEntries()
         {
             bool lastGroupOpen = true;
@@ -130,6 +132,27 @@ namespace Dhs5.Utility.Databases
 
             return count;
         }
+
+        #endregion
+
+        #region Entries Filtered
+
+        public IEnumerable<int> GetFilteredEntriesIndexes(string filter, bool includeFolders = false)
+        {
+            FolderStructureEntry entry;
+            for (int i = 0; i < Count; i++)
+            {
+                entry = m_structureList[i];
+
+                if ((includeFolders || entry is not FolderStructureGroupEntry)
+                    && entry.content.Contains(filter, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return i;
+                }
+            }
+        }
+
+        #endregion
 
         #endregion
 
