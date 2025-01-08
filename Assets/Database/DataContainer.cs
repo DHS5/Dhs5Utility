@@ -1533,9 +1533,11 @@ namespace Dhs5.Utility.Databases
                 else if (entry.data is int uid)
                 {
                     m_container.Editor_DeleteElementByUID(uid);
+                    OnDeletedElementWithUID(uid);
                 }
             }
         }
+        protected virtual void OnDeletedElementWithUID(int uid) { }
 
         #endregion
 

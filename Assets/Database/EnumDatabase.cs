@@ -306,12 +306,23 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
+            HasScriptChanges = true;
             if (obj is IEnumDatabaseElement elem)
             {
                 elem.Editor_SetIndex(int.MaxValue);
             }
 
             base.OnAddNewDataToContainer(obj);
+        }
+
+        #endregion
+
+        #region Data Deletion
+
+        protected override void OnDeletedElementWithUID(int uid)
+        {
+            base.OnDeletedElementWithUID(uid);
+            HasScriptChanges = true;
         }
 
         #endregion
@@ -323,6 +334,7 @@ namespace Dhs5.Utility.Databases
             if (base.OnCompleteRenaming(obj, index))
             {
                 ForceContainerContentRefresh();
+                HasScriptChanges = true;
                 return true;
             }
             return false;
@@ -385,6 +397,7 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnReorderElements()
         {
             ForceContainerContentRefresh();
+            HasScriptChanges = true;
         }
 
         #endregion
