@@ -244,32 +244,30 @@ namespace Dhs5.Utility.Databases
 
         #region Data Creation
 
-        protected override bool OnCreateNewData(out UnityEngine.Object obj)
+        protected override bool OnCreateNewDataOfType(Type type, out UnityEngine.Object obj)
         {
-            return CreateNewDataAtPath(FolderName + "/New", out obj);
+            return CreateNewDataAtPath(type, FolderName + "/New", out obj);
         }
-        protected virtual bool CreateNewDataAtPath(string path, out UnityEngine.Object obj)
+        protected virtual bool CreateNewDataAtPath(Type type, string path, out UnityEngine.Object obj)
         {
-            if (ContainerHasValidDataType)
-            {
-                path = AssetDatabase.GenerateUniqueAssetPath(path);
+            path = AssetDatabase.GenerateUniqueAssetPath(path);
 
-                if (DataType.IsSubclassOf(typeof(ScriptableObject)))
-                {
-                    obj = OnCreateNewScriptableObject(path, DataType);
-                    return obj != null;
-                }
-                else if (DataType.IsSubclassOf(typeof(Component)))
-                {
-                    obj = OnCreateNewPrefabWithComponent(path, DataType);
-                    return obj != null;
-                }
-                else if (DataType == typeof(GameObject))
-                {
-                    obj = OnCreateNewEmptyPrefab(path);
-                    return obj != null;
-                }
+            if (type.IsSubclassOf(typeof(ScriptableObject)))
+            {
+                obj = OnCreateNewScriptableObject(path, type);
+                return obj != null;
             }
+            else if (type.IsSubclassOf(typeof(Component)))
+            {
+                obj = OnCreateNewPrefabWithComponent(path, type);
+                return obj != null;
+            }
+            else if (type == typeof(GameObject))
+            {
+                obj = OnCreateNewEmptyPrefab(path);
+                return obj != null;
+            }
+
             obj = null;
             return false;
         }

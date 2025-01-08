@@ -5,6 +5,10 @@ using UnityEngine;
 using System.Text;
 using UnityEngine.UIElements;
 using System.Linq;
+using UnityEngine.TextCore.LowLevel;
+using static UnityEditor.LightingExplorerTableColumn;
+
+
 
 
 
@@ -75,10 +79,14 @@ namespace Dhs5.Utility.Databases
 
         #region Instance Content Management
 
+        internal virtual bool Editor_IsTypeValidForContainer(Type type)
+        {
+            return typeof(IDataContainerElement).IsAssignableFrom(type);
+        }
         internal virtual bool Editor_ContainerHasValidDataType(out Type dataType)
         {
             return HasDataType(GetType(), out dataType) &&
-                typeof(IDataContainerElement).IsAssignableFrom(dataType);
+                Editor_IsTypeValidForContainer(dataType);
         }
         internal virtual bool Editor_IsElementValid(UnityEngine.Object element)
         {
@@ -364,6 +372,7 @@ namespace Dhs5.Utility.Databases
         // Valid Data Type
         protected bool ContainerHasValidDataType { get; private set; }
         protected Type DataType { get; private set; }
+        protected Type[] ChildDataTypes { get; private set; }
 
         // Events
         protected Event CurrentEvent { get; private set; }
@@ -404,13 +413,31 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnEnable()
         {
             m_container = (BaseDataContainer)target;
+            // --- DATA TYPE ---
             ContainerHasValidDataType = m_container.Editor_ContainerHasValidDataType(out var dataType);
-            if (ContainerHasValidDataType) DataType = dataType;
+            if (ContainerHasValidDataType)
+            {
+                DataType = dataType;
+                if (DataType.IsAbstract)
+                {
+                    ChildDataTypes = AppDomain.CurrentDomain.GetAssemblies()
+                        .SelectMany(a => a.GetTypes())
+                        .Where(t => t.IsSubclassOf(DataType))
+                        .ToArray();
+                }
+                else
+                {
+                    ChildDataTypes = null;
+                }
+            }
 
+            // --- EDITOR PREFS ---
             ContentListRectHeight = EditorPrefs.GetFloat(m_container.GetType().Name + "_contentListRectHeight", 170f);
 
+            // --- CALLBACKS ---
             m_container.Editor_ContainerContentChanged += OnContainerContentChanged;
 
+            // --- PROPERTIES ---
             p_script = serializedObject.FindProperty("m_Script");
 
             m_excludedProperties = new()
@@ -418,6 +445,7 @@ namespace Dhs5.Utility.Databases
                 p_script.propertyPath,
             };
 
+            // --- CONTENT UPDATE ---
             OnContainerContentChanged();
         }
         protected virtual void OnDisable()
@@ -1086,9 +1114,16 @@ namespace Dhs5.Utility.Databases
             int buttonsCount = 2;
             float buttonsWidth = 40f;
             Rect addButtonRect = new Rect(toolbarRect.width - buttonsWidth, toolbarRect.y, buttonsWidth, toolbarHeight);
-            if (GUI.Button(addButtonRect, EditorGUIHelper.AddIcon, EditorStyles.toolbarButton))
+            if (GUI.Button(addButtonRect, DataType.IsAbstract ? EditorGUIHelper.AddMoreIcon : EditorGUIHelper.AddIcon, EditorStyles.toolbarButton))
             {
-                CreateNewData();
+                if (DataType.IsAbstract)
+                {
+                    TryCreateDataFromAbstractType();
+                }
+                else
+                {
+                    CreateNewDataOfType(DataType);
+                }
             }
             Rect refreshButtonRect = new Rect(toolbarRect.width - buttonsWidth * buttonsCount, toolbarRect.y, buttonsWidth, toolbarHeight);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
@@ -1415,9 +1450,30 @@ namespace Dhs5.Utility.Databases
 
         #region Data Creation
 
-        protected bool CreateNewData()
+        protected void TryCreateDataFromAbstractType()
         {
-            if (OnCreateNewData(out var obj))
+            var menu = new GenericMenu();
+
+            foreach (var type in ChildDataTypes)
+            {
+                if (!type.IsAbstract)
+                    menu.AddItem(new GUIContent(type.Name), false, OnTryCreateDataFromAbstractType, type);
+            }
+
+            menu.ShowAsContext();
+        }
+        private void OnTryCreateDataFromAbstractType(object obj)
+        {
+            if (obj is Type type)
+            {
+                CreateNewDataOfType(type);
+            }
+        }
+
+        protected bool CreateNewDataOfType(Type type)
+        {
+            if (m_container.Editor_IsTypeValidForContainer(type) 
+                && OnCreateNewDataOfType(type, out var obj))
             {
                 m_container.Editor_OnNewElementCreated(obj);
                 OnAddNewDataToContainer(obj);
@@ -1425,7 +1481,7 @@ namespace Dhs5.Utility.Databases
             }
             return false;
         }
-        protected abstract bool OnCreateNewData(out UnityEngine.Object obj);
+        protected abstract bool OnCreateNewDataOfType(Type type, out UnityEngine.Object obj);
 
         protected virtual GameObject OnCreateNewEmptyPrefab(string path)
         {

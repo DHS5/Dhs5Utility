@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
+using static UnityEditor.LightingExplorerTableColumn;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -39,13 +41,10 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override bool Editor_ContainerHasValidDataType(out Type dataType)
+        internal override bool Editor_IsTypeValidForContainer(Type type)
         {
-            if (base.Editor_ContainerHasValidDataType(out dataType))
-            {
-                return typeof(IEnumDatabaseElement).IsAssignableFrom(dataType);
-            }
-            return false;
+            return base.Editor_IsTypeValidForContainer(type)
+                && typeof(IEnumDatabaseElement).IsAssignableFrom(type);
         }
 
 #endif

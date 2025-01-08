@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
+using static UnityEditor.LightingExplorerTableColumn;
+
 
 
 #if UNITY_EDITOR
@@ -54,13 +56,10 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override bool Editor_ContainerHasValidDataType(out Type dataType)
+        internal override bool Editor_IsTypeValidForContainer(Type type)
         {
-            if (base.Editor_ContainerHasValidDataType(out dataType))
-            {
-                return dataType.IsSubclassOf(typeof(ScriptableObject));
-            }
-            return false;
+            return base.Editor_IsTypeValidForContainer(type)
+                && type.IsSubclassOf(typeof(ScriptableObject));
         }
 
 #endif
@@ -216,15 +215,10 @@ namespace Dhs5.Utility.Databases
 
         #region Data Creation
 
-        protected override bool OnCreateNewData(out UnityEngine.Object obj)
+        protected override bool OnCreateNewDataOfType(Type type, out UnityEngine.Object obj)
         {
-            if (ContainerHasValidDataType)
-            {
-                obj = Database.CreateScriptableAndAddToAsset(DataType, m_container);
-                return obj != null;
-            }
-            obj = null;
-            return false;
+            obj = Database.CreateScriptableAndAddToAsset(type, m_container);
+            return obj != null;
         }
         protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {

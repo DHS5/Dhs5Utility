@@ -22,6 +22,7 @@ namespace Dhs5.Utility.Editors
         public static GUIContent CanSeeIcon => EditorGUIUtility.IconContent("d_scenevis_visible_hover");
         public static GUIContent CantSeeIcon => EditorGUIUtility.IconContent("d_SceneViewVisibility");
         public static GUIContent AddIcon => EditorGUIUtility.IconContent("d_Toolbar Plus");
+        public static GUIContent AddMoreIcon => EditorGUIUtility.IconContent("d_Toolbar Plus More");
         public static GUIContent DeleteIcon => EditorGUIUtility.IconContent("d_Toolbar Minus");
         public static GUIContent FavoriteInactiveIcon => EditorGUIUtility.IconContent("d_Favorite");
         public static GUIContent FavoriteActiveIcon => EditorGUIUtility.IconContent("d_Favorite_colored");
