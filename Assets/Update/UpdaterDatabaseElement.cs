@@ -14,7 +14,7 @@ namespace Dhs5.Utility.Updates
     {
         #region Members
 
-        [SerializeField] private UpdatePass m_updatePass = UpdatePass.CLASSIC;
+        [SerializeField] private EUpdatePass m_updatePass = EUpdatePass.CLASSIC;
         [Tooltip("Order in the selected update pass\n0 will be invoked first, bigger number last")]
         [SerializeField] private ushort m_order = 0;
 
@@ -26,7 +26,7 @@ namespace Dhs5.Utility.Updates
 
         #region Properties
 
-        public UpdatePass Pass => m_updatePass;
+        public EUpdatePass Pass => m_updatePass;
         public ushort Order => m_order;
         public EUpdateCondition Condition => m_updateCondition;
         public bool TimescaleIndependent => m_timescaleIndependent;

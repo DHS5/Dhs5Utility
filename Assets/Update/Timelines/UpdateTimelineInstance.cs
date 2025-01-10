@@ -8,22 +8,26 @@ namespace Dhs5.Utility.Updates
     {
         #region Constructor
 
-        public UpdateTimelineInstance(UpdateTimeline updateTimeline, int updateCategory)
+        public UpdateTimelineInstance(IUpdateTimeline updateTimeline)
         {
             IsActive = false;
             Time = 0f;
 
             this.timelineUID = updateTimeline.UID;
-            this.updateCategory = updateCategory;
+            this.updateCategory = updateTimeline.UpdateKey;
             this.duration = updateTimeline.Duration;
-            this.loop = updateTimeline.Loop;
+            Loop = updateTimeline.Loop;
             Timescale = updateTimeline.Timescale;
 
             this.eventQueue = new();
             this.customEvents = new();
-            foreach (var e in updateTimeline.GetSortedEvents())
+            var sortedEvents = updateTimeline.GetSortedEvents();
+            if (sortedEvents != null)
             {
-                this.customEvents.Add(e);
+                foreach (var e in sortedEvents)
+                {
+                    this.customEvents.Add(e);
+                }
             }
         }
 
@@ -34,10 +38,9 @@ namespace Dhs5.Utility.Updates
         public readonly int timelineUID;
         public readonly int updateCategory;
         public readonly float duration;
-        public readonly bool loop;
 
-        private readonly List<UpdateTimeline.Event> customEvents;
-        private Queue<UpdateTimeline.Event> eventQueue;
+        private readonly List<IUpdateTimeline.Event> customEvents;
+        private Queue<IUpdateTimeline.Event> eventQueue;
 
         #endregion
 
@@ -56,6 +59,10 @@ namespace Dhs5.Utility.Updates
         /// </summary>
         public float NormalizedTime => Time / duration;
 
+        /// <summary>
+        /// Whether this UpdateTimeline loops
+        /// </summary>
+        public bool Loop { get; set; }
         /// <summary>
         /// Timescale of this UpdateTimeline
         /// </summary>
@@ -143,7 +150,7 @@ namespace Dhs5.Utility.Updates
                 if (Time >= duration)
                 {
                     float surplus = Time - duration;
-                    if (loop)
+                    if (Loop)
                     {
                         // End
                         Time = duration;
@@ -331,6 +338,25 @@ namespace Dhs5.Utility.Updates
                     return instance.NormalizedTime;
                 }
                 return -1f;
+            }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.Loop"/>
+        public readonly bool Loop
+        {
+            get
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    return instance.Loop;
+                }
+                return false;
+            }
+            set
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    instance.Loop = value;
+                }
             }
         }
         /// <inheritdoc cref="UpdateTimelineInstance.Timescale"/>

@@ -59,6 +59,14 @@ namespace Dhs5.Utility.Updates
                 return UnityEngine.Time.deltaTime;
             }
         }
+        public static bool TimePaused
+        {
+            get
+            {
+                if (IsInstanceValid()) return Instance.TimePaused;
+                return UnityEngine.Time.timeScale > 0f;
+            }
+        }
         // REALTIME
         public static float RealTime
         {
@@ -87,14 +95,6 @@ namespace Dhs5.Utility.Updates
         }
 
         // GAME STATE
-        public static bool GamePaused
-        {
-            get
-            {
-                if (IsInstanceValid()) return Instance.GamePaused;
-                return UnityEngine.Time.timeScale > 0f;
-            }
-        }
 
         #endregion
 
@@ -105,9 +105,6 @@ namespace Dhs5.Utility.Updates
         public static event UpdateCallback OnLateUpdate { add { GetInstance().OnLateUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnLateUpdate -= value; } }
 
         public static event UpdateCallback OnFixedUpdate { add { GetInstance().OnFixedUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnFixedUpdate -= value; } }
-
-        public static event UpdateCallback OnBeforeInputUpdate { add { GetInstance().OnBeforeInputUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnBeforeInputUpdate -= value; } }
-        public static event UpdateCallback OnAfterInputUpdate { add { GetInstance().OnAfterInputUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnAfterInputUpdate -= value; } }
 
         #endregion
 
@@ -139,9 +136,17 @@ namespace Dhs5.Utility.Updates
         /// Creates an Instance of <paramref name="timeline"/> and out a handle for it
         /// </summary>
         /// <returns>Whether the instance was successfully registered</returns>
-        public static bool CreateTimelineInstance(UpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
+        public static bool CreateTimelineInstance(IUpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
         {
             return GetInstance().CreateUpdateTimelineInstance(timeline, GetUniqueRegistrationKey(), out handle);
+        }
+        /// <summary>
+        /// Creates an <see cref="UpdateTimelineInstance"/> from the parameters and out a handle for it
+        /// </summary>
+        /// <returns>Whether the instance was successfully registered</returns>
+        public static bool CreateTimelineInstance(int updateKey, float duration, out UpdateTimelineInstanceHandle handle, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
+        {
+            return GetInstance().CreateUpdateTimelineInstance(new ScriptedUpdateTimeline(updateKey, duration, loop, timescale, events, uid), GetUniqueRegistrationKey(), out handle);
         }
 
         /// <summary>
@@ -169,9 +174,9 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Attempts to get a handle for the first <see cref="UpdateTimelineInstance"/> of type <paramref name="timeline"/>
         /// </summary>
-        public static bool GetFirstTimelineInstanceHandleOfType(UpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
+        public static bool GetFirstTimelineInstanceHandleOfType(IUpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
         {
-            return GetInstance().TryGetUpdateTimelineInstanceHandle(timeline, out handle);
+            return GetInstance().TryGetUpdateTimelineInstanceHandle(timeline.UID, out handle);
         }
 
         #endregion
@@ -206,7 +211,7 @@ namespace Dhs5.Utility.Updates
             if (callback == null || framesToWait < 0) return;
 
             int nextFrame = Frame + framesToWait;
-            GetInstance().RegisterCallbackOnFrame(nextFrame, callback);
+            GetInstance().RegisterCallbackInXFrames(nextFrame, callback);
         }
 
         #endregion

@@ -11,19 +11,8 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Updates
 {
-    public class UpdateTimeline : BaseDataContainerScriptableElement
+    public class UpdateTimeline : BaseDataContainerScriptableElement, IUpdateTimeline
     {
-        #region STRUCT Event
-
-        [Serializable]
-        public struct Event
-        {
-            public float normalizedTime;
-            public ushort id;
-        }
-
-        #endregion
-
         #region Members
 
         [SerializeField] private UpdatePicker m_update;
@@ -31,28 +20,27 @@ namespace Dhs5.Utility.Updates
         [SerializeField] private float m_secondsDuration;
         [SerializeField] private bool m_loop;
         [SerializeField] private float m_timescale = 1f;
-        [SerializeField] private List<Event> m_events;
+        [SerializeField] private List<IUpdateTimeline.Event> m_events;
 
         #endregion
 
-        #region Properties
+        #region IUpdateTimeline
 
+        public int UpdateKey
+        {
+            get
+            {
+                if (m_update.TryGetUpdateKey(out int updateKey)) return updateKey;
+                return 0;
+            }
+        }
         public float Duration => m_minutesDuration * 60f + m_secondsDuration;
         public bool Loop => m_loop;
         public float Timescale => m_timescale;
 
-        #endregion
-
-        #region Accessors
-
-        public bool HasValidUpdate(out int updateKey)
+        public IEnumerable<IUpdateTimeline.Event> GetSortedEvents()
         {
-            return m_update.TryGetUpdateKey(out updateKey);
-        }
-
-        public IEnumerable<Event> GetSortedEvents()
-        {
-            List<Event> sortedEvents = new(m_events);
+            List<IUpdateTimeline.Event> sortedEvents = new(m_events);
             sortedEvents.Sort((e1, e2) => e1.normalizedTime.CompareTo(e2.normalizedTime));
             return sortedEvents;
         }

@@ -5,16 +5,13 @@ using UnityEngine;
 namespace Dhs5.Utility.Updates
 {
 
-    public enum UpdatePass
+    public enum EUpdatePass
     {
         CLASSIC = 0,
         EARLY,
         LATE,
 
         FIXED,
-
-        PRE_INPUT,
-        POST_INPUT,
     }
 
 }

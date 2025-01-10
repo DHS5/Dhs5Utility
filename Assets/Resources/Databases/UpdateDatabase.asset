@@ -55,7 +55,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_uid: 2
   m_enumIndex: 1
-  m_updatePass: 5
+  m_updatePass: 2
   m_order: 0
   m_updateCondition: 0
   m_customFrequency:
