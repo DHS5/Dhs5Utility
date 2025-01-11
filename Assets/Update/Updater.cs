@@ -188,9 +188,9 @@ namespace Dhs5.Utility.Updates
         /// Creates an <see cref="UpdateTimelineInstance"/> from the parameters and out a handle for it
         /// </summary>
         /// <returns>Whether the instance was successfully registered</returns>
-        public static bool CreateTimelineInstance(int updateKey, float duration, out UpdateTimelineInstanceHandle handle, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
+        public static bool CreateTimelineInstance(UpdateEnum category, float duration, out UpdateTimelineInstanceHandle handle, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
         {
-            return GetInstance().CreateUpdateTimelineInstance(new ScriptedUpdateTimeline(updateKey, duration, loop, timescale, events, uid), GetUniqueRegistrationKey(), out handle);
+            return GetInstance().CreateUpdateTimelineInstance(new ScriptedUpdateTimeline(Convert.ToInt32(category), duration, loop, timescale, events, uid), GetUniqueRegistrationKey(), out handle);
         }
 
         /// <summary>
@@ -230,7 +230,7 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Register a callback to be called once on the next classic update (next frame)
         /// </summary>
-        public static void CallOnNextUpdate(UpdateCallback callback)
+        public static void CallOnNextUpdate(Action callback)
         {
             CallInXFrames(1, callback);
         }
@@ -240,33 +240,32 @@ namespace Dhs5.Utility.Updates
         /// <remarks>
         /// If this frame's late update has already been called, call instantaneously
         /// </remarks>
-        public static void CallOnLateUpdate(UpdateCallback callback)
+        public static void CallOnLateUpdate(Action callback)
         {
             if (callback == null) return;
 
-            GetInstance().RegisterOneShotLateUpdateCallback(callback);
+            CallInXFrames(0, callback, EUpdatePass.LATE, EUpdateCondition.ALWAYS);
         }
 
         /// <summary>
         /// Register a callback to be called once in <paramref name="framesToWait"/> number of frames in the classic update
         /// </summary>
-        public static void CallInXFrames(int framesToWait, UpdateCallback callback)
+        public static void CallInXFrames(int framesToWait, Action callback, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || framesToWait < 0) return;
 
-            int nextFrame = Frame + framesToWait;
-            GetInstance().RegisterCallbackInXFrames(nextFrame, callback);
+            GetInstance().RegisterFrameDelayedCall(framesToWait, pass, condition, callback);
         }
 
         #endregion
 
         #region Delayed Calls
 
-        public static void CallInXSeconds(float seconds, System.Action callback)
+        public static void CallInXSeconds(float seconds, System.Action callback, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null) return;
 
-            GetInstance().RegisterDelayedCall(seconds, callback);
+            GetInstance().RegisterTimedDelayedCall(seconds, pass, condition, callback);
         }
 
         #endregion

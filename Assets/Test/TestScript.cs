@@ -5,7 +5,6 @@ using Dhs5.Utility.Updates;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using Dhs5.Utility.Tags;
 using System;
 
@@ -83,11 +82,11 @@ public class TestScript : MonoBehaviour, IDataContainerElement
         {
             done2 = true;
             TestDebugger.Log(DebugCategory.GAME, "on late register, frame : " + TestUpdater.Frame, 0);
-            TestUpdater.CallOnLateUpdate((dt) => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + TestUpdater.Frame, 0));
+            TestUpdater.CallOnLateUpdate(() => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + TestUpdater.Frame, 0));
         }
     }
 
-    private void OnNextUpdate(float deltaTime)
+    private void OnNextUpdate()
     {
         TestDebugger.Log(DebugCategory.GAME, "On Next update, Frame : " + TestUpdater.Frame, 0);
     }

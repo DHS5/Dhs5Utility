@@ -140,18 +140,15 @@ namespace Dhs5.Utility.Updates
         // UNITY
         protected virtual void Update()
         {
+            ResetCurrentFramePasses();
             ComputeTimeState();
 
             EarlyUpdate();
             ClassicUpdate();
-
-            InvokePreciseFramesUpdates(DeltaTime);
-            UpdateDelayedCalls(DeltaTime);
         }
         protected virtual void LateUpdate()
         {
             InvokePassEvents(EUpdatePass.LATE, DeltaTime, RealDeltaTime);
-            InvokeOneShotLateUpdate(DeltaTime);
         }
         protected virtual void FixedUpdate()
         {
@@ -173,6 +170,8 @@ namespace Dhs5.Utility.Updates
 
         #region Pass Management
 
+        private List<EUpdatePass> m_currentFramePasses = new();
+
         protected void InvokePassEvents(EUpdatePass pass, float deltaTime, float realDeltaTime)
         {
             foreach (var categoryElement in GetPassValidCategories(pass))
@@ -181,8 +180,21 @@ namespace Dhs5.Utility.Updates
                 InvokeCategoryEvents(categoryElement, timescaleIndependant ? realDeltaTime : deltaTime, timescaleIndependant ? RealTime : Time);
             }
 
+            UpdateDelayedCalls(pass, deltaTime);
             InvokeDefaultEvents(pass, deltaTime);
-        }        
+
+            m_currentFramePasses.Add(pass);
+        }
+
+        private void ResetCurrentFramePasses()
+        {
+            m_currentFramePasses.Clear();
+            m_delayedCallPasses.Clear();
+        }
+        protected bool PassHasBeenTriggeredThisFrame(EUpdatePass pass)
+        {
+            return m_currentFramePasses.Contains(pass);
+        }
 
         #endregion
 
@@ -349,82 +361,32 @@ namespace Dhs5.Utility.Updates
             switch (pass)
             {
                 case EUpdatePass.EARLY: OnEarlyUpdate?.Invoke(deltaTime); break;
-                case EUpdatePass.CLASSIC: OnUpdate?.Invoke(deltaTime); m_lastClassicUpdateFrame = Frame; break;
-                case EUpdatePass.LATE: OnLateUpdate?.Invoke(deltaTime); m_lastLateUpdateFrame = Frame; break;
+                case EUpdatePass.CLASSIC: OnUpdate?.Invoke(deltaTime); break;
+                case EUpdatePass.LATE: OnLateUpdate?.Invoke(deltaTime); break;
                 case EUpdatePass.FIXED: OnFixedUpdate?.Invoke(deltaTime); break;
             }
         }
 
         #endregion
 
-        #region Precise Frame Updates
-
-        private int m_lastClassicUpdateFrame;
-        private int m_lastLateUpdateFrame;
-
-        private Dictionary<int, UpdateCallback> m_preciseFrameCallbacks = new();
-        private UpdateCallback m_oneShotLateUpdateCallback;
-
-        public void RegisterCallbackInXFrames(int frame, UpdateCallback callback)
-        {
-            if (m_lastClassicUpdateFrame == frame)
-            {
-                callback?.Invoke(DeltaTime);
-                return;
-            }
-
-            if (m_preciseFrameCallbacks.ContainsKey(frame))
-            {
-                m_preciseFrameCallbacks[frame] += callback;
-            }
-            else
-            {
-                m_preciseFrameCallbacks.Add(frame, callback);
-            }
-        }
-        public void RegisterOneShotLateUpdateCallback(UpdateCallback callback)
-        {
-            if (m_lastLateUpdateFrame == Frame)
-            {
-                callback?.Invoke(DeltaTime);
-                return;
-            }
-
-            m_oneShotLateUpdateCallback += callback;
-        }
-
-        private void InvokePreciseFramesUpdates(float deltaTime)
-        {
-            if (m_preciseFrameCallbacks.ContainsKey(Frame))
-            {
-                m_preciseFrameCallbacks[Frame].Invoke(deltaTime);
-                m_preciseFrameCallbacks.Remove(Frame);
-            }
-        }
-        private void InvokeOneShotLateUpdate(float deltaTime)
-        {
-            m_oneShotLateUpdateCallback?.Invoke(deltaTime);
-            m_oneShotLateUpdateCallback = null;
-        }
-
-        #endregion
-
         #region Delayed Calls
 
-        private class DelayedCall
+        private abstract class DelayedCall
         {
             #region Members
 
-            private float m_remainingTime;
-            private Action m_callback;
+            public readonly EUpdatePass pass;
+            public readonly EUpdateCondition condition;
+            protected Action m_callback;
 
             #endregion
 
             #region Constructor
 
-            public DelayedCall(float delay, Action callback)
+            public DelayedCall(EUpdatePass pass, EUpdateCondition condition, Action callback)
             {
-                m_remainingTime = delay;
+                this.pass = pass;
+                this.condition = condition;
                 m_callback = callback;
             }
 
@@ -432,7 +394,30 @@ namespace Dhs5.Utility.Updates
 
             #region Update
 
-            public bool Update(float deltaTime)
+            public abstract bool Update(float deltaTime);
+
+            #endregion
+        }
+        private class TimedDelayedCall : DelayedCall
+        {
+            #region Members
+
+            private float m_remainingTime;
+
+            #endregion
+
+            #region Constructor
+
+            public TimedDelayedCall(float delay, EUpdatePass pass, EUpdateCondition condition, Action callback) : base(pass, condition, callback)
+            {
+                m_remainingTime = delay;
+            }
+
+            #endregion
+
+            #region Update
+
+            public override bool Update(float deltaTime)
             {
                 m_remainingTime -= deltaTime;
                 if (m_remainingTime <= 0f)
@@ -445,19 +430,78 @@ namespace Dhs5.Utility.Updates
 
             #endregion
         }
-
-        private List<DelayedCall> m_delayedCalls = new();
-
-        public void RegisterDelayedCall(float delay, Action callback)
+        private class FrameDelayedCall : DelayedCall
         {
-            m_delayedCalls.Add(new DelayedCall(delay, callback));
+            #region Members
+
+            private int m_remainingFrames;
+
+            #endregion
+
+            #region Constructor
+
+            public FrameDelayedCall(int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback) : base(pass, condition, callback)
+            {
+                m_remainingFrames = framesToWait;
+            }
+
+            #endregion
+
+            #region Update
+
+            public override bool Update(float deltaTime)
+            {
+                m_remainingFrames -= 1;
+                if (m_remainingFrames == 0)
+                {
+                    m_callback?.Invoke();
+                    return true;
+                }
+                return false;
+            }
+
+            #endregion
         }
 
-        private void UpdateDelayedCalls(float deltaTime)
+        private List<DelayedCall> m_delayedCalls = new();
+        private List<EUpdatePass> m_delayedCallPasses = new();
+
+        public void RegisterTimedDelayedCall(float delay, EUpdatePass pass, EUpdateCondition condition, Action callback)
         {
+            m_delayedCalls.Add(new TimedDelayedCall(delay, pass, condition, callback));
+        }
+        public void RegisterFrameDelayedCall(int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has not been triggered yet,
+            // it will be triggered shortly after this registration
+            // thus we need to increase the frames to wait to make sure the current frame is not deducted
+            if (!m_delayedCallPasses.Contains(pass))
+            {
+                framesToWait++;
+            }
+            // If the pass has already been triggered and framesToWait = 0
+            // we need to trigger the callback and don't register the delayed call
+            else if (framesToWait == 0)
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            m_delayedCalls.Add(new FrameDelayedCall(framesToWait, pass, condition, callback));
+        }
+
+        private void UpdateDelayedCalls(EUpdatePass pass, float deltaTime)
+        {
+            // At this moment, newly registrated delayed calls won't be updated this frame
+            m_delayedCallPasses.Add(pass);
+
+            DelayedCall delayedCall;
             for (int i = m_delayedCalls.Count - 1; i >= 0; i--)
             {
-                if (m_delayedCalls[i].Update(deltaTime))
+                delayedCall = m_delayedCalls[i];
+                if (IsConditionFulfilled(delayedCall.condition)
+                    && delayedCall.pass == pass
+                    && delayedCall.Update(deltaTime))
                 {
                     m_delayedCalls.RemoveAt(i);
                 }
@@ -473,21 +517,17 @@ namespace Dhs5.Utility.Updates
         {
             m_updaterElements.Clear();
             m_registeredCallbacks.Clear();
-            m_preciseFrameCallbacks.Clear();
             m_delayedCalls.Clear();
+            m_currentFramePasses.Clear();
+            m_delayedCallPasses.Clear();
             m_lastUpdateTimes.Clear();
 
             ClearUpdateTimelineInstances();
-
-            m_oneShotLateUpdateCallback = null;
 
             OnEarlyUpdate = null;
             OnUpdate = null;
             OnLateUpdate = null;
             OnFixedUpdate = null;
-
-            m_lastClassicUpdateFrame = -1;
-            m_lastLateUpdateFrame = -1;
         }
 
         #endregion
