@@ -12,15 +12,18 @@ public class TestUpdateTimeline : MonoBehaviour
 
     private void Start()
     {
-        if (TestUpdater.GetFirstTimelineInstanceHandleOfType(m_updateTimeline.Get(), out m_timelineHandle))
+        if (m_updateTimeline.TryGetUpdateTimeline(out var updateTimeline))
         {
-            Debug.Log("Timeline already active");
-        }
-        else if (m_updateTimeline.TryCreateUpdateTimelineInstance(out m_timelineHandle))
-        {
-            m_timelineHandle.Updated += OnUpdateTimeline;
-            m_timelineHandle.EventTriggered += OnTimelineEvent;
-            m_timelineHandle.Play();
+            if (TestUpdater.GetFirstTimelineInstanceHandleOfType(updateTimeline, out m_timelineHandle))
+            {
+                Debug.Log("Timeline already active");
+            }
+            else if (TestUpdater.CreateTimelineInstance(updateTimeline, out m_timelineHandle))
+            {
+                m_timelineHandle.Updated += OnUpdateTimeline;
+                m_timelineHandle.EventTriggered += OnTimelineEvent;
+                m_timelineHandle.Play();
+            }
         }
     }
 

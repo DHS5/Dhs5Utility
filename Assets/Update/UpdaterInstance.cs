@@ -173,7 +173,7 @@ namespace Dhs5.Utility.Updates
 
         #region Pass Management
 
-        private void InvokePassEvents(EUpdatePass pass, float deltaTime, float realDeltaTime)
+        protected void InvokePassEvents(EUpdatePass pass, float deltaTime, float realDeltaTime)
         {
             foreach (var categoryElement in GetPassValidCategories(pass))
             {
@@ -232,9 +232,9 @@ namespace Dhs5.Utility.Updates
 
             return list;
         }
-        protected virtual bool CanUpdate(UpdaterDatabaseElement categoryElement)
+        private bool CanUpdate(UpdaterDatabaseElement categoryElement)
         {
-            if (BaseUpdater.IsConditionFullfilled(categoryElement.Condition))
+            if (IsConditionFulfilled(categoryElement.Condition))
             {
                 if (categoryElement.HasCustomFrequency(out float frequency)
                     && TryGetLastUpdateTime(categoryElement.EnumIndex, out float lastUpdate))
@@ -242,6 +242,17 @@ namespace Dhs5.Utility.Updates
                     return (categoryElement.TimescaleIndependent ? RealTime : Time) >= lastUpdate + frequency;
                 }
                 return true;
+            }
+            return false;
+        }
+        protected virtual bool IsConditionFulfilled(EUpdateCondition condition)
+        {
+            switch (condition)
+            {
+                case EUpdateCondition.ALWAYS: return true;
+                case EUpdateCondition.GAME_PLAYING: return UnityEngine.Time.timeScale > 0f;
+                case EUpdateCondition.GAME_PAUSED: return UnityEngine.Time.timeScale == 0f;
+                case EUpdateCondition.GAME_OVER: return false;
             }
             return false;
         }

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TestUpdater : Updater<UpdateCategory>
+public class TestUpdater : Updater<UpdateCategory, UpdaterInstance>
 {
     
 }

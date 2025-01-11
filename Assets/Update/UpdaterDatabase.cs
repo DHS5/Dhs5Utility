@@ -16,29 +16,10 @@ namespace Dhs5.Utility.Updates
 
 #if UNITY_EDITOR
 
-        protected string[] GetEnumScriptContentUpdaterExtensions(string enumName)
-        {
-            List<string> extensions = new();
-
-            extensions.Add(" ");
-
-            extensions.Add("public static void Register(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
-            extensions.Add("{");
-            extensions.Add("    Updater<" + enumName + ">.Register(true, category, callback, ref key);");
-            extensions.Add("}");
-            
-            extensions.Add("public static void Unregister(this " + enumName + " category, UpdateCallback callback, ref ulong key)");
-            extensions.Add("{");
-            extensions.Add("    Updater<" + enumName + ">.Register(false, category, callback, ref key);");
-            extensions.Add("}");
-
-            return extensions.ToArray();
-        }
-
         protected override string GetEnumScriptContentFor(string enumName, string enumNamespace, string usings, string[] enumContent, System.Type dataType, System.Type databaseType)
         {
             return EnumDatabaseEditor.GenerateEnumScriptContent
-                (enumName, enumContent, enumNamespace, "using Dhs5.Utility.Updates;\n" + usings, dataType, databaseType, GetEnumScriptContentUpdaterExtensions(enumName));
+                (enumName, enumContent, enumNamespace, "using Dhs5.Utility.Updates;\n" + usings, dataType, databaseType);
         }
 
 #endif

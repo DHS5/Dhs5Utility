@@ -55,13 +55,13 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     {
         //TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
         TestUpdater.OnLateUpdate += OnLateUpdate;
-        UpdateCategory.SCREEN_LOG.Register(OnUpdate, ref m_update1Key);
+        TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
     }
     private void OnDisable()
     {
         //TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
         TestUpdater.OnLateUpdate -= OnLateUpdate;
-        UpdateCategory.SCREEN_LOG.Unregister(OnUpdate, ref m_update1Key);
+        TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
     }
 
     bool done;

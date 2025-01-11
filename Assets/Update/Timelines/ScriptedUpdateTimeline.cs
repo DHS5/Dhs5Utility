@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Dhs5.Utility.Updates
 {
-    public struct ScriptedUpdateTimeline : IUpdateTimeline
+    public readonly struct ScriptedUpdateTimeline : IUpdateTimeline
     {
         #region Constructors
 
