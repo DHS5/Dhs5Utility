@@ -111,7 +111,7 @@ namespace Dhs5.Utility.Updates
 
             Time = time;
             FillCustomEventsQueue(NormalizedTime);
-            OnSetActive();
+            SetActive(true);
         }
         public void Complete(bool triggerCustomEvents)
         {
@@ -133,6 +133,10 @@ namespace Dhs5.Utility.Updates
             }
             Time = 0f;
             SetActive(true, true);
+        }
+        public void Reset()
+        {
+            Time = 0f;
         }
 
         #endregion
@@ -448,6 +452,16 @@ namespace Dhs5.Utility.Updates
             if (TryGetInstance(out var instance))
             {
                 instance.Restart(complete);
+            }
+        }
+        /// <summary>
+        /// Resets this UpdateTimeline (set <see cref="Time"/> to 0f)
+        /// </summary>
+        public readonly void Reset()
+        {
+            if (TryGetInstance(out var instance))
+            {
+                instance.Reset();
             }
         }
 
