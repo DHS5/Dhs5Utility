@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Dhs5.Utility.Updates
 {
@@ -109,7 +110,7 @@ namespace Dhs5.Utility.Updates
         {
             if (IsActive) return;
 
-            Time = time;
+            Time = Mathf.Clamp(time, 0f, duration);
             FillCustomEventsQueue(NormalizedTime);
             SetActive(true, false, false);
         }
@@ -127,7 +128,7 @@ namespace Dhs5.Utility.Updates
         }
         public void Restart(bool complete)
         {
-            if (Time > 0f && complete)
+            if (complete && Time > 0f)
             {
                 Complete(true);
             }
@@ -232,6 +233,10 @@ namespace Dhs5.Utility.Updates
             if (Time == 0f)
             {
                 OnStart();
+            }
+            else if (Time == duration)
+            {
+                Restart(false);
             }
             else if (triggerPauseEvents)
             {

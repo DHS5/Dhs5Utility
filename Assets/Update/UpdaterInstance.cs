@@ -91,7 +91,7 @@ namespace Dhs5.Utility.Updates
                 return false;
             }
 
-            if (updateTimeline.UpdateKey > 0)
+            if (updateTimeline.UpdateKey > 0 && updateTimeline.Duration > 0f)
             {
                 var state = new UpdateTimelineInstance(updateTimeline);
                 m_updateTimelineInstances[key] = state;
@@ -101,7 +101,7 @@ namespace Dhs5.Utility.Updates
             }
             else
             {
-                Debug.LogError("You tried to register an UpdateTimeline that has no valid update");
+                Debug.LogError("You tried to register an UpdateTimeline that has no valid update or a duration equal to 0");
                 handle = UpdateTimelineInstanceHandle.Empty;
                 return false;
             }
