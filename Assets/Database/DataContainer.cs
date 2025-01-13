@@ -3,14 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
-using UnityEngine.UIElements;
 using System.Linq;
-using UnityEngine.TextCore.LowLevel;
-using static UnityEditor.LightingExplorerTableColumn;
-
-
-
-
 
 #if UNITY_EDITOR
 using Dhs5.Utility.GUIs;
@@ -1101,11 +1094,12 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnContainerContentListWindowGUI(Rect rect, string listName, bool refreshButton = false, bool addButton = false, bool contextButtons = false)
         {
-            rect.x = 0f; rect.width = Screen.width;
+            float screenWidth = Screen.width * 0.8f;
+            rect.x = 0f; rect.width = screenWidth;
 
             // --- TOOLBAR ---
             float toolbarHeight = 21f;
-            Rect toolbarRect = new Rect(0f, rect.y, Screen.width, toolbarHeight);
+            Rect toolbarRect = new Rect(0f, rect.y, screenWidth, toolbarHeight);
             // Background
             GUI.Box(toolbarRect, GUIContent.none, EditorStyles.toolbar);
             // Label

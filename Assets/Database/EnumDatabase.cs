@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System;
-using static UnityEditor.LightingExplorerTableColumn;
-
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -231,8 +229,6 @@ namespace Dhs5.Utility.Databases
             //EditorGUILayout.Space(10f);
 
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
-            dataListWindowRect.x += 10f;
-            dataListWindowRect.width -= 20f;
             OnContainerContentListWindowGUI(dataListWindowRect, "Enum Content", refreshButton: true, addButton: true, contextButtons: true);
             
             EditorGUILayout.Space(10f);

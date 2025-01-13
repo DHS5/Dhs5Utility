@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
-using static UnityEditor.LightingExplorerTableColumn;
-
-
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -186,8 +183,6 @@ namespace Dhs5.Utility.Databases
             DrawDefault();
 
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
-            dataListWindowRect.x += 10f;
-            dataListWindowRect.width -= 20f;
             OnContainerContentListWindowGUI(dataListWindowRect, "Content", refreshButton: true, addButton: true, contextButtons: true);
             
             EditorGUILayout.Space(10f);

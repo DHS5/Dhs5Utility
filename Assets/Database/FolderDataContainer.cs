@@ -184,8 +184,6 @@ namespace Dhs5.Utility.Databases
             OnContainerInformationsGUI("Folder Informations");
             
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
-            dataListWindowRect.x += 10f;
-            dataListWindowRect.width -= 20f;
             OnContainerContentListWindowGUI(dataListWindowRect, "Folder Content", refreshButton:true, addButton:true, contextButtons:true);
             
             EditorGUILayout.Space(10f);
