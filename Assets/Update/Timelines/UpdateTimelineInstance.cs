@@ -92,17 +92,17 @@ namespace Dhs5.Utility.Updates
 
         #region Methods
 
-        public void SetActive(bool active) => SetActive(active, false);
-        private void SetActive(bool active, bool force)
+        public void SetActive(bool active) => SetActive(active, false, true);
+        private void SetActive(bool active, bool force, bool triggerPauseEvents)
         {
             if (IsActive == active && !force) return;
 
             IsActive = active;
 
             if (IsActive) 
-                OnSetActive();
+                OnSetActive(triggerPauseEvents);
             else 
-                OnSetInactive();
+                OnSetInactive(triggerPauseEvents);
         }
 
         public void PlayAtTime(float time)
@@ -111,7 +111,7 @@ namespace Dhs5.Utility.Updates
 
             Time = time;
             FillCustomEventsQueue(NormalizedTime);
-            SetActive(true);
+            SetActive(true, false, false);
         }
         public void Complete(bool triggerCustomEvents)
         {
@@ -123,7 +123,7 @@ namespace Dhs5.Utility.Updates
             {
                 CheckCustomEvents(); // Will trigger all custom events left   
             }
-            SetActive(false, true); // Will trigger end event
+            SetActive(false, true, false); // Will trigger end event
         }
         public void Restart(bool complete)
         {
@@ -132,11 +132,12 @@ namespace Dhs5.Utility.Updates
                 Complete(true);
             }
             Time = 0f;
-            SetActive(true, true);
+            SetActive(true, true, false);
         }
         public void Reset()
         {
             Time = 0f;
+            SetActive(false, false, false);
         }
 
         #endregion
@@ -226,24 +227,24 @@ namespace Dhs5.Utility.Updates
             EventTriggered?.Invoke(EUpdateTimelineEventType.END, 0);
         }
 
-        private void OnSetActive()
+        private void OnSetActive(bool triggerPauseEvents)
         {
             if (Time == 0f)
             {
                 OnStart();
             }
-            else
+            else if (triggerPauseEvents)
             {
                 EventTriggered?.Invoke(EUpdateTimelineEventType.UNPAUSE, 0);
             }
         }
-        private void OnSetInactive()
+        private void OnSetInactive(bool triggerPauseEvents)
         {
             if (Time == duration)
             {
                 OnEnd();
             }
-            else
+            else if (triggerPauseEvents)
             {
                 EventTriggered?.Invoke(EUpdateTimelineEventType.PAUSE, 0);
             }
@@ -455,7 +456,7 @@ namespace Dhs5.Utility.Updates
             }
         }
         /// <summary>
-        /// Resets this UpdateTimeline (set <see cref="Time"/> to 0f)
+        /// Resets this UpdateTimeline (set <see cref="Time"/> to 0f & stop)
         /// </summary>
         public readonly void Reset()
         {
