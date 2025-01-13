@@ -101,11 +101,11 @@ namespace Dhs5.Utility.Updates
 
         #region Events
 
-        public static event UpdateCallback OnEarlyUpdate { add { GetInstance().OnEarlyUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnEarlyUpdate -= value; } }
-        public static event UpdateCallback OnUpdate { add { GetInstance().OnUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnUpdate -= value; } }
-        public static event UpdateCallback OnLateUpdate { add { GetInstance().OnLateUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnLateUpdate -= value; } }
+        public static event UpdateCallback OnEarlyUpdate { add { GetInstance().OnEarlyUpdate += value; } remove { if (IsInstanceValid()) Instance.OnEarlyUpdate -= value; } }
+        public static event UpdateCallback OnUpdate { add { GetInstance().OnUpdate += value; } remove { if (IsInstanceValid()) Instance.OnUpdate -= value; } }
+        public static event UpdateCallback OnLateUpdate { add { GetInstance().OnLateUpdate += value; } remove { if (IsInstanceValid()) Instance.OnLateUpdate -= value; } }
 
-        public static event UpdateCallback OnFixedUpdate { add { GetInstance().OnFixedUpdate += value; } remove { if (IsInstanceValid()) GetInstance().OnFixedUpdate -= value; } }
+        public static event UpdateCallback OnFixedUpdate { add { GetInstance().OnFixedUpdate += value; } remove { if (IsInstanceValid()) Instance.OnFixedUpdate -= value; } }
 
         #endregion
 
@@ -164,7 +164,7 @@ namespace Dhs5.Utility.Updates
                 if (_registeredCallbackKeys.TryGetValue(category, out var keys) // The callback category exists
                     && keys.Remove(key)) // AND the key was registered and removed successfully
                 {
-                    GetInstance().UnregisterCallback(Convert.ToInt32(category), callback);
+                    Instance.UnregisterCallback(Convert.ToInt32(category), callback);
                     return true;
                 }
             }
@@ -232,7 +232,7 @@ namespace Dhs5.Utility.Updates
         /// </summary>
         public static void CallOnNextUpdate(Action callback)
         {
-            CallInXFrames(1, callback);
+            CallInXFrames(1, callback, out _);
         }
         /// <summary>
         /// Register a callback to be called once on this frame late update
@@ -244,28 +244,46 @@ namespace Dhs5.Utility.Updates
         {
             if (callback == null) return;
 
-            CallInXFrames(0, callback, EUpdatePass.LATE, EUpdateCondition.ALWAYS);
+            CallInXFrames(0, callback, out _, EUpdatePass.LATE, EUpdateCondition.ALWAYS);
         }
 
         /// <summary>
         /// Register a callback to be called once in <paramref name="framesToWait"/> number of frames in the classic update
         /// </summary>
-        public static void CallInXFrames(int framesToWait, Action callback, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallInXFrames(int framesToWait, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
-            if (callback == null || framesToWait < 0) return;
+            if (callback == null || framesToWait < 0)
+            {
+                key = 0;
+                return;
+            }
 
-            GetInstance().RegisterFrameDelayedCall(framesToWait, pass, condition, callback);
+            key = GetUniqueRegistrationKey();
+            GetInstance().RegisterFrameDelayedCall(key, framesToWait, pass, condition, callback);
         }
 
         #endregion
 
         #region Delayed Calls
 
-        public static void CallInXSeconds(float seconds, System.Action callback, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallInXSeconds(float seconds, System.Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
-            if (callback == null) return;
+            if (callback == null)
+            {
+                key = 0;
+                return;
+            }
 
-            GetInstance().RegisterTimedDelayedCall(seconds, pass, condition, callback);
+            key = GetUniqueRegistrationKey();
+            GetInstance().RegisterTimedDelayedCall(key, seconds, pass, condition, callback);
+        }
+
+        public static void KillDelayedCall(ulong key)
+        {
+            if (IsInstanceValid())
+            {
+                Instance.UnregisterDelayedCall(key);
+            }
         }
 
         #endregion
@@ -283,7 +301,8 @@ namespace Dhs5.Utility.Updates
             _registrationCount = 0;
             _registeredCallbackKeys.Clear();
 
-            GetInstance().Clear();
+            if (IsInstanceValid())
+                Instance.Clear();
         }
 
         #endregion

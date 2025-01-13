@@ -463,14 +463,14 @@ namespace Dhs5.Utility.Updates
             #endregion
         }
 
-        private List<DelayedCall> m_delayedCalls = new();
+        private Dictionary<ulong, DelayedCall> m_delayedCalls = new();
         private List<EUpdatePass> m_delayedCallPasses = new();
 
-        public void RegisterTimedDelayedCall(float delay, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        public void RegisterTimedDelayedCall(ulong key, float delay, EUpdatePass pass, EUpdateCondition condition, Action callback)
         {
-            m_delayedCalls.Add(new TimedDelayedCall(delay, pass, condition, callback));
+            m_delayedCalls.Add(key, new TimedDelayedCall(delay, pass, condition, callback));
         }
-        public void RegisterFrameDelayedCall(int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        public void RegisterFrameDelayedCall(ulong key, int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback)
         {
             // If the pass has not been triggered yet,
             // it will be triggered shortly after this registration
@@ -487,7 +487,7 @@ namespace Dhs5.Utility.Updates
                 return;
             }
 
-            m_delayedCalls.Add(new FrameDelayedCall(framesToWait, pass, condition, callback));
+            m_delayedCalls.Add(key, new FrameDelayedCall(framesToWait, pass, condition, callback));
         }
 
         private void UpdateDelayedCalls(EUpdatePass pass, float deltaTime)
@@ -495,17 +495,26 @@ namespace Dhs5.Utility.Updates
             // At this moment, newly registrated delayed calls won't be updated this frame
             m_delayedCallPasses.Add(pass);
 
-            DelayedCall delayedCall;
-            for (int i = m_delayedCalls.Count - 1; i >= 0; i--)
+            List<ulong> toDestroy = new();
+            foreach (var (key, delayedCall) in m_delayedCalls)
             {
-                delayedCall = m_delayedCalls[i];
                 if (IsConditionFulfilled(delayedCall.condition)
                     && delayedCall.pass == pass
                     && delayedCall.Update(deltaTime))
                 {
-                    m_delayedCalls.RemoveAt(i);
+                    toDestroy.Add(key);
                 }
             }
+
+            foreach (var key in toDestroy)
+            {
+                UnregisterDelayedCall(key);
+            }
+        }
+
+        public void UnregisterDelayedCall(ulong key)
+        {
+            m_delayedCalls.Remove(key);
         }
 
         #endregion
