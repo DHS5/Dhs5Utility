@@ -34,6 +34,15 @@ namespace Dhs5.Utility.Scenes
         public string SceneName => m_sceneName;
         public string ScenePath => m_scenePath;
 
+        public bool IsLoaded
+        {
+            get
+            {
+                var scene = SceneManager.GetSceneByBuildIndex(SceneIndex);
+                return scene.IsValid() && scene.isLoaded;
+            }
+        }
+
         #endregion
 
         #region Utility Methods
