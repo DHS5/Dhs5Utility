@@ -388,6 +388,17 @@ namespace Dhs5.Utility.Updates
                 }
             }
         }
+        public readonly float Duration
+        {
+            get
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    return instance.duration;
+                }
+                return 0f;
+            }
+        }
 
         #endregion
 
