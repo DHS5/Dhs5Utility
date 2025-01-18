@@ -167,7 +167,6 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-
         #region Pass Management
 
         private List<EUpdatePass> m_currentFramePasses = new();
@@ -195,6 +194,114 @@ namespace Dhs5.Utility.Updates
         {
             return m_currentFramePasses.Contains(pass);
         }
+
+        #endregion
+
+
+        #region Channels
+
+        #region CLASS UpdateChannel
+
+        protected class UpdateChannel
+        {
+            #region Constructors
+
+            public UpdateChannel(EUpdatePass pass, ushort order, EUpdateCondition condition, float frequency, float timescale, bool realtime)
+            {
+                this.pass = pass;
+                this.order = order;
+                this.condition = condition;
+                this.customFrequency = frequency > 0f;
+                this.frequency = frequency;
+                this.timescale = timescale;
+                this.realtime = realtime;
+
+                TimeSinceLastUpdate = 0f;
+            }
+
+            #endregion
+
+            #region Members
+
+            public readonly EUpdatePass pass;
+            public readonly ushort order;
+            public readonly EUpdateCondition condition;
+            public readonly bool customFrequency;
+            public readonly float frequency;
+            public readonly float timescale;
+            public readonly bool realtime;
+
+            public event UpdateCallback Callback;
+
+            #endregion
+
+            #region Properties
+
+            public float TimeSinceLastUpdate { get; private set; }
+
+            #endregion
+
+            #region Behaviour
+
+            public void Update(float deltaTime)
+            {
+                if (!customFrequency)
+                {
+                    Callback?.Invoke(deltaTime);
+                }
+                else
+                {
+                    TimeSinceLastUpdate += deltaTime * timescale;
+                    if (TimeSinceLastUpdate >= frequency)
+                    {
+                        Callback?.Invoke(deltaTime);
+                        TimeSinceLastUpdate -= frequency;
+                    }
+                }
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Channels Registration
+
+        private Dictionary<EUpdatePass, List<UpdateChannel>> m_channels = new();
+
+        private UpdateChannel GetOrCreateChannel(int channelIndex)
+        {
+            return null;
+        }
+
+        #endregion
+
+        #region Channels Update
+
+        protected void UpdateValidChannels(EUpdatePass pass, float deltaTime, float realDeltaTime)
+        {
+            if (m_channels.TryGetValue(pass, out var channels))
+            {
+                foreach (var channel in channels)
+                {
+                    if (IsChannelValid(channel))
+                    {
+                        channel.Update(channel.realtime ? realDeltaTime : deltaTime);
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region Channel Validity
+
+        protected virtual bool IsChannelValid(UpdateChannel channel)
+        {
+            return IsConditionFulfilled(channel.condition);
+        }
+
+        #endregion
 
         #endregion
 
