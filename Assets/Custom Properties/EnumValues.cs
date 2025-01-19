@@ -119,7 +119,20 @@ public class EnumValuesDrawer : PropertyDrawer
 
         Rect rect = new(position.x, position.y, position.width, 20f);
 
-        property.isExpanded = EditorGUI.Foldout(rect, property.isExpanded, label, true);
+        // Click
+        if (Event.current.type == EventType.MouseDown
+            && Event.current.button == 0
+            && rect.Contains(Event.current.mousePosition))
+        {
+            property.isExpanded = !property.isExpanded;
+            Event.current.Use();
+        }
+        // Repaint
+        if (Event.current.type == EventType.Repaint)
+        {
+            EditorStyles.foldout.Draw(rect, label, 0, property.isExpanded);
+        }
+
         if (property.isExpanded)
         {
             EditorGUI.indentLevel++;

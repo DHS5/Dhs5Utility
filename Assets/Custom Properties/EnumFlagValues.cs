@@ -151,7 +151,19 @@ public class EnumFlagValuesDrawer : PropertyDrawer
 
         // Foldout
         Rect foldoutRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height);
-        property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, label, true);
+        // Click
+        if (Event.current.type == EventType.MouseDown
+            && Event.current.button == 0
+            && foldoutRect.Contains(Event.current.mousePosition))
+        {
+            property.isExpanded = !property.isExpanded;
+            Event.current.Use();
+        }
+        // Repaint
+        if (Event.current.type == EventType.Repaint)
+        {
+            EditorStyles.foldout.Draw(foldoutRect, label, 0, property.isExpanded);
+        }
 
         // Flag Field
         Rect flagRect = new Rect(rect.x + EditorGUIUtility.labelWidth + 2f, rect.y, rect.width - EditorGUIUtility.labelWidth - 2f, rect.height);

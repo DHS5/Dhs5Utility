@@ -43,7 +43,7 @@ public class CreatorAttributeDrawer : PropertyDrawer
                 Rect basePropertyRect = new Rect(position.x, position.y, position.width - buttonWidth, 18f);
                 OnBasePropertyGUI(basePropertyRect, property, label);
 
-                Rect buttonRect = new Rect(position.width - buttonWidth, position.y, buttonWidth, 18f);
+                Rect buttonRect = new Rect(position.x + position.width - buttonWidth, position.y, buttonWidth, 18f);
                 if (fieldType.IsAbstract)
                 {
                     OnAbstractCreatorButtonGUI(buttonRect, fieldType);

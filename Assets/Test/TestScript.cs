@@ -15,12 +15,16 @@ using UnityEditorInternal;
 
 public class TestScript : MonoBehaviour, IDataContainerElement
 {
+    [Header("Header 1")]
     [SerializeField] private int m_uid;
     [SerializeField] private bool _showTexture;
     [SerializeField] private Texture2D _texture;
     [SerializeField] private bool _showName;
+    [Header("Header 1")]
     [SerializeField, ReadOnly()] private string _name;
+    [Header("Header 1")]
     [SerializeField, Show(nameof(_showName))] private string _name2;
+    [Header("Header 1")]
     [SerializeField] private DataPicker _dataPicker1;
     [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
     [SerializeField] private SceneReference m_sceneRef;

@@ -171,7 +171,7 @@ namespace Dhs5.Utility.Scenes
             Rect propertyRect = new Rect(rect.x + EditorGUIUtility.labelWidth + 2f, rect.y, rect.width - EditorGUIUtility.labelWidth - 2f - buttonWidth, rect.height);
             EditorGUI.BeginChangeCheck();
             EditorGUI.PropertyField(propertyRect, p_sceneAsset, GUIContent.none, true);
-            if (EditorGUI.EndChangeCheck() | GUI.Button(new Rect(rect.width - buttonWidth, rect.y - 1f, buttonWidth, rect.height - 1f), EditorGUIUtility.IconContent("d_Refresh")))
+            if (EditorGUI.EndChangeCheck() | GUI.Button(new Rect(rect.x + rect.width - buttonWidth, rect.y - 1f, buttonWidth, rect.height - 1f), EditorGUIUtility.IconContent("d_Refresh")))
             {
                 if (p_sceneAsset.objectReferenceValue != null)
                 {
