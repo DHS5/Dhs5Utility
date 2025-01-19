@@ -211,13 +211,13 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Channels Creation & Deletion
+        #region Creation & Deletion
 
         private readonly Dictionary<EUpdatePass, List<UpdateChannel>> m_channels = new();
 
         private UpdateChannel CreateChannel(UpdaterDatabaseElement elem)
         {
-            return new UpdateChannel(elem.EnumIndex, true, elem.Pass, elem.Order, elem.Condition, elem.Frequency, elem.TimeScale, elem.Realtime);
+            return new UpdateChannel(elem.EnumIndex, elem.EnabledByDefault, elem.Pass, elem.Order, elem.Condition, elem.Frequency, elem.TimeScale, elem.Realtime);
         }
         protected void InitChannels()
         {
@@ -247,7 +247,28 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Channels Callbacks
+        #region Accessors
+
+        protected bool GetChannelByIndex(int index, out UpdateChannel channel)
+        {
+            foreach (var (pass, list) in m_channels)
+            {
+                foreach (var chan in list)
+                {
+                    if (chan.index == index)
+                    {
+                        channel = chan;
+                        return true;
+                    }
+                }
+            }
+            channel = null;
+            return false;
+        }
+
+        #endregion
+
+        #region Callbacks
 
         private readonly Dictionary<int, UpdateCallback> m_channelCallbacks = new();
 
@@ -280,7 +301,7 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Channels Update
+        #region Updates
 
         protected void UpdateValidChannels(EUpdatePass pass, float deltaTime, float realDeltaTime)
         {
@@ -299,7 +320,26 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Channel Validity
+        #region Setters
+
+        public void SetChannelEnable(int channelIndex, bool enabled)
+        {
+            if (GetChannelByIndex(channelIndex, out var channel))
+            {
+                channel.Enabled = enabled;
+            }
+        }
+        public void SetChannelTimescale(int channelIndex, float timescale)
+        {
+            if (GetChannelByIndex(channelIndex, out var channel))
+            {
+                channel.Timescale = timescale;
+            }
+        }
+
+        #endregion
+
+        #region Validity
 
         protected virtual bool IsChannelValid(UpdateChannel channel)
         {

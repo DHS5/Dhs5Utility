@@ -16,11 +16,13 @@ MonoBehaviour:
   m_enumIndex: 0
   m_updatePass: 0
   m_order: 0
+  m_enabledByDefault: 1
   m_updateCondition: 0
   m_customFrequency:
     m_enabled: 0
     m_value: 0.75
-  m_timescaleIndependent: 0
+  m_timescale: 1
+  m_realtime: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -57,8 +59,10 @@ MonoBehaviour:
   m_enumIndex: 1
   m_updatePass: 2
   m_order: 0
+  m_enabledByDefault: 1
   m_updateCondition: 0
   m_customFrequency:
     m_enabled: 1
     m_value: 0.75
-  m_timescaleIndependent: 1
+  m_timescale: 1
+  m_realtime: 0

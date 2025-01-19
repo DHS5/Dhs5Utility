@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using UnityEngine;
 
 namespace Dhs5.Utility.Updates
@@ -122,7 +121,8 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Callbacks Registration
+
+        #region Channels Registration
 
         // --- KEYS ---
         private static ulong _registrationCount = 0;
@@ -135,20 +135,20 @@ namespace Dhs5.Utility.Updates
         // --- REGISTRATION ---
         private static Dictionary<UpdateEnum, HashSet<ulong>> _registeredCallbackKeys = new();
 
-        public static bool Register(bool register, UpdateEnum category, UpdateCallback callback, ref ulong key)
+        public static bool Register(bool register, UpdateEnum channel, UpdateCallback callback, ref ulong key)
         {
             if (register)
             {
-                return Register(category, callback, ref key);
+                return Register(channel, callback, ref key);
             }
             else
             {
-                return Unregister(category, callback, ref key);
+                return Unregister(channel, callback, ref key);
             }
         }
-        private static bool Register(UpdateEnum category, UpdateCallback callback, ref ulong key)
+        private static bool Register(UpdateEnum channel, UpdateCallback callback, ref ulong key)
         {
-            if (_registeredCallbackKeys.TryGetValue(category, out var keys)) // The callback category already exists
+            if (_registeredCallbackKeys.TryGetValue(channel, out var keys)) // The callback category already exists
             {
                 if (keys.Contains(key)) // This callback is already registered
                 {
@@ -157,31 +157,50 @@ namespace Dhs5.Utility.Updates
 
                 key = GetUniqueRegistrationKey();
                 keys.Add(key);
-                GetInstance().RegisterChannelCallback(Convert.ToInt32(category), callback);
+                GetInstance().RegisterChannelCallback(Convert.ToInt32(channel), callback);
 
                 return true;
             }
             else // The callback category doesn't exists yet
             {
                 key = GetUniqueRegistrationKey();
-                _registeredCallbackKeys.Add(category, new HashSet<ulong>() { key });
-                GetInstance().RegisterChannelCallback(Convert.ToInt32(category), callback);
+                _registeredCallbackKeys.Add(channel, new HashSet<ulong>() { key });
+                GetInstance().RegisterChannelCallback(Convert.ToInt32(channel), callback);
 
                 return true;
             }
         }
-        private static bool Unregister(UpdateEnum category, UpdateCallback callback, ref ulong key)
+        private static bool Unregister(UpdateEnum channel, UpdateCallback callback, ref ulong key)
         {
             if (IsInstanceValid()) // Wants to unregister callback
             {
-                if (_registeredCallbackKeys.TryGetValue(category, out var keys) // The callback category exists
+                if (_registeredCallbackKeys.TryGetValue(channel, out var keys) // The callback category exists
                     && keys.Remove(key)) // AND the key was registered and removed successfully
                 {
-                    Instance.UnregisterChannelCallback(Convert.ToInt32(category), callback);
+                    Instance.UnregisterChannelCallback(Convert.ToInt32(channel), callback);
                     return true;
                 }
             }
             return false;
+        }
+
+        #endregion
+
+        #region Channels Setters
+
+        public static void SetChannelEnabled(UpdateEnum channel, bool enabled)
+        {
+            if (IsInstanceValid())
+            {
+                Instance.SetChannelEnable(Convert.ToInt32(channel), enabled);
+            }
+        }
+        public static void SetChannelTimescale(UpdateEnum channel, float timescale)
+        {
+            if (IsInstanceValid())
+            {
+                Instance.SetChannelTimescale(Convert.ToInt32(channel), timescale);
+            }
         }
 
         #endregion
