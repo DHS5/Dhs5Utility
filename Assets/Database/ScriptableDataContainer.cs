@@ -183,7 +183,7 @@ namespace Dhs5.Utility.Databases
             DrawDefault();
 
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
-            OnContainerContentListWindowGUI(dataListWindowRect, "Content", refreshButton: true, addButton: true, contextButtons: true);
+            OnContainerContentListWindowGUI(dataListWindowRect, "Content");
             
             EditorGUILayout.Space(10f);
 

@@ -229,7 +229,7 @@ namespace Dhs5.Utility.Databases
             //EditorGUILayout.Space(10f);
 
             Rect dataListWindowRect = EditorGUILayout.GetControlRect(false, ContentListRectHeight);
-            OnContainerContentListWindowGUI(dataListWindowRect, "Enum Content", refreshButton: true, addButton: true, contextButtons: true);
+            OnContainerContentListWindowGUI(dataListWindowRect, "Enum Content");
             
             EditorGUILayout.Space(10f);
 

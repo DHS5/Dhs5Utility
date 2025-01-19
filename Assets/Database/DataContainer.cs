@@ -1092,7 +1092,7 @@ namespace Dhs5.Utility.Databases
             return !IsRenamingElement;
         }
 
-        protected virtual void OnContainerContentListWindowGUI(Rect rect, string listName, bool refreshButton = false, bool addButton = false, bool contextButtons = false)
+        protected virtual void OnContainerContentListWindowGUI(Rect rect, string listName)
         {
             float screenWidth = Screen.width * 0.8f;
             rect.x = 0f; rect.width = screenWidth;
@@ -1108,6 +1108,7 @@ namespace Dhs5.Utility.Databases
             int buttonsCount = 2;
             float buttonsWidth = 40f;
             Rect addButtonRect = new Rect(toolbarRect.width - buttonsWidth, toolbarRect.y, buttonsWidth, toolbarHeight);
+            EditorGUI.BeginDisabledGroup(!EnableAddButton());
             if (GUI.Button(addButtonRect, DataType.IsAbstract ? EditorGUIHelper.AddMoreIcon : EditorGUIHelper.AddIcon, EditorStyles.toolbarButton))
             {
                 if (DataType.IsAbstract)
@@ -1119,11 +1120,14 @@ namespace Dhs5.Utility.Databases
                     CreateNewDataOfType(DataType);
                 }
             }
+            EditorGUI.EndDisabledGroup();
             Rect refreshButtonRect = new Rect(toolbarRect.width - buttonsWidth * buttonsCount, toolbarRect.y, buttonsWidth, toolbarHeight);
+            EditorGUI.BeginDisabledGroup(!EnableRefreshButton());
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
             {
                 ForceContainerContentRefresh();
             }
+            EditorGUI.EndDisabledGroup();
             // Search Bar
             Rect searchFieldRect = new Rect(toolbarRect.x + (toolbarRect.width / 3), toolbarRect.y + 2f, (toolbarRect.width * 2 / 3) - (buttonsWidth * buttonsCount) - 2f, toolbarHeight - 2f);
             ContentListSearchString = EditorGUI.TextField(searchFieldRect, ContentListSearchString, EditorStyles.toolbarSearchField);
@@ -1151,7 +1155,7 @@ namespace Dhs5.Utility.Databases
             int visibleIndex = 0;
             foreach (var index in validIndexes)
             {
-                OnContentListElementGUI(dataRect, index, visibleIndex, contextButtons);
+                OnContentListElementGUI(dataRect, index, visibleIndex, ShowContextButtons());
                 dataRect.y += ContentListElementHeight;
                 visibleIndex++;
             }
@@ -1163,6 +1167,10 @@ namespace Dhs5.Utility.Databases
 
             ContentListResize(new Rect(rect.x, rect.y + rect.height - 7f, rect.width, 7f));
         }
+
+        protected virtual bool EnableRefreshButton() => true;
+        protected virtual bool EnableAddButton() => true;
+        protected virtual bool ShowContextButtons() => true;
 
         #endregion
 
