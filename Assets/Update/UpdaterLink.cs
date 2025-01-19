@@ -138,6 +138,8 @@ namespace Dhs5.Utility.Updates
 
         public static void Register(bool register, UpdateEnum channel, UpdateCallback callback)
         {
+            if (callback == null) return;
+
             if (register)
             {
                 GetInstance().RegisterChannelCallback(Convert.ToInt32(channel), callback);
@@ -164,6 +166,13 @@ namespace Dhs5.Utility.Updates
             if (IsInstanceValid())
             {
                 Instance.SetChannelTimescale(Convert.ToInt32(channel), timescale);
+            }
+        }
+        public static void SetChannelFrequency(UpdateEnum channel, float frequency)
+        {
+            if (IsInstanceValid())
+            {
+                Instance.SetChannelFrequency(Convert.ToInt32(channel), frequency);
             }
         }
 

@@ -160,11 +160,10 @@ namespace Dhs5.Utility.Updates
                 this.pass = pass;
                 this.order = order;
                 this.condition = condition;
-                this.customFrequency = frequency > 0f;
-                this.frequency = frequency;
                 this.realtime = realtime;
 
                 Enabled = enabled;
+                Frequency = frequency;
                 Timescale = timescale;
 
                 TimeSinceLastUpdate = 0f;
@@ -178,10 +177,10 @@ namespace Dhs5.Utility.Updates
             public readonly EUpdatePass pass;
             public readonly ushort order;
             public readonly EUpdateCondition condition;
-            public readonly bool customFrequency;
-            public readonly float frequency;
             public readonly bool realtime;
 
+            private bool customFrequency;
+            private float frequency;
             public bool Enabled { get; set; }
             public float Timescale { get; set; }
 
@@ -190,6 +189,15 @@ namespace Dhs5.Utility.Updates
             #region Properties
 
             public float TimeSinceLastUpdate { get; private set; }
+            public float Frequency
+            {
+                get => frequency;
+                set
+                {
+                    frequency = value;
+                    customFrequency = value > 0f;
+                }
+            }
 
             #endregion
 
@@ -206,9 +214,9 @@ namespace Dhs5.Utility.Updates
                 {
                     TimeSinceLastUpdate += deltaTime * Timescale;
                     actualDeltaTime = TimeSinceLastUpdate;
-                    if (TimeSinceLastUpdate >= frequency)
+                    if (TimeSinceLastUpdate >= Frequency)
                     {
-                        TimeSinceLastUpdate -= frequency;
+                        TimeSinceLastUpdate -= Frequency;
                         return true;
                     }
                 }
@@ -343,6 +351,13 @@ namespace Dhs5.Utility.Updates
             if (GetChannelByIndex(channelIndex, out var channel))
             {
                 channel.Timescale = timescale;
+            }
+        }
+        public void SetChannelFrequency(int channelIndex, float frequency)
+        {
+            if (GetChannelByIndex(channelIndex, out var channel))
+            {
+                channel.Frequency = Mathf.Max(frequency, 0f);
             }
         }
 
