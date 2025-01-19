@@ -79,7 +79,7 @@ namespace Dhs5.Utility.Updates
         /// <remarks>
         /// This is called BEFORE the Custom Event callback
         /// </remarks>
-        public event UpdateTimelineCallback Updated;
+        public event UpdateCallback Updated;
         /// <summary>
         /// Event triggered when this UpdateTimeline encounters an Event
         /// </summary>
@@ -261,7 +261,7 @@ namespace Dhs5.Utility.Updates
 
         private void TriggerUpdate(float deltaTime)
         {
-            Updated?.Invoke(deltaTime, Time, NormalizedTime);
+            Updated?.Invoke(deltaTime);
             CheckCustomEvents();
         }
 
@@ -405,7 +405,7 @@ namespace Dhs5.Utility.Updates
         #region Events
 
         /// <inheritdoc cref="UpdateTimelineInstance.Updated"/>
-        public event UpdateTimelineCallback Updated 
+        public event UpdateCallback Updated
         { 
             add { if (TryGetInstance(out var instance)) instance.Updated += value; } 
             remove { if (TryGetInstance(out var instance)) instance.Updated -= value; } 

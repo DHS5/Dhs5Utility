@@ -49,18 +49,17 @@ public class TestScript : MonoBehaviour, IDataContainerElement
 
 #endif
 
-    private ulong m_update1Key;
     private void OnEnable()
     {
         //TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
         TestUpdater.OnLateUpdate += OnLateUpdate;
-        TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
+        TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate);
     }
     private void OnDisable()
     {
         //TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
         TestUpdater.OnLateUpdate -= OnLateUpdate;
-        TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
+        TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate);
     }
 
     bool done;
@@ -73,7 +72,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
         {
             TestDebugger.Log(DebugCategory.GAME, "Frame : " + TestUpdater.Frame, 0);
             done = true;
-            TestUpdater.CallOnNextUpdate(OnNextUpdate);
+            TestUpdater.CallInXFrames(1, OnNextUpdate, out _);
         }
     }
     private void OnLateUpdate(float deltaTime)
@@ -82,7 +81,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
         {
             done2 = true;
             TestDebugger.Log(DebugCategory.GAME, "on late register, frame : " + TestUpdater.Frame, 0);
-            TestUpdater.CallOnLateUpdate(() => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + TestUpdater.Frame, 0));
+            TestUpdater.CallInXFrames(0, () => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + TestUpdater.Frame, 0), out _, EUpdatePass.LATE);
         }
     }
 

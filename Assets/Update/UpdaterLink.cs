@@ -34,7 +34,6 @@ namespace Dhs5.Utility.Updates
             GameObject.DontDestroyOnLoad(obj);
 
             var updater = obj.AddComponent<UpdaterType>();
-            updater.SetAsInstance();
         }
 
 
@@ -122,9 +121,8 @@ namespace Dhs5.Utility.Updates
         #endregion
 
 
-        #region Channels Registration
+        #region Registration Keys
 
-        // --- KEYS ---
         private static ulong _registrationCount = 0;
         protected static ulong GetUniqueRegistrationKey()
         {
@@ -132,61 +130,27 @@ namespace Dhs5.Utility.Updates
             return _registrationCount;
         }
 
-        // --- REGISTRATION ---
-        private static Dictionary<UpdateEnum, HashSet<ulong>> _registeredCallbackKeys = new();
+        #endregion
 
-        public static bool Register(bool register, UpdateEnum channel, UpdateCallback callback, ref ulong key)
+        #region Channels
+
+        #region Registration
+
+        public static void Register(bool register, UpdateEnum channel, UpdateCallback callback)
         {
             if (register)
             {
-                return Register(channel, callback, ref key);
-            }
-            else
-            {
-                return Unregister(channel, callback, ref key);
-            }
-        }
-        private static bool Register(UpdateEnum channel, UpdateCallback callback, ref ulong key)
-        {
-            if (_registeredCallbackKeys.TryGetValue(channel, out var keys)) // The callback category already exists
-            {
-                if (keys.Contains(key)) // This callback is already registered
-                {
-                    return false;
-                }
-
-                key = GetUniqueRegistrationKey();
-                keys.Add(key);
                 GetInstance().RegisterChannelCallback(Convert.ToInt32(channel), callback);
-
-                return true;
             }
-            else // The callback category doesn't exists yet
+            else if (IsInstanceValid())
             {
-                key = GetUniqueRegistrationKey();
-                _registeredCallbackKeys.Add(channel, new HashSet<ulong>() { key });
-                GetInstance().RegisterChannelCallback(Convert.ToInt32(channel), callback);
-
-                return true;
+                Instance.UnregisterChannelCallback(Convert.ToInt32(channel), callback);
             }
-        }
-        private static bool Unregister(UpdateEnum channel, UpdateCallback callback, ref ulong key)
-        {
-            if (IsInstanceValid()) // Wants to unregister callback
-            {
-                if (_registeredCallbackKeys.TryGetValue(channel, out var keys) // The callback category exists
-                    && keys.Remove(key)) // AND the key was registered and removed successfully
-                {
-                    Instance.UnregisterChannelCallback(Convert.ToInt32(channel), callback);
-                    return true;
-                }
-            }
-            return false;
         }
 
         #endregion
 
-        #region Channels Setters
+        #region Setters
 
         public static void SetChannelEnabled(UpdateEnum channel, bool enabled)
         {
@@ -205,6 +169,7 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #endregion
 
         #region Timelines Management
 
@@ -214,7 +179,14 @@ namespace Dhs5.Utility.Updates
         /// <returns>Whether the instance was successfully registered</returns>
         public static bool CreateTimelineInstance(IUpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
         {
-            return GetInstance().CreateUpdateTimelineInstance(timeline, GetUniqueRegistrationKey(), out handle);
+            var key = GetUniqueRegistrationKey();
+            if (GetInstance().CreateUpdateTimelineInstance(timeline, key))
+            {
+                handle = new(key);
+                return true;
+            }
+            handle = UpdateTimelineInstanceHandle.Empty;
+            return false;
         }
         /// <summary>
         /// Creates an <see cref="UpdateTimelineInstance"/> from the parameters and out a handle for it
@@ -222,7 +194,7 @@ namespace Dhs5.Utility.Updates
         /// <returns>Whether the instance was successfully registered</returns>
         public static bool CreateTimelineInstance(UpdateEnum category, float duration, out UpdateTimelineInstanceHandle handle, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
         {
-            return GetInstance().CreateUpdateTimelineInstance(new ScriptedUpdateTimeline(Convert.ToInt32(category), duration, loop, timescale, events, uid), GetUniqueRegistrationKey(), out handle);
+            return CreateTimelineInstance(new ScriptedUpdateTimeline(Convert.ToInt32(category), duration, loop, timescale, events, uid), out handle);
         }
 
         /// <summary>
@@ -245,35 +217,21 @@ namespace Dhs5.Utility.Updates
         /// </summary>
         public static bool GetFirstTimelineInstanceHandleOfType(IUpdateTimeline timeline, out UpdateTimelineInstanceHandle handle)
         {
-            return GetInstance().TryGetUpdateTimelineInstanceHandle(timeline.UID, out handle);
+            if (GetInstance().TryGetUpdateTimelineInstanceKey(timeline.UID, out var key))
+            {
+                handle = new(key);
+                return true;
+            }
+            handle = UpdateTimelineInstanceHandle.Empty;
+            return false;
         }
 
         #endregion
 
-        #region Precise Frames Updates
+        #region Delayed Calls
 
         /// <summary>
-        /// Register a callback to be called once on the next classic update (next frame)
-        /// </summary>
-        public static void CallOnNextUpdate(Action callback)
-        {
-            CallInXFrames(1, callback, out _);
-        }
-        /// <summary>
-        /// Register a callback to be called once on this frame late update
-        /// </summary>
-        /// <remarks>
-        /// If this frame's late update has already been called, call instantaneously
-        /// </remarks>
-        public static void CallOnLateUpdate(Action callback)
-        {
-            if (callback == null) return;
-
-            CallInXFrames(0, callback, out _, EUpdatePass.LATE, EUpdateCondition.ALWAYS);
-        }
-
-        /// <summary>
-        /// Register a callback to be called once in <paramref name="framesToWait"/> number of frames in the classic update
+        /// Register a callback to be called once in <paramref name="framesToWait"/> number of frames
         /// </summary>
         public static void CallInXFrames(int framesToWait, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
@@ -286,21 +244,47 @@ namespace Dhs5.Utility.Updates
             key = GetUniqueRegistrationKey();
             GetInstance().RegisterFrameDelayedCall(key, framesToWait, pass, condition, callback);
         }
-
-        #endregion
-
-        #region Delayed Calls
-
-        public static void CallInXSeconds(float seconds, System.Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        /// <summary>
+        /// Register a callback to be called once in <paramref name="time"/> seconds
+        /// </summary>
+        public static void CallInXSeconds(float time, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
-            if (callback == null)
+            if (callback == null || time < 0f)
             {
                 key = 0;
                 return;
             }
 
             key = GetUniqueRegistrationKey();
-            GetInstance().RegisterTimedDelayedCall(key, seconds, pass, condition, callback);
+            GetInstance().RegisterTimedDelayedCall(key, time, pass, condition, callback);
+        }
+        /// <summary>
+        /// Register a callback to be called once <paramref name="predicate"/> becomes true
+        /// </summary>
+        public static void CallWhenTrue(Func<bool> predicate, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        {
+            if (callback == null || predicate == null)
+            {
+                key = 0;
+                return;
+            }
+
+            key = GetUniqueRegistrationKey();
+            GetInstance().RegisterWaitUntilDelayedCall(key, predicate, pass, condition, callback);
+        }
+        /// <summary>
+        /// Register a callback to be called once <paramref name="predicate"/> becomes false
+        /// </summary>
+        public static void CallWhenFalse(Func<bool> predicate, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        {
+            if (callback == null || predicate == null)
+            {
+                key = 0;
+                return;
+            }
+
+            key = GetUniqueRegistrationKey();
+            GetInstance().RegisterWaitWhileDelayedCall(key, predicate, pass, condition, callback);
         }
 
         public static void KillDelayedCall(ulong key)
@@ -316,7 +300,7 @@ namespace Dhs5.Utility.Updates
 
         #region Utility
 
-        public static void Pause(bool pause)
+        public static void PauseTime(bool pause)
         {
             UnityEngine.Time.timeScale = pause ? 0f : 1f;
         }
@@ -324,7 +308,6 @@ namespace Dhs5.Utility.Updates
         public static void Clear()
         {
             _registrationCount = 0;
-            _registeredCallbackKeys.Clear();
 
             if (IsInstanceValid())
                 Instance.Clear();

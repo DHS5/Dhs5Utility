@@ -11,9 +11,14 @@ namespace Dhs5.Utility.Updates
         #region Instance
 
         protected internal static Updater Instance { get; private set; }
-        internal void SetAsInstance()
+        protected void EnsureSingleton()
         {
+            if (Instance != null)
+            {
+                Destroy(Instance.gameObject);
+            }
             Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
 
         #endregion
@@ -48,6 +53,8 @@ namespace Dhs5.Utility.Updates
 
         protected virtual void Awake()
         {
+            EnsureSingleton();
+
             InitChannels();
         }
         protected virtual void OnEnable()
@@ -85,6 +92,7 @@ namespace Dhs5.Utility.Updates
         protected virtual void Update()
         {
             ResetCurrentFramePasses();
+            ResetDelayedCalls();
             ComputeTimeState();
 
             EarlyUpdate();
@@ -93,6 +101,8 @@ namespace Dhs5.Utility.Updates
         protected virtual void LateUpdate()
         {
             InvokePassEvents(EUpdatePass.LATE, DeltaTime, RealDeltaTime);
+
+            PerformDelayedCallsRegistraton();
         }
         protected virtual void FixedUpdate()
         {
@@ -127,7 +137,6 @@ namespace Dhs5.Utility.Updates
         private void ResetCurrentFramePasses()
         {
             m_currentFramePasses.Clear();
-            m_delayedCallPasses.Clear();
         }
         protected bool PassHasBeenTriggeredThisFrame(EUpdatePass pass)
         {
@@ -368,11 +377,10 @@ namespace Dhs5.Utility.Updates
 
         private readonly Dictionary<ulong, UpdateTimelineInstance> m_updateTimelineInstances = new();
 
-        public bool CreateUpdateTimelineInstance(IUpdateTimeline updateTimeline, ulong key, out UpdateTimelineInstanceHandle handle)
+        public bool CreateUpdateTimelineInstance(IUpdateTimeline updateTimeline, ulong key)
         {
             if (updateTimeline == null || m_updateTimelineInstances.ContainsKey(key))
             {
-                handle = UpdateTimelineInstanceHandle.Empty;
                 return false;
             }
 
@@ -381,13 +389,11 @@ namespace Dhs5.Utility.Updates
                 var state = new UpdateTimelineInstance(updateTimeline);
                 m_updateTimelineInstances[key] = state;
                 RegisterChannelCallback(updateTimeline.UpdateKey, state.OnUpdate);
-                handle = new UpdateTimelineInstanceHandle(key);
                 return true;
             }
             else
             {
                 Debug.LogError("You tried to register an UpdateTimeline that has no valid update or a duration equal to 0");
-                handle = UpdateTimelineInstanceHandle.Empty;
                 return false;
             }
         }
@@ -416,18 +422,18 @@ namespace Dhs5.Utility.Updates
         public bool TimelineInstanceExist(ulong key) => m_updateTimelineInstances.ContainsKey(key);
         public bool TryGetUpdateTimelineInstance(ulong key, out UpdateTimelineInstance state) => m_updateTimelineInstances.TryGetValue(key, out state);
         
-        public bool TryGetUpdateTimelineInstanceHandle(int timelineUID, out UpdateTimelineInstanceHandle handle)
+        public bool TryGetUpdateTimelineInstanceKey(int timelineUID, out ulong instanceKey)
         {
             foreach (var (key, instance) in m_updateTimelineInstances)
             {
                 if (instance.timelineUID == timelineUID)
                 {
-                    handle = new(key);
+                    instanceKey = key;
                     return true;
                 }
             }
 
-            handle = UpdateTimelineInstanceHandle.Empty;
+            instanceKey = 0;
             return false;
         }
 
@@ -439,7 +445,7 @@ namespace Dhs5.Utility.Updates
 
         #region CLASSES
 
-        private abstract class DelayedCall
+        protected abstract class DelayedCall
         {
             #region Members
 
@@ -466,7 +472,7 @@ namespace Dhs5.Utility.Updates
 
             #endregion
         }
-        private class TimedDelayedCall : DelayedCall
+        protected class TimedDelayedCall : DelayedCall
         {
             #region Members
 
@@ -498,7 +504,7 @@ namespace Dhs5.Utility.Updates
 
             #endregion
         }
-        private class FrameDelayedCall : DelayedCall
+        protected class FrameDelayedCall : DelayedCall
         {
             #region Members
 
@@ -530,41 +536,137 @@ namespace Dhs5.Utility.Updates
 
             #endregion
         }
+        protected class WaitDelayedCall : DelayedCall
+        {
+            #region Members
+
+            private Func<bool> m_predicate;
+            private bool m_waitUntil;
+
+            #endregion
+
+            #region Constructor
+
+            public WaitDelayedCall(Func<bool> predicate, bool waitUntil, EUpdatePass pass, EUpdateCondition condition, Action callback) : base(pass, condition, callback)
+            {
+                m_predicate = predicate;
+                m_waitUntil = waitUntil;
+            }
+
+            #endregion
+
+            #region Update
+
+            public override bool Update(float deltaTime)
+            {
+                bool predicateResult = m_predicate.Invoke();
+                if (predicateResult == m_waitUntil)
+                {
+                    m_callback?.Invoke();
+                    return true;
+                }
+                return false;
+            }
+
+            #endregion
+        }
 
         #endregion
 
-        #region Registration
+        #region Internal Registration
 
         private readonly Dictionary<ulong, DelayedCall> m_delayedCalls = new();
+        private readonly Dictionary<ulong, DelayedCall> m_delayedCallsToRegister = new();
         private readonly List<EUpdatePass> m_delayedCallPasses = new();
+        private bool m_delayedCallsRegistrationDone = false;
 
-        public void RegisterTimedDelayedCall(ulong key, float delay, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        protected void RegisterDelayedCall(ulong key, DelayedCall delayedCall)
         {
-            m_delayedCalls.Add(key, new TimedDelayedCall(delay, pass, condition, callback));
+            if (m_delayedCallsRegistrationDone)
+            {
+                m_delayedCalls.Add(key, delayedCall);
+            }
+            else
+            {
+                m_delayedCallsToRegister.Add(key, delayedCall);
+            }
         }
-        public void RegisterFrameDelayedCall(ulong key, int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        protected void PerformDelayedCallsRegistraton()
         {
-            // If the pass has not been triggered yet,
-            // it will be triggered shortly after this registration
-            // thus we need to increase the frames to wait to make sure the current frame is not deducted
-            if (!m_delayedCallPasses.Contains(pass))
+            m_delayedCallsRegistrationDone = true;
+
+            foreach (var (key, call) in m_delayedCallsToRegister)
             {
-                framesToWait++;
-            }
-            // If the pass has already been triggered and framesToWait = 0
-            // we need to trigger the callback and don't register the delayed call
-            else if (framesToWait == 0)
-            {
-                callback?.Invoke();
-                return;
+                m_delayedCalls.Add(key, call);
             }
 
-            m_delayedCalls.Add(key, new FrameDelayedCall(framesToWait, pass, condition, callback));
+            m_delayedCallsToRegister.Clear();
         }
 
         public void UnregisterDelayedCall(ulong key)
         {
             m_delayedCalls.Remove(key);
+        }
+
+        #endregion
+
+        #region Public Registration
+
+        public void RegisterTimedDelayedCall(ulong key, float delay, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and delay = 0f and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass) 
+                && delay == 0f
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new TimedDelayedCall(delay, pass, condition, callback));
+        }
+        public void RegisterFrameDelayedCall(ulong key, int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and framesToWait = 0 and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass) 
+                && framesToWait == 0
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new FrameDelayedCall(framesToWait, pass, condition, callback));
+        }
+        public void RegisterWaitUntilDelayedCall(ulong key, Func<bool> predicate, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and predicate is true and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass)
+                && predicate.Invoke()
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new WaitDelayedCall(predicate, true, pass, condition, callback));
+        }
+        public void RegisterWaitWhileDelayedCall(ulong key, Func<bool> predicate, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and predicate is false and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass)
+                && !predicate.Invoke()
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new WaitDelayedCall(predicate, false, pass, condition, callback));
         }
 
         #endregion
@@ -597,10 +699,17 @@ namespace Dhs5.Utility.Updates
 
         #region Utility
 
+        protected void ResetDelayedCalls()
+        {
+            m_delayedCallPasses.Clear();
+            m_delayedCallsRegistrationDone = false;
+        }
         protected void ClearDelayedCalls()
         {
             m_delayedCalls.Clear();
+            m_delayedCallsToRegister.Clear();
             m_delayedCallPasses.Clear();
+            m_delayedCallsRegistrationDone = false;
         }
 
         #endregion

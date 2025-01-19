@@ -27,9 +27,9 @@ public class TestUpdateTimeline : MonoBehaviour
         }
     }
 
-    private void OnUpdateTimeline(float deltaTime, float time, float normalizedTime)
+    private void OnUpdateTimeline(float deltaTime)
     {
-        Debug.Log("deltaTime : " + deltaTime + " time : " + time + " normalizedTime : " + normalizedTime);
+        Debug.Log("deltaTime : " + deltaTime + " time : " + m_timelineHandle.Time + " normalizedTime : " + m_timelineHandle.NormalizedTime);
     }
     private void OnTimelineEvent(EUpdateTimelineEventType type, ushort id)
     {
