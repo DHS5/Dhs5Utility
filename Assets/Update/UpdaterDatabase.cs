@@ -72,10 +72,11 @@ namespace Dhs5.Utility.Updates
                 EditorGUI.LabelField(passRect, elem.Pass.ToString(), m_smallInfosStyle);
 
                 float customFreqRectWidth = 40f;
-                if (elem.HasCustomFrequency(out float f))
+                var freq = elem.Frequency;
+                if (freq > 0f)
                 {
                     var customFreqRect = new Rect(rect.x + rect.width - customFreqRectWidth - passRectWidth, rect.y, customFreqRectWidth, rect.height);
-                    EditorGUI.LabelField(customFreqRect, "f=" + f, m_smallInfosStyle); 
+                    EditorGUI.LabelField(customFreqRect, "f=" + freq, m_smallInfosStyle); 
                 }
 
                 var labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f - passRectWidth - customFreqRectWidth, rect.height);

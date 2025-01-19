@@ -20,7 +20,8 @@ namespace Dhs5.Utility.Updates
 
         [SerializeField] private EUpdateCondition m_updateCondition = EUpdateCondition.ALWAYS;
         [SerializeField] private EnabledValue<float> m_customFrequency;
-        [SerializeField] private bool m_timescaleIndependent = false;
+        [SerializeField] private float m_timescale = 1.0f;
+        [SerializeField] private bool m_realtime = false;
 
         #endregion
 
@@ -29,16 +30,19 @@ namespace Dhs5.Utility.Updates
         public EUpdatePass Pass => m_updatePass;
         public ushort Order => m_order;
         public EUpdateCondition Condition => m_updateCondition;
-        public bool TimescaleIndependent => m_timescaleIndependent;
-
-        public bool HasCustomFrequency(out float frequency)
+        public float Frequency
         {
-            if (m_customFrequency.IsEnabled(out frequency))
+            get
             {
-                return frequency > 0f;
+                if (m_customFrequency.IsEnabled(out var frequency))
+                {
+                    return Mathf.Max(0f, frequency);
+                }
+                return 0f;
             }
-            return false;
         }
+        public float TimeScale => m_timescale;
+        public bool Realtime => m_realtime;
 
         #endregion
 
@@ -67,7 +71,8 @@ namespace Dhs5.Utility.Updates
         protected SerializedProperty p_order;
         protected SerializedProperty p_updateCondition;
         protected SerializedProperty p_customFrequency;
-        protected SerializedProperty p_timescaleIndependent;
+        protected SerializedProperty p_timescale;
+        protected SerializedProperty p_realtime;
 
         #endregion
 
@@ -83,13 +88,15 @@ namespace Dhs5.Utility.Updates
             p_order = serializedObject.FindProperty("m_order");
             p_updateCondition = serializedObject.FindProperty("m_updateCondition");
             p_customFrequency = serializedObject.FindProperty("m_customFrequency");
-            p_timescaleIndependent = serializedObject.FindProperty("m_timescaleIndependent");
+            p_timescale = serializedObject.FindProperty("m_timescale");
+            p_realtime = serializedObject.FindProperty("m_realtime");
 
             m_excludedProperties.Add(p_updatePass.propertyPath);
             m_excludedProperties.Add(p_order.propertyPath);
             m_excludedProperties.Add(p_updateCondition.propertyPath);
             m_excludedProperties.Add(p_customFrequency.propertyPath);
-            m_excludedProperties.Add(p_timescaleIndependent.propertyPath);
+            m_excludedProperties.Add(p_timescale.propertyPath);
+            m_excludedProperties.Add(p_realtime.propertyPath);
         }
 
         #endregion
@@ -106,7 +113,8 @@ namespace Dhs5.Utility.Updates
 
                 EditorGUILayout.PropertyField(p_updateCondition);
                 EditorGUILayout.PropertyField(p_customFrequency);
-                EditorGUILayout.PropertyField(p_timescaleIndependent);
+                EditorGUILayout.PropertyField(p_timescale);
+                EditorGUILayout.PropertyField(p_realtime);
             }
         }
 

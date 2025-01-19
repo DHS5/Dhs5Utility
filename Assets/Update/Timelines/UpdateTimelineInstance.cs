@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Dhs5.Utility.Updates
 {
-    internal class UpdateTimelineInstance
+    public class UpdateTimelineInstance
     {
         #region Constructor
 
@@ -277,9 +277,8 @@ namespace Dhs5.Utility.Updates
     {
         #region Constructors
 
-        internal UpdateTimelineInstanceHandle(UpdaterInstance updaterInstance, ulong key)
+        public UpdateTimelineInstanceHandle(ulong key)
         {
-            this.updater = updaterInstance;
             this.key = key;
         }
 
@@ -289,7 +288,6 @@ namespace Dhs5.Utility.Updates
 
         #region Members
 
-        private readonly UpdaterInstance updater;
         public readonly ulong key;
 
         #endregion
@@ -298,7 +296,8 @@ namespace Dhs5.Utility.Updates
 
         private readonly bool TryGetInstance(out UpdateTimelineInstance instance)
         {
-            if (updater != null) return updater.TryGetUpdateTimelineInstance(key, out instance);
+            if (Updater.Instance != null) 
+                return Updater.Instance.TryGetUpdateTimelineInstance(key, out instance);
 
             instance = null;
             return false;
@@ -312,7 +311,7 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Whether this handle is valid
         /// </summary>
-        public readonly bool IsValid => updater != null && updater.TimelineInstanceExist(key);
+        public readonly bool IsValid => Updater.Instance != null && Updater.Instance.TimelineInstanceExist(key);
 
         /// <inheritdoc cref="UpdateTimelineInstance.IsActive"/>
         public readonly bool IsActive
@@ -348,6 +347,18 @@ namespace Dhs5.Utility.Updates
                     return instance.NormalizedTime;
                 }
                 return -1f;
+            }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.duration"/>
+        public readonly float Duration
+        {
+            get
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    return instance.duration;
+                }
+                return 0f;
             }
         }
         /// <inheritdoc cref="UpdateTimelineInstance.Loop"/>
@@ -386,17 +397,6 @@ namespace Dhs5.Utility.Updates
                 {
                     instance.Timescale = value;
                 }
-            }
-        }
-        public readonly float Duration
-        {
-            get
-            {
-                if (TryGetInstance(out var instance))
-                {
-                    return instance.duration;
-                }
-                return 0f;
             }
         }
 

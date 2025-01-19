@@ -37,7 +37,7 @@ public class TestUpdateTimeline : MonoBehaviour
 
         if (type == EUpdateTimelineEventType.CUSTOM && id == 0)
         {
-            TestUpdater.DestroyTimelineInstance(m_timelineHandle);
+            TestUpdater.KillTimelineInstance(m_timelineHandle);
         }
         //else if (type == EUpdateTimelineEventType.CUSTOM && id == 1 && m_timelineHandle.Time > 15f)
         //{
