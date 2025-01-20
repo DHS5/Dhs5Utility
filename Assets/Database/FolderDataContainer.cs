@@ -28,7 +28,7 @@ namespace Dhs5.Utility.Databases
         {
             if (m_folderContent.IsIndexValid(index))
             {
-                return m_folderContent[index];
+                return GetObjAsDataContainerElement(m_folderContent[index]) as UnityEngine.Object;
             }
             return null;
         }
@@ -37,9 +37,10 @@ namespace Dhs5.Utility.Databases
         {
             foreach (var item in m_folderContent)
             {
-                if (item is IDataContainerElement elem && elem.UID == uid)
+                var elem = GetObjAsDataContainerElement(item);
+                if (elem.UID == uid)
                 {
-                    obj = item;
+                    obj = elem as UnityEngine.Object;
                     return true;
                 }
             }
@@ -54,6 +55,13 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
+        protected IDataContainerElement GetObjAsDataContainerElement(UnityEngine.Object obj)
+        {
+            if (obj is IDataContainerElement elem) return elem;
+            if (obj is GameObject go && go.TryGetComponent(out IDataContainerElement elem2)) return elem2;
+            return null;
+        }
+
         internal override void Editor_ShouldRecomputeContainerContent()
         {
             if (string.IsNullOrWhiteSpace(m_folderName)) return;
@@ -63,7 +71,7 @@ namespace Dhs5.Utility.Databases
 
             string dataPath = Application.dataPath.Replace("Assets", "");
             string folderPath = dataPath + m_folderName;
-            
+
             if (Directory.Exists(folderPath))
             {
                 Editor_AddAllValidElementsInFolder(folderPath, dataPath.Length);
@@ -118,8 +126,8 @@ namespace Dhs5.Utility.Databases
         {
             for (int i = Count - 1; i >= 0; i--)
             {
-                if (m_folderContent[i] is IDataContainerElement elem 
-                    && elem.UID == uid)
+                var elem = GetObjAsDataContainerElement(m_folderContent[i]);
+                if (elem.UID == uid)
                 {
                     Database.DeleteAsset(m_folderContent[i], true);
                     return true;
@@ -130,7 +138,7 @@ namespace Dhs5.Utility.Databases
 
         protected override void Editor_CleanUp()
         {
-            
+
         }
 
 #endif
