@@ -242,58 +242,62 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Register a callback to be called once in <paramref name="framesToWait"/> number of frames
         /// </summary>
-        public static void CallInXFrames(int framesToWait, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallInXFrames(int framesToWait, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || framesToWait < 0)
             {
-                key = 0;
+                handle = DelayedCallHandle.Empty;
                 return;
             }
 
-            key = GetUniqueRegistrationKey();
+            var key = GetUniqueRegistrationKey();
             GetInstance().RegisterFrameDelayedCall(key, framesToWait, pass, condition, callback);
+            handle = new DelayedCallHandle(key);
         }
         /// <summary>
         /// Register a callback to be called once in <paramref name="time"/> seconds
         /// </summary>
-        public static void CallInXSeconds(float time, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallInXSeconds(float time, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || time < 0f)
             {
-                key = 0;
+                handle = DelayedCallHandle.Empty;
                 return;
             }
 
-            key = GetUniqueRegistrationKey();
+            var key = GetUniqueRegistrationKey();
             GetInstance().RegisterTimedDelayedCall(key, time, pass, condition, callback);
+            handle = new DelayedCallHandle(key);
         }
         /// <summary>
         /// Register a callback to be called once <paramref name="predicate"/> becomes true
         /// </summary>
-        public static void CallWhenTrue(Func<bool> predicate, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallWhenTrue(Func<bool> predicate, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || predicate == null)
             {
-                key = 0;
+                handle = DelayedCallHandle.Empty;
                 return;
             }
 
-            key = GetUniqueRegistrationKey();
+            var key = GetUniqueRegistrationKey();
             GetInstance().RegisterWaitUntilDelayedCall(key, predicate, pass, condition, callback);
+            handle = new DelayedCallHandle(key);
         }
         /// <summary>
         /// Register a callback to be called once <paramref name="predicate"/> becomes false
         /// </summary>
-        public static void CallWhenFalse(Func<bool> predicate, Action callback, out ulong key, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallWhenFalse(Func<bool> predicate, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || predicate == null)
             {
-                key = 0;
+                handle = DelayedCallHandle.Empty;
                 return;
             }
 
-            key = GetUniqueRegistrationKey();
+            var key = GetUniqueRegistrationKey();
             GetInstance().RegisterWaitWhileDelayedCall(key, predicate, pass, condition, callback);
+            handle = new DelayedCallHandle(key);
         }
 
         public static void KillDelayedCall(ulong key)
