@@ -158,6 +158,7 @@ namespace Dhs5.Utility.Databases
                 if (elem.UID == 0 || uids.Contains(elem.UID))
                 {
                     elem.Editor_SetUID(Editor_GenerateUID());
+                    EditorUtility.SetDirty(elem as UnityEngine.Object);
                 }
                 uids.Add(elem.UID);
             }
@@ -183,6 +184,7 @@ namespace Dhs5.Utility.Databases
             if (dataContainerElem.UID == 0 || Editor_DoesUIDExistIn(dataContainerElem.UID))
             {
                 dataContainerElem.Editor_SetUID(Editor_GenerateUID());
+                EditorUtility.SetDirty(element);
             }
         }
 
