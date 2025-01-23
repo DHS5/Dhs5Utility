@@ -17,12 +17,13 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField] private int m_uid;
     [SerializeField] private bool _showTexture;
     [SerializeField] private Texture2D _texture;
-    [SerializeField] private bool _showName;
     [Header("Header 1")]
+    [HelpBox("Be carefull this boolean is used to show another property", HelpBoxAttribute.EType.WARNING)]
+    [SerializeField] private bool _showName;
+    [HelpBox("It's a read only property", HelpBoxAttribute.EType.INFO)]
     [SerializeField, ReadOnly()] private string _name;
     [Header("Header 1")]
     [SerializeField, Show(nameof(_showName))] private string _name2;
-    [Header("Header 1")]
     [SerializeField] private DataPicker _dataPicker1;
     [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
     [SerializeField] private SceneReference m_sceneRef;

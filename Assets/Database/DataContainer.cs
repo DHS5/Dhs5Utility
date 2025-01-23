@@ -699,7 +699,7 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnContainerInformationsGUI(string title)
         {
-            Rect rect = new Rect(0f, 0f, Screen.width, 20f);
+            Rect rect = new Rect(0f, 0f, EditorGUIUtility.currentViewWidth, 20f);
             EditorGUILayout.GetControlRect(false, 17f);
 
             // Background
@@ -713,7 +713,7 @@ namespace Dhs5.Utility.Databases
             if (DatabaseInformationsFoldoutOpen)
             {
                 var backgroundRect = EditorGUILayout.BeginVertical();
-                backgroundRect.x = 0f; backgroundRect.width = Screen.width;
+                backgroundRect.x = 0f; backgroundRect.width = EditorGUIUtility.currentViewWidth;
                 EditorGUI.DrawRect(backgroundRect, GUIHelper.transparentBlack02);
                 EditorGUI.indentLevel++;
             
@@ -993,7 +993,7 @@ namespace Dhs5.Utility.Databases
         protected void Separator(float height, Color color)
         {
             var rect = EditorGUILayout.GetControlRect(false, height);
-            rect.x = 0f; rect.width = Screen.width;
+            rect.x = 0f; rect.width = EditorGUIUtility.currentViewWidth;
             EditorGUI.DrawRect(rect, color);
         }
 
@@ -1096,7 +1096,7 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnContainerContentListWindowGUI(Rect rect, string listName)
         {
-            float screenWidth = Screen.width * 0.8f;
+            float screenWidth = EditorGUIUtility.currentViewWidth;
             rect.x = 0f; rect.width = screenWidth;
 
             // --- TOOLBAR ---
@@ -1181,7 +1181,7 @@ namespace Dhs5.Utility.Databases
         protected void ContentListResize(Rect rect)
         {
             rect.x = 0f;
-            rect.width = Screen.width;
+            rect.width = EditorGUIUtility.currentViewWidth;
             EditorGUI.DrawRect(rect, GUIHelper.grey01);
             EditorGUI.DrawRect(new Rect(rect.x, rect.y + 1, rect.width, 1f), Color.white);
             EditorGUI.DrawRect(new Rect(rect.x, rect.y + rect.height - 2, rect.width, 1f), Color.white);

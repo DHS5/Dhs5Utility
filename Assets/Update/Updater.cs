@@ -518,6 +518,15 @@ namespace Dhs5.Utility.Updates
             }
 
             #endregion
+
+            #region Accessors
+
+            public float GetRemainingTime()
+            {
+                return m_remainingTime;
+            }
+
+            #endregion
         }
         protected class FrameDelayedCall : DelayedCall
         {
@@ -547,6 +556,15 @@ namespace Dhs5.Utility.Updates
                     return true;
                 }
                 return false;
+            }
+
+            #endregion
+
+            #region Accessors
+
+            public int GetRemainingFrames()
+            {
+                return m_remainingFrames;
             }
 
             #endregion
@@ -708,6 +726,47 @@ namespace Dhs5.Utility.Updates
             {
                 UnregisterDelayedCall(key);
             }
+        }
+
+        #endregion
+
+        #region Accessors
+
+        public bool DoesDelayedCallExist(ulong key)
+        {
+            return m_delayedCalls.ContainsKey(key) || m_delayedCallsToRegister.ContainsKey(key);
+        }
+
+        protected DelayedCall GetDelayedCallWithKey(ulong key)
+        {
+            if (m_delayedCalls.TryGetValue(key, out var delayedCall))
+            {
+                return delayedCall;
+            }
+            return null;
+        }
+
+        public bool GetDelayedCallTimeLeft(ulong key, out float timeLeft)
+        {
+            if (m_delayedCalls.TryGetValue(key, out var delayedCall)
+                && delayedCall is TimedDelayedCall timedDelayedCall)
+            {
+                timeLeft = timedDelayedCall.GetRemainingTime();
+                return true;
+            }
+            timeLeft = -1f;
+            return false;
+        }
+        public bool GetDelayedCallFramesLeft(ulong key, out int framesLeft)
+        {
+            if (m_delayedCalls.TryGetValue(key, out var delayedCall)
+                && delayedCall is FrameDelayedCall frameDelayedCall)
+            {
+                framesLeft = frameDelayedCall.GetRemainingFrames();
+                return true;
+            }
+            framesLeft = -1;
+            return false;
         }
 
         #endregion
