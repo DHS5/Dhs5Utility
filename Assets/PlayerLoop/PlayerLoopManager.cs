@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -76,6 +77,124 @@ namespace Dhs5.Utility.PlayerLoops
         private static void ClearModifiers()
         {
             _modifiers.Clear();
+        }
+
+        #endregion
+
+        #region Systems Enabling
+
+        private static Dictionary<Type, PlayerLoopSystem> _disabledSystems = new();
+
+        public static void DisableSystem(Type type)
+        {
+            if (_disabledSystems.ContainsKey(type)) return;
+
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+
+            PlayerLoopSystem mainSystem, system;
+            for (int mi = 0; mi < playerLoop.subSystemList.Length; mi++)
+            {
+                mainSystem = playerLoop.subSystemList[mi];
+                if (mainSystem.type == type)
+                {
+                    _disabledSystems[type] = mainSystem;
+                    playerLoop.subSystemList[mi] = new PlayerLoopSystem() { type = type };
+                    PlayerLoop.SetPlayerLoop(playerLoop);
+                    break;
+                }
+
+                for (int si = 0; si < mainSystem.subSystemList.Length; si++)
+                {
+                    system = mainSystem.subSystemList[si];
+                    if (system.type == type)
+                    {
+                        _disabledSystems[type] = system;
+                        mainSystem.subSystemList[si] = new PlayerLoopSystem() { type = type };
+                        playerLoop.subSystemList[mi] = mainSystem;
+                        PlayerLoop.SetPlayerLoop(playerLoop);
+                        break;
+                    }
+                }
+            }
+        }
+        public static void ReenableSystem(Type type)
+        {
+            if (!_disabledSystems.ContainsKey(type)) return;
+
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+
+            PlayerLoopSystem mainSystem, system;
+            for (int mi = 0; mi < playerLoop.subSystemList.Length; mi++)
+            {
+                mainSystem = playerLoop.subSystemList[mi];
+                if (mainSystem.type == type)
+                {
+                    playerLoop.subSystemList[mi] = _disabledSystems[type];
+                    PlayerLoop.SetPlayerLoop(playerLoop);
+                    _disabledSystems.Remove(type);
+                    break;
+                }
+
+                for (int si = 0; si < mainSystem.subSystemList.Length; si++)
+                {
+                    system = mainSystem.subSystemList[si];
+                    if (system.type == type)
+                    {
+                        mainSystem.subSystemList[si] = _disabledSystems[type];
+                        playerLoop.subSystemList[mi] = mainSystem;
+                        PlayerLoop.SetPlayerLoop(playerLoop);
+                        _disabledSystems.Remove(type);
+                        break;
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region New Systems
+
+        public static void AddNewMainSystem(PlayerLoopSystem system, int index)
+        {
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+
+            var mainSystems = playerLoop.subSystemList.ToList();
+            mainSystems.Insert(index, system);
+            playerLoop.subSystemList = mainSystems.ToArray();
+
+            PlayerLoop.SetPlayerLoop(playerLoop);
+        }
+        public static void AddNewSubSystem(PlayerLoopSystem system, Type mainSystemType, int index)
+        {
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+
+            for (int i = 0; i < playerLoop.subSystemList.Length; i++)
+            {
+                if (playerLoop.subSystemList[i].type == mainSystemType)
+                {
+                    var systems = playerLoop.subSystemList[i].subSystemList.ToList();
+                    systems.Insert(index, system);
+                    playerLoop.subSystemList[i].subSystemList = systems.ToArray();
+                }
+            }
+
+            PlayerLoop.SetPlayerLoop(playerLoop);
+        }
+        public static void AddNewSubSystemAtLast(PlayerLoopSystem system, Type mainSystemType)
+        {
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+
+            for (int i = 0; i < playerLoop.subSystemList.Length; i++)
+            {
+                if (playerLoop.subSystemList[i].type == mainSystemType)
+                {
+                    var systems = playerLoop.subSystemList[i].subSystemList.ToList();
+                    systems.Add(system);
+                    playerLoop.subSystemList[i].subSystemList = systems.ToArray();
+                }
+            }
+
+            PlayerLoop.SetPlayerLoop(playerLoop);
         }
 
         #endregion
