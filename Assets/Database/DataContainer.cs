@@ -56,6 +56,17 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Helpers
+
+        protected IDataContainerElement GetObjectAsDataContainerElement(UnityEngine.Object obj)
+        {
+            if (obj is IDataContainerElement elem) return elem;
+            if (obj is GameObject go && go.TryGetComponent(out IDataContainerElement elem2)) return elem2;
+            return null;
+        }
+
+        #endregion
+
         #region Context Menu
 
         [ContextMenu("Clean")]

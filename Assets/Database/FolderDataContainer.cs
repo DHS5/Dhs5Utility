@@ -28,7 +28,7 @@ namespace Dhs5.Utility.Databases
         {
             if (m_folderContent.IsIndexValid(index))
             {
-                return GetObjAsDataContainerElement(m_folderContent[index]) as UnityEngine.Object;
+                return GetObjectAsDataContainerElement(m_folderContent[index]) as UnityEngine.Object;
             }
             return null;
         }
@@ -37,7 +37,7 @@ namespace Dhs5.Utility.Databases
         {
             foreach (var item in m_folderContent)
             {
-                var elem = GetObjAsDataContainerElement(item);
+                var elem = GetObjectAsDataContainerElement(item);
                 if (elem.UID == uid)
                 {
                     obj = elem as UnityEngine.Object;
@@ -54,13 +54,6 @@ namespace Dhs5.Utility.Databases
         #region Editor Content Management
 
 #if UNITY_EDITOR
-
-        protected IDataContainerElement GetObjAsDataContainerElement(UnityEngine.Object obj)
-        {
-            if (obj is IDataContainerElement elem) return elem;
-            if (obj is GameObject go && go.TryGetComponent(out IDataContainerElement elem2)) return elem2;
-            return null;
-        }
 
         internal override void Editor_ShouldRecomputeContainerContent()
         {
@@ -126,7 +119,7 @@ namespace Dhs5.Utility.Databases
         {
             for (int i = Count - 1; i >= 0; i--)
             {
-                var elem = GetObjAsDataContainerElement(m_folderContent[i]);
+                var elem = GetObjectAsDataContainerElement(m_folderContent[i]);
                 if (elem.UID == uid)
                 {
                     Database.DeleteAsset(m_folderContent[i], true);
