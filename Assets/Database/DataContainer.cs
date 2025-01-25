@@ -683,7 +683,7 @@ namespace Dhs5.Utility.Databases
         {
             DrawDefault();
         }
-        protected void DrawDefault()
+        protected virtual void DrawDefault()
         {
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
         }

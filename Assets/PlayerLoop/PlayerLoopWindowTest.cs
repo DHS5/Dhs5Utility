@@ -8,13 +8,13 @@ using UnityEngine;
 using UnityEngine.LowLevel;
 using UnityEngine.Profiling;
 
-public class PlayerLoopWindow : EditorWindow
+public class PlayerLoopWindowTest : EditorWindow
 {
     [MenuItem("Window/Dhs5 Utility/Player Loop Visualizer")]
     static void Init()
     {
         // Get existing open window or if none, make a new one:
-        PlayerLoopWindow window = (PlayerLoopWindow)EditorWindow.GetWindow(typeof(PlayerLoopWindow));
+        PlayerLoopWindowTest window = (PlayerLoopWindowTest)EditorWindow.GetWindow(typeof(PlayerLoopWindowTest));
         window.titleContent = new GUIContent("PlayerLoop");
         window.Show();
     }
