@@ -10,11 +10,13 @@ namespace Dhs5.Utility.PlayerLoops
     {
         #region Static Constructor
 
+        private static PlayerLoopWindow _activeWindow;
+
         [MenuItem("Window/Dhs5 Utility/Player Loop", priority = 100)]
         public static void OpenWindow()
         {
-            PlayerLoopWindow window = GetWindow<PlayerLoopWindow>();
-            window.titleContent = new GUIContent(EditorGUIUtility.IconContent("d_preAudioAutoPlayOff")) { text = "Player loop" };
+            _activeWindow = GetWindow<PlayerLoopWindow>();
+            _activeWindow.titleContent = new GUIContent(EditorGUIUtility.IconContent("d_preAudioAutoPlayOff")) { text = "Player loop" };
         }
 
         #endregion
@@ -101,16 +103,19 @@ namespace Dhs5.Utility.PlayerLoops
 
             foreach (var mainSystem in m_playerLoop.subSystemList)
             {
-                foreach (var system in mainSystem.subSystemList)
+                if (mainSystem.subSystemList != null)
                 {
-                    if (system.type.Name.StartsWith(m_searchString, System.StringComparison.OrdinalIgnoreCase))
+                    foreach (var system in mainSystem.subSystemList)
                     {
-                        rect = EditorGUILayout.GetControlRect(false, 18f);
-                        rect.x = 0; rect.width = position.width; rect.height = 20f;
+                        if (system.type.Name.Contains(m_searchString, System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            rect = EditorGUILayout.GetControlRect(false, 18f);
+                            rect.x = 0; rect.width = position.width; rect.height = 20f;
 
-                        DrawSystem(rect, index, mainSystem, system, false);
+                            DrawSystem(rect, index, mainSystem, system, false);
 
-                        index++;
+                            index++;
+                        }
                     }
                 }
             }
@@ -162,7 +167,7 @@ namespace Dhs5.Utility.PlayerLoops
 
             float labelWidth = 150f;
             var labelRect = new Rect(rect.x + 5f, rect.y + 2f, labelWidth - 5f, rect.height);
-            EditorGUI.LabelField(labelRect, "Player Loop Visualizer", EditorStyles.boldLabel);
+            EditorGUI.LabelField(labelRect, Application.isPlaying ? "Player Loop Manager" : "Player Loop Visualizer", EditorStyles.boldLabel);
 
             var searchFieldRect = new Rect(rect.x + labelWidth, rect.y + 2f, rect.width - labelWidth - 2f - buttonsWidth * buttonsCount, rect.height);
             m_searchString = EditorGUI.TextField(searchFieldRect, m_searchString, EditorStyles.toolbarSearchField);
@@ -185,8 +190,17 @@ namespace Dhs5.Utility.PlayerLoops
 
             var xSpace = 5f;
             var foldoutRect = new Rect(rect.x + xSpace, rect.y, rect.width - xSpace, rect.height);
-            m_mainSystemsFoldouts[systemIndex] = EditorGUI.Foldout(foldoutRect, m_mainSystemsFoldouts[systemIndex], system.type.Name, true);
-            return m_mainSystemsFoldouts[systemIndex];
+
+            if (system.subSystemList.IsValid())
+            {
+                m_mainSystemsFoldouts[systemIndex] = EditorGUI.Foldout(foldoutRect, m_mainSystemsFoldouts[systemIndex], system.type.Name, true);
+                return m_mainSystemsFoldouts[systemIndex];
+            }
+            else
+            {
+                EditorGUI.LabelField(foldoutRect, system.type.Name);
+                return false;
+            }
         }
         private void DrawSystem(Rect rect, int index, PlayerLoopSystem mainSystem, PlayerLoopSystem system, bool alinea = true)
         {
@@ -253,6 +267,18 @@ namespace Dhs5.Utility.PlayerLoops
         {
             m_playerLoop = PlayerLoop.GetCurrentPlayerLoop();
             m_mainSystemsFoldouts = new bool[m_playerLoop.subSystemList.Length];
+        }
+        public static void TryRefresh()
+        {
+            if (_activeWindow != null)
+            {
+                _activeWindow.Refresh();
+            }
+            else if (EditorWindow.HasOpenInstances<PlayerLoopWindow>())
+            {
+                _activeWindow = GetWindow<PlayerLoopWindow>("Player loop", false);
+                _activeWindow.Refresh();
+            }
         }
 
         #endregion

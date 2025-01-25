@@ -31,23 +31,25 @@ namespace Dhs5.Utility.PlayerLoops
 
         private static void CreatePlayerLoop()
         {
-            var playerLoop = PlayerLoop.GetDefaultPlayerLoop();
-
             if (_modifiers != null && _modifiers.Count > 0)
             {
+                var playerLoop = PlayerLoop.GetDefaultPlayerLoop();
+
                 SortModifiers();
                 foreach (var modifier in _modifiers)
                 {
                     playerLoop = modifier.ModifyPlayerLoop(playerLoop);
                 }
-            }
 
-            PlayerLoop.SetPlayerLoop(playerLoop);
+                PlayerLoop.SetPlayerLoop(playerLoop);
+                PlayerLoopWindow.TryRefresh();
+            }
         }
 
         public static void ResetPlayerLoop()
         {
             PlayerLoop.SetPlayerLoop(PlayerLoop.GetDefaultPlayerLoop());
+            PlayerLoopWindow.TryRefresh();
         }
 
         #endregion
@@ -103,16 +105,19 @@ namespace Dhs5.Utility.PlayerLoops
                     break;
                 }
 
-                for (int si = 0; si < mainSystem.subSystemList.Length; si++)
+                if (mainSystem.subSystemList != null)
                 {
-                    system = mainSystem.subSystemList[si];
-                    if (system.type == type)
+                    for (int si = 0; si < mainSystem.subSystemList.Length; si++)
                     {
-                        _disabledSystems[type] = system;
-                        mainSystem.subSystemList[si] = new PlayerLoopSystem() { type = type };
-                        playerLoop.subSystemList[mi] = mainSystem;
-                        PlayerLoop.SetPlayerLoop(playerLoop);
-                        break;
+                        system = mainSystem.subSystemList[si];
+                        if (system.type == type)
+                        {
+                            _disabledSystems[type] = system;
+                            mainSystem.subSystemList[si] = new PlayerLoopSystem() { type = type };
+                            playerLoop.subSystemList[mi] = mainSystem;
+                            PlayerLoop.SetPlayerLoop(playerLoop);
+                            break;
+                        }
                     }
                 }
             }
@@ -135,16 +140,19 @@ namespace Dhs5.Utility.PlayerLoops
                     break;
                 }
 
-                for (int si = 0; si < mainSystem.subSystemList.Length; si++)
+                if (mainSystem.subSystemList != null)
                 {
-                    system = mainSystem.subSystemList[si];
-                    if (system.type == type)
+                    for (int si = 0; si < mainSystem.subSystemList.Length; si++)
                     {
-                        mainSystem.subSystemList[si] = _disabledSystems[type];
-                        playerLoop.subSystemList[mi] = mainSystem;
-                        PlayerLoop.SetPlayerLoop(playerLoop);
-                        _disabledSystems.Remove(type);
-                        break;
+                        system = mainSystem.subSystemList[si];
+                        if (system.type == type)
+                        {
+                            mainSystem.subSystemList[si] = _disabledSystems[type];
+                            playerLoop.subSystemList[mi] = mainSystem;
+                            PlayerLoop.SetPlayerLoop(playerLoop);
+                            _disabledSystems.Remove(type);
+                            break;
+                        }
                     }
                 }
             }
@@ -159,7 +167,9 @@ namespace Dhs5.Utility.PlayerLoops
 
         #region Custom Systems
 
-        public static void AddCustomMainSystem(PlayerLoopSystem system, int index)
+        #region Main Systems
+
+        public static void AddCustomMainSystemAtIndex(PlayerLoopSystem system, int index)
         {
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
@@ -168,7 +178,46 @@ namespace Dhs5.Utility.PlayerLoops
             playerLoop.subSystemList = mainSystems.ToArray();
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+            PlayerLoopWindow.TryRefresh();
         }
+        public static void AddCustomMainSystemBefore(PlayerLoopSystem system, Type mainSystemToInsertBeforeType)
+        {
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+
+            var mainSystems = playerLoop.subSystemList.ToList();
+            for (int i = 0; i < mainSystems.Count; i++)
+            {
+                if (mainSystems[i].type == mainSystemToInsertBeforeType)
+                {
+                    mainSystems.Insert(i, system);
+                }
+            }
+            playerLoop.subSystemList = mainSystems.ToArray();
+
+            PlayerLoop.SetPlayerLoop(playerLoop);
+            PlayerLoopWindow.TryRefresh();
+        }
+        public static void AddCustomMainSystemAfter(PlayerLoopSystem system, Type mainSystemToInsertAfterType)
+        {
+            var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
+
+            var mainSystems = playerLoop.subSystemList.ToList();
+            for (int i = 0; i < mainSystems.Count; i++)
+            {
+                if (mainSystems[i].type == mainSystemToInsertAfterType)
+                {
+                    mainSystems.Insert(i + 1, system);
+                }
+            }
+            playerLoop.subSystemList = mainSystems.ToArray();
+
+            PlayerLoop.SetPlayerLoop(playerLoop);
+        }
+
+        #endregion
+
+        #region Sub Systems
+
         public static void AddCustomSubSystem(PlayerLoopSystem system, Type mainSystemType, int index)
         {
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
@@ -177,13 +226,25 @@ namespace Dhs5.Utility.PlayerLoops
             {
                 if (playerLoop.subSystemList[i].type == mainSystemType)
                 {
-                    var systems = playerLoop.subSystemList[i].subSystemList.ToList();
-                    systems.Insert(index, system);
+                    List<PlayerLoopSystem> systems;
+                    if (playerLoop.subSystemList[i].subSystemList != null)
+                    {
+                        systems = playerLoop.subSystemList[i].subSystemList.ToList();
+                        systems.Insert(index, system);
+                    }
+                    else
+                    {
+                        systems = new()
+                        {
+                            system
+                        };
+                    }
                     playerLoop.subSystemList[i].subSystemList = systems.ToArray();
                 }
             }
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+            PlayerLoopWindow.TryRefresh();
         }
         public static void AddCustomSubSystemAtLast(PlayerLoopSystem system, Type mainSystemType)
         {
@@ -193,14 +254,25 @@ namespace Dhs5.Utility.PlayerLoops
             {
                 if (playerLoop.subSystemList[i].type == mainSystemType)
                 {
-                    var systems = playerLoop.subSystemList[i].subSystemList.ToList();
+                    List<PlayerLoopSystem> systems;
+                    if (playerLoop.subSystemList[i].subSystemList != null)
+                    {
+                        systems = playerLoop.subSystemList[i].subSystemList.ToList();
+                    }
+                    else
+                    {
+                        systems = new();
+                    }
                     systems.Add(system);
                     playerLoop.subSystemList[i].subSystemList = systems.ToArray();
                 }
             }
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+            PlayerLoopWindow.TryRefresh();
         }
+
+        #endregion
 
         #endregion
 
