@@ -85,7 +85,7 @@ namespace Dhs5.Utility.Databases
 
         internal virtual bool Editor_IsTypeValidForContainer(Type type)
         {
-            return typeof(IDataContainerElement).IsAssignableFrom(type);
+            return type.IsSubclassOf(typeof(UnityEngine.Object)) && typeof(IDataContainerElement).IsAssignableFrom(type);
         }
         internal virtual bool Editor_ContainerHasValidDataType(out Type dataType)
         {
