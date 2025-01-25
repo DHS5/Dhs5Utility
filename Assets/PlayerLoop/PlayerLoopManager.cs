@@ -150,11 +150,16 @@ namespace Dhs5.Utility.PlayerLoops
             }
         }
 
+        public static bool IsSystemEnabled(Type type)
+        {
+            return !_disabledSystems.ContainsKey(type);
+        }
+
         #endregion
 
-        #region New Systems
+        #region Custom Systems
 
-        public static void AddNewMainSystem(PlayerLoopSystem system, int index)
+        public static void AddCustomMainSystem(PlayerLoopSystem system, int index)
         {
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
@@ -164,7 +169,7 @@ namespace Dhs5.Utility.PlayerLoops
 
             PlayerLoop.SetPlayerLoop(playerLoop);
         }
-        public static void AddNewSubSystem(PlayerLoopSystem system, Type mainSystemType, int index)
+        public static void AddCustomSubSystem(PlayerLoopSystem system, Type mainSystemType, int index)
         {
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
@@ -180,7 +185,7 @@ namespace Dhs5.Utility.PlayerLoops
 
             PlayerLoop.SetPlayerLoop(playerLoop);
         }
-        public static void AddNewSubSystemAtLast(PlayerLoopSystem system, Type mainSystemType)
+        public static void AddCustomSubSystemAtLast(PlayerLoopSystem system, Type mainSystemType)
         {
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
