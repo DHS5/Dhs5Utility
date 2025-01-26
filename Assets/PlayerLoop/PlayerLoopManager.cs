@@ -27,6 +27,12 @@ namespace Dhs5.Utility.PlayerLoops
 
         #endregion
 
+        #region Events
+
+        public static event Action PlayerLoopInitialized;
+
+        #endregion
+
         #region Player Loop Creation
 
         private static void CreatePlayerLoop()
@@ -44,6 +50,8 @@ namespace Dhs5.Utility.PlayerLoops
                 PlayerLoop.SetPlayerLoop(playerLoop);
                 PlayerLoopWindow.TryRefresh();
             }
+            PlayerLoopInitialized?.Invoke();
+            PlayerLoopInitialized = null;
         }
 
         public static void ResetPlayerLoop()

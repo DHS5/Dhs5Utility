@@ -154,17 +154,17 @@ namespace Dhs5.Utility.Updates
         {
             #region Constructors
 
-            public UpdateChannel(int index, bool enabled, EUpdatePass pass, ushort order, EUpdateCondition condition, float frequency, float timescale, bool realtime)
+            public UpdateChannel(IUpdateChannel updateChannel)
             {
-                this.index = index;
-                this.pass = pass;
-                this.order = order;
-                this.condition = condition;
-                this.realtime = realtime;
+                this.index = (int)updateChannel.Channel;
+                this.pass = updateChannel.Pass;
+                this.order = updateChannel.Order;
+                this.condition = updateChannel.Condition;
+                this.realtime = updateChannel.Realtime;
 
-                Enabled = enabled;
-                Frequency = frequency;
-                Timescale = timescale;
+                Enabled = updateChannel.EnabledByDefault;
+                Frequency = updateChannel.Frequency;
+                Timescale = updateChannel.TimeScale;
 
                 TimeSinceLastUpdate = 0f;
             }
@@ -232,16 +232,12 @@ namespace Dhs5.Utility.Updates
 
         private readonly Dictionary<EUpdatePass, List<UpdateChannel>> m_channels = new();
 
-        private UpdateChannel CreateChannel(UpdaterDatabaseElement elem)
-        {
-            return new UpdateChannel(elem.EnumIndex, elem.EnabledByDefault, elem.Pass, elem.Order, elem.Condition, elem.Frequency, elem.TimeScale, elem.Realtime);
-        }
         protected void InitChannels()
         {
             // Fill channels dico from database elements
             foreach (var updaterElement in Database.Enumerate<UpdaterDatabase, UpdaterDatabaseElement>())
             {
-                var channel = CreateChannel(updaterElement);
+                var channel = new UpdateChannel(updaterElement);
                 if (m_channels.TryGetValue(channel.pass, out var list))
                 {
                     list.Add(channel);
@@ -399,11 +395,11 @@ namespace Dhs5.Utility.Updates
                 return false;
             }
 
-            if (updateTimeline.UpdateKey > -1 && updateTimeline.Duration > 0f)
+            if (updateTimeline.Duration > 0f)
             {
                 var state = new UpdateTimelineInstance(updateTimeline);
                 m_updateTimelineInstances[key] = state;
-                RegisterChannelCallback(updateTimeline.UpdateKey, state.OnUpdate);
+                RegisterChannelCallback((int)updateTimeline.UpdateChannel, state.OnUpdate);
                 return true;
             }
             else
@@ -416,7 +412,7 @@ namespace Dhs5.Utility.Updates
         {
             if (m_updateTimelineInstances.TryGetValue(key, out UpdateTimelineInstance state))
             {
-                UnregisterChannelCallback(state.updateCategory, state.OnUpdate);
+                UnregisterChannelCallback((int)state.updateChannel, state.OnUpdate);
                 m_updateTimelineInstances.Remove(key);
             }
         }

@@ -1,10 +1,10 @@
-using Dhs5.Utility.PlayerLoops;
 using System.Linq;
 using UnityEngine.LowLevel;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
 using System.Collections.Generic;
 using System;
+using Dhs5.Utility.PlayerLoops;
 
 namespace Dhs5.Utility.Updates
 {
@@ -27,8 +27,39 @@ namespace Dhs5.Utility.Updates
 
         public UpdaterV2()
         {
+            PlayerLoopManager.PlayerLoopInitialized += OnPlayerLoopInitialized;
 
+            InitChannels();
         }
+
+        #endregion
+
+        #region Static Events
+
+        public static event UpdateCallback AfterEarlyUpdated;
+        public static event UpdateCallback ClassicUpdated;
+        public static event UpdateCallback AfterUpdated;
+        public static event UpdateCallback AfterLateUpdated;
+               
+        public static event UpdateCallback BeforeFixedUpdated;
+        public static event UpdateCallback AfterPhysicsFixedUpdated;
+
+        #endregion
+
+
+        #region Properties
+
+        // TIME
+        public float Time { get; private set; }
+        public float DeltaTime { get; private set; }
+        // REALTIME
+        public float RealTime { get; private set; }
+        public float RealDeltaTime { get; private set; }
+        // FRAME
+        public int Frame { get; private set; }
+
+        // GAME STATE
+        public bool TimePaused { get; private set; }
 
         #endregion
 
@@ -43,11 +74,25 @@ namespace Dhs5.Utility.Updates
         {
             var mainSystems = playerLoopSystem.subSystemList.ToList();
 
+            // --- TIME UPDATE ---
+            var timeUpdate = mainSystems[0];
+            var timeUpdateSystems = mainSystems[0].subSystemList.ToList();
+            timeUpdateSystems.Add(UpdaterTimeUpdate.GetSystem(OnTimeUpdate));
+            timeUpdate.subSystemList = timeUpdateSystems.ToArray();
+            mainSystems[0] = timeUpdate;
+
+            // --- INITIALIZATION
+            var initUpdate = mainSystems[1];
+            var initUpdateSystems = mainSystems[1].subSystemList.ToList();
+            initUpdateSystems.Add(UpdaterInitialization.GetSystem(OnInitializationUpdate));
+            initUpdate.subSystemList = initUpdateSystems.ToArray();
+            mainSystems[1] = initUpdate;
+
             // --- FIXED UPDATE ---
             var fixedUpdate = mainSystems[3];
             var fixedUpdateSystems = fixedUpdate.subSystemList.ToList();
             // Before Fixed Update
-            fixedUpdateSystems.Insert(4, BeforeFixedUpdate.GetSystem());
+            fixedUpdateSystems.Insert(4, BeforeFixedUpdate.GetSystem(OnBeforeFixedUpdate));
             int index = 5;
             foreach (var system in GetChannelsSystemsForPass(EUpdatePass.BEFORE_FIXED_UPDATE))
             {
@@ -55,7 +100,7 @@ namespace Dhs5.Utility.Updates
                 index++;
             }
             // After Physics Fixed Update
-            fixedUpdateSystems.Add(AfterPhysicsFixedUpdate.GetSystem());
+            fixedUpdateSystems.Add(AfterPhysicsFixedUpdate.GetSystem(OnAfterPhysicsFixedUpdate));
             foreach (var system in GetChannelsSystemsForPass(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE))
             {
                 fixedUpdateSystems.Add(system);
@@ -66,19 +111,19 @@ namespace Dhs5.Utility.Updates
 
             // --- MAIN SYSTEMS ---
             // After Late Update
-            var afterLateUpdateSystem = AfterLateUpdate.GetSystem();
+            var afterLateUpdateSystem = AfterLateUpdate.GetSystem(OnAfterLateUpdate);
             afterLateUpdateSystem.subSystemList = GetChannelsSystemsForPass(EUpdatePass.AFTER_LATE_UPDATE).ToArray();
             mainSystems.Insert(7, afterLateUpdateSystem);
             // After Update
-            var afterUpdateSystem = AfterUpdate.GetSystem();
+            var afterUpdateSystem = AfterUpdate.GetSystem(OnAfterUpdate);
             afterUpdateSystem.subSystemList = GetChannelsSystemsForPass(EUpdatePass.AFTER_UPDATE).ToArray();
             mainSystems.Insert(6, afterUpdateSystem);
             // Before Update
-            var beforeUpdateSystem = BeforeUpdate.GetSystem();
-            beforeUpdateSystem.subSystemList = GetChannelsSystemsForPass(EUpdatePass.BEFORE_UPDATE).ToArray();
+            var beforeUpdateSystem = BeforeUpdate.GetSystem(OnBeforeUpdate);
+            beforeUpdateSystem.subSystemList = GetChannelsSystemsForPass(EUpdatePass.CLASSIC_UPDATE).ToArray();
             mainSystems.Insert(5, beforeUpdateSystem);
             // After Early Update
-            var afterEarlyUpdateSystem = AfterEarlyUpdate.GetSystem();
+            var afterEarlyUpdateSystem = AfterEarlyUpdate.GetSystem(OnAfterEarlyUpdate);
             afterEarlyUpdateSystem.subSystemList = GetChannelsSystemsForPass(EUpdatePass.AFTER_EARLY_UPDATE).ToArray();
             mainSystems.Insert(3, afterEarlyUpdateSystem);
 
@@ -89,49 +134,58 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #region PlayerLoopManager Callbacks
+
+        private void OnPlayerLoopInitialized()
+        {
+            InitUpdateChannelEnabling();
+        }
+
+        #endregion
+
         #region Main Systems
 
         public struct AfterEarlyUpdate
         {
-            public static PlayerLoopSystem GetSystem()
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
             {
                 return new PlayerLoopSystem()
                 {
                     type = typeof(AfterEarlyUpdate),
-                    updateDelegate = OnAfterEarlyUpdate
+                    updateDelegate = updateFunction
                 };
             }
         }
         public struct BeforeUpdate
         {
-            public static PlayerLoopSystem GetSystem()
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
             {
                 return new PlayerLoopSystem()
                 {
                     type = typeof(BeforeUpdate),
-                    updateDelegate = OnBeforeUpdate
+                    updateDelegate = updateFunction
                 };
             }
         }
         public struct AfterUpdate
         {
-            public static PlayerLoopSystem GetSystem()
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
             {
                 return new PlayerLoopSystem()
                 {
                     type = typeof(AfterUpdate),
-                    updateDelegate = OnAfterUpdate
+                    updateDelegate = updateFunction
                 };
             }
         }
         public struct AfterLateUpdate
         {
-            public static PlayerLoopSystem GetSystem()
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
             {
                 return new PlayerLoopSystem()
                 {
                     type = typeof(AfterLateUpdate),
-                    updateDelegate = OnAfterLateUpdate
+                    updateDelegate = updateFunction
                 };
             }
         }
@@ -140,25 +194,47 @@ namespace Dhs5.Utility.Updates
 
         #region Sub Systems
 
+        public struct UpdaterTimeUpdate
+        {
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
+            {
+                return new PlayerLoopSystem()
+                {
+                    type = typeof(UpdaterTimeUpdate),
+                    updateDelegate = updateFunction
+                };
+            }
+        }
+        public struct UpdaterInitialization
+        {
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
+            {
+                return new PlayerLoopSystem()
+                {
+                    type = typeof(UpdaterInitialization),
+                    updateDelegate = updateFunction
+                };
+            }
+        }
         public struct BeforeFixedUpdate
         {
-            public static PlayerLoopSystem GetSystem()
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
             {
                 return new PlayerLoopSystem()
                 {
                     type = typeof(BeforeFixedUpdate),
-                    updateDelegate = OnBeforeFixedUpdate
+                    updateDelegate = updateFunction
                 };
             }
         }
         public struct AfterPhysicsFixedUpdate
         {
-            public static PlayerLoopSystem GetSystem()
+            public static PlayerLoopSystem GetSystem(PlayerLoopSystem.UpdateFunction updateFunction)
             {
                 return new PlayerLoopSystem()
                 {
                     type = typeof(AfterPhysicsFixedUpdate),
-                    updateDelegate = OnAfterPhysicsFixedUpdate
+                    updateDelegate = updateFunction
                 };
             }
         }
@@ -169,26 +245,24 @@ namespace Dhs5.Utility.Updates
 
         private List<PlayerLoopSystem> GetChannelsSystemsForPass(EUpdatePass pass)
         {
-            List<IUpdateChannel> channels = new();
-            foreach (var obj in Enum.GetValues(typeof(EUpdateChannel)))
+            List<UpdateChannel> channels = new();
+            foreach (var channel in m_channels.Values)
             {
-                var channel = ((EUpdateChannel)obj).GetValue();
-
-                if (channel.Pass == pass)
+                if (channel.pass == pass)
                 {
                     channels.Add(channel);
                 }
             }
 
-            channels.Sort((c1, c2) => c1.Order.CompareTo(c2.Order));
+            channels.Sort((c1, c2) => c1.order.CompareTo(c2.order));
 
             List<PlayerLoopSystem> systems = new();
             foreach (var channel in channels)
             {
                 systems.Add(new PlayerLoopSystem()
                 {
-                    type = ((EUpdateChannel)channel.ChannelIndex).GetChannelType(),
-                    updateDelegate = GetChannelUpdate(channel.ChannelIndex)
+                    type = channel.type,
+                    updateDelegate = GetChannelUpdate((int)channel.channel)
                 });
             }
 
@@ -197,9 +271,39 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+        #region Update Channels Enabling
+
+        private void InitUpdateChannelEnabling()
+        {
+            foreach (var channel in m_channels.Values)
+            {
+                if (!channel.Enabled)
+                {
+                    PlayerLoopManager.DisableSystem(channel.type);
+                }
+            }
+        }
+
+        private void EnableUpdateChannel(bool enable, int index)
+        {
+            if (m_channels.TryGetValue(index, out var channel))
+            {
+                if (enable)
+                {
+                    PlayerLoopManager.ReenableSystem(channel.type);
+                }
+                else
+                {
+                    PlayerLoopManager.DisableSystem(channel.type);
+                }
+            }
+        }
+
+        #endregion
+
         #region Custom System Registration
 
-        public void RegisterCustomSystem(PlayerLoopSystem customSystem, EUpdatePass pass)
+        public static void RegisterCustomPlayerLoopSystem(PlayerLoopSystem customSystem, EUpdatePass pass)
         {
             switch (pass)
             {
@@ -207,7 +311,7 @@ namespace Dhs5.Utility.Updates
                     PlayerLoopManager.AddCustomSubSystemAtLast(customSystem, typeof(AfterEarlyUpdate));
                     break;
                 
-                case EUpdatePass.BEFORE_UPDATE:
+                case EUpdatePass.CLASSIC_UPDATE:
                     PlayerLoopManager.AddCustomSubSystemAtLast(customSystem, typeof(BeforeUpdate));
                     break;
                 
@@ -233,7 +337,7 @@ namespace Dhs5.Utility.Updates
 
         #region Default Update Channel System
 
-        public struct UpdateChannel { }
+        public struct DefaultUpdateChannel { }
 
         #endregion
 
@@ -241,32 +345,72 @@ namespace Dhs5.Utility.Updates
 
         #region Updates
 
+        #region Updater
+
+        private void OnTimeUpdate()
+        {
+            Time = UnityEngine.Time.time;
+            DeltaTime = UnityEngine.Time.deltaTime;
+
+            RealTime = UnityEngine.Time.realtimeSinceStartup;
+            RealDeltaTime = UnityEngine.Time.unscaledDeltaTime;
+
+            Frame = UnityEngine.Time.frameCount;
+
+            TimePaused = DeltaTime != 0f;
+        }
+        private void OnInitializationUpdate()
+        {
+            ResetDelayedCalls();
+            ResetCurrentFramePasses();
+        }
+
+        #endregion
+
         #region Main Systems
 
-        private static void OnAfterEarlyUpdate()
+        private void OnAfterEarlyUpdate()
         {
-            Debug.Log("Update " + typeof(AfterEarlyUpdate).Name);
+            UpdateDelayedCalls(EUpdatePass.AFTER_EARLY_UPDATE, DeltaTime);
+            AfterEarlyUpdated?.Invoke(DeltaTime);
+
+            m_currentFramePasses.Add(EUpdatePass.AFTER_EARLY_UPDATE);
         }
-        private static void OnBeforeUpdate()
+        private void OnBeforeUpdate()
         {
-            Debug.Log("Update " + typeof(BeforeUpdate).Name);
+            UpdateDelayedCalls(EUpdatePass.CLASSIC_UPDATE, DeltaTime);
+            ClassicUpdated?.Invoke(DeltaTime);
+
+            m_currentFramePasses.Add(EUpdatePass.CLASSIC_UPDATE);
         }
-        private static void OnAfterUpdate()
+        private void OnAfterUpdate()
         {
-            Debug.Log("Update " + typeof(AfterUpdate).Name);
+            UpdateDelayedCalls(EUpdatePass.AFTER_UPDATE, DeltaTime);
+            AfterUpdated?.Invoke(DeltaTime);
+
+            m_currentFramePasses.Add(EUpdatePass.AFTER_UPDATE);
         }
-        private static void OnAfterLateUpdate()
+        private void OnAfterLateUpdate()
         {
-            Debug.Log("Update " + typeof(AfterLateUpdate).Name);
+            UpdateDelayedCalls(EUpdatePass.AFTER_LATE_UPDATE, DeltaTime);
+            AfterLateUpdated?.Invoke(DeltaTime);
+
+            m_currentFramePasses.Add(EUpdatePass.AFTER_LATE_UPDATE);
         }
 
-        private static void OnBeforeFixedUpdate()
+        private void OnBeforeFixedUpdate()
         {
-            Debug.Log("Fixed Update " + typeof(BeforeFixedUpdate).Name);
+            UpdateDelayedCalls(EUpdatePass.BEFORE_FIXED_UPDATE, DeltaTime);
+            BeforeFixedUpdated?.Invoke(UnityEngine.Time.fixedDeltaTime);
+
+            m_currentFramePasses.Add(EUpdatePass.BEFORE_FIXED_UPDATE);
         }
-        private static void OnAfterPhysicsFixedUpdate()
+        private void OnAfterPhysicsFixedUpdate()
         {
-            Debug.Log("Fixed Update " + typeof(AfterPhysicsFixedUpdate).Name);
+            UpdateDelayedCalls(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE, DeltaTime);
+            AfterPhysicsFixedUpdated?.Invoke(UnityEngine.Time.fixedDeltaTime);
+
+            m_currentFramePasses.Add(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE);
         }
 
         #endregion
@@ -313,40 +457,696 @@ namespace Dhs5.Utility.Updates
             };
         }
 
-        private static void OnChannel0Update() { }
-        private static void OnChannel1Update() { }
-        private static void OnChannel2Update() { }
-        private static void OnChannel3Update() { }
-        private static void OnChannel4Update() { }
-        private static void OnChannel5Update() { }
-        private static void OnChannel6Update() { }
-        private static void OnChannel7Update() { }
-        private static void OnChannel8Update() { }
-        private static void OnChannel9Update() { }
-        private static void OnChannel10Update() { }
-        private static void OnChannel11Update() { }
-        private static void OnChannel12Update() { }
-        private static void OnChannel13Update() { }
-        private static void OnChannel14Update() { }
-        private static void OnChannel15Update() { }
-        private static void OnChannel16Update() { }
-        private static void OnChannel17Update() { }
-        private static void OnChannel18Update() { }
-        private static void OnChannel19Update() { }
-        private static void OnChannel20Update() { }
-        private static void OnChannel21Update() { }
-        private static void OnChannel22Update() { }
-        private static void OnChannel23Update() { }
-        private static void OnChannel24Update() { }
-        private static void OnChannel25Update() { }
-        private static void OnChannel26Update() { }
-        private static void OnChannel27Update() { }
-        private static void OnChannel28Update() { }
-        private static void OnChannel29Update() { }
-        private static void OnChannel30Update() { }
-        private static void OnChannel31Update() { }
+        private void OnChannel0Update() { UpdateChannelByIndex(0, DeltaTime, RealDeltaTime); }
+        private void OnChannel1Update() { UpdateChannelByIndex(1, DeltaTime, RealDeltaTime); }
+        private void OnChannel2Update() { UpdateChannelByIndex(2, DeltaTime, RealDeltaTime); }
+        private void OnChannel3Update() { UpdateChannelByIndex(3, DeltaTime, RealDeltaTime); }
+        private void OnChannel4Update() { UpdateChannelByIndex(4, DeltaTime, RealDeltaTime); }
+        private void OnChannel5Update() { UpdateChannelByIndex(5, DeltaTime, RealDeltaTime); }
+        private void OnChannel6Update() { UpdateChannelByIndex(6, DeltaTime, RealDeltaTime); }
+        private void OnChannel7Update() { UpdateChannelByIndex(7, DeltaTime, RealDeltaTime); }
+        private void OnChannel8Update() { UpdateChannelByIndex(8, DeltaTime, RealDeltaTime); }
+        private void OnChannel9Update() { UpdateChannelByIndex(9, DeltaTime, RealDeltaTime); }
+        private void OnChannel10Update() { UpdateChannelByIndex(10, DeltaTime, RealDeltaTime); }
+        private void OnChannel11Update() { UpdateChannelByIndex(11, DeltaTime, RealDeltaTime); }
+        private void OnChannel12Update() { UpdateChannelByIndex(12, DeltaTime, RealDeltaTime); }
+        private void OnChannel13Update() { UpdateChannelByIndex(13, DeltaTime, RealDeltaTime); }
+        private void OnChannel14Update() { UpdateChannelByIndex(14, DeltaTime, RealDeltaTime); }
+        private void OnChannel15Update() { UpdateChannelByIndex(15, DeltaTime, RealDeltaTime); }
+        private void OnChannel16Update() { UpdateChannelByIndex(16, DeltaTime, RealDeltaTime); }
+        private void OnChannel17Update() { UpdateChannelByIndex(17, DeltaTime, RealDeltaTime); }
+        private void OnChannel18Update() { UpdateChannelByIndex(18, DeltaTime, RealDeltaTime); }
+        private void OnChannel19Update() { UpdateChannelByIndex(19, DeltaTime, RealDeltaTime); }
+        private void OnChannel20Update() { UpdateChannelByIndex(20, DeltaTime, RealDeltaTime); }
+        private void OnChannel21Update() { UpdateChannelByIndex(21, DeltaTime, RealDeltaTime); }
+        private void OnChannel22Update() { UpdateChannelByIndex(22, DeltaTime, RealDeltaTime); }
+        private void OnChannel23Update() { UpdateChannelByIndex(23, DeltaTime, RealDeltaTime); }
+        private void OnChannel24Update() { UpdateChannelByIndex(24, DeltaTime, RealDeltaTime); }
+        private void OnChannel25Update() { UpdateChannelByIndex(25, DeltaTime, RealDeltaTime); }
+        private void OnChannel26Update() { UpdateChannelByIndex(26, DeltaTime, RealDeltaTime); }
+        private void OnChannel27Update() { UpdateChannelByIndex(27, DeltaTime, RealDeltaTime); }
+        private void OnChannel28Update() { UpdateChannelByIndex(28, DeltaTime, RealDeltaTime); }
+        private void OnChannel29Update() { UpdateChannelByIndex(29, DeltaTime, RealDeltaTime); }
+        private void OnChannel30Update() { UpdateChannelByIndex(30, DeltaTime, RealDeltaTime); }
+        private void OnChannel31Update() { UpdateChannelByIndex(31, DeltaTime, RealDeltaTime); }
 
         #endregion
+
+        #endregion
+
+        #region Pass Management
+
+        private List<EUpdatePass> m_currentFramePasses = new();
+
+        private void ResetCurrentFramePasses()
+        {
+            m_currentFramePasses.Clear();
+        }
+        public static bool PassHasBeenTriggeredThisFrame(EUpdatePass pass)
+        {
+            return Instance.m_currentFramePasses.Contains(pass);
+        }
+
+        #endregion
+
+
+        #region Channels
+
+        #region CLASS UpdateChannel
+
+        private class UpdateChannel
+        {
+            #region Constructors
+
+            public UpdateChannel(IUpdateChannel updateChannel)
+            {
+                this.channel = updateChannel.Channel;
+                this.type = channel.GetChannelType();
+                this.pass = updateChannel.Pass;
+                this.order = updateChannel.Order;
+                this.condition = updateChannel.Condition;
+                this.realtime = updateChannel.Realtime;
+
+                Enabled = updateChannel.EnabledByDefault;
+                Frequency = updateChannel.Frequency;
+                Timescale = updateChannel.TimeScale;
+
+                TimeSinceLastUpdate = 0f;
+            }
+
+            #endregion
+
+            #region Members
+
+            public readonly EUpdateChannel channel;
+            public readonly Type type;
+            public readonly EUpdatePass pass;
+            public readonly ushort order;
+            public readonly EUpdateCondition condition;
+            public readonly bool realtime;
+
+            private bool customFrequency;
+            private float frequency;
+            public bool Enabled { get; set; }
+            public float Timescale { get; set; }
+
+            #endregion
+
+            #region Properties
+
+            public float TimeSinceLastUpdate { get; private set; }
+            public float Frequency
+            {
+                get => frequency;
+                set
+                {
+                    frequency = value;
+                    customFrequency = value > 0f;
+                }
+            }
+
+            #endregion
+
+            #region Behaviour
+
+            public bool Update(float deltaTime, out float actualDeltaTime)
+            {
+                if (!customFrequency)
+                {
+                    actualDeltaTime = deltaTime;
+                    return true;
+                }
+                else
+                {
+                    TimeSinceLastUpdate += deltaTime * Timescale;
+                    actualDeltaTime = TimeSinceLastUpdate;
+                    if (TimeSinceLastUpdate >= Frequency)
+                    {
+                        TimeSinceLastUpdate -= Frequency;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Creation & Deletion
+
+        private readonly Dictionary<int, UpdateChannel> m_channels = new();
+
+        private void InitChannels()
+        {
+            foreach (var obj in Enum.GetValues(typeof(EUpdateChannel)))
+            {
+                var channel = ((EUpdateChannel)obj).GetValue();
+
+                m_channels[(int)channel.Channel] = new(channel);
+            }
+        }
+
+        private void ClearChannels()
+        {
+            m_channels.Clear();
+            m_channelCallbacks.Clear();
+        }
+
+        #endregion
+
+        #region Callbacks
+
+        private readonly Dictionary<int, UpdateCallback> m_channelCallbacks = new();
+
+        public void RegisterChannelCallback(EUpdateChannel channel, UpdateCallback callback)
+        {
+            int channelIndex = (int)channel;
+            if (m_channelCallbacks.ContainsKey(channelIndex))
+            {
+                m_channelCallbacks[channelIndex] += callback;
+            }
+            else
+            {
+                m_channelCallbacks.Add(channelIndex, callback);
+            }
+        }
+        public void UnregisterChannelCallback(EUpdateChannel channel, UpdateCallback callback)
+        {
+            int channelIndex = (int)channel;
+            if (m_channelCallbacks.ContainsKey(channelIndex))
+            {
+                m_channelCallbacks[channelIndex] -= callback;
+            }
+        }
+
+        private void TriggerChannelCallback(int channelIndex, float deltaTime)
+        {
+            if (m_channelCallbacks.TryGetValue(channelIndex, out var callback))
+            {
+                callback?.Invoke(deltaTime);
+            }
+        }
+
+        #endregion
+
+        #region Updates
+
+        private void UpdateChannelByIndex(int index, float deltaTime, float realDeltaTime)
+        {
+            if (m_channels.TryGetValue(index, out var channel))
+            {
+                if (IsChannelValid(channel)
+                        && channel.Update(channel.realtime ? realDeltaTime : deltaTime, out var actualDeltaTime))
+                {
+                    TriggerChannelCallback(index, actualDeltaTime);
+                }
+            }
+        }
+
+        #endregion
+
+        #region Setters
+
+        public void SetChannelEnable(int channelIndex, bool enabled)
+        {
+            if (m_channels.TryGetValue(channelIndex, out var channel)
+                && channel.Enabled != enabled)
+            {
+                channel.Enabled = enabled;
+                EnableUpdateChannel(enabled, channelIndex);
+            }
+        }
+        public void SetChannelTimescale(int channelIndex, float timescale)
+        {
+            if (m_channels.TryGetValue(channelIndex, out var channel))
+            {
+                channel.Timescale = timescale;
+            }
+        }
+        public void SetChannelFrequency(int channelIndex, float frequency)
+        {
+            if (m_channels.TryGetValue(channelIndex, out var channel))
+            {
+                channel.Frequency = Mathf.Max(frequency, 0f);
+            }
+        }
+
+        #endregion
+
+        #region Validity
+
+        private bool IsChannelValid(UpdateChannel channel)
+        {
+            return channel.Enabled && IsConditionFulfilled(channel.condition);
+        }
+
+        private bool IsConditionFulfilled(EUpdateCondition condition)
+        {
+            switch (condition)
+            {
+                case EUpdateCondition.ALWAYS: return true;
+                case EUpdateCondition.GAME_PLAYING: return UnityEngine.Time.timeScale > 0f;
+                case EUpdateCondition.GAME_PAUSED: return UnityEngine.Time.timeScale == 0f;
+                case EUpdateCondition.GAME_OVER: return false;
+            }
+            return false;
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Timelines
+
+        #region Creation & Deletion
+
+        private readonly Dictionary<ulong, UpdateTimelineInstance> m_updateTimelineInstances = new();
+
+        public bool CreateUpdateTimelineInstance(IUpdateTimeline updateTimeline, ulong key)
+        {
+            if (updateTimeline == null || m_updateTimelineInstances.ContainsKey(key))
+            {
+                return false;
+            }
+
+            if (updateTimeline.Duration > 0f)
+            {
+                var state = new UpdateTimelineInstance(updateTimeline);
+                m_updateTimelineInstances[key] = state;
+                RegisterChannelCallback(updateTimeline.UpdateChannel, state.OnUpdate);
+                return true;
+            }
+            else
+            {
+                Debug.LogError("You tried to register an UpdateTimeline that has no valid update or a duration equal to 0");
+                return false;
+            }
+        }
+        public void DestroyUpdateTimelineInstance(ulong key)
+        {
+            if (m_updateTimelineInstances.TryGetValue(key, out UpdateTimelineInstance state))
+            {
+                UnregisterChannelCallback(state.updateChannel, state.OnUpdate);
+                m_updateTimelineInstances.Remove(key);
+            }
+        }
+
+        private void ClearUpdateTimelineInstances()
+        {
+            foreach (var key in m_updateTimelineInstances.Keys)
+            {
+                DestroyUpdateTimelineInstance(key);
+            }
+            m_updateTimelineInstances.Clear();
+        }
+
+        #endregion
+
+        #region Acessors
+
+        public bool TimelineInstanceExist(ulong key) => m_updateTimelineInstances.ContainsKey(key);
+        public bool TryGetUpdateTimelineInstance(ulong key, out UpdateTimelineInstance state) => m_updateTimelineInstances.TryGetValue(key, out state);
+
+        public bool TryGetUpdateTimelineInstanceKey(int timelineUID, out ulong instanceKey)
+        {
+            foreach (var (key, instance) in m_updateTimelineInstances)
+            {
+                if (instance.timelineUID == timelineUID)
+                {
+                    instanceKey = key;
+                    return true;
+                }
+            }
+
+            instanceKey = 0;
+            return false;
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Delayed Calls
+
+        #region CLASSES
+
+        private abstract class DelayedCall
+        {
+            #region Members
+
+            public readonly EUpdatePass pass;
+            public readonly EUpdateCondition condition;
+            protected Action m_callback;
+
+            #endregion
+
+            #region Constructor
+
+            public DelayedCall(EUpdatePass pass, EUpdateCondition condition, Action callback)
+            {
+                this.pass = pass;
+                this.condition = condition;
+                m_callback = callback;
+            }
+
+            #endregion
+
+            #region Update
+
+            public abstract bool Update(float deltaTime);
+
+            #endregion
+        }
+        private class TimedDelayedCall : DelayedCall
+        {
+            #region Members
+
+            private float m_remainingTime;
+
+            #endregion
+
+            #region Constructor
+
+            public TimedDelayedCall(float delay, EUpdatePass pass, EUpdateCondition condition, Action callback) : base(pass, condition, callback)
+            {
+                m_remainingTime = delay;
+            }
+
+            #endregion
+
+            #region Update
+
+            public override bool Update(float deltaTime)
+            {
+                m_remainingTime -= deltaTime;
+                if (m_remainingTime <= 0f)
+                {
+                    m_callback?.Invoke();
+                    return true;
+                }
+                return false;
+            }
+
+            #endregion
+
+            #region Accessors
+
+            public float GetRemainingTime()
+            {
+                return m_remainingTime;
+            }
+
+            #endregion
+        }
+        private class FrameDelayedCall : DelayedCall
+        {
+            #region Members
+
+            private int m_remainingFrames;
+
+            #endregion
+
+            #region Constructor
+
+            public FrameDelayedCall(int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback) : base(pass, condition, callback)
+            {
+                m_remainingFrames = framesToWait;
+            }
+
+            #endregion
+
+            #region Update
+
+            public override bool Update(float deltaTime)
+            {
+                m_remainingFrames -= 1;
+                if (m_remainingFrames == 0)
+                {
+                    m_callback?.Invoke();
+                    return true;
+                }
+                return false;
+            }
+
+            #endregion
+
+            #region Accessors
+
+            public int GetRemainingFrames()
+            {
+                return m_remainingFrames;
+            }
+
+            #endregion
+        }
+        private class WaitDelayedCall : DelayedCall
+        {
+            #region Members
+
+            private Func<bool> m_predicate;
+            private bool m_waitUntil;
+
+            #endregion
+
+            #region Constructor
+
+            public WaitDelayedCall(Func<bool> predicate, bool waitUntil, EUpdatePass pass, EUpdateCondition condition, Action callback) : base(pass, condition, callback)
+            {
+                m_predicate = predicate;
+                m_waitUntil = waitUntil;
+            }
+
+            #endregion
+
+            #region Update
+
+            public override bool Update(float deltaTime)
+            {
+                bool predicateResult = m_predicate.Invoke();
+                if (predicateResult == m_waitUntil)
+                {
+                    m_callback?.Invoke();
+                    return true;
+                }
+                return false;
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Internal Registration
+
+        private readonly Dictionary<ulong, DelayedCall> m_delayedCalls = new();
+        private readonly Dictionary<ulong, DelayedCall> m_delayedCallsToRegister = new();
+        private readonly List<EUpdatePass> m_delayedCallPasses = new();
+        private bool m_delayedCallsRegistrationDone = false;
+
+        private void RegisterDelayedCall(ulong key, DelayedCall delayedCall)
+        {
+            if (m_delayedCallsRegistrationDone)
+            {
+                m_delayedCalls.Add(key, delayedCall);
+            }
+            else
+            {
+                m_delayedCallsToRegister.Add(key, delayedCall);
+            }
+        }
+        private void PerformDelayedCallsRegistraton()
+        {
+            m_delayedCallsRegistrationDone = true;
+
+            foreach (var (key, call) in m_delayedCallsToRegister)
+            {
+                m_delayedCalls.Add(key, call);
+            }
+
+            m_delayedCallsToRegister.Clear();
+        }
+
+        public void UnregisterDelayedCall(ulong key)
+        {
+            m_delayedCalls.Remove(key);
+        }
+
+        #endregion
+
+        #region Public Registration
+
+        public void RegisterTimedDelayedCall(ulong key, float delay, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and delay = 0f and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass)
+                && delay == 0f
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new TimedDelayedCall(delay, pass, condition, callback));
+        }
+        public void RegisterFrameDelayedCall(ulong key, int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and framesToWait = 0 and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass)
+                && framesToWait == 0
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new FrameDelayedCall(framesToWait, pass, condition, callback));
+        }
+        public void RegisterWaitUntilDelayedCall(ulong key, Func<bool> predicate, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and predicate is true and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass)
+                && predicate.Invoke()
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new WaitDelayedCall(predicate, true, pass, condition, callback));
+        }
+        public void RegisterWaitWhileDelayedCall(ulong key, Func<bool> predicate, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        {
+            // If the pass has already been triggered and predicate is false and condition is fulfilled
+            // we need to trigger the callback and don't register the delayed call
+            if (m_delayedCallPasses.Contains(pass)
+                && !predicate.Invoke()
+                && IsConditionFulfilled(condition))
+            {
+                callback?.Invoke();
+                return;
+            }
+
+            RegisterDelayedCall(key, new WaitDelayedCall(predicate, false, pass, condition, callback));
+        }
+
+        #endregion
+
+        #region Update
+
+        private void UpdateDelayedCalls(EUpdatePass pass, float deltaTime)
+        {
+            // At this moment, newly registrated delayed calls won't be updated this frame
+            m_delayedCallPasses.Add(pass);
+
+            List<ulong> toDestroy = new();
+            foreach (var (key, delayedCall) in m_delayedCalls)
+            {
+                if (IsConditionFulfilled(delayedCall.condition)
+                    && delayedCall.pass == pass
+                    && delayedCall.Update(deltaTime))
+                {
+                    toDestroy.Add(key);
+                }
+            }
+
+            foreach (var key in toDestroy)
+            {
+                UnregisterDelayedCall(key);
+            }
+        }
+
+        #endregion
+
+        #region Accessors
+
+        public bool DoesDelayedCallExist(ulong key)
+        {
+            return m_delayedCalls.ContainsKey(key) || m_delayedCallsToRegister.ContainsKey(key);
+        }
+
+        private DelayedCall GetDelayedCallWithKey(ulong key)
+        {
+            if (m_delayedCalls.TryGetValue(key, out var delayedCall))
+            {
+                return delayedCall;
+            }
+            return null;
+        }
+
+        public bool GetDelayedCallTimeLeft(ulong key, out float timeLeft)
+        {
+            if (m_delayedCalls.TryGetValue(key, out var delayedCall)
+                && delayedCall is TimedDelayedCall timedDelayedCall)
+            {
+                timeLeft = timedDelayedCall.GetRemainingTime();
+                return true;
+            }
+            timeLeft = -1f;
+            return false;
+        }
+        public bool GetDelayedCallFramesLeft(ulong key, out int framesLeft)
+        {
+            if (m_delayedCalls.TryGetValue(key, out var delayedCall)
+                && delayedCall is FrameDelayedCall frameDelayedCall)
+            {
+                framesLeft = frameDelayedCall.GetRemainingFrames();
+                return true;
+            }
+            framesLeft = -1;
+            return false;
+        }
+
+        #endregion
+
+        #region Utility
+
+        private void ResetDelayedCalls()
+        {
+            m_delayedCallPasses.Clear();
+            m_delayedCallsRegistrationDone = false;
+        }
+        private void ClearDelayedCalls()
+        {
+            m_delayedCalls.Clear();
+            m_delayedCallsToRegister.Clear();
+            m_delayedCallPasses.Clear();
+            m_delayedCallsRegistrationDone = false;
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region Utility
+
+        public void Clear()
+        {
+            // PASSES
+            m_currentFramePasses.Clear();
+
+            // CHANNELS
+            ClearChannels();
+
+            // DELAYED CALLS
+            ClearDelayedCalls();
+
+            // TIMELINES
+            ClearUpdateTimelineInstances();
+
+            // DEFAULT EVENTS
+            AfterEarlyUpdated = null;
+            AfterLateUpdated = null;
+            AfterPhysicsFixedUpdated = null;
+            AfterUpdated = null;
+            BeforeFixedUpdated = null;
+            ClassicUpdated = null;
+        }
 
         #endregion
     }

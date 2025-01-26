@@ -15,7 +15,7 @@ namespace Dhs5.Utility.Updates
     {
         #region Members
 
-        [SerializeField] private UpdatePicker m_update;
+        [SerializeField] private EUpdateChannel m_channel;
         [SerializeField] private int m_minutesDuration = 1;
         [SerializeField] private float m_secondsDuration;
         [SerializeField] private bool m_loop;
@@ -26,14 +26,7 @@ namespace Dhs5.Utility.Updates
 
         #region IUpdateTimeline
 
-        public int UpdateKey
-        {
-            get
-            {
-                if (m_update.TryGetUpdateKey(out int updateKey)) return updateKey;
-                return 0;
-            }
-        }
+        public EUpdateChannel UpdateChannel => m_channel;
         public float Duration => m_minutesDuration * 60f + m_secondsDuration;
         public bool Loop => m_loop;
         public float Timescale => m_timescale;
@@ -57,7 +50,7 @@ namespace Dhs5.Utility.Updates
 
         protected UpdateTimelineObject m_element;
 
-        protected SerializedProperty p_update;
+        protected SerializedProperty p_channel;
         protected SerializedProperty p_minutesDuration;
         protected SerializedProperty p_secondsDuration;
         protected SerializedProperty p_loop;
@@ -89,14 +82,14 @@ namespace Dhs5.Utility.Updates
 
             m_element = (UpdateTimelineObject)target;
 
-            p_update = serializedObject.FindProperty("m_update");
+            p_channel = serializedObject.FindProperty("m_channel");
             p_minutesDuration = serializedObject.FindProperty("m_minutesDuration");
             p_secondsDuration = serializedObject.FindProperty("m_secondsDuration");
             p_loop = serializedObject.FindProperty("m_loop");
             p_timescale = serializedObject.FindProperty("m_timescale");
             p_events = serializedObject.FindProperty("m_events");
 
-            m_excludedProperties.Add(p_update.propertyPath);
+            m_excludedProperties.Add(p_channel.propertyPath);
             m_excludedProperties.Add(p_minutesDuration.propertyPath);
             m_excludedProperties.Add(p_secondsDuration.propertyPath);
             m_excludedProperties.Add(p_loop.propertyPath);
@@ -125,7 +118,7 @@ namespace Dhs5.Utility.Updates
 
         protected override void OnGUI()
         {
-            EditorGUILayout.PropertyField(p_update, true);
+            EditorGUILayout.PropertyField(p_channel, true);
             p_timescale.floatValue = Mathf.Max( EditorGUILayout.FloatField("Timescale", p_timescale.floatValue) , 0f);
 
             EditorGUILayout.Space(10f);

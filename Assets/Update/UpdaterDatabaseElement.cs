@@ -14,7 +14,7 @@ namespace Dhs5.Utility.Updates
         #region Members
 
         [Tooltip("Update pass on which this update channel will be updated")]
-        [SerializeField] private EUpdatePass m_updatePass = EUpdatePass.BEFORE_UPDATE;
+        [SerializeField] private EUpdatePass m_updatePass = EUpdatePass.CLASSIC_UPDATE;
         [Tooltip("Order in the selected update pass\n0 will be invoked first, bigger number last")]
         [SerializeField] private ushort m_order = 0;
 
@@ -35,6 +35,7 @@ namespace Dhs5.Utility.Updates
 
         #region Properties
 
+        public EUpdateChannel Channel => (EUpdateChannel)EnumIndex;
         public EUpdatePass Pass => m_updatePass;
         public ushort Order => m_order;
         public bool EnabledByDefault => m_enabledByDefault;

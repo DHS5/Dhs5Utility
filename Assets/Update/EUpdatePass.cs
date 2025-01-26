@@ -9,8 +9,8 @@ namespace Dhs5.Utility.Updates
         [InspectorName("After Early Update"), Tooltip("Updated after the Early Update of the PlayerLoop")]
         AFTER_EARLY_UPDATE,
         
-        [InspectorName("Before Update"), Tooltip("Updated before the Classic Update of the PlayerLoop")]
-        BEFORE_UPDATE,
+        [InspectorName("Classic Update"), Tooltip("Updated just before the Classic Update of the PlayerLoop")]
+        CLASSIC_UPDATE,
         
         [InspectorName("After Update"), Tooltip("Updated after the Classic Update of the PlayerLoop")]
         AFTER_UPDATE,

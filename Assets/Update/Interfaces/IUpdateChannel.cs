@@ -4,7 +4,7 @@ namespace Dhs5.Utility.Updates
 {
     public interface IUpdateChannel
     {
-        public int ChannelIndex { get; }
+        public EUpdateChannel Channel { get; }
         public EUpdatePass Pass { get; }
         public ushort Order { get; }
         public bool EnabledByDefault { get; }

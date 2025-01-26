@@ -16,8 +16,10 @@ namespace Dhs5.Utility.Updates
         BASE = 1 << 0,
         SCREEN_LOG = 1 << 1,
     }
+    public struct BASE_UpdateChannel { }
+    public struct SCREEN_LOG_UpdateChannel { }
     
-    public static class EUpdateChannelExtension
+    public static class UpdateChannelExtensions
     {
         public static IUpdateChannel GetValue(this EUpdateChannel e)
         {
@@ -27,7 +29,9 @@ namespace Dhs5.Utility.Updates
         {
             switch (e)
             {
-                default: return typeof(UpdaterV2.UpdateChannel);
+                case EUpdateChannel.BASE: return typeof(BASE_UpdateChannel);
+                case EUpdateChannel.SCREEN_LOG: return typeof(SCREEN_LOG_UpdateChannel);
+                default: return typeof(UpdaterV2.DefaultUpdateChannel);
             }
         }
 

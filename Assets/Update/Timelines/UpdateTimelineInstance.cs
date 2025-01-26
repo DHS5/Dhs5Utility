@@ -15,7 +15,7 @@ namespace Dhs5.Utility.Updates
             Time = 0f;
 
             this.timelineUID = updateTimeline.UID;
-            this.updateCategory = updateTimeline.UpdateKey;
+            this.updateChannel = updateTimeline.UpdateChannel;
             this.duration = updateTimeline.Duration;
             Loop = updateTimeline.Loop;
             Timescale = updateTimeline.Timescale;
@@ -37,7 +37,7 @@ namespace Dhs5.Utility.Updates
         #region Members
 
         public readonly int timelineUID;
-        public readonly int updateCategory;
+        public readonly EUpdateChannel updateChannel;
         public readonly float duration;
 
         private readonly List<IUpdateTimeline.Event> customEvents;

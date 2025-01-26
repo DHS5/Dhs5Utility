@@ -53,7 +53,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        protected bool TryGetEnumScriptPath(out string path)
+        protected virtual bool TryGetEnumScriptPath(out string path)
         {
             if (string.IsNullOrWhiteSpace(m_scriptFolder)
                 || !m_scriptFolder.StartsWith("Assets"))

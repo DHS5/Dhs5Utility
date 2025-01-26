@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_uid: 1
   m_enumIndex: 0
-  m_updatePass: 0
+  m_updatePass: 1
   m_order: 0
   m_enabledByDefault: 1
   m_updateCondition: 0
@@ -42,7 +42,7 @@ MonoBehaviour:
   m_enumNamespace: Dhs5.Utility.Updates
   m_usings: 
   m_scriptFolder: Assets/Update
-  m_textAsset: {fileID: 11500000, guid: 3fb36483a8bb9454f9156e3d4a9860da, type: 3}
+  m_textAsset: {fileID: 11500000, guid: 517f058b72777174ba1255475785d1d7, type: 3}
 --- !u!114 &1281793251936599315
 MonoBehaviour:
   m_ObjectHideFlags: 0

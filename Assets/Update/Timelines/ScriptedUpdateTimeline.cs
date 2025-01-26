@@ -7,10 +7,10 @@ namespace Dhs5.Utility.Updates
     {
         #region Constructors
 
-        public ScriptedUpdateTimeline(int updateKey, float duration, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
+        public ScriptedUpdateTimeline(EUpdateChannel updateChannel, float duration, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
         {
             m_uid = uid;
-            m_updateKey = updateKey;
+            m_updateChannel = updateChannel;
             m_duration = duration;
             m_loop = loop;
             m_timescale = timescale;
@@ -22,7 +22,7 @@ namespace Dhs5.Utility.Updates
         #region Members
 
         private readonly int m_uid;
-        private readonly int m_updateKey;
+        private readonly EUpdateChannel m_updateChannel;
         private readonly float m_duration;
         private readonly bool m_loop;
         private readonly float m_timescale;
@@ -34,7 +34,7 @@ namespace Dhs5.Utility.Updates
 
         public int UID => m_uid;
 
-        public int UpdateKey => m_updateKey;
+        public EUpdateChannel UpdateChannel => m_updateChannel;
 
         public float Duration => m_duration;
 
