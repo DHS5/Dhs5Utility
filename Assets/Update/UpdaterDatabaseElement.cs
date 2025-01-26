@@ -9,12 +9,12 @@ using UnityEditor;
 
 namespace Dhs5.Utility.Updates
 {
-    public class UpdaterDatabaseElement : BaseEnumDatabaseElement
+    public class UpdaterDatabaseElement : BaseEnumDatabaseElement, IUpdateChannel
     {
         #region Members
 
         [Tooltip("Update pass on which this update channel will be updated")]
-        [SerializeField] private EUpdatePass m_updatePass = EUpdatePass.CLASSIC;
+        [SerializeField] private EUpdatePass m_updatePass = EUpdatePass.BEFORE_UPDATE;
         [Tooltip("Order in the selected update pass\n0 will be invoked first, bigger number last")]
         [SerializeField] private ushort m_order = 0;
 

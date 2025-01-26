@@ -242,7 +242,7 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Register a callback to be called once in <paramref name="framesToWait"/> number of frames
         /// </summary>
-        public static void CallInXFrames(int framesToWait, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallInXFrames(int framesToWait, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.BEFORE_UPDATE, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || framesToWait < 0)
             {
@@ -257,7 +257,7 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Register a callback to be called once in <paramref name="time"/> seconds
         /// </summary>
-        public static void CallInXSeconds(float time, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallInXSeconds(float time, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.BEFORE_UPDATE, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || time < 0f)
             {
@@ -272,7 +272,7 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Register a callback to be called once <paramref name="predicate"/> becomes true
         /// </summary>
-        public static void CallWhenTrue(Func<bool> predicate, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallWhenTrue(Func<bool> predicate, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.BEFORE_UPDATE, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || predicate == null)
             {
@@ -287,7 +287,7 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Register a callback to be called once <paramref name="predicate"/> becomes false
         /// </summary>
-        public static void CallWhenFalse(Func<bool> predicate, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        public static void CallWhenFalse(Func<bool> predicate, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.BEFORE_UPDATE, EUpdateCondition condition = EUpdateCondition.ALWAYS)
         {
             if (callback == null || predicate == null)
             {

@@ -100,23 +100,23 @@ namespace Dhs5.Utility.Updates
         }
         protected virtual void LateUpdate()
         {
-            InvokePassEvents(EUpdatePass.LATE, DeltaTime, RealDeltaTime);
+            //InvokePassEvents(EUpdatePass.LATE, DeltaTime, RealDeltaTime);
 
             PerformDelayedCallsRegistraton();
         }
         protected virtual void FixedUpdate()
         {
-            InvokePassEvents(EUpdatePass.FIXED, UnityEngine.Time.fixedDeltaTime, UnityEngine.Time.fixedUnscaledDeltaTime);
+            //InvokePassEvents(EUpdatePass.FIXED, UnityEngine.Time.fixedDeltaTime, UnityEngine.Time.fixedUnscaledDeltaTime);
         }
 
         // CUSTOM
         protected virtual void EarlyUpdate()
         {
-            InvokePassEvents(EUpdatePass.EARLY, DeltaTime, RealDeltaTime);
+            //InvokePassEvents(EUpdatePass.EARLY, DeltaTime, RealDeltaTime);
         }
         protected virtual void ClassicUpdate()
         {
-            InvokePassEvents(EUpdatePass.CLASSIC, DeltaTime, RealDeltaTime);
+            //InvokePassEvents(EUpdatePass.CLASSIC, DeltaTime, RealDeltaTime);
         }
 
         #endregion
@@ -794,13 +794,13 @@ namespace Dhs5.Utility.Updates
 
         private void InvokeDefaultEvents(EUpdatePass pass, float deltaTime)
         {
-            switch (pass)
-            {
-                case EUpdatePass.EARLY: OnEarlyUpdate?.Invoke(deltaTime); break;
-                case EUpdatePass.CLASSIC: OnUpdate?.Invoke(deltaTime); break;
-                case EUpdatePass.LATE: OnLateUpdate?.Invoke(deltaTime); break;
-                case EUpdatePass.FIXED: OnFixedUpdate?.Invoke(deltaTime); break;
-            }
+            //switch (pass)
+            //{
+            //    case EUpdatePass.EARLY: OnEarlyUpdate?.Invoke(deltaTime); break;
+            //    case EUpdatePass.CLASSIC: OnUpdate?.Invoke(deltaTime); break;
+            //    case EUpdatePass.LATE: OnLateUpdate?.Invoke(deltaTime); break;
+            //    case EUpdatePass.FIXED: OnFixedUpdate?.Invoke(deltaTime); break;
+            //}
         }
 
         #endregion

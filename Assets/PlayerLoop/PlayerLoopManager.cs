@@ -218,7 +218,7 @@ namespace Dhs5.Utility.PlayerLoops
 
         #region Sub Systems
 
-        public static void AddCustomSubSystem(PlayerLoopSystem system, Type mainSystemType, int index)
+        public static void AddCustomSubSystemAtIndex(PlayerLoopSystem system, Type mainSystemType, int index)
         {
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
