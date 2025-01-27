@@ -49,9 +49,33 @@ MonoBehaviour:
   _texture: {fileID: 0}
   _showName: 0
   _name: 
+  _name2: 
   _dataPicker1:
     m_container: {fileID: 0}
     m_currentSelectionUID: 0
   _dataPicker2:
     m_container: {fileID: 11400000, guid: 72e73dbeecb35e64488c260f895d793c, type: 2}
     m_currentSelectionUID: 0
+  m_sceneRef:
+    m_sceneAsset: {fileID: 0}
+    m_sceneIndex: -1
+    m_sceneName: 
+    m_scenePath: 
+  m_folder: Assets
+  m_folder2: Assets/Test
+  m_folder3: {fileID: 0}
+  m_layer: 0
+  m_tag: 
+  m_ranges: {x: 5, y: 5}
+  m_intRange: {x: 12, y: 12}
+  m_creator: {fileID: 0}
+  m_foldoutElem: {fileID: 0}
+  m_enumValues:
+    m_enumValues: 0000000000000000000000000000000000000000
+  m_enumFlagValues:
+    m_flag: 0
+    m_enumValues: 00000000000000000000000000000000
+  m_tags:
+    m_tags: 
+  m_tags2:
+    m_tags: 

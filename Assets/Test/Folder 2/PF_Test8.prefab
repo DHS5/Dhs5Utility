@@ -44,14 +44,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca3bd3a30c49c714bb18459a0cd83ab8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_uid: 0
+  m_uid: 11
   _showTexture: 0
   _texture: {fileID: 0}
   _showName: 0
   _name: 
+  _name2: 
   _dataPicker1:
     m_container: {fileID: 0}
     m_currentSelectionUID: 0
   _dataPicker2:
     m_container: {fileID: 11400000, guid: 72e73dbeecb35e64488c260f895d793c, type: 2}
     m_currentSelectionUID: 0
+  m_sceneRef:
+    m_sceneAsset: {fileID: 0}
+    m_sceneIndex: -1
+    m_sceneName: 
+    m_scenePath: 
+  m_folder: 
+  m_folder2: 
+  m_folder3: {fileID: 0}
+  m_layer: 0
+  m_tag: 
+  m_ranges: {x: 0, y: 0}
+  m_intRange: {x: 0, y: 0}
+  m_creator: {fileID: 0}
+  m_foldoutElem: {fileID: 0}
+  m_enumValues:
+    m_enumValues: 
+  m_enumFlagValues:
+    m_flag: 0
+    m_enumValues: 
+  m_tags:
+    m_tags: 
+  m_tags2:
+    m_tags: 

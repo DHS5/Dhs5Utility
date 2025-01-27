@@ -326,6 +326,51 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Duplication
+
+        public static UnityEngine.Object Duplicate(UnityEngine.Object obj)
+        {
+            if (AssetDatabase.IsMainAsset(obj)) return DuplicateMainAsset(obj);
+            else if (AssetDatabase.IsSubAsset(obj)) return DuplicateSubAsset(obj);
+            return null;
+        }
+
+        private static UnityEngine.Object DuplicateMainAsset(UnityEngine.Object obj)
+        {
+            UnityEngine.Object duplicate = null;
+            string path = AssetDatabase.GetAssetPath(obj);
+            string newPath = path.Replace(obj.name, obj.name + "Copy");
+
+            if (AssetDatabase.CopyAsset(path, newPath))
+            {
+                duplicate = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(newPath);
+                AssetDatabase.Refresh();
+                AssetDatabase.SaveAssets();
+            }
+
+            return duplicate;
+        }
+        private static UnityEngine.Object DuplicateSubAsset(UnityEngine.Object obj)
+        {
+            UnityEngine.Object mainAsset = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GetAssetPath(obj));
+
+            UnityEngine.Object duplicate = null;
+
+            if (obj is ScriptableObject so)
+            {
+                duplicate = ScriptableObject.Instantiate(so);
+                duplicate.name = so.name + "Copy";
+            }
+
+            if (duplicate != null)
+            {
+                AssetDatabase.AddObjectToAsset(duplicate, mainAsset);
+            }
+            return duplicate;
+        }
+
+        #endregion
+
         #region Deletion
 
         public static bool IsAssetDeletableFromCode(UnityEngine.Object obj)

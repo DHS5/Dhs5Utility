@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &7070109983413186064
+--- !u!1 &5665926712831208196
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,22 +8,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3717115550320016162}
-  - component: {fileID: -5504170787041852912}
+  - component: {fileID: 748537440185449836}
+  - component: {fileID: 527359871092427723}
   m_Layer: 0
-  m_Name: PF_Test7
+  m_Name: PF_Test6Copy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3717115550320016162
+--- !u!4 &748537440185449836
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7070109983413186064}
+  m_GameObject: {fileID: 5665926712831208196}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -32,19 +32,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &-5504170787041852912
+--- !u!114 &527359871092427723
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7070109983413186064}
+  m_GameObject: {fileID: 5665926712831208196}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ca3bd3a30c49c714bb18459a0cd83ab8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_uid: 10
+  m_uid: 13
   _showTexture: 0
   _texture: {fileID: 0}
   _showName: 0
@@ -61,20 +61,20 @@ MonoBehaviour:
     m_sceneIndex: -1
     m_sceneName: 
     m_scenePath: 
-  m_folder: 
-  m_folder2: 
+  m_folder: Assets
+  m_folder2: Assets/Test
   m_folder3: {fileID: 0}
   m_layer: 0
   m_tag: 
-  m_ranges: {x: 0, y: 0}
-  m_intRange: {x: 0, y: 0}
+  m_ranges: {x: 5, y: 5}
+  m_intRange: {x: 12, y: 12}
   m_creator: {fileID: 0}
   m_foldoutElem: {fileID: 0}
   m_enumValues:
-    m_enumValues: 
+    m_enumValues: 0000000000000000000000000000000000000000
   m_enumFlagValues:
     m_flag: 0
-    m_enumValues: 
+    m_enumValues: 00000000000000000000000000000000
   m_tags:
     m_tags: 
   m_tags2:

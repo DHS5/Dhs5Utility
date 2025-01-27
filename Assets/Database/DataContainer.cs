@@ -583,6 +583,9 @@ namespace Dhs5.Utility.Databases
                                 OnEventReceived_Down(e); break;
                             case KeyCode.Return:
                                 OnEventReceived_Validate(e); break;
+                            case KeyCode.D:
+                                if (e.control) OnEventReceived_Duplicate(e);
+                                break;
                         }
                         break;
                     }
@@ -612,6 +615,14 @@ namespace Dhs5.Utility.Databases
             if (TryDeleteCurrentSelection())
             {
                 UseCurrentEvent();
+            }
+        }
+        protected virtual void OnEventReceived_Duplicate(Event e)
+        {
+            var currentSelection = GetContainerCurrentSelection();
+            if (currentSelection != null)
+            {
+                DuplicateElement(currentSelection);
             }
         }
 
@@ -1066,6 +1077,7 @@ namespace Dhs5.Utility.Databases
         {
             menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(obj));
             menu.AddItem(new GUIContent("Open Asset"), false, () => { if (AssetDatabase.CanOpenAssetInEditor(obj.GetInstanceID())) AssetDatabase.OpenAsset(obj); });
+            menu.AddItem(new GUIContent("Duplicate"), false, () => DuplicateElement(obj));
             menu.AddItem(new GUIContent("Remove"), false, () => OnTryDeleteElementAtIndex(index));
         }
         protected virtual void PopulateGroupContextMenu(FolderStructureGroupEntry group, int index, GenericMenu menu)
@@ -1490,13 +1502,31 @@ namespace Dhs5.Utility.Databases
             if (m_container.Editor_IsTypeValidForContainer(type) 
                 && OnCreateNewDataOfType(type, out var obj))
             {
-                m_container.Editor_OnNewElementCreated(obj);
-                OnAddNewDataToContainer(obj);
+                AddNewDataToContainer(obj);
                 return true;
             }
             return false;
         }
         protected abstract bool OnCreateNewDataOfType(Type type, out UnityEngine.Object obj);
+
+        protected bool DuplicateElement(UnityEngine.Object element)
+        {
+            var duplicate = Database.Duplicate(element);
+            if (duplicate != null)
+            {
+                if (duplicate is IDataContainerElement)
+                {
+                    AddNewDataToContainer(duplicate);
+                    return true;
+                }
+                else if (duplicate is GameObject go && go.TryGetComponent(out IDataContainerElement elem))
+                {
+                    AddNewDataToContainer(elem as Component);
+                    return true;
+                }
+            }
+            return false;
+        }
 
         protected virtual GameObject OnCreateNewEmptyPrefab(string path)
         {
@@ -1511,6 +1541,11 @@ namespace Dhs5.Utility.Databases
             return Database.CreateScriptableAsset(scriptableType, path);
         }
 
+        protected void AddNewDataToContainer(UnityEngine.Object obj)
+        {
+            m_container.Editor_OnNewElementCreated(obj);
+            OnAddNewDataToContainer(obj);
+        }
         protected virtual void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
             m_container.Editor_OnAddingNewElement(obj);
