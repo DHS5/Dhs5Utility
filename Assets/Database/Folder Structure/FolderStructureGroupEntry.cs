@@ -14,7 +14,19 @@ namespace Dhs5.Utility.Databases
 
         #region Constructor
 
-        public FolderStructureGroupEntry(string content, int level, FolderStructureGroupEntry group, object data = null) : base(content, level, group, data) { }
+        public FolderStructureGroupEntry(string content, int level, FolderStructureGroupEntry group, object data = null) : base(content, level, group, data)
+        {
+            IsGroup = true;
+        }
+
+        #endregion
+
+        #region Methods
+
+        public void SetOpen(bool open)
+        {
+            Open = open;
+        }
 
         #endregion
     }

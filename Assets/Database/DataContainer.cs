@@ -647,7 +647,7 @@ namespace Dhs5.Utility.Databases
             var entry = GetCurrentSelectionEntry();
             if (entry is FolderStructureGroupEntry group)
             {
-                group.Open = !group.Open;
+                m_folderStructure.SetOpen(group, !group.Open);
                 UseCurrentEvent();
             }
         }
@@ -837,7 +837,7 @@ namespace Dhs5.Utility.Databases
         {
             foreach (var (uid, obj) in contentDico)
             {
-                structure.Add(new FolderStructureEntry(m_container.Editor_GetDataPrefixedName(obj), data: uid));
+                structure.Add(m_container.Editor_GetDataPrefixedName(obj), data: uid);
             }
         }
         protected virtual void OnComputeFolderStructure_ByFOLDERS(FolderStructure structure, Dictionary<int, UnityEngine.Object> contentDico)
@@ -851,7 +851,7 @@ namespace Dhs5.Utility.Databases
                 }
             }
 
-            structure.FillFromNamesAndDatas(folderStructureDatas);
+            structure.AddRange(folderStructureDatas);
         }
 
         #endregion
@@ -949,7 +949,7 @@ namespace Dhs5.Utility.Databases
             GUI.FocusControl(null);
             if (ensureVisibility)
             {
-                m_folderStructure.EnsureVisibilityOfEntryAtIndex(index);
+                m_folderStructure.EnsureVisibilityOfEntry(entry);
                 if (ContentListNeedsScrollRect)
                 {
                     int visibleIndex = GetVisibleIndex(index);
@@ -1294,7 +1294,7 @@ namespace Dhs5.Utility.Databases
         {
             if (clicked)
             {
-                group.Open = !group.Open;
+                m_folderStructure.SetOpen(group, !group.Open);
             }
             else if (contextClicked)
             {

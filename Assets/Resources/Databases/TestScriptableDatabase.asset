@@ -42,7 +42,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b294702f1dd27c74db4679a8f285283a, type: 3}
   m_Name: Ouch2
   m_EditorClassIdentifier: 
-  m_prefix: First
+  m_prefix: First/Temp
   m_uid: 2
 --- !u!114 &5893582058041539714
 MonoBehaviour:

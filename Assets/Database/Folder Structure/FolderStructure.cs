@@ -12,6 +12,7 @@ namespace Dhs5.Utility.Databases
 
         private Dictionary<int, List<FolderStructureEntry>> m_structure;
         private List<FolderStructureEntry> m_state;
+        private List<int> m_validIndexes;
 
         #endregion
 
@@ -21,11 +22,14 @@ namespace Dhs5.Utility.Databases
         {
             m_structure = new();
             m_state = new();
+            m_validIndexes = new();
         }
 
         #endregion
 
         #region Properties
+
+        public System.Comparison<object> CustomSort { get; set; }
 
         public int Count => m_structure.Count;
 
@@ -47,107 +51,57 @@ namespace Dhs5.Utility.Databases
 
         public IEnumerable<FolderStructureEntry> GetValidEntries()
         {
-            bool lastGroupOpen = true;
-            int lastGroupLevel = 0;
-
-            foreach (var entry in m_structure)
+            foreach (var index in m_validIndexes)
             {
-                // Skip entries in closed group
-                if (!lastGroupOpen && entry.level > lastGroupLevel)
-                {
-                    continue;
-                }
-
-                // If group, keep group's infos
-                if (entry is FolderStructureGroupEntry groupEntry)
-                {
-                    lastGroupOpen = groupEntry.Open;
-                    lastGroupLevel = groupEntry.level;
-                    yield return entry;
-                }
-                // Just show basic entries
-                else
-                {
-                    yield return entry;
-                }
+                yield return m_state[index];
             }
         }
 
         public IEnumerable<int> GetValidEntriesIndexes()
         {
-            bool lastGroupOpen = true;
-            int lastGroupLevel = 0;
-
-            FolderStructureEntry entry;
-            for (int i = 0; i < Count; i++)
+            foreach (var index in m_validIndexes)
             {
-                entry = m_structure[i];
-
-                // Skip entries in closed group
-                if (!lastGroupOpen && entry.level > lastGroupLevel)
-                {
-                    continue;
-                }
-
-                // If group, keep group's infos
-                if (entry is FolderStructureGroupEntry groupEntry)
-                {
-                    lastGroupOpen = groupEntry.Open;
-                    lastGroupLevel = groupEntry.level;
-                    yield return i;
-                }
-                // Just show basic entries
-                else
-                {
-                    yield return i;
-                }
+                yield return index;
             }
         }
 
         public int GetValidEntryCount()
         {
-            bool lastGroupOpen = true;
-            int lastGroupLevel = 0;
-            int count = 0;
-
-            foreach (var entry in m_structure)
-            {
-                // Skip entries in closed group
-                if (!lastGroupOpen && entry.level > lastGroupLevel)
-                {
-                    continue;
-                }
-
-                // If group, keep group's infos
-                if (entry is FolderStructureGroupEntry groupEntry)
-                {
-                    lastGroupOpen = groupEntry.Open;
-                    lastGroupLevel = groupEntry.level;
-                    count++;
-                }
-                // Just show basic entries
-                else
-                {
-                    count++;
-                }
-            }
-
-            return count;
+            return m_validIndexes.Count;
         }
 
         #endregion
 
         #region Entries Filtered
 
-        public IEnumerable<int> GetFilteredEntriesIndexes(string filter, bool includeFolders = false)
+        public IEnumerable<int> GetFilteredEntriesIndexes(string filter, bool includeGroups = false, bool useGroupName = true)
         {
-            FolderStructureEntry entry;
-            for (int i = 0; i < Count; i++)
-            {
-                entry = m_structure[i];
+            bool includeChildren = false;
+            int parentLevel = 0;
 
-                if ((includeFolders || entry is not FolderStructureGroupEntry)
-                    && entry.content.Contains(filter, System.StringComparison.OrdinalIgnoreCase))
+            for (int i = 0; i < m_state.Count; i++)
+            {
+                var entry = m_state[i];
+                if (includeChildren && entry.level <= parentLevel) includeChildren = false;
+
+                var contentMatch = entry.content.Contains(filter, System.StringComparison.OrdinalIgnoreCase);
+
+                if (entry is FolderStructureGroupEntry group)
+                {
+                    if (contentMatch)
+                    {
+                        if (useGroupName && !includeChildren)
+                        {
+                            includeChildren = true;
+                            parentLevel = group.level;
+                        }
+                        if (includeGroups)
+                        {
+                            yield return i;
+                        }
+                    }
+                }
+                else if (contentMatch || includeChildren)
                 {
                     yield return i;
                 }
@@ -163,7 +117,7 @@ namespace Dhs5.Utility.Databases
         public void Add(string content, object data = null)
         {
             InternalAdd(content, data);
-            // recompute list
+            RecomputeState();
         }
         public void AddRange(Dictionary<string, object> dico)
         {
@@ -171,7 +125,7 @@ namespace Dhs5.Utility.Databases
             {
                 InternalAdd(content, data);
             }
-            // recompute list
+            RecomputeState();
         }
 
         private void InternalAdd(string content, object data)
@@ -184,14 +138,21 @@ namespace Dhs5.Utility.Databases
             FolderStructureGroupEntry group = null;
             for (; i < splittedName.Length - 1; i++)
             {
-                if (!TryGetGroup(splittedName[i], i, out group))
+                if (!TryGetGroup(splittedName[i], i, out var newGroup))
                 {
-                    var newGroup = new FolderStructureGroupEntry(splittedName[i], i, group);
-                    group = newGroup;
+                    newGroup = new FolderStructureGroupEntry(splittedName[i], i, group);
+                    if (m_structure.TryGetValue(i, out var currentList))
+                    {
+                        currentList.Add(newGroup);
+                    }
+                    else
+                    {
+                        m_structure.Add(i, new() { newGroup });
+                    }
                 }
+                group = newGroup;
             }
 
-            if (splittedName.Length > 1) i++;
             FolderStructureEntry entry = new(splittedName[i], i, group, data);
             if (m_structure.TryGetValue(i, out var list))
             {
@@ -203,27 +164,24 @@ namespace Dhs5.Utility.Databases
             }
         }
 
+        public void SetOpen(FolderStructureGroupEntry group, bool open)
+        {
+            group.SetOpen(open);
+            RecomputeValidEntries();
+        }
+
         #endregion
 
         #region Actions
 
-        public void EnsureVisibilityOfEntryAtIndex(int index)
+        public void EnsureVisibilityOfEntry(FolderStructureEntry entry)
         {
-            if (index < 1) return;
-
-            var entry = GetEntryAtIndex(index);
-            int level = entry.level;
-            if (entry == null || entry.level == 0) return;
-
-            for (int i = index - 1; i >= 0; i--)
+            while (entry.group != null)
             {
-                if (entry is FolderStructureGroupEntry group && group.level == level - 1)
-                {
-                    group.Open = true;
-                    level--;
-                    if (level == 0) return;
-                }
+                entry.group.SetOpen(true);
+                entry = entry.group;
             }
+            RecomputeValidEntries();
         }
 
         public void Clear()
@@ -235,25 +193,109 @@ namespace Dhs5.Utility.Databases
 
         #region Computations
 
-        private void RecomputeState()
+        public void RecomputeState()
         {
             m_state.Clear();
+            m_validIndexes.Clear();
 
-            // Foreach level
-            List<FolderStructureEntry> tempList;
-            for (int i = 0; i < m_structure.Count; i++)
+            if (m_structure.TryGetValue(0, out var list) && list != null && list.Count > 0)
             {
-                if (m_structure.TryGetValue(i, out var list) && list != null)
+                List<FolderStructureEntry> tempList = new(list);
+                Sort(tempList);
+
+                foreach (var entry in tempList)
                 {
-                    tempList = new(list);
-                    Sort(tempList);
+                    if (entry is FolderStructureGroupEntry group)
+                    {
+                        RecursiveAddGroupContentToState(group, true);
+                    }
+                    else
+                    {
+                        m_state.Add(entry);
+                        m_validIndexes.Add(m_state.Count - 1);
+                    }
+                }
+            }
+        }
+        private void RecursiveAddGroupContentToState(FolderStructureGroupEntry group, bool open)
+        {
+            if (m_structure.TryGetValue(group.level + 1, out var list) && list != null && list.Count > 0)
+            {
+                List<FolderStructureEntry> groupContent = new();
+                foreach (var entry in list)
+                {
+                    if (entry.group == group)
+                    {
+                        groupContent.Add(entry);
+                    }
+                }
+
+                if (groupContent.Count > 0)
+                {
+                    // If group is valid, add it
+                    m_state.Add(group);
+                    if (open) m_validIndexes.Add(m_state.Count - 1);
+
+                    // Get the actual open state for children
+                    open = open && group.Open;
+
+                    // Then sort and add content
+                    Sort(groupContent);
+                    foreach (var entry in groupContent)
+                    {
+                        if (entry is FolderStructureGroupEntry childGroup)
+                        {
+                            RecursiveAddGroupContentToState(childGroup, open);
+                        }
+                        else
+                        {
+                            m_state.Add(entry);
+                            if (open) m_validIndexes.Add(m_state.Count - 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void RecomputeValidEntries()
+        {
+            m_validIndexes.Clear();
+
+            int lastValidLevel = 0;
+            for (int i = 0; i < m_state.Count; i++)
+            {
+                var entry = m_state[i];
+
+                if (entry.level <= lastValidLevel)
+                {
+                    m_validIndexes.Add(i);
+
+                    if (entry is FolderStructureGroupEntry group && group.Open) lastValidLevel = entry.level + 1;
+                    else lastValidLevel = entry.level;
                 }
             }
         }
 
         private void Sort(List<FolderStructureEntry> list)
         {
-            // groups last, default to alphabetical order, can be overriden by custom sort
+            list.Sort((e1, e2) =>
+            {
+                // Both groups
+                if (e1.IsGroup && e2.IsGroup)
+                {
+                    return e1.content.CompareTo(e2.content);
+                }
+                else if (!e1.IsGroup && !e2.IsGroup)
+                {
+                    if (CustomSort != null) return CustomSort.Invoke(e1, e2);
+                    return e1.content.CompareTo(e2.content);
+                }
+                else if (e1.IsGroup)
+                {
+                    return 1;
+                }
+                return -1;
+            });
         }
 
         #endregion
@@ -285,68 +327,44 @@ namespace Dhs5.Utility.Databases
         public void DebugContent()
         {
             StringBuilder sb = new();
-            foreach (var entry in m_structure)
-            {
-                sb.Clear();
 
-                for (int i = 0; i < entry.level; i++)
+            sb.AppendLine("State :");
+            for (int i = 0; i < m_state.Count; i++)
+            {
+                var entry = m_state[i];
+
+                for (int j = 0; j < entry.level; j++)
                 {
                     sb.Append("- ");
                 }
                 sb.Append(entry.content);
+                if (m_validIndexes.Contains(i)) sb.Append(" valid");
                 sb.Append(" (");
                 sb.Append(entry.data);
                 sb.AppendLine(")");
-
-                Debug.Log(sb.ToString());
             }
+
+            sb.AppendLine();
+            sb.AppendLine("Structure :");
+
+            for (int i = 0; i < m_structure.Count; i++)
+            {
+                sb.Append("Level ");
+                sb.AppendLine(i.ToString());
+                if (m_structure.TryGetValue(i, out var list))
+                {
+                    foreach (var entry in list)
+                    {
+                        sb.AppendLine(entry.content);
+                    }
+                }
+            }
+
+            Debug.Log(sb.ToString());
         }
 
 #endif
 
         #endregion
-    }
-
-    public static class FolderStructureExtensions
-    {
-        public static void FillFromNamesAndDatas(this FolderStructure structure, Dictionary<string, object> dico)
-        {
-            List<string> sortedNames = dico.Keys.ToList();
-            sortedNames.Sort();
-
-            List<string[]> splittedNames = new List<string[]>();
-            foreach (var name in sortedNames)
-            {
-                splittedNames.Add(name.Split('/', System.StringSplitOptions.RemoveEmptyEntries));
-            }
-
-            for (int i = 0; i < splittedNames.Count; i++)
-            {
-                if (splittedNames[i].Length == 0)
-                {
-                    structure.Add(new FolderStructureEntry("_", 0, dico[sortedNames[i]]));
-                    continue;
-                }
-
-                if (i == 0)
-                {
-                    for (int g = 0; g < splittedNames[i].Length - 1; g++)
-                    {
-                        structure.Add(new FolderStructureGroupEntry(splittedNames[i][g], g));
-                    }
-                }
-                else
-                {
-                    for (int g = 0; g < splittedNames[i].Length - 1; g++)
-                    {
-                        if (splittedNames[i - 1].Length <= g || splittedNames[i - 1][g] != splittedNames[i][g])
-                        {
-                            structure.Add(new FolderStructureGroupEntry(splittedNames[i][g], g));
-                        }
-                    }
-                }
-                structure.Add(new FolderStructureEntry(splittedNames[i][splittedNames[i].Length - 1], splittedNames[i].Length - 1, dico[sortedNames[i]]));
-            }
-        }
     }
 }

@@ -149,7 +149,8 @@ namespace Dhs5.Utility.Tags
             // GUI
             var guiColor = GUI.contentColor;
             if (hasContentOn) GUI.color = Color.cyan;
-            group.Open = EditorGUI.Foldout(rect, group.Open, group.content, true);
+            var result = EditorGUI.Foldout(rect, group.Open, group.content, true);
+            if (result != group.Open) m_folderStructure.SetOpen(group, result);
             GUI.color = guiColor;
         }
         private void OnElementGUI(int visibleIndex, FolderStructureEntry entry)
@@ -207,7 +208,7 @@ namespace Dhs5.Utility.Tags
                 }
             }
 
-            m_folderStructure.FillFromNamesAndDatas(folderStructureDatas);
+            m_folderStructure.AddRange(folderStructureDatas);
         }
 
         private string GetObjectDisplayName(UnityEngine.Object obj)

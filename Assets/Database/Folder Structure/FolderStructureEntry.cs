@@ -12,6 +12,7 @@ namespace Dhs5.Utility.Databases
         public readonly int level;
         public readonly FolderStructureGroupEntry group;
         public object data;
+        public bool IsGroup { get; protected set; }
 
         #endregion
 
