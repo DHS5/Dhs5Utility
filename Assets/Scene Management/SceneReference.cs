@@ -81,13 +81,10 @@ namespace Dhs5.Utility.Scenes
         public void OnAfterDeserialize()
         {
             EditorApplication.delayCall += OnAfterAfterDeserialize;
-            //EditorApplication.update += OnAfterAfterDeserialize;
         }
 
         private void OnAfterAfterDeserialize()
         {
-            //EditorApplication.update -= OnAfterAfterDeserialize;
-
             if (m_sceneAsset == null)
             {
                 FetchAssetFromPath();
