@@ -10,7 +10,8 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
-        private List<FolderStructureEntry> m_structureList;
+        private Dictionary<int, List<FolderStructureEntry>> m_structure;
+        private List<FolderStructureEntry> m_state;
 
         #endregion
 
@@ -18,14 +19,15 @@ namespace Dhs5.Utility.Databases
 
         public FolderStructure()
         {
-            m_structureList = new();
+            m_structure = new();
+            m_state = new();
         }
 
         #endregion
 
         #region Properties
 
-        public int Count => m_structureList.Count;
+        public int Count => m_structure.Count;
 
         #endregion
 
@@ -34,9 +36,9 @@ namespace Dhs5.Utility.Databases
 
         public FolderStructureEntry GetEntryAtIndex(int index)
         {
-            if (m_structureList.IsIndexValid(index))
+            if (m_state.IsIndexValid(index))
             {
-                return m_structureList[index];
+                return m_state[index];
             }
             return null;
         }
@@ -48,7 +50,7 @@ namespace Dhs5.Utility.Databases
             bool lastGroupOpen = true;
             int lastGroupLevel = 0;
 
-            foreach (var entry in m_structureList)
+            foreach (var entry in m_structure)
             {
                 // Skip entries in closed group
                 if (!lastGroupOpen && entry.level > lastGroupLevel)
@@ -59,7 +61,7 @@ namespace Dhs5.Utility.Databases
                 // If group, keep group's infos
                 if (entry is FolderStructureGroupEntry groupEntry)
                 {
-                    lastGroupOpen = groupEntry.open;
+                    lastGroupOpen = groupEntry.Open;
                     lastGroupLevel = groupEntry.level;
                     yield return entry;
                 }
@@ -79,7 +81,7 @@ namespace Dhs5.Utility.Databases
             FolderStructureEntry entry;
             for (int i = 0; i < Count; i++)
             {
-                entry = m_structureList[i];
+                entry = m_structure[i];
 
                 // Skip entries in closed group
                 if (!lastGroupOpen && entry.level > lastGroupLevel)
@@ -90,7 +92,7 @@ namespace Dhs5.Utility.Databases
                 // If group, keep group's infos
                 if (entry is FolderStructureGroupEntry groupEntry)
                 {
-                    lastGroupOpen = groupEntry.open;
+                    lastGroupOpen = groupEntry.Open;
                     lastGroupLevel = groupEntry.level;
                     yield return i;
                 }
@@ -108,7 +110,7 @@ namespace Dhs5.Utility.Databases
             int lastGroupLevel = 0;
             int count = 0;
 
-            foreach (var entry in m_structureList)
+            foreach (var entry in m_structure)
             {
                 // Skip entries in closed group
                 if (!lastGroupOpen && entry.level > lastGroupLevel)
@@ -119,7 +121,7 @@ namespace Dhs5.Utility.Databases
                 // If group, keep group's infos
                 if (entry is FolderStructureGroupEntry groupEntry)
                 {
-                    lastGroupOpen = groupEntry.open;
+                    lastGroupOpen = groupEntry.Open;
                     lastGroupLevel = groupEntry.level;
                     count++;
                 }
@@ -142,7 +144,7 @@ namespace Dhs5.Utility.Databases
             FolderStructureEntry entry;
             for (int i = 0; i < Count; i++)
             {
-                entry = m_structureList[i];
+                entry = m_structure[i];
 
                 if ((includeFolders || entry is not FolderStructureGroupEntry)
                     && entry.content.Contains(filter, System.StringComparison.OrdinalIgnoreCase))
@@ -158,14 +160,52 @@ namespace Dhs5.Utility.Databases
 
         #region Setters
 
-        public void Add(FolderStructureEntry entry)
+        public void Add(string content, object data = null)
         {
-            m_structureList.Add(entry);
+            InternalAdd(content, data);
+            // recompute list
+        }
+        public void AddRange(Dictionary<string, object> dico)
+        {
+            foreach (var (content, data) in dico)
+            {
+                InternalAdd(content, data);
+            }
+            // recompute list
+        }
+
+        private void InternalAdd(string content, object data)
+        {
+            string[] splittedName = content.Split('/', System.StringSplitOptions.RemoveEmptyEntries);
+
+            if (splittedName.Length == 0) return;
+
+            int i = 0;
+            FolderStructureGroupEntry group = null;
+            for (; i < splittedName.Length - 1; i++)
+            {
+                if (!TryGetGroup(splittedName[i], i, out group))
+                {
+                    var newGroup = new FolderStructureGroupEntry(splittedName[i], i, group);
+                    group = newGroup;
+                }
+            }
+
+            if (splittedName.Length > 1) i++;
+            FolderStructureEntry entry = new(splittedName[i], i, group, data);
+            if (m_structure.TryGetValue(i, out var list))
+            {
+                list.Add(entry);
+            }
+            else
+            {
+                m_structure.Add(i, new() { entry });
+            }
         }
 
         #endregion
 
-        #region Utility
+        #region Actions
 
         public void EnsureVisibilityOfEntryAtIndex(int index)
         {
@@ -179,7 +219,7 @@ namespace Dhs5.Utility.Databases
             {
                 if (entry is FolderStructureGroupEntry group && group.level == level - 1)
                 {
-                    group.open = true;
+                    group.Open = true;
                     level--;
                     if (level == 0) return;
                 }
@@ -188,7 +228,51 @@ namespace Dhs5.Utility.Databases
 
         public void Clear()
         {
-            m_structureList.Clear();
+            m_structure.Clear();
+        }
+
+        #endregion
+
+        #region Computations
+
+        private void RecomputeState()
+        {
+            m_state.Clear();
+
+            // Foreach level
+            List<FolderStructureEntry> tempList;
+            for (int i = 0; i < m_structure.Count; i++)
+            {
+                if (m_structure.TryGetValue(i, out var list) && list != null)
+                {
+                    tempList = new(list);
+                    Sort(tempList);
+                }
+            }
+        }
+
+        private void Sort(List<FolderStructureEntry> list)
+        {
+            // groups last, default to alphabetical order, can be overriden by custom sort
+        }
+
+        #endregion
+
+        #region Utility
+
+        private bool TryGetGroup(string name, int level, out FolderStructureGroupEntry group)
+        {
+            if (m_structure.TryGetValue(level, out var list))
+            {
+                var entry = list.Find(e => e.content == name);
+                if (entry is FolderStructureGroupEntry groupEntry)
+                {
+                    group = groupEntry;
+                    return true;
+                }
+            }
+            group = null;
+            return false;
         }
 
         #endregion
@@ -201,7 +285,7 @@ namespace Dhs5.Utility.Databases
         public void DebugContent()
         {
             StringBuilder sb = new();
-            foreach (var entry in m_structureList)
+            foreach (var entry in m_structure)
             {
                 sb.Clear();
 

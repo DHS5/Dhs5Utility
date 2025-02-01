@@ -10,16 +10,18 @@ namespace Dhs5.Utility.Databases
 
         public string content;
         public readonly int level;
+        public readonly FolderStructureGroupEntry group;
         public object data;
 
         #endregion
 
         #region Constructor
 
-        public FolderStructureEntry(string content, int level = 0, object data = null)
+        public FolderStructureEntry(string content, int level, FolderStructureGroupEntry group, object data = null)
         {
             this.content = content;
             this.level = level;
+            this.group = group;
             this.data = data;
         }
 

@@ -149,7 +149,7 @@ namespace Dhs5.Utility.Tags
             // GUI
             var guiColor = GUI.contentColor;
             if (hasContentOn) GUI.color = Color.cyan;
-            group.open = EditorGUI.Foldout(rect, group.open, group.content, true);
+            group.Open = EditorGUI.Foldout(rect, group.Open, group.content, true);
             GUI.color = guiColor;
         }
         private void OnElementGUI(int visibleIndex, FolderStructureEntry entry)

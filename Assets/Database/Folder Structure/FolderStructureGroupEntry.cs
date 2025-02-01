@@ -8,13 +8,13 @@ namespace Dhs5.Utility.Databases
     {
         #region Members
 
-        public bool open;
+        public bool Open { get; private set; }
 
         #endregion
 
         #region Constructor
 
-        public FolderStructureGroupEntry(string content, int level = 0, object data = null) : base(content, level, data) { }
+        public FolderStructureGroupEntry(string content, int level, FolderStructureGroupEntry group, object data = null) : base(content, level, group, data) { }
 
         #endregion
     }

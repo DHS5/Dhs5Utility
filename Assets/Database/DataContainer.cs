@@ -647,7 +647,7 @@ namespace Dhs5.Utility.Databases
             var entry = GetCurrentSelectionEntry();
             if (entry is FolderStructureGroupEntry group)
             {
-                group.open = !group.open;
+                group.Open = !group.Open;
                 UseCurrentEvent();
             }
         }
@@ -1294,7 +1294,7 @@ namespace Dhs5.Utility.Databases
         {
             if (clicked)
             {
-                group.open = !group.open;
+                group.Open = !group.Open;
             }
             else if (contextClicked)
             {
@@ -1303,7 +1303,7 @@ namespace Dhs5.Utility.Databases
             if (Event.current.type == EventType.Repaint)
             {
                 GUIContent content = new GUIContent(group.content);
-                EditorStyles.foldout.Draw(elementRect, content, 0, group.open);
+                EditorStyles.foldout.Draw(elementRect, content, 0, group.Open);
             }
         }
 
