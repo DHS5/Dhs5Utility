@@ -64,6 +64,15 @@ public class ReadOnlyAttributeDrawer : PropertyDrawer
 
     #endregion
 
+    #region GUI Height
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        return EditorGUI.GetPropertyHeight(property, label, true);
+    }
+
+    #endregion
+
     #region Utility
 
     private bool Disable(SerializedProperty property)
