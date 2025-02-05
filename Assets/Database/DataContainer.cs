@@ -757,7 +757,7 @@ namespace Dhs5.Utility.Databases
         #region Container Folder Structure
 
         private FolderStructure m_folderStructure = new();
-        protected int ContentListCount => m_folderStructure.Count;
+        protected int ContentListCount => m_folderStructure.ValidCount;
 
         protected FolderStructureEntry GetEntryAtIndex(int index) => m_folderStructure.GetEntryAtIndex(index);
         protected FolderStructureEntry GetCurrentSelectionEntry() => m_folderStructure.GetEntryAtIndex(ContainerSelectionIndex);

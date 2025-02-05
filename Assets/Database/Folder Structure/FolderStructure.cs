@@ -31,7 +31,8 @@ namespace Dhs5.Utility.Databases
 
         public System.Comparison<object> CustomSort { get; set; }
 
-        public int Count => m_structure.Count;
+        public int TotalCount => m_state.Count;
+        public int ValidCount => m_validIndexes.Count;
 
         #endregion
 
