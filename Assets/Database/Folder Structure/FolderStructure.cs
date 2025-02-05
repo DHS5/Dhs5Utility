@@ -114,12 +114,21 @@ namespace Dhs5.Utility.Databases
 
         #region Setters
 
+        public void UpdateContent(Dictionary<string, object> dico)
+        {
+            SaveGroupsState();
+            Clear();
+            AddRange(dico);
+            LoadGroupsState();
+            RecomputeState();
+        }
+
         public void Add(string content, object data = null)
         {
             InternalAdd(content, data);
             RecomputeState();
         }
-        public void AddRange(Dictionary<string, object> dico)
+        private void AddRange(Dictionary<string, object> dico)
         {
             foreach (var (content, data) in dico)
             {
@@ -164,12 +173,6 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        public void SetOpen(FolderStructureGroupEntry group, bool open)
-        {
-            group.SetOpen(open);
-            RecomputeValidEntries();
-        }
-
         #endregion
 
         #region Actions
@@ -181,6 +184,12 @@ namespace Dhs5.Utility.Databases
                 entry.group.SetOpen(true);
                 entry = entry.group;
             }
+            RecomputeValidEntries();
+        }
+
+        public void SetOpen(FolderStructureGroupEntry group, bool open)
+        {
+            group.SetOpen(open);
             RecomputeValidEntries();
         }
 
@@ -296,6 +305,55 @@ namespace Dhs5.Utility.Databases
                 }
                 return -1;
             });
+        }
+
+        #endregion
+
+        #region Save Groups State
+
+        private Dictionary<int, List<string>> m_openGroups;
+
+        private void SaveGroupsState()
+        {
+            if (m_structure == null) return;
+
+            m_openGroups = new();
+
+            foreach (var (level, entries) in m_structure)
+            {
+                List<string> list = new();
+
+                foreach (var entry in entries)
+                {
+                    if (entry is FolderStructureGroupEntry group
+                        && group.Open)
+                    {
+                        list.Add(group.content);
+                    }
+                }
+
+                m_openGroups.Add(level, list);
+            }
+        }
+        private void LoadGroupsState()
+        {
+            if (m_openGroups == null) return;
+
+            foreach (var (level, groups) in m_openGroups)
+            {
+                if (m_structure.TryGetValue(level, out var entries))
+                {
+                    foreach (var entry in entries)
+                    {
+                        if (entry is FolderStructureGroupEntry group && groups.Contains(group.content))
+                        {
+                            group.SetOpen(true);
+                        }
+                    }
+                }
+            }
+            m_openGroups.Clear();
+            m_openGroups = null;
         }
 
         #endregion

@@ -475,7 +475,6 @@ namespace Dhs5.Utility.Databases
 
             m_containerContent = m_container.Editor_GetContainerDicoContent();
 
-            m_folderStructure.Clear();
             ComputeFolderStructure();
         }
 
@@ -851,7 +850,7 @@ namespace Dhs5.Utility.Databases
                 }
             }
 
-            structure.AddRange(folderStructureDatas);
+            structure.UpdateContent(folderStructureDatas);
         }
 
         #endregion

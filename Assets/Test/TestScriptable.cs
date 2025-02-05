@@ -12,7 +12,7 @@ public class TestScriptable : ScriptableObject, IDataContainerElement, IDataCont
 
     public int UID => m_uid;
 
-    public string DataNamePrefix { get => m_prefix; set => m_prefix = value; }
+    public string DataNamePrefix { get => "Test/" + m_prefix; set => m_prefix = value; }
 
 #if UNITY_EDITOR
 

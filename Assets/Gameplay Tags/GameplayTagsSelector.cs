@@ -208,7 +208,7 @@ namespace Dhs5.Utility.Tags
                 }
             }
 
-            m_folderStructure.AddRange(folderStructureDatas);
+            m_folderStructure.UpdateContent(folderStructureDatas);
         }
 
         private string GetObjectDisplayName(UnityEngine.Object obj)
