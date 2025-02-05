@@ -380,10 +380,6 @@ namespace Dhs5.Utility.Databases
         protected Type DataType { get; private set; }
         protected Type[] ChildDataTypes { get; private set; }
 
-        // Events
-        protected Event CurrentEvent { get; private set; }
-        protected bool EventReceived { get; private set; }
-
         // Database Informations
         protected bool DatabaseInformationsFoldoutOpen { get; set; }
 
@@ -543,27 +539,6 @@ namespace Dhs5.Utility.Databases
 
         #region Events
 
-        protected virtual void HandleEvent()
-        {
-            CurrentEvent = Event.current;
-            CheckEventReceived();
-        }
-        protected bool CheckEventReceived()
-        {
-            EventReceived =
-                CurrentEvent.type != EventType.Ignore &&
-                CurrentEvent.type != EventType.Used &&
-                CurrentEvent.type != EventType.Repaint &&
-                CurrentEvent.type != EventType.Layout;
-            return EventReceived;
-        }
-
-        protected void UseCurrentEvent()
-        {
-            EventReceived = false;
-            CurrentEvent.Use();
-        }
-
         protected virtual void OnEventReceived(Event e)
         {
             switch (e.type)
@@ -592,7 +567,7 @@ namespace Dhs5.Utility.Databases
                     {
                         if (CompleteRenaming())
                         {
-                            UseCurrentEvent();
+                            Event.current.Use();
                         }
                         break;
                     }
@@ -613,7 +588,7 @@ namespace Dhs5.Utility.Databases
         {
             if (TryDeleteCurrentSelection())
             {
-                UseCurrentEvent();
+                Event.current.Use();
             }
         }
         protected virtual void OnEventReceived_Duplicate(Event e)
@@ -632,12 +607,12 @@ namespace Dhs5.Utility.Databases
                 if (ContainerSelectionIndex >= 0)
                 {
                     BeginRenaming(GetContainerCurrentSelection(), ContainerSelectionIndex);
-                    UseCurrentEvent();
+                    Event.current.Use();
                 }
             }
             else if (CompleteRenaming())
             {
-                UseCurrentEvent();
+                Event.current.Use();
             }
         }
 
@@ -647,7 +622,7 @@ namespace Dhs5.Utility.Databases
             if (entry is FolderStructureGroupEntry group)
             {
                 m_folderStructure.SetOpen(group, !group.Open);
-                UseCurrentEvent();
+                Event.current.Use();
             }
         }
 
@@ -655,12 +630,12 @@ namespace Dhs5.Utility.Databases
         protected virtual void OnEventReceived_Up(Event e)
         {
             TrySelectUp();
-            UseCurrentEvent();
+            Event.current.Use();
         }
         protected virtual void OnEventReceived_Down(Event e)
         {
             TrySelectDown();
-            UseCurrentEvent();
+            Event.current.Use();
         }
 
         #endregion
@@ -677,14 +652,9 @@ namespace Dhs5.Utility.Databases
                 return;
             }
 
-            HandleEvent();
-
             OnGUI();
 
-            if (CheckEventReceived())
-            {
-                OnEventReceived(CurrentEvent);
-            }
+            OnEventReceived(Event.current);
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -932,6 +902,8 @@ namespace Dhs5.Utility.Databases
 
         protected bool Select(UnityEngine.Object obj)
         {
+            if (obj == null) return false;
+
             for (int i = 0; i < ContentListCount; i++)
             {
                 if (GetDataContainerElementAtIndex(i) == obj)
@@ -1089,18 +1061,17 @@ namespace Dhs5.Utility.Databases
         {
             bool hover = false;
             if (IsContainerContentListInteractable()
-                && rect.Contains(CurrentEvent.mousePosition))
+                && rect.Contains(Event.current.mousePosition))
             {
                 hover = true;
-                if (EventReceived
-                    && CurrentEvent.type == EventType.MouseDown)
+                if (Event.current.type == EventType.MouseDown)
                 {
                     ShowContainerElementContextMenu(index);
                     GUI.changed = true;
-                    UseCurrentEvent();
+                    Event.current.Use();
                 }
             }
-            if (CurrentEvent.type == EventType.Repaint)
+            if (Event.current.type == EventType.Repaint)
             {
                 GUIHelper.simpleIconButton.Draw(rect, EditorGUIHelper.MenuIcon, 0, false, hover);
             }
@@ -1189,6 +1160,13 @@ namespace Dhs5.Utility.Databases
                 GUI.EndScrollView();
             }
 
+            if (Event.current.type == EventType.MouseDown
+                && ContentListRect.Contains(Event.current.mousePosition))
+            {
+                SetSelectionIndex(-1, false);
+                Event.current.Use();
+            }
+
             ContentListResize(new Rect(rect.x, rect.y + rect.height - 7f, rect.width, 7f));
         }
 
@@ -1236,25 +1214,25 @@ namespace Dhs5.Utility.Databases
             float alinea = ContentListFiltered ? 0f : ContentListElementAlinea * entry.level;
             Rect elementRect = new Rect(rect.x + alinea, rect.y, rect.width - alinea - (contextButton ? ContentListElementContextButtonWidth : 0f), rect.height);
             Rect buttonRect = GetButtonRectForContentListElement(rect, index, entry, contextButton);
-            bool isHovered = buttonRect.Contains(CurrentEvent.mousePosition);
+            bool isHovered = buttonRect.Contains(Event.current.mousePosition);
             bool clicked = false, doubleClicked = false, contextClicked = false;
-            if (IsContainerContentListInteractable() && isHovered && EventReceived)
+            if (IsContainerContentListInteractable() && isHovered)
             {
-                switch (CurrentEvent.type)
+                switch (Event.current.type)
                 {
                     case EventType.MouseDown:
-                        if (CurrentEvent.button == 0)
+                        if (Event.current.button == 0)
                         {
                             clicked = true;
                             doubleClicked = EditorApplication.timeSinceStartup <= m_lastSelectionTime + m_doubleClickDelay;
                             GUI.FocusControl(null);
-                            UseCurrentEvent();
+                            Event.current.Use();
                             GUI.changed = true;
                         }
                         break;
                     case EventType.ContextClick:
                         contextClicked = true;
-                        UseCurrentEvent();
+                        Event.current.Use();
                         GUI.changed = true;
                         break;
                 }
