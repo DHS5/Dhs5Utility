@@ -34,7 +34,7 @@ namespace Dhs5.Utility.Settings
                     _instances[type] = instance;
                 }
 #if UNITY_EDITOR
-                else
+                else if (!type.IsAbstract)
                 {
                     instance = Database.CreateAssetOfType(type, "Assets/Resources/Settings/" + type.Name + ".asset") as BaseSettings;
                     AssetDatabase.SaveAssets();

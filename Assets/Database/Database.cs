@@ -32,7 +32,7 @@ namespace Dhs5.Utility.Databases
                     _instances[type] = instance;
                 }
 #if UNITY_EDITOR
-                else // CREATION
+                else if (!type.IsAbstract) // CREATION
                 {
                     instance = Database.CreateAssetOfType(type, "Assets/Resources/Databases/" + type.Name + ".asset") as BaseDataContainer;
                     AssetDatabase.SaveAssets();
