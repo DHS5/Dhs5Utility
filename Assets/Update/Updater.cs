@@ -36,13 +36,23 @@ namespace Dhs5.Utility.Updates
 
         #region Static Events
 
-        public static event UpdateCallback AfterEarlyUpdated;
-        public static event UpdateCallback ClassicUpdated;
-        public static event UpdateCallback AfterUpdated;
-        public static event UpdateCallback AfterLateUpdated;
+        // PERSISTENT
+        public static event UpdateCallback OnUpdateAfterEarly;
+        public static event UpdateCallback OnUpdateClassic;
+        public static event UpdateCallback OnUpdateAfterClassic;
+        public static event UpdateCallback OnUpdateAfterLate;
                
-        public static event UpdateCallback BeforeFixedUpdated;
-        public static event UpdateCallback AfterPhysicsFixedUpdated;
+        public static event UpdateCallback OnUpdateBeforeFixed;
+        public static event UpdateCallback OnUpdateAfterPhysicsFixed;
+        
+        // ONE TIME
+        public static event Action OneShotAfterEarlyUpdate;
+        public static event Action OneShotClassicUpdate;
+        public static event Action OneShotAfterClassicUpdate;
+        public static event Action OneShotAfterLateUpdate;
+                            
+        public static event Action OneShotBeforeFixedUpdate;
+        public static event Action OneShotAfterPhysicsFixedUpdate;
 
         #endregion
 
@@ -400,28 +410,36 @@ namespace Dhs5.Utility.Updates
         private void OnAfterEarlyUpdate()
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_EARLY_UPDATE, DeltaTime);
-            AfterEarlyUpdated?.Invoke(DeltaTime);
+            OnUpdateAfterEarly?.Invoke(DeltaTime);
+            OneShotAfterEarlyUpdate?.Invoke();
+            OneShotAfterEarlyUpdate = null;
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_EARLY_UPDATE);
         }
         private void OnBeforeUpdate()
         {
             UpdateDelayedCalls(EUpdatePass.CLASSIC_UPDATE, DeltaTime);
-            ClassicUpdated?.Invoke(DeltaTime);
+            OnUpdateClassic?.Invoke(DeltaTime);
+            OneShotClassicUpdate?.Invoke();
+            OneShotClassicUpdate = null;
 
             m_currentFramePasses.Add(EUpdatePass.CLASSIC_UPDATE);
         }
         private void OnAfterUpdate()
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_UPDATE, DeltaTime);
-            AfterUpdated?.Invoke(DeltaTime);
+            OnUpdateAfterClassic?.Invoke(DeltaTime);
+            OneShotAfterClassicUpdate?.Invoke();
+            OneShotAfterClassicUpdate = null;
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_UPDATE);
         }
         private void OnAfterLateUpdate()
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_LATE_UPDATE, DeltaTime);
-            AfterLateUpdated?.Invoke(DeltaTime);
+            OnUpdateAfterLate?.Invoke(DeltaTime);
+            OneShotAfterLateUpdate?.Invoke();
+            OneShotAfterLateUpdate = null;
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_LATE_UPDATE);
         }
@@ -429,14 +447,18 @@ namespace Dhs5.Utility.Updates
         private void OnBeforeFixedUpdate()
         {
             UpdateDelayedCalls(EUpdatePass.BEFORE_FIXED_UPDATE, DeltaTime);
-            BeforeFixedUpdated?.Invoke(UnityEngine.Time.fixedDeltaTime);
+            OnUpdateBeforeFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
+            OneShotBeforeFixedUpdate?.Invoke();
+            OneShotBeforeFixedUpdate = null;
 
             m_currentFramePasses.Add(EUpdatePass.BEFORE_FIXED_UPDATE);
         }
         private void OnAfterPhysicsFixedUpdate()
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE, DeltaTime);
-            AfterPhysicsFixedUpdated?.Invoke(UnityEngine.Time.fixedDeltaTime);
+            OnUpdateAfterPhysicsFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
+            OneShotAfterPhysicsFixedUpdate?.Invoke();
+            OneShotAfterPhysicsFixedUpdate = null;
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE);
         }
@@ -533,6 +555,19 @@ namespace Dhs5.Utility.Updates
         public static bool PassHasBeenTriggeredThisFrame(EUpdatePass pass)
         {
             return Instance.m_currentFramePasses.Contains(pass);
+        }
+
+        private void RegisterOneShotCallback(EUpdatePass pass, Action callback)
+        {
+            switch (pass)
+            {
+                case EUpdatePass.AFTER_EARLY_UPDATE: OneShotAfterEarlyUpdate += callback; break;
+                case EUpdatePass.CLASSIC_UPDATE: OneShotClassicUpdate += callback; break;
+                case EUpdatePass.AFTER_UPDATE: OneShotAfterClassicUpdate += callback; break;
+                case EUpdatePass.AFTER_LATE_UPDATE: OneShotAfterLateUpdate += callback; break;
+                case EUpdatePass.BEFORE_FIXED_UPDATE: OneShotBeforeFixedUpdate += callback; break;
+                case EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE: OneShotAfterPhysicsFixedUpdate += callback; break;
+            }
         }
 
         #endregion
@@ -1053,7 +1088,8 @@ namespace Dhs5.Utility.Updates
             if (delay == 0f
                 && IsConditionFulfilled(condition))
             {
-                callback?.Invoke();
+                if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
+                else RegisterOneShotCallback(pass, callback);
                 return;
             }
 
@@ -1066,7 +1102,8 @@ namespace Dhs5.Utility.Updates
             if (framesToWait == 0
                 && IsConditionFulfilled(condition))
             {
-                callback?.Invoke();
+                if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
+                else RegisterOneShotCallback(pass, callback);
                 return;
             }
 
@@ -1079,7 +1116,8 @@ namespace Dhs5.Utility.Updates
             if (predicate.Invoke()
                 && IsConditionFulfilled(condition))
             {
-                callback?.Invoke();
+                if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
+                else RegisterOneShotCallback(pass, callback);
                 return;
             }
 
@@ -1092,7 +1130,8 @@ namespace Dhs5.Utility.Updates
             if (!predicate.Invoke()
                 && IsConditionFulfilled(condition))
             {
-                callback?.Invoke();
+                if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
+                else RegisterOneShotCallback(pass, callback);
                 return;
             }
 
@@ -1271,12 +1310,12 @@ namespace Dhs5.Utility.Updates
             ClearUpdateTimelineInstances();
 
             // DEFAULT EVENTS
-            AfterEarlyUpdated = null;
-            AfterLateUpdated = null;
-            AfterPhysicsFixedUpdated = null;
-            AfterUpdated = null;
-            BeforeFixedUpdated = null;
-            ClassicUpdated = null;
+            OnUpdateAfterEarly = null;
+            OnUpdateAfterLate = null;
+            OnUpdateAfterPhysicsFixed = null;
+            OnUpdateAfterClassic = null;
+            OnUpdateBeforeFixed = null;
+            OnUpdateClassic = null;
 
             // REGISTRATION KEYS
             _registrationCount = 0;
