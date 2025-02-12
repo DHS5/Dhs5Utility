@@ -55,14 +55,14 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     private void OnEnable()
     {
         //TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
-        TestUpdater.OnLateUpdate += OnLateUpdate;
-        TestUpdater.Register(true, EUpdateChannel.SCREEN_LOG, OnUpdate);
+        Updater.AfterLateUpdated += OnLateUpdate;
+        Updater.RegisterChannelCallback(true, EUpdateChannel.SCREEN_LOG, OnUpdate);
     }
     private void OnDisable()
     {
         //TestUpdater.Register(false, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
-        TestUpdater.OnLateUpdate -= OnLateUpdate;
-        TestUpdater.Register(false, EUpdateChannel.SCREEN_LOG, OnUpdate);
+        Updater.AfterLateUpdated -= OnLateUpdate;
+        Updater.RegisterChannelCallback(false, EUpdateChannel.SCREEN_LOG, OnUpdate);
     }
 
     bool done;
@@ -71,26 +71,26 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     {
         //TestDebugger.LogOnScreen(0, "Test " + TestUpdater.RealTime, LogType.Log, 0);
 
-        if (!done && TestUpdater.Time > 2f)
+        if (!done && Updater.Time > 2f)
         {
-            TestDebugger.Log(DebugCategory.GAME, "Frame : " + TestUpdater.Frame, 0);
+            TestDebugger.Log(DebugCategory.GAME, "Frame : " + Updater.Frame, 0);
             done = true;
-            TestUpdater.CallInXFrames(1, OnNextUpdate, out _);
+            Updater.CallInXFrames(1, OnNextUpdate, out _);
         }
     }
     private void OnLateUpdate(float deltaTime)
     {
-        if (!done2 && TestUpdater.Time > 3f)
+        if (!done2 && Updater.Time > 3f)
         {
             done2 = true;
-            TestDebugger.Log(DebugCategory.GAME, "on late register, frame : " + TestUpdater.Frame, 0);
-            TestUpdater.CallInXFrames(0, () => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + TestUpdater.Frame, 0), out _, EUpdatePass.AFTER_LATE_UPDATE);
+            TestDebugger.Log(DebugCategory.GAME, "on late register, frame : " + Updater.Frame, 0);
+            Updater.CallInXFrames(0, () => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + Updater.Frame, 0), out _, EUpdatePass.AFTER_LATE_UPDATE);
         }
     }
 
     private void OnNextUpdate()
     {
-        TestDebugger.Log(DebugCategory.GAME, "On Next update, Frame : " + TestUpdater.Frame, 0);
+        TestDebugger.Log(DebugCategory.GAME, "On Next update, Frame : " + Updater.Frame, 0);
     }
 
     private void OnInputTest()

@@ -58,7 +58,14 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Current normalized time relative to this UpdateTimeline
         /// </summary>
-        public float NormalizedTime => Time / duration;
+        public float NormalizedTime
+        {
+            get => Time / duration;
+            set
+            {
+                Time = value * duration;
+            }
+        }
 
         /// <summary>
         /// Whether this UpdateTimeline loops
@@ -93,7 +100,6 @@ namespace Dhs5.Utility.Updates
 
         #region Methods
 
-        public void SetActive(bool active) => SetActive(active, false, true);
         private void SetActive(bool active, bool force, bool triggerPauseEvents)
         {
             if (IsActive == active && !force) return;
@@ -106,14 +112,40 @@ namespace Dhs5.Utility.Updates
                 OnSetInactive(triggerPauseEvents);
         }
 
-        public void PlayAtTime(float time)
+        public void Play()
         {
-            if (IsActive) return;
-
-            Time = Mathf.Clamp(time, 0f, duration);
-            FillCustomEventsQueue(NormalizedTime);
-            SetActive(true, false, false);
+            SetActive(true, false, true);
         }
+        public void Pause()
+        {
+            SetActive(true, false, true);
+        }
+
+        public void SetTime(float time, bool triggerCustomEvents)
+        {
+            Time = Mathf.Clamp(time, 0f, duration);
+            if (triggerCustomEvents)
+            {
+                CheckCustomEvents(); // Will trigger all custom events left   
+            }
+            else
+            {
+                FillCustomEventsQueue(NormalizedTime);
+            }
+        }
+        public void SetNormalizedTime(float normalizedTime, bool triggerCustomEvents)
+        {
+            NormalizedTime = Mathf.Clamp01(normalizedTime);
+            if (triggerCustomEvents)
+            {
+                CheckCustomEvents(); // Will trigger all custom events left   
+            }
+            else
+            {
+                FillCustomEventsQueue(NormalizedTime);
+            }
+        }
+
         public void Complete(bool triggerCustomEvents)
         {
             if (Time == duration) return;
@@ -178,7 +210,7 @@ namespace Dhs5.Utility.Updates
                     {
                         Time = duration;
                         TriggerUpdate(deltaTime - surplus);
-                        SetActive(false);
+                        SetActive(false, false, false);
                     }
                 }
                 else
@@ -230,13 +262,15 @@ namespace Dhs5.Utility.Updates
 
         private void OnSetActive(bool triggerPauseEvents)
         {
+            // If complete, restart
+            if (Mathf.Approximately(Time, duration))
+            {
+                Time = 0f;
+            }
+
             if (Time == 0f)
             {
                 OnStart();
-            }
-            else if (Time == duration)
-            {
-                Restart(false);
             }
             else if (triggerPauseEvents)
             {
@@ -245,7 +279,7 @@ namespace Dhs5.Utility.Updates
         }
         private void OnSetInactive(bool triggerPauseEvents)
         {
-            if (Time == duration)
+            if (Mathf.Approximately(Time, duration))
             {
                 OnEnd();
             }
@@ -296,11 +330,7 @@ namespace Dhs5.Utility.Updates
 
         private readonly bool TryGetInstance(out UpdateTimelineInstance instance)
         {
-            if (Updater.Instance != null) 
-                return Updater.Instance.TryGetUpdateTimelineInstance(key, out instance);
-
-            instance = null;
-            return false;
+            return Updater.Instance.TryGetUpdateTimelineInstance(key, out instance);
         }
 
         #endregion
@@ -311,7 +341,7 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Whether this handle is valid
         /// </summary>
-        public readonly bool IsValid => Updater.Instance != null && Updater.Instance.TimelineInstanceExist(key);
+        public readonly bool IsValid => Updater.Instance.TimelineInstanceExist(key);
 
         /// <inheritdoc cref="UpdateTimelineInstance.IsActive"/>
         public readonly bool IsActive
@@ -427,23 +457,39 @@ namespace Dhs5.Utility.Updates
         public readonly void Play()
         {
             if (TryGetInstance(out var instance))
-                instance.SetActive(true);
-        }
-        /// <summary>
-        /// Starts or Unpause the UpdateTimeline at <paramref name="time"/>
-        /// </summary>
-        public readonly void Play(float time)
-        {
-            if (TryGetInstance(out var instance))
-                instance.PlayAtTime(time);
+                instance.Pause();
         }
         /// <summary>
         /// Pause the UpdateTimeline
         /// </summary>
-        public readonly void Stop()
+        public readonly void Pause()
         {
             if (TryGetInstance(out var instance))
-                instance.SetActive(false);
+                instance.Pause();
+        }
+        /// <summary>
+        /// Sets the Time to <paramref name="time"/>
+        /// </summary>
+        /// <remarks>
+        /// It won't change the playing state
+        /// </remarks>
+        /// <param name="triggerCustomEvents">Whether to trigger the custom events in between current time and <paramref name="time"/></param>
+        public readonly void SetTime(float time, bool triggerCustomEvents = false)
+        {
+            if (TryGetInstance(out var instance))
+                instance.SetTime(time, triggerCustomEvents);
+        }
+        /// <summary>
+        /// Sets the NormalizedTime to <paramref name="normalizedTime"/>
+        /// </summary>
+        /// <remarks>
+        /// It won't change the playing state
+        /// </remarks>
+        /// <param name="triggerCustomEvents">Whether to trigger the custom events in between current time and <paramref name="normalizedTime"/></param>
+        public readonly void SetNormalizedTime(float normalizedTime, bool triggerCustomEvents = false)
+        {
+            if (TryGetInstance(out var instance))
+                instance.SetNormalizedTime(normalizedTime, triggerCustomEvents);
         }
 
         /// <summary>
@@ -480,6 +526,13 @@ namespace Dhs5.Utility.Updates
             {
                 instance.Reset();
             }
+        }
+        /// <summary>
+        /// Kills the corresponding UpdateTimelineInstance if it exists
+        /// </summary>
+        public readonly void Kill()
+        {
+            if (key > 0) Updater.KillTimelineInstance(this);
         }
 
         #endregion

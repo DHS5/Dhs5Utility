@@ -31,7 +31,7 @@ namespace Dhs5.Utility.Updates
             {
                 case EUpdateChannel.BASE: return typeof(BASE_UpdateChannel);
                 case EUpdateChannel.SCREEN_LOG: return typeof(SCREEN_LOG_UpdateChannel);
-                default: return typeof(UpdaterV2.DefaultUpdateChannel);
+                default: return typeof(Updater.DefaultUpdateChannel);
             }
         }
 

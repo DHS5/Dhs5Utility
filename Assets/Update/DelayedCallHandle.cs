@@ -23,9 +23,9 @@ public struct DelayedCallHandle
 
     #region Methods
 
-    public void Kill()
+    public readonly void Kill()
     {
-        if (key > 0) Updater.Instance.UnregisterDelayedCall(key);
+        if (key > 0) Updater.KillDelayedCall(this);
     }
 
     #endregion
