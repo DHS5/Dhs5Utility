@@ -158,6 +158,7 @@ namespace Dhs5.Utility.Databases
             var refreshButtonRect = new Rect(rect.x + rect.width - buttonsWidth, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
             {
+                Database.ClearInstances();
                 GetDatabases();
             }
         }

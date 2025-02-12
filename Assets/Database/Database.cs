@@ -53,6 +53,16 @@ namespace Dhs5.Utility.Databases
             return GetInstance(type);
         }
 
+        // --- UTILITY ---
+
+        /// <summary>
+        /// Clears the instances dictionary and will force the database manager to search every database in Ressources again
+        /// </summary>
+        public static void ClearInstances()
+        {
+            _instances.Clear();
+        }
+
         #endregion
 
         #region Database Types
