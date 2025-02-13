@@ -134,6 +134,8 @@ namespace Dhs5.Utility.Databases
             IDataContainerElement elem = null;
             foreach (var obj in Editor_GetContainerContent())
             {
+                if (obj == null) continue;
+
                 if (obj is ScriptableObject)
                 {
                     elem = obj as IDataContainerElement;

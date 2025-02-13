@@ -165,10 +165,10 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnEnable()
         {
-            base.OnEnable();
-
             p_folderName = serializedObject.FindProperty("m_folderName");
             p_folderContent = serializedObject.FindProperty("m_folderContent");
+
+            base.OnEnable();
 
             m_excludedProperties.Add(p_folderName.propertyPath);
             m_excludedProperties.Add(p_folderContent.propertyPath);

@@ -199,8 +199,6 @@ namespace Dhs5.Utility.Databases
 
         protected override void OnEnable()
         {
-            base.OnEnable();
-
             m_enumDatabase = target as EnumDatabase;
 
             m_hasScriptChanges = EditorPrefs.GetBool(m_enumDatabase.GetType().Name + "_hasScriptChanges", false);
@@ -210,6 +208,8 @@ namespace Dhs5.Utility.Databases
             p_usings = serializedObject.FindProperty("m_usings");
             p_scriptFolder = serializedObject.FindProperty("m_scriptFolder");
             p_textAsset = serializedObject.FindProperty("m_textAsset");
+
+            base.OnEnable();
 
             m_excludedProperties.Add(p_enumName.propertyPath);
             m_excludedProperties.Add(p_enumNamespace.propertyPath);
