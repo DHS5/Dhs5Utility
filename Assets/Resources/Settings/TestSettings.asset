@@ -13,3 +13,7 @@ MonoBehaviour:
   m_Name: TestSettings
   m_EditorClassIdentifier: 
   m_word: 
+  m_playerPrefInt:
+    m_key: TestInt
+    m_default: 3
+    m_current: 0

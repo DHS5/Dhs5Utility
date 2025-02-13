@@ -11,6 +11,7 @@ using UnityEngine;
 public class TestSettings : CustomSettings<TestSettings>
 {
     [SerializeField] private string m_word;
-    //[SettingsProvider]
-    //public static SettingsProvider GetSettingsProvider() => GetCustomSettingsProvider();
+    [SerializeField] private PlayerPrefInt m_playerPrefInt;
+
+    public static PlayerPrefInt PlayerPrefInt => I.m_playerPrefInt;
 }

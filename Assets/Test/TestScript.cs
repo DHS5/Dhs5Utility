@@ -57,6 +57,11 @@ public class TestScript : MonoBehaviour, IDataContainerElement
         //TestUpdater.Register(true, UpdateCategory.SCREEN_LOG, OnUpdate, ref m_update1Key);
         Updater.OnUpdateAfterLate += OnLateUpdate;
         Updater.RegisterChannelCallback(true, EUpdateChannel.SCREEN_LOG, OnUpdate);
+
+        TestSettings.PlayerPrefInt.Load();
+        Debug.Log(TestSettings.PlayerPrefInt.Value);
+        TestSettings.PlayerPrefInt.Value = 5;
+        Debug.Log(TestSettings.PlayerPrefInt.Value);
     }
     private void OnDisable()
     {
