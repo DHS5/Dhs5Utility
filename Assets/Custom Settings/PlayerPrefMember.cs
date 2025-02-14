@@ -86,6 +86,10 @@ namespace Dhs5.Utility.Settings
                     OnChangeKey(p_key.stringValue);
                     p_key.stringValue = key;
                 }
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    p_key.stringValue = GetDefaultKey(property);
+                }
                 EditorGUI.indentLevel--;
             }
             EditorGUI.EndDisabledGroup();
@@ -99,6 +103,10 @@ namespace Dhs5.Utility.Settings
             {
                 PlayerPrefs.DeleteKey(formerKey);
             }
+        }
+        protected virtual string GetDefaultKey(SerializedProperty property)
+        {
+            return property.displayName;
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
