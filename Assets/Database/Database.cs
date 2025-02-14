@@ -24,6 +24,11 @@ namespace Dhs5.Utility.Databases
             if (!_instances.TryGetValue(type, out var instance)
                 || instance == null)
             {
+                if (DatabaseSettings.TryGetDatabase(type, out instance))
+                {
+                    return instance;
+                }
+
                 var list = Resources.LoadAll("Databases", type);
 
                 if (list != null && list.Length > 0)
