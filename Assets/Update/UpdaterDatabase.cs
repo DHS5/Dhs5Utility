@@ -282,7 +282,7 @@ namespace Dhs5.Utility.Updates
                     }
 
                     AppendPrefix();
-                    sb.AppendLine("default: return typeof(UpdaterV2.DefaultUpdateChannel);");
+                    sb.AppendLine("default: return typeof(Updater.DefaultUpdateChannel);");
 
                     Decrement();
                     CloseBracket();
