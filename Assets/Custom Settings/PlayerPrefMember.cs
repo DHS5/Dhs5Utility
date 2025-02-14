@@ -1,21 +1,30 @@
 using System;
-using UnityEditor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Dhs5.Utility.Settings
 {
     [Serializable]
     public abstract class PlayerPrefMember<T>
     {
+        #region Members
+
         [SerializeField] private string m_key;
         [SerializeField] private T m_default;
         [SerializeField] protected T m_current;
+
+        #endregion
+
+        #region Properties
 
         protected virtual string Key => m_key;
         protected T Default => m_default;
         public T Value
         {
-            get => m_current;
+            get => Application.isPlaying ? m_current : m_default;
             set
             {
                 m_current = value;
@@ -23,9 +32,30 @@ namespace Dhs5.Utility.Settings
             }
         }
 
+        #endregion
+
+        #region Methods
+
         public abstract void Load();
         public abstract void Save(T value);
+
+        #endregion
+
+        #region Helpers
+
+        public static implicit operator T(PlayerPrefMember<T> member)
+        {
+            return member.Value;
+        }
+        public override string ToString()
+        {
+            return Value.ToString();
+        }
+
+        #endregion
     }
+
+    #region Drawer
 
 #if UNITY_EDITOR
 
@@ -48,8 +78,14 @@ namespace Dhs5.Utility.Settings
             if (property.isExpanded)
             {
                 EditorGUI.indentLevel++;
-                Rect keyRect = new(position.x, position.y + 20f, position.width, 18f);
-                EditorGUI.PropertyField(keyRect, property.FindPropertyRelative("m_key"), true);
+                Rect keyRect = new(position.x, position.y + Mathf.Max(20f, EditorGUI.GetPropertyHeight(p_value, GUIContent.none)), position.width, 18f);
+                var p_key = property.FindPropertyRelative("m_key");
+                string key = EditorGUI.DelayedTextField(keyRect, "Key", p_key.stringValue);
+                if (key != p_key.stringValue)
+                {
+                    OnChangeKey(p_key.stringValue);
+                    p_key.stringValue = key;
+                }
                 EditorGUI.indentLevel--;
             }
             EditorGUI.EndDisabledGroup();
@@ -57,11 +93,22 @@ namespace Dhs5.Utility.Settings
             EditorGUI.EndProperty();
         }
 
+        protected virtual void OnChangeKey(string formerKey)
+        {
+            if (!string.IsNullOrWhiteSpace(formerKey))
+            {
+                PlayerPrefs.DeleteKey(formerKey);
+            }
+        }
+
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return property.isExpanded ? 40f : 20f;
+            var p_value = property.FindPropertyRelative(Application.isPlaying ? "m_current" : "m_default");
+            return Mathf.Max(20f, EditorGUI.GetPropertyHeight(p_value, GUIContent.none)) + (property.isExpanded ? 20 : 0f);
         }
     }
 
 #endif
+
+    #endregion
 }

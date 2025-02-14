@@ -14,6 +14,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_word: 
   m_playerPrefInt:
-    m_key: TestInt
+    m_key: TestIntKey
     m_default: 3
+    m_current: 0
+  m_playerPrefVector3:
+    m_key: 
+    m_default: {x: 0, y: 0, z: 0}
+    m_current: {x: 0, y: 0, z: 0}
+  m_playerPrefVector3Int:
+    m_key: 
+    m_default: {x: 0, y: 0, z: 0}
+    m_current: {x: 0, y: 0, z: 0}
+  m_playerPrefVector2:
+    m_key: 
+    m_default: {x: 0, y: 0}
+    m_current: {x: 0, y: 0}
+  m_playerPrefVector2Int:
+    m_key: 
+    m_default: {x: 0, y: 0}
+    m_current: {x: 0, y: 0}
+  m_playerPrefFloat:
+    m_key: 
+    m_default: 0
+    m_current: 0
+  m_playerPrefString:
+    m_key: 
+    m_default: 
+    m_current: 
+  m_playerPrefBool:
+    m_key: 
+    m_default: 0
     m_current: 0

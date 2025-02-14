@@ -59,9 +59,9 @@ public class TestScript : MonoBehaviour, IDataContainerElement
         Updater.RegisterChannelCallback(true, EUpdateChannel.SCREEN_LOG, OnUpdate);
 
         TestSettings.PlayerPrefInt.Load();
-        Debug.Log(TestSettings.PlayerPrefInt.Value);
+        Debug.Log(TestSettings.PlayerPrefInt);
         TestSettings.PlayerPrefInt.Value = 5;
-        Debug.Log(TestSettings.PlayerPrefInt.Value);
+        Debug.Log(TestSettings.PlayerPrefInt);
     }
     private void OnDisable()
     {
