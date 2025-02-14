@@ -806,6 +806,7 @@ namespace Dhs5.Utility.Databases
 
         protected virtual void OnComputeFolderStructure_ByINDEX(FolderStructure structure, Dictionary<int, UnityEngine.Object> contentDico)
         {
+            structure.Clear();
             foreach (var (uid, obj) in contentDico)
             {
                 structure.Add(m_container.Editor_GetDataPrefixedName(obj), data: uid);
