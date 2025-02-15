@@ -446,7 +446,7 @@ namespace Dhs5.Utility.Updates
 
         private void OnBeforeFixedUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.BEFORE_FIXED_UPDATE, DeltaTime);
+            UpdateDelayedCalls(EUpdatePass.BEFORE_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime);
             OnUpdateBeforeFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
             OneShotBeforeFixedUpdate?.Invoke();
             OneShotBeforeFixedUpdate = null;
@@ -455,7 +455,7 @@ namespace Dhs5.Utility.Updates
         }
         private void OnAfterPhysicsFixedUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE, DeltaTime);
+            UpdateDelayedCalls(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime);
             OnUpdateAfterPhysicsFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
             OneShotAfterPhysicsFixedUpdate?.Invoke();
             OneShotAfterPhysicsFixedUpdate = null;
@@ -627,6 +627,7 @@ namespace Dhs5.Utility.Updates
                     customFrequency = value > 0f;
                 }
             }
+            public bool HasFixedDeltaTime => pass is EUpdatePass.BEFORE_FIXED_UPDATE or EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE;
 
             #endregion
 
@@ -634,6 +635,11 @@ namespace Dhs5.Utility.Updates
 
             public bool Update(float deltaTime, out float actualDeltaTime)
             {
+                if (HasFixedDeltaTime)
+                {
+                    actualDeltaTime = UnityEngine.Time.fixedDeltaTime;
+                    return true;
+                }
                 if (!customFrequency)
                 {
                     actualDeltaTime = deltaTime;
