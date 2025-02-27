@@ -48,7 +48,9 @@ namespace Dhs5.Utility.PlayerLoops
                 }
 
                 PlayerLoop.SetPlayerLoop(playerLoop);
+#if UNITY_EDITOR
                 PlayerLoopWindow.TryRefresh();
+#endif
             }
             PlayerLoopInitialized?.Invoke();
             PlayerLoopInitialized = null;
@@ -57,7 +59,9 @@ namespace Dhs5.Utility.PlayerLoops
         public static void ResetPlayerLoop()
         {
             PlayerLoop.SetPlayerLoop(PlayerLoop.GetDefaultPlayerLoop());
+#if UNITY_EDITOR
             PlayerLoopWindow.TryRefresh();
+#endif
         }
 
         #endregion
@@ -186,7 +190,9 @@ namespace Dhs5.Utility.PlayerLoops
             playerLoop.subSystemList = mainSystems.ToArray();
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+#if UNITY_EDITOR
             PlayerLoopWindow.TryRefresh();
+#endif
         }
         public static void AddCustomMainSystemBefore(PlayerLoopSystem system, Type mainSystemToInsertBeforeType)
         {
@@ -203,7 +209,9 @@ namespace Dhs5.Utility.PlayerLoops
             playerLoop.subSystemList = mainSystems.ToArray();
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+#if UNITY_EDITOR
             PlayerLoopWindow.TryRefresh();
+#endif
         }
         public static void AddCustomMainSystemAfter(PlayerLoopSystem system, Type mainSystemToInsertAfterType)
         {
@@ -252,7 +260,9 @@ namespace Dhs5.Utility.PlayerLoops
             }
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+#if UNITY_EDITOR
             PlayerLoopWindow.TryRefresh();
+#endif
         }
         public static void AddCustomSubSystemAtLast(PlayerLoopSystem system, Type mainSystemType)
         {
@@ -277,32 +287,12 @@ namespace Dhs5.Utility.PlayerLoops
             }
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+#if UNITY_EDITOR
             PlayerLoopWindow.TryRefresh();
+#endif
         }
 
         #endregion
-
-        #endregion
-
-
-        #region Custom Updates
-
-        public struct CustomUpdate
-        {
-            public static PlayerLoopSystem GetSystem()
-            {
-                return new PlayerLoopSystem()
-                {
-                    type = typeof(CustomUpdate),
-                    updateDelegate = OnUpdate,
-                };
-            }
-
-            static void OnUpdate()
-            {
-                Debug.Log("update");
-            }
-        }
 
         #endregion
     }
