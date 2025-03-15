@@ -39,10 +39,6 @@ public static class ExtensionMethods
 
     #region Collections
 
-    //public static bool IsValid(this ICollection collection)
-    //{
-    //    return collection != null && collection.Count > 0;
-    //}
     public static bool IsValid<T>(this ICollection<T> collection)
     {
         return collection != null && collection.Count > 0;
@@ -67,6 +63,72 @@ public static class ExtensionMethods
     public static Dictionary<T, U> Copy<T, U>(this Dictionary<T, U> dico)
     {
         return new(dico);
+    }
+
+    #endregion
+
+    #region Numerical Collections
+
+    public static float Sum(this ICollection<float> collection)
+    {
+        float sum = 0f;
+
+        foreach (var item in collection)
+        {
+            sum += item;
+        }
+
+        return sum;
+    }
+    public static int Sum(this ICollection<int> collection)
+    {
+        int sum = 0;
+
+        foreach (var item in collection)
+        {
+            sum += item;
+        }
+
+        return sum;
+    }
+    public static Vector2 Sum(this ICollection<Vector2> collection)
+    {
+        Vector2 sum = Vector2.zero;
+
+        foreach (var item in collection)
+        {
+            sum += item;
+        }
+
+        return sum;
+    }
+    public static Vector3 Sum(this ICollection<Vector3> collection)
+    {
+        Vector3 sum = Vector3.zero;
+
+        foreach (var item in collection)
+        {
+            sum += item;
+        }
+
+        return sum;
+    }
+
+    public static float Average(this ICollection<float> collection)
+    {
+        return collection.Sum() / collection.Count;
+    }
+    public static float Average(this ICollection<int> collection)
+    {
+        return (float)collection.Sum() / collection.Count;
+    }
+    public static Vector2 Average(this ICollection<Vector2> collection)
+    {
+        return collection.Sum() / collection.Count;
+    }
+    public static Vector3 Average(this ICollection<Vector3> collection)
+    {
+        return collection.Sum() / collection.Count;
     }
 
     #endregion
@@ -102,6 +164,19 @@ public static class ExtensionMethods
     public static void CopyToClipboard(this string str)
     {
         GUIUtility.systemCopyBuffer = str;
+    }
+
+    #endregion
+
+    #region Random
+
+    public static T GetRandom<T>(this IList<T> collection)
+    {
+        return collection[UnityEngine.Random.Range(0, collection.Count)];
+    }
+    public static T GetRandom<T>(this T[] collection)
+    {
+        return collection[UnityEngine.Random.Range(0, collection.Length)];
     }
 
     #endregion
