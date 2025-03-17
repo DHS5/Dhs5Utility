@@ -26,13 +26,13 @@ public static class ExtensionMethods
         return new Vector2(current.x + num / num4 * speed, current.y + num2 / num4 * speed);
     }
 
-    public static float GetRandomInRange(this Vector2 vector)
+    public static bool Contains(this Vector2 vector, float value)
     {
-        return UnityEngine.Random.Range(Mathf.Min(vector.x), Mathf.Max(vector.y));
+        return value >= Mathf.Min(vector.x, vector.y) && value <= Mathf.Max(vector.x, vector.y);
     }
-    public static int GetRandomInRange(this Vector2Int vector, bool maxInclusive)
+    public static bool Contains(this Vector2Int vector, float value)
     {
-        return UnityEngine.Random.Range(Mathf.Min(vector.x), Mathf.Max(vector.y) + (maxInclusive ? 1 : 0));
+        return value >= Mathf.Min(vector.x, vector.y) && value <= Mathf.Max(vector.x, vector.y);
     }
 
     #endregion
@@ -169,6 +169,15 @@ public static class ExtensionMethods
     #endregion
 
     #region Random
+
+    public static float GetRandomInRange(this Vector2 vector)
+    {
+        return UnityEngine.Random.Range(Mathf.Min(vector.x), Mathf.Max(vector.y));
+    }
+    public static int GetRandomInRange(this Vector2Int vector, bool maxInclusive)
+    {
+        return UnityEngine.Random.Range(Mathf.Min(vector.x), Mathf.Max(vector.y) + (maxInclusive ? 1 : 0));
+    }
 
     public static T GetRandom<T>(this IList<T> collection)
     {
