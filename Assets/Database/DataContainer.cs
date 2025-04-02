@@ -162,7 +162,7 @@ namespace Dhs5.Utility.Databases
 
         internal event Action Editor_ContainerContentChanged;
 
-        internal virtual void Editor_ShouldRecomputeContainerContent()
+        internal protected virtual void Editor_ShouldRecomputeContainerContent()
         {
             // Ensure UIDs unicity
             HashSet<int> uids = new();
@@ -178,20 +178,22 @@ namespace Dhs5.Utility.Databases
 
             // Trigger event and save asset
             Editor_ContainerContentChanged?.Invoke();
+            Editor_OnRecomputedContent();
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssetIfDirty(this);
         }
+        protected virtual void Editor_OnRecomputedContent() { }
 
         /// <summary>
         /// Callback triggered when a new element has been created for the database<br></br>
         /// At this moment, the database content has not been recomputed yet so the element is not in it
         /// </summary>
-        internal virtual void Editor_OnNewElementCreated(UnityEngine.Object element) { }
+        internal protected virtual void Editor_OnNewElementCreated(UnityEngine.Object element) { }
         /// <summary>
         /// Callback triggered when a new element has been added to the database<br></br>
         /// At this moment, the database content has not been recomputed yet so the element is not in it
         /// </summary>
-        internal virtual void Editor_OnAddingNewElement(UnityEngine.Object element)
+        internal protected virtual void Editor_OnAddingNewElement(UnityEngine.Object element)
         {
             IDataContainerElement dataContainerElem = element as IDataContainerElement;
             if (dataContainerElem.UID == 0 || Editor_DoesUIDExistIn(dataContainerElem.UID))
@@ -245,7 +247,7 @@ namespace Dhs5.Utility.Databases
         }
 
         // --- NAMING ---
-        internal virtual string Editor_GetDataPrefixedName(UnityEngine.Object obj)
+        internal protected virtual string Editor_GetDataPrefixedName(UnityEngine.Object obj)
         {
             if (obj is IDataContainerPrefixableElement prefixableElement && !string.IsNullOrWhiteSpace(prefixableElement.DataNamePrefix))
             {
@@ -642,6 +644,15 @@ namespace Dhs5.Utility.Databases
 
         #endregion
 
+        #region Refresh
+
+        protected void ForceContainerContentRefresh() 
+        { 
+            m_container.Editor_ShouldRecomputeContainerContent(); 
+        }
+
+        #endregion
+
 
         #region Base GUI
 
@@ -856,9 +867,7 @@ namespace Dhs5.Utility.Databases
         protected UnityEngine.Object GetContainerCurrentSelection()
         {
             return GetDataContainerElementAtIndex(ContainerSelectionIndex);
-        }        
-
-        protected void ForceContainerContentRefresh() { m_container.Editor_ShouldRecomputeContainerContent(); }
+        }
 
         #endregion
 
