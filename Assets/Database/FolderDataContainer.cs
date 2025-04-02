@@ -55,7 +55,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override void Editor_ShouldRecomputeContainerContent()
+        internal protected override void Editor_ShouldRecomputeContainerContent()
         {
             if (string.IsNullOrWhiteSpace(m_folderName)) return;
 
@@ -92,7 +92,7 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        internal override string Editor_GetDataPrefixedName(UnityEngine.Object obj)
+        internal protected override string Editor_GetDataPrefixedName(UnityEngine.Object obj)
         {
             if (string.IsNullOrWhiteSpace(m_folderName)) return base.Editor_GetDataPrefixedName(obj);
 

@@ -67,7 +67,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override void Editor_ShouldRecomputeContainerContent()
+        internal protected override void Editor_ShouldRecomputeContainerContent()
         {
             if (m_content == null) m_content = new();
             else m_content.Clear();

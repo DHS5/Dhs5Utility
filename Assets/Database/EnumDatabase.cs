@@ -101,7 +101,7 @@ namespace Dhs5.Utility.Databases
 
 #if UNITY_EDITOR
 
-        internal override void Editor_ShouldRecomputeContainerContent()
+        internal protected override void Editor_ShouldRecomputeContainerContent()
         {
             SaveCurrentContentOrder();
 
@@ -147,7 +147,7 @@ namespace Dhs5.Utility.Databases
             return (e1, e2) => (e1 as IEnumDatabaseElement).EnumIndex.CompareTo((e2 as IEnumDatabaseElement).EnumIndex);
         }
 
-        internal override string Editor_GetDataPrefixedName(UnityEngine.Object obj)
+        internal protected override string Editor_GetDataPrefixedName(UnityEngine.Object obj)
         {
             return obj != null ? obj.name : null; 
         }
