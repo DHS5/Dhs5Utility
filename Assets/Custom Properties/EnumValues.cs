@@ -100,6 +100,12 @@ public class EnumValuesDrawer : PropertyDrawer
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         var enumType = GetEnumType();
+
+        if (enumType == null)
+        {
+            EditorGUI.LabelField(position, "Enum type is null");
+        }
+
         var enumValues = Enum.GetValues(enumType);
 
         var p_enumValues = property.FindPropertyRelative("m_enumValues");
@@ -162,13 +168,20 @@ public class EnumValuesDrawer : PropertyDrawer
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
+        var enumType = GetEnumType();
+
+        if (enumType == null)
+        {
+            return 20f;
+        }
+
         if (property.isExpanded)
         {
             float height = 25f;
 
             var p_enumValues = property.FindPropertyRelative("m_enumValues");
             int index;
-            foreach (var v in Enum.GetValues(GetEnumType()))
+            foreach (var v in Enum.GetValues(enumType))
             {
                 index = (int)v;
                 if (index >= 0 && index < p_enumValues.arraySize)
@@ -189,6 +202,10 @@ public class EnumValuesDrawer : PropertyDrawer
     private Type GetEnumType()
     {
         var enumType = fieldInfo.FieldType;
+        if (enumType.IsArray) enumType = enumType.GetElementType();
+
+        if (enumType == null) return null;
+
         while (enumType.IsGenericType) enumType = enumType.GetGenericArguments()[0];
         return enumType;
     }
