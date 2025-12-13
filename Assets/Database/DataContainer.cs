@@ -1059,7 +1059,7 @@ namespace Dhs5.Utility.Databases
         protected virtual void PopulateContainerDataContextMenu(UnityEngine.Object obj, int index, GenericMenu menu)
         {
             menu.AddItem(new GUIContent("Ping"), false, () => EditorUtils.FullPingObject(obj));
-            menu.AddItem(new GUIContent("Open Asset"), false, () => { if (AssetDatabase.CanOpenAssetInEditor(obj.GetInstanceID())) AssetDatabase.OpenAsset(obj); });
+            menu.AddItem(new GUIContent("Open Asset"), false, () => { if (AssetDatabase.CanOpenAssetInEditor(obj.GetEntityId())) AssetDatabase.OpenAsset(obj); });
             menu.AddItem(new GUIContent("Duplicate"), false, () => DuplicateElement(obj));
             menu.AddItem(new GUIContent("Remove"), false, () => OnTryDeleteElementAtIndex(index));
         }
