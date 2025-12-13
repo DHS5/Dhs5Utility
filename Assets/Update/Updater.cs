@@ -822,9 +822,9 @@ namespace Dhs5.Utility.Updates
 
             if (updateTimeline.Duration > 0f)
             {
-                var state = new UpdateTimelineInstance(updateTimeline);
-                m_updateTimelineInstances[key] = state;
-                RegisterChannelCallback((int)updateTimeline.UpdateChannel, state.OnUpdate);
+                var instance = new UpdateTimelineInstance(updateTimeline);
+                m_updateTimelineInstances[key] = instance;
+                RegisterChannelCallback((int)updateTimeline.UpdateChannel, instance.OnUpdate);
                 return true;
             }
             else
@@ -1063,11 +1063,17 @@ namespace Dhs5.Utility.Updates
 
         private readonly Dictionary<ulong, DelayedCall> m_delayedCalls = new();
         private readonly Dictionary<ulong, DelayedCall> m_delayedCallsToRegister = new();
+        private readonly HashSet<ulong> m_delayedCallsToUnregister = new();
 
         private void PreRegisterDelayedCall(ulong key, DelayedCall delayedCall)
         {
             m_delayedCallsToRegister.Add(key, delayedCall);
         }
+        private void PreUnregisterDelayedCall(ulong key)
+        {
+            m_delayedCallsToUnregister.Add(key);
+        }
+
         private void PerformDelayedCallsRegistraton()
         {
             foreach (var (key, call) in m_delayedCallsToRegister)
@@ -1211,7 +1217,7 @@ namespace Dhs5.Utility.Updates
 
         public static void KillDelayedCall(DelayedCallHandle handle)
         {
-            Instance.UnregisterDelayedCall(handle.key);
+            Instance.PreUnregisterDelayedCall(handle.key);
         }
 
         #endregion
@@ -1223,7 +1229,11 @@ namespace Dhs5.Utility.Updates
             List<ulong> toDestroy = new();
             foreach (var (key, delayedCall) in m_delayedCalls)
             {
-                if (IsConditionFulfilled(delayedCall.condition)
+                if (m_delayedCallsToUnregister.Remove(key))
+                {
+                    toDestroy.Add(key);
+                }
+                else if (IsConditionFulfilled(delayedCall.condition)
                     && delayedCall.pass == pass
                     && delayedCall.Update(deltaTime))
                 {
@@ -1276,6 +1286,7 @@ namespace Dhs5.Utility.Updates
         {
             m_delayedCalls.Clear();
             m_delayedCallsToRegister.Clear();
+            m_delayedCallsToUnregister.Clear();
         }
 
         #endregion

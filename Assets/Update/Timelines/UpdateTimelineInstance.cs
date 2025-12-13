@@ -457,7 +457,7 @@ namespace Dhs5.Utility.Updates
         public readonly void Play()
         {
             if (TryGetInstance(out var instance))
-                instance.Pause();
+                instance.Play();
         }
         /// <summary>
         /// Pause the UpdateTimeline
