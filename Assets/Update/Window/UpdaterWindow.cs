@@ -4,8 +4,6 @@ using Dhs5.Utility.GUIs;
 using System.IO;
 using Dhs5.Utility.Settings;
 
-
-
 #if UNITY_EDITOR
 using UnityEditor;
 using Dhs5.Utility.Editors;
@@ -46,16 +44,27 @@ namespace Dhs5.Utility.Updates
 
             if (array != null && array.Length > 0)
             {
-                for (int i = 0; i < array.Length; i++)
-                {
-                    if (array[i].Used)
-                    {
-                        return array[i];
-                    }
-                }
+                return array[0];
             }
 
             return null;
+        }
+
+        #endregion
+
+        #region Asset Editor
+
+        private UpdaterAssetEditor m_updaterAssetEditor;
+        private UpdaterAssetEditor AssetEditor
+        {
+            get
+            {
+                if (m_updaterAssetEditor == null && Asset != null)
+                {
+                    m_updaterAssetEditor = Editor.CreateEditor(Asset, typeof(UpdaterAssetEditor)) as UpdaterAssetEditor;
+                }
+                return m_updaterAssetEditor;
+            }
         }
 
         #endregion
@@ -70,11 +79,22 @@ namespace Dhs5.Utility.Updates
         #region GUI Content
 
         private GUIContent g_title = new GUIContent("Updater");
-
-        private GUIContent[] m_windowOptions = new GUIContent[] { new GUIContent("Channels"), new GUIContent("Update Conditions"), new GUIContent("Timelines"), new GUIContent("Settings") };
+        private GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Channels"), new GUIContent("Conditions"), new GUIContent("Timelines"), new GUIContent("Settings") };
 
         #endregion
 
+
+        #region Core Behaviour
+
+        private void OnDisable()
+        {
+            if (m_updaterAssetEditor != null)
+            {
+                DestroyImmediate(m_updaterAssetEditor);
+            }
+        }
+
+        #endregion
 
         #region Core GUI
 
@@ -84,36 +104,53 @@ namespace Dhs5.Utility.Updates
             EditorGUILayout.LabelField(g_title, GUIHelper.bigTitleLabel);
 
             EditorGUILayout.Space(10f);
-            m_currentWindow = GUILayout.Toolbar(m_currentWindow, m_windowOptions);
+            m_currentWindow = GUILayout.Toolbar(m_currentWindow, g_windowOptions);
 
             var rect = EditorGUILayout.GetControlRect(false, 2f);
             rect.x = 0f; rect.width = position.width;
             EditorGUI.DrawRect(rect, Color.white);
 
             EditorGUILayout.Space(5f);
+
+            if (AssetEditor != null)
+            {
+                AssetEditor.serializedObject.Update();
+            }
             switch (m_currentWindow)
             {
                 // CHANNELS
                 case 0:
-                    if (Asset != null)
+                    if (Asset != null && AssetEditor != null)
                     {
-
+                        AssetEditor.DrawChannelsGUI();
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
                     }
                     break;
                     
                 // UPDATE CONDITIONS
                 case 1:
-                    if (Asset != null)
+                    if (Asset != null && AssetEditor != null)
                     {
-
+                        AssetEditor.DrawConditonsGUI();
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
                     }
                     break;
                     
                 // TIMELINES
                 case 2:
-                    if (Asset != null)
+                    if (Asset != null && AssetEditor != null)
                     {
-
+                        AssetEditor.DrawTimelinesGUI();
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
                     }
                     break;
                     
@@ -121,6 +158,11 @@ namespace Dhs5.Utility.Updates
                 case 3:
                     DrawSettingsGUI();
                     break;
+            }
+
+            if (AssetEditor != null)
+            {
+                AssetEditor.serializedObject.ApplyModifiedProperties();
             }
         }
 
@@ -130,42 +172,60 @@ namespace Dhs5.Utility.Updates
 
         private void DrawSettingsGUI()
         {
-            EditorGUILayout.LabelField("Assets", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Asset", EditorStyles.boldLabel);
 
-            // List of assets
+            // Assets
             var array = Resources.LoadAll<UpdaterAsset>("Updater");
             if (array != null && array.Length > 0)
             {
-                EditorGUI.BeginDisabledGroup(true);
-                for (int i = 0; i < array.Length; i++)
+                if (array.Length == 1)
                 {
-                    var rect = EditorGUILayout.GetControlRect(false, 22f);
-
-                    var objectRect = new Rect(rect.x, rect.y, rect.width - 32f, rect.height - 2f);
-                    EditorGUI.ObjectField(objectRect, array[i], typeof(UpdaterAsset), false);
+                    EditorGUI.BeginDisabledGroup(true);
+                    EditorGUILayout.ObjectField(array[0], typeof(UpdaterAsset), false);
+                    EditorGUI.EndDisabledGroup();
                 }
-                EditorGUI.EndDisabledGroup();
+                else
+                {
+                    EditorGUILayout.HelpBox("Too much Updater Assets", MessageType.Error);
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        var rect = EditorGUILayout.GetControlRect(false, 22f);
+
+                        EditorGUI.BeginDisabledGroup(true);
+                        var objectRect = new Rect(rect.x, rect.y, rect.width - 32f, rect.height - 2f);
+                        EditorGUI.ObjectField(objectRect, array[i], typeof(UpdaterAsset), false);
+                        EditorGUI.EndDisabledGroup();
+
+                        var usedButtonRect = new Rect(rect.x + rect.width - 30f, rect.y + 1f, 30f, rect.height - 2f);
+                        using (new GUIHelper.GUIBackgroundColorScope(Color.red))
+                        {
+                            if (GUI.Button(usedButtonRect, EditorGUIHelper.DeleteIcon))
+                            {
+                                Database.DeleteAsset(array[i], true);
+                                AssetDatabase.SaveAssets();
+                            }
+                        }
+                    }
+                }
             }
             else
             {
                 EditorGUILayout.HelpBox("No assets found", MessageType.Warning);
+                EditorGUILayout.Space(5f);
+
+                // Create asset button
+                if (GUILayout.Button("Create new asset"))
+                {
+                    Database.CreateAssetOfType(typeof(UpdaterAsset), "Assets/Resources/Updater/Updater.asset");
+                    AssetDatabase.SaveAssets();
+                }
             }
-            EditorGUILayout.Space(5f);
 
-            // Create asset button
-            if (GUILayout.Button("Create new asset"))
+            // Assets Settings
+            if (AssetEditor != null)
             {
-                //if (!Directory.Exists(Application.dataPath + "Resources"))
-                //{
-                //    Directory.CreateDirectory(Application.dataPath + "Resources");
-                //}
-                //if (!Directory.Exists(Application.dataPath + "Resources/Updater"))
-                //{
-                //    Directory.CreateDirectory(Application.dataPath + "Resources/Updater");
-                //}
-
-                Database.CreateAssetOfType(typeof(UpdaterAsset), "Assets/Resources/Updater/Updater.asset");
-                AssetDatabase.SaveAssets();
+                EditorGUILayout.Space(5f);
+                AssetEditor.DrawSettingsGUI();
             }
         }
 

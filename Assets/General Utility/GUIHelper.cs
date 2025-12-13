@@ -156,5 +156,66 @@ namespace Dhs5.Utility.GUIs
         }
 
         #endregion
+
+        #region Scopes
+
+        public class GUIColorScope : GUI.Scope
+        {
+            private Color m_backgroundStartColor;
+            private Color m_contentStartColor;
+
+            public GUIColorScope(Color color)
+            {
+                m_backgroundStartColor = GUI.backgroundColor;
+                m_contentStartColor = GUI.contentColor;
+                GUI.backgroundColor = color;
+                GUI.contentColor = color;
+            }
+            public GUIColorScope(Color backgroundColor, Color contentColor)
+            {
+                m_backgroundStartColor = GUI.backgroundColor;
+                m_contentStartColor = GUI.contentColor;
+                GUI.backgroundColor = backgroundColor;
+                GUI.contentColor = contentColor;
+            }
+
+            protected override void CloseScope()
+            {
+                GUI.backgroundColor = m_backgroundStartColor;
+                GUI.contentColor = m_contentStartColor;
+            }
+        }
+        public class GUIContentColorScope : GUI.Scope
+        {
+            private Color m_startColor;
+
+            public GUIContentColorScope(Color color)
+            {
+                m_startColor = GUI.contentColor;
+                GUI.contentColor = color;
+            }
+
+            protected override void CloseScope()
+            {
+                GUI.contentColor = m_startColor;
+            }
+        }
+        public class GUIBackgroundColorScope : GUI.Scope
+        {
+            private Color m_startColor;
+
+            public GUIBackgroundColorScope(Color color)
+            {
+                m_startColor = GUI.backgroundColor;
+                GUI.backgroundColor = color;
+            }
+
+            protected override void CloseScope()
+            {
+                GUI.backgroundColor = m_startColor;
+            }
+        }
+
+        #endregion
     }
 }

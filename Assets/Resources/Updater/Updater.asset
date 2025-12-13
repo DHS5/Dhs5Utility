@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 074cfdd4dbd07a14b9f6c902219106bd, type: 3}
+  m_Name: Updater
+  m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.Updates.UpdaterAsset
+  m_updateChannels:
+  - {fileID: -4751636560149229809, guid: f21412fbeabfe814fbc9f17efcabd932, type: 2}
+  - {fileID: 1281793251936599315, guid: f21412fbeabfe814fbc9f17efcabd932, type: 2}
+  m_updateConditions:
+  - m_name: ALWAYS
+    m_object: {fileID: 11400000, guid: cdec9bda7bf01da479747ffadaa5d1ac, type: 2}
+  m_updateChannelsTextAsset: {fileID: 11500000, guid: 517f058b72777174ba1255475785d1d7,
+    type: 3}
+  m_updateConditionsTextAsset: {fileID: 11500000, guid: 8b262fed26323244daf03c8e8f1f1d9f,
+    type: 3}
