@@ -26,7 +26,7 @@ public static class ExtensionMethods
     {
         return new Vector2(vector3.y, vector3.z);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3 ToVector3(this Vector2 vector2)
     {
@@ -89,7 +89,7 @@ public static class ExtensionMethods
     {
         return Mathf.Min(vector.x, vector.y);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Max(this Vector3 vector)
     {
@@ -163,7 +163,7 @@ public static class ExtensionMethods
 
     public static void Swap<T>(this IList<T> list, int indexA, int indexB)
     {
-        if (IsIndexValid(list, indexA, out var valueA) && IsIndexValid(list, indexB, out var valueB)) 
+        if (IsIndexValid(list, indexA, out var valueA) && IsIndexValid(list, indexB, out var valueB))
         {
             list[indexA] = valueB;
             list[indexB] = valueA;
