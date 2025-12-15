@@ -325,6 +325,7 @@ namespace Dhs5.Utility.Updates
 
             if (GUILayout.Button("Ensure channel objects are inside asset"))
             {
+                AssetDatabase.Refresh();
                 var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
                 for (int i = 0; i < p_updateChannels.arraySize; i++)
                 {
@@ -338,6 +339,7 @@ namespace Dhs5.Utility.Updates
                         }
                     }
                 }
+                AssetDatabase.SaveAssets();
             }
             if (GUILayout.Button("Ensure no null objects in list"))
             {

@@ -1,5 +1,28 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4751636560149229809
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36506fb233b209446ad0660e84220fe6, type: 3}
+  m_Name: BASE
+  m_EditorClassIdentifier: 
+  m_uid: 1
+  m_enumIndex: 0
+  m_updatePass: 1
+  m_order: 0
+  m_enabledByDefault: 1
+  m_updateCondition: 0
+  m_customFrequency:
+    m_enabled: 0
+    m_value: 0.75
+  m_timescale: 1
+  m_realtime: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13,8 +36,8 @@ MonoBehaviour:
   m_Name: Updater
   m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.Updates.UpdaterAsset
   m_updateChannels:
-  - {fileID: -4751636560149229809, guid: f21412fbeabfe814fbc9f17efcabd932, type: 2}
-  - {fileID: 1281793251936599315, guid: f21412fbeabfe814fbc9f17efcabd932, type: 2}
+  - {fileID: -4751636560149229809}
+  - {fileID: 1281793251936599315}
   m_updateConditions:
   - m_name: ALWAYS
     m_object: {fileID: 11400000, guid: cdec9bda7bf01da479747ffadaa5d1ac, type: 2}
@@ -22,3 +45,26 @@ MonoBehaviour:
     type: 3}
   m_updateConditionsTextAsset: {fileID: 11500000, guid: 8b262fed26323244daf03c8e8f1f1d9f,
     type: 3}
+--- !u!114 &1281793251936599315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36506fb233b209446ad0660e84220fe6, type: 3}
+  m_Name: SCREEN_LOG
+  m_EditorClassIdentifier: 
+  m_uid: 2
+  m_enumIndex: 1
+  m_updatePass: 2
+  m_order: 0
+  m_enabledByDefault: 1
+  m_updateCondition: 0
+  m_customFrequency:
+    m_enabled: 1
+    m_value: 0.75
+  m_timescale: 1
+  m_realtime: 0
