@@ -110,8 +110,6 @@ namespace Dhs5.Utility.Updates
             rect.x = 0f; rect.width = position.width;
             EditorGUI.DrawRect(rect, Color.white);
 
-            EditorGUILayout.Space(5f);
-
             if (AssetEditor != null)
             {
                 AssetEditor.serializedObject.Update();
@@ -172,6 +170,7 @@ namespace Dhs5.Utility.Updates
 
         private void DrawSettingsGUI()
         {
+            EditorGUILayout.Space(10f);
             EditorGUILayout.LabelField("Asset", EditorStyles.boldLabel);
 
             // Assets

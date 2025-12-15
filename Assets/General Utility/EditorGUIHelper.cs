@@ -228,6 +228,26 @@ namespace Dhs5.Utility.Editors
         #endregion
 
         #endregion
+
+        #region Scopes
+
+        public class LabelWidthScope : GUI.Scope
+        {
+            private float m_startWidth;
+
+            public LabelWidthScope(float width)
+            {
+                m_startWidth = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = width;
+            }
+
+            protected override void CloseScope()
+            {
+                EditorGUIUtility.labelWidth = m_startWidth;
+            }
+        }
+
+        #endregion
     }
 }
 #endif
