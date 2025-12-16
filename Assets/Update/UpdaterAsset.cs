@@ -144,9 +144,9 @@ namespace Dhs5.Utility.Updates
                 var r_enabledToggle = new Rect(marginedRect.x, marginedRect.y, 20f, 20f);
                 p_enabledByDefault.boolValue = EditorGUI.ToggleLeft(r_enabledToggle, GUIContent.none, p_enabledByDefault.boolValue);
 
-                // Up/Down Buttons
+                // Up/Down/Delete Buttons
                 bool ret = false;
-                var r_upButton = new Rect(marginedRect.x + marginedRect.width - 62f, marginedRect.y - 2f, 32f, 20f);
+                var r_upButton = new Rect(marginedRect.x + marginedRect.width - 94f, marginedRect.y - 2f, 32f, 20f);
                 using (new EditorGUI.DisabledGroupScope(index == 0))
                 {
                     if (GUI.Button(r_upButton, EditorGUIHelper.UpIcon))
@@ -155,12 +155,23 @@ namespace Dhs5.Utility.Updates
                         ret = true;
                     }
                 }
-                var r_downButton = new Rect(marginedRect.x + marginedRect.width - 30f, marginedRect.y - 2f, 32f, 20f);
+                var r_downButton = new Rect(marginedRect.x + marginedRect.width - 62f, marginedRect.y - 2f, 32f, 20f);
                 using (new EditorGUI.DisabledGroupScope(index == p_updateChannels.arraySize - 1))
                 {
                     if (GUI.Button(r_downButton, EditorGUIHelper.DownIcon))
                     {
                         p_updateChannels.MoveArrayElement(index, index + 1);
+                        ret = true;
+                    }
+                }
+                var r_deleteButton = new Rect(marginedRect.x + marginedRect.width - 30f, marginedRect.y - 2f, 32f, 20f);
+                using (new GUIHelper.GUIBackgroundColorScope(Color.red))
+                {
+                    if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
+                        && Database.DeleteNestedAsset(element, true))
+                    {
+                        p_updateChannels.DeleteArrayElementAtIndex(index);
+                        AssetDatabase.SaveAssetIfDirty(m_updaterAsset);
                         ret = true;
                     }
                 }
@@ -173,11 +184,26 @@ namespace Dhs5.Utility.Updates
 
                 // Name
                 var enabledToggleTotalWidth = 22f;
-                var buttonsTotalWidth = 70f;
+                var buttonsTotalWidth = 100f;
                 var r_indexLabel = new Rect(marginedRect.x + enabledToggleTotalWidth, marginedRect.y, 20f, 20f);
                 var r_nameTextField = new Rect(marginedRect.x + enabledToggleTotalWidth + 20f, marginedRect.y, marginedRect.width - enabledToggleTotalWidth - buttonsTotalWidth - 20f, 20f);
                 EditorGUI.LabelField(r_indexLabel, index.ToString(), EditorStyles.boldLabel);
-                element.name = EditorGUI.DelayedTextField(r_nameTextField, element.name);
+                var newName = EditorGUI.DelayedTextField(r_nameTextField, element.name).Trim(new char[] { ' ', '/', '\\', '<', '>', ':', '*', '|', '"', '?' })
+                    .Replace(' ', '_')
+                    .Replace('/', '_')
+                    .Replace('\\', '_')
+                    .Replace('<', '_')
+                    .Replace('>', '_')
+                    .Replace(':', '_')
+                    .Replace('*', '_')
+                    .Replace('|', '_')
+                    .Replace('"', '_')
+                    .Replace('?', '_');
+                if (newName != element.name)
+                {
+                    element.name = newName;
+                    AssetDatabase.SaveAssetIfDirty(element);
+                }
 
                 marginedRect.y += 25f;
                 marginedRect.height -= 25f;
@@ -252,7 +278,12 @@ namespace Dhs5.Utility.Updates
             {
                 if (GUILayout.Button("ADD NEW CHANNEL", GUILayout.Height(25f)))
                 {
-
+                    p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
+                    p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = null;
+                    var newElement = Database.CreateScriptableAndAddToAsset<UpdaterDatabaseElement>(m_updaterAsset);
+                    newElement.name = "NEW_ELEMENT";
+                    p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = newElement;
+                    AssetDatabase.SaveAssetIfDirty(newElement);
                 }
             }
             using (new GUIHelper.GUIBackgroundColorScope(DoesUpdateChannelScriptNeedUpdate() ? Color.cyan : Color.grey))
@@ -353,7 +384,42 @@ namespace Dhs5.Utility.Updates
             }
             if (GUILayout.Button("Ensure no intrusive object inside asset"))
             {
+                var subAssets = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(m_updaterAsset));
 
+                if (subAssets.IsValid())
+                {
+                    for (int i = subAssets.Length - 1; i >= 0; i--)
+                    {
+                        var subAsset = subAssets[i];
+                        if (subAsset == m_updaterAsset) continue;
+
+                        if (subAsset is UpdaterDatabaseElement channelObject)
+                        {
+                            bool isInside = false;
+                            for (int j = 0; j < p_updateChannels.arraySize; j++)
+                            {
+                                if (p_updateChannels.GetArrayElementAtIndex(j).objectReferenceValue == channelObject)
+                                {
+                                    isInside = true; 
+                                    break;
+                                }
+                            }
+
+                            if (!isInside)
+                            {
+                                p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
+                                p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = channelObject;
+                            }
+                            continue;
+                        }
+                        // Same for Timelines
+
+                        AssetDatabase.RemoveObjectFromAsset(subAsset);
+                        DestroyImmediate(subAsset);
+                    }
+
+                    AssetDatabase.SaveAssetIfDirty(m_updaterAsset);
+                }
             }
         }
 
@@ -380,7 +446,10 @@ namespace Dhs5.Utility.Updates
             if (p_updateChannelsTextAsset.objectReferenceValue != null)
             {
                 int i = 0;
-                foreach (var obj in Enum.GetValues(typeof(EUpdateChannel)))
+                var values = Enum.GetValues(typeof(EUpdateChannel));
+                if (values.Length != p_updateChannels.arraySize) return true;
+
+                foreach (var obj in values)
                 {
                     var value = (EUpdateChannel)obj;
                     if (p_updateChannels.arraySize <= i

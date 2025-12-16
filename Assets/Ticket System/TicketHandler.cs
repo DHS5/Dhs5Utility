@@ -20,7 +20,7 @@ namespace Dhs5.Utility.TicketSystem
             m_firstAvailableUID = 1;
         }
 
-        public Ticket GetTicket()
+        public virtual Ticket GetTicket()
         {
             var ticket = new Ticket(m_firstAvailableUID);
             m_firstAvailableUID++;
@@ -31,11 +31,71 @@ namespace Dhs5.Utility.TicketSystem
         #endregion
     }
 
-    public class TicketHandler<T> : TicketHandler, IEnumerable<KeyValuePair<Ticket, T>>
+    public class TicketHandlerList : TicketHandler
+    {
+        #region Members
+
+        private List<ulong> m_list = new();
+
+        #endregion
+
+        #region Properties
+
+        public int Count => m_list.Count;
+
+        #endregion
+
+        #region Methods
+
+        public override void Reset()
+        {
+            base.Reset();
+
+            m_list.Clear();
+        }
+
+        public override Ticket GetTicket()
+        {
+            var ticket = base.GetTicket();
+
+            m_list.Add(ticket.GetUID());
+            return ticket;
+        }
+
+        public bool Remove(Ticket ticket)
+        {
+            return m_list.Remove(ticket.GetUID());
+        }
+
+        #endregion
+
+        #region Accessors
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasContent()
+        {
+            return m_list.IsValid();
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(Ticket ticket)
+        {
+            return m_list.Contains(ticket.GetUID());
+        }
+
+        #endregion
+    }
+
+    public class TicketHandlerDictionary<T> : TicketHandler, IEnumerable<KeyValuePair<Ticket, T>>
     {
         #region Members
 
         private Dictionary<ulong, T> m_dictionary = new();
+
+        #endregion
+
+        #region Properties
+
+        public int Count => m_dictionary.Count;
 
         #endregion
 

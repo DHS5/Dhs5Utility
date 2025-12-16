@@ -398,14 +398,13 @@ namespace Dhs5.Utility.Databases
         /// If it's a main asset, deletes permanently and CAN'T UNDO<br></br>
         /// If it's not, delete the nested asset and CAN UNDO
         /// </summary>
-        public static void DeleteAsset(UnityEngine.Object obj, bool needValidation)
+        public static bool DeleteAsset(UnityEngine.Object obj, bool needValidation)
         {
-            if (obj == null) return;
+            if (obj == null) return false;
 
             if (!AssetDatabase.IsMainAsset(obj))
             {
-                DeleteNestedAsset(obj, needValidation);
-                return;
+                return DeleteNestedAsset(obj, needValidation);
             }
 
             if (!needValidation
@@ -415,7 +414,9 @@ namespace Dhs5.Utility.Databases
                         "Yes", "Cancel"))
             {
                 AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(obj));
+                return true;
             }
+            return false;
         }
         /// <summary>
         /// Deletes a nested asset, records undo operation
@@ -423,9 +424,9 @@ namespace Dhs5.Utility.Databases
         /// <param name="obj">Object to delete</param>
         /// <param name="asset">Asset in which the object is nested</param>
         /// <param name="needValidation"></param>
-        public static void DeleteNestedAsset(UnityEngine.Object obj, bool needValidation)
+        public static bool DeleteNestedAsset(UnityEngine.Object obj, bool needValidation)
         {
-            if (obj == null || AssetDatabase.IsMainAsset(obj)) return;
+            if (obj == null || AssetDatabase.IsMainAsset(obj)) return false;
 
             UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GetAssetPath(obj));
 
@@ -444,7 +445,10 @@ namespace Dhs5.Utility.Databases
                 Undo.DestroyObjectImmediate(obj);
 
                 Undo.CollapseUndoOperations(undoGroup);
+
+                return true;
             }
+            return false;
         }
 
         #endregion
