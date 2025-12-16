@@ -11,7 +11,7 @@ using UnityEditor;
 
 namespace Dhs5.Utility.Updates
 {
-    [Database("Update/Updater", typeof(UpdaterDatabaseElement))]
+    [Database("Update/Updater", typeof(UpdateChannelObject))]
     public class UpdaterDatabase : EnumDatabase
     {
         #region Editor Utility
@@ -105,7 +105,7 @@ namespace Dhs5.Utility.Updates
 
         protected override void OnContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, UnityEngine.Object obj, string name, Texture2D texture)
         {
-            if (obj is UpdaterDatabaseElement elem)
+            if (obj is UpdateChannelObject elem)
             {
                 float passRectWidth = 70f;
                 var passRect = new Rect(rect.x + rect.width - passRectWidth, rect.y, passRectWidth, rect.height);

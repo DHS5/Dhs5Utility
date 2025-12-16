@@ -27,7 +27,7 @@ namespace Dhs5.Utility.Updates
 
         #region Members
 
-        [SerializeField] private List<UpdaterDatabaseElement> m_updateChannels;
+        [SerializeField] private List<UpdateChannelObject> m_updateChannels;
         [SerializeField] private List<UpdateConditionElement> m_updateConditions;
 
         #endregion
@@ -37,6 +37,53 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+
+        // --- STATIC ---
+
+        #region Static Accessors
+
+        private static UpdaterAsset _instance;
+        internal static UpdaterAsset Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindUpdaterAssetInProject();
+                }
+
+                return _instance;
+            }
+        }
+        private static UpdaterAsset FindUpdaterAssetInProject()
+        {
+            var array = Resources.LoadAll<UpdaterAsset>("Updater");
+
+            if (array != null && array.Length > 0)
+            {
+                return array[0];
+            }
+
+            if (Application.isPlaying)
+            {
+                Debug.LogError("No Updater Asset found in project");
+            }
+            return null;
+        }
+
+        public static IUpdateChannel GetChannelAtIndex(int index)
+        {
+            if (Instance != null)
+            {
+                if (Instance.m_updateChannels.IsIndexValid(index, out var obj))
+                    return obj;
+
+                Debug.LogWarning("No Update Channel found at index " + index);
+            }
+            return null;
+        }
+
+        #endregion
 
 
         // --- EDITOR ---
@@ -116,7 +163,7 @@ namespace Dhs5.Utility.Updates
 
             for (int i = 0; i < p_updateChannels.arraySize; i++)
             {
-                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdaterDatabaseElement element)
+                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject element)
                 {
                     DrawListElement(element, i);
                     if (i < p_updateChannels.arraySize - 1)
@@ -128,7 +175,7 @@ namespace Dhs5.Utility.Updates
 
             EditorGUILayout.EndScrollView();
         }
-        private void DrawListElement(UpdaterDatabaseElement element, int index)
+        private void DrawListElement(UpdateChannelObject element, int index)
         {
             var rect = EditorGUILayout.GetControlRect(false, 95f);
             GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
@@ -280,7 +327,7 @@ namespace Dhs5.Utility.Updates
                 {
                     p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = null;
-                    var newElement = Database.CreateScriptableAndAddToAsset<UpdaterDatabaseElement>(m_updaterAsset);
+                    var newElement = Database.CreateScriptableAndAddToAsset<UpdateChannelObject>(m_updaterAsset);
                     newElement.name = "NEW_ELEMENT";
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
@@ -360,7 +407,7 @@ namespace Dhs5.Utility.Updates
                 var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
                 for (int i = 0; i < p_updateChannels.arraySize; i++)
                 {
-                    if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdaterDatabaseElement channelObject
+                    if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject channelObject
                         && AssetDatabase.GetAssetPath(channelObject) != updaterAssetPath)
                     {
                         if (AssetDatabase.IsSubAsset(channelObject))
@@ -393,7 +440,7 @@ namespace Dhs5.Utility.Updates
                         var subAsset = subAssets[i];
                         if (subAsset == m_updaterAsset) continue;
 
-                        if (subAsset is UpdaterDatabaseElement channelObject)
+                        if (subAsset is UpdateChannelObject channelObject)
                         {
                             bool isInside = false;
                             for (int j = 0; j < p_updateChannels.arraySize; j++)

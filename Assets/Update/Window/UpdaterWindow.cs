@@ -32,22 +32,10 @@ namespace Dhs5.Utility.Updates
             {
                 if (m_updaterAsset == null)
                 {
-                    m_updaterAsset = FindUpdaterAssetInProject();
+                    m_updaterAsset = UpdaterAsset.Instance;
                 }
                 return m_updaterAsset;
             }
-        }
-
-        private UpdaterAsset FindUpdaterAssetInProject()
-        {
-            var array = Resources.LoadAll<UpdaterAsset>("Updater");
-
-            if (array != null && array.Length > 0)
-            {
-                return array[0];
-            }
-
-            return null;
         }
 
         #endregion

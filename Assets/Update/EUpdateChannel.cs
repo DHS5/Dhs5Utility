@@ -23,7 +23,7 @@ namespace Dhs5.Utility.Updates
     {
         public static IUpdateChannel GetValue(this EUpdateChannel e)
         {
-            return Database.Get<UpdaterDatabase>().GetDataAtIndex<UpdaterDatabaseElement>((int)e);
+            return UpdaterAsset.GetChannelAtIndex((int)e);
         }
         public static Type GetChannelType(this EUpdateChannel e)
         {
