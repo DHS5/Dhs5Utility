@@ -4,10 +4,10 @@ using Dhs5.Utility.Databases;
 using System.Collections.Generic;
 using System;
 using Dhs5.Utility.GUIs;
-using Dhs5.Utility.Editors;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Updates
@@ -113,6 +113,7 @@ namespace Dhs5.Utility.Updates
         private UpdaterAsset m_updaterAsset;
 
         private Vector2 m_channelsScrollPos;
+        private Vector2 m_conditionsScrollPos;
 
         #endregion
 
@@ -165,7 +166,7 @@ namespace Dhs5.Utility.Updates
             {
                 if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject element)
                 {
-                    DrawListElement(element, i);
+                    DrawChannelListElement(element, i);
                     if (i < p_updateChannels.arraySize - 1)
                     {
                         EditorGUILayout.Space(2f);
@@ -175,7 +176,7 @@ namespace Dhs5.Utility.Updates
 
             EditorGUILayout.EndScrollView();
         }
-        private void DrawListElement(UpdateChannelObject element, int index)
+        private void DrawChannelListElement(UpdateChannelObject element, int index)
         {
             var rect = EditorGUILayout.GetControlRect(false, 95f);
             GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
@@ -328,7 +329,7 @@ namespace Dhs5.Utility.Updates
                     p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = null;
                     var newElement = Database.CreateScriptableAndAddToAsset<UpdateChannelObject>(m_updaterAsset);
-                    newElement.name = "NEW_ELEMENT";
+                    newElement.name = "NEW_CHANNEL";
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
                 }
@@ -351,11 +352,144 @@ namespace Dhs5.Utility.Updates
 
         public void DrawConditonsGUI()
         {
+            EditorGUILayout.BeginVertical();
 
+            // List
+            DrawConditionsList();
+
+            // Footer
+            DrawConditionsFooter();
+
+            EditorGUILayout.EndVertical();
+        }
+
+
+        private void DrawConditionsList()
+        {
+            m_conditionsScrollPos = EditorGUILayout.BeginScrollView(m_conditionsScrollPos);
+
+            for (int i = 0; i < p_updateConditions.arraySize; i++)
+            {
+                var p_element = p_updateConditions.GetArrayElementAtIndex(i);
+                if (p_element != null)
+                {
+                    DrawConditionListElement(p_element, i);
+                    if (i < p_updateConditions.arraySize - 1)
+                    {
+                        EditorGUILayout.Space(2f);
+                    }
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
+        private void DrawConditionListElement(SerializedProperty p_element, int index)
+        {
+            var rect = EditorGUILayout.GetControlRect(false, 55f);
+            GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
+
+            var marginedRect = new Rect(rect.x + 5f, rect.y + 4f, rect.width - 10f, rect.height - 8f);
+            var halfWidth = marginedRect.width / 2f;
+
+            // Up/Down/Delete Buttons
+            bool ret = false;
+            var r_upButton = new Rect(marginedRect.x + marginedRect.width - 94f, marginedRect.y - 2f, 32f, 20f);
+            using (new EditorGUI.DisabledGroupScope(index == 0))
+            {
+                if (GUI.Button(r_upButton, EditorGUIHelper.UpIcon))
+                {
+                    p_updateConditions.MoveArrayElement(index, index - 1);
+                    ret = true;
+                }
+            }
+            var r_downButton = new Rect(marginedRect.x + marginedRect.width - 62f, marginedRect.y - 2f, 32f, 20f);
+            using (new EditorGUI.DisabledGroupScope(index == p_updateConditions.arraySize - 1))
+            {
+                if (GUI.Button(r_downButton, EditorGUIHelper.DownIcon))
+                {
+                    p_updateConditions.MoveArrayElement(index, index + 1);
+                    ret = true;
+                }
+            }
+            var r_deleteButton = new Rect(marginedRect.x + marginedRect.width - 30f, marginedRect.y - 2f, 32f, 20f);
+            using (new GUIHelper.GUIBackgroundColorScope(Color.red))
+            {
+                if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
+                    && EditorUtility.DisplayDialog("Delete condition ?", "Are you sure you want to delete " + p_element.FindPropertyRelative("m_name").stringValue + " ?", "Yes", "Cancel"))
+                {
+                    p_updateConditions.DeleteArrayElementAtIndex(index);
+                    ret = true;
+                }
+            }
+
+            if (ret)
+            {
+                return;
+            }
+
+            // Name
+            var p_name = p_element.FindPropertyRelative("m_name");
+            var buttonsTotalWidth = 100f;
+            var r_indexLabel = new Rect(marginedRect.x, marginedRect.y, 20f, 20f);
+            var r_nameTextField = new Rect(marginedRect.x + 20f, marginedRect.y, marginedRect.width - buttonsTotalWidth - 20f, 20f);
+            EditorGUI.LabelField(r_indexLabel, index.ToString(), EditorStyles.boldLabel);
+            var newName = EditorGUI.DelayedTextField(r_nameTextField, p_name.stringValue).Trim(new char[] { ' ', '/', '\\', '<', '>', ':', '*', '|', '"', '?' })
+                .Replace(' ', '_')
+                .Replace('/', '_')
+                .Replace('\\', '_')
+                .Replace('<', '_')
+                .Replace('>', '_')
+                .Replace(':', '_')
+                .Replace('*', '_')
+                .Replace('|', '_')
+                .Replace('"', '_')
+                .Replace('?', '_');
+            if (newName != p_name.stringValue)
+            {
+                p_name.stringValue = newName;
+            }
+
+            marginedRect.y += 25f;
+            marginedRect.height -= 25f;
+
+            // Update Pass
+            var p_object = p_element.FindPropertyRelative("m_object");
+            var r_object = new Rect(marginedRect.x, marginedRect.y, marginedRect.width, 20f);
+            using (new EditorGUIHelper.LabelWidthScope(80f))
+            {
+                EditorGUI.PropertyField(r_object, p_object);
+            }
+        }
+
+        private void DrawConditionsFooter()
+        {
+            EditorGUILayout.BeginVertical();
+
+            EditorGUILayout.Space(3f);
+            using (new GUIHelper.GUIBackgroundColorScope(Color.green))
+            {
+                if (GUILayout.Button("ADD NEW CONDITION", GUILayout.Height(25f)))
+                {
+                    p_updateConditions.InsertArrayElementAtIndex(p_updateConditions.arraySize);
+                    var p_element = p_updateConditions.GetArrayElementAtIndex(p_updateConditions.arraySize - 1);
+                    p_element.FindPropertyRelative("m_name").stringValue = "NEW_CONDITION";
+                    p_element.FindPropertyRelative("m_object").objectReferenceValue = null;
+                }
+            }
+            using (new GUIHelper.GUIBackgroundColorScope(DoesUpdateConditionScriptNeedUpdate() ? Color.cyan : Color.grey))
+            {
+                if (GUILayout.Button("UPDATE CONDITION SCRIPT", GUILayout.Height(25f)))
+                {
+
+                }
+            }
+            EditorGUILayout.Space(3f);
+
+            EditorGUILayout.EndVertical();
         }
 
         #endregion
-        
+
         #region TIMELINES GUI
 
         public void DrawTimelinesGUI()
@@ -501,6 +635,28 @@ namespace Dhs5.Utility.Updates
                     var value = (EUpdateChannel)obj;
                     if (p_updateChannels.arraySize <= i
                         || value.ToString() != p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue.name)
+                    {
+                        return true;
+                    }
+                    i++;
+                }
+            }
+            return false;
+        }
+        
+        private bool DoesUpdateConditionScriptNeedUpdate()
+        {
+            if (p_updateConditionsTextAsset.objectReferenceValue != null)
+            {
+                int i = 0;
+                var values = Enum.GetValues(typeof(EUpdateCondition));
+                if (values.Length != p_updateConditions.arraySize) return true;
+
+                foreach (var obj in values)
+                {
+                    var value = (EUpdateCondition)obj;
+                    if (p_updateConditions.arraySize <= i
+                        || value.ToString() != p_updateConditions.GetArrayElementAtIndex(i).FindPropertyRelative("m_name").stringValue)
                     {
                         return true;
                     }
