@@ -19,6 +19,9 @@ public class TestSettings : CustomSettings<TestSettings>
     [SerializeField] private PlayerPrefFloat m_playerPrefFloat;
     [SerializeField] private PlayerPrefString m_playerPrefString;
     [SerializeField] private PlayerPrefBool m_playerPrefBool;
+    [SerializeField, SubSettings] private TestSubSettings m_subSetTest;
+    [SerializeField, SubSettings] private ScriptableObject m_subSetTest2;
+    [SerializeField, SubSettings] private ScriptableObject m_subSetTest3;
 
     public static PlayerPrefInt PlayerPrefInt => I.m_playerPrefInt;
 }

@@ -4,6 +4,7 @@ using UnityEngine;
 using System;
 using System.Linq;
 using Dhs5.Utility.Databases;
+using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -275,6 +276,8 @@ namespace Dhs5.Utility.Settings
         protected SerializedProperty p_script;
 
         protected List<string> m_excludedProperties;
+        protected Dictionary<FieldInfo, SubSettingsAttribute> m_subSettingsField;
+        protected Dictionary<ScriptableObject, Editor> m_subSettingsEditors;
 
         #endregion
 
@@ -290,6 +293,8 @@ namespace Dhs5.Utility.Settings
             {
                 p_script.propertyPath,
             };
+
+            FetchSubSettingsField();
         }
 
         #endregion
@@ -300,7 +305,15 @@ namespace Dhs5.Utility.Settings
         {
             serializedObject.Update();
 
-            DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
+            if (SettingsWindow.ShowSubSettingsReferences)
+            {
+                OnSubSettingsReferenceGUI();
+            }
+            else
+            {
+                OnSubSettingsGUI();
+                DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
+            }
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -316,6 +329,200 @@ namespace Dhs5.Utility.Settings
         {
             return false;
         }
+
+        #endregion
+
+        #region Sub Settings
+
+        #region Utility Methods
+
+        protected virtual void FetchSubSettingsField()
+        {
+            m_subSettingsField = new();
+            try
+            {
+                var fields = target.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    var attribute = fields[i].GetCustomAttribute<SubSettingsAttribute>();
+                    if (attribute != null
+                        && typeof(ScriptableObject).IsAssignableFrom(fields[i].FieldType))
+                    {
+                        m_subSettingsField.Add(fields[i], attribute);
+                        m_excludedProperties.Add(fields[i].Name);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
+
+        protected Editor GetOrCreateSubSettingsEditor(ScriptableObject so, SubSettingsAttribute attribute)
+        {
+            if (so != null)
+            {
+                if (m_subSettingsEditors == null) m_subSettingsEditors = new();
+
+                if (m_subSettingsEditors.TryGetValue(so, out var editor) && editor != null)
+                {
+                    return editor;
+                }
+                else
+                {
+                    m_subSettingsEditors[so] = attribute.editorType != null ? Editor.CreateEditor(so, attribute.editorType) : Editor.CreateEditor(so);
+                    return m_subSettingsEditors[so];
+                }
+            }
+            return null;
+        }
+
+        protected void ClearSubSettingsEditor()
+        {
+            foreach (var (_, editor) in m_subSettingsEditors)
+            {
+                DestroyImmediate(editor);
+            }
+            m_subSettingsEditors.Clear();
+        }
+
+        #endregion
+
+        #region GUI
+
+        protected virtual void OnSubSettingsReferenceGUI()
+        {
+            if (m_subSettingsField.IsValid())
+            {
+                foreach (var (field, attribute) in m_subSettingsField)
+                {
+                    var p_subSettings = serializedObject.FindProperty(field.Name);
+                    if (p_subSettings != null)
+                    {
+                        var rect = EditorGUILayout.GetControlRect(false, 20f);
+
+                        // Sub Settings
+                        var subSettingsRect = new Rect(rect.x, rect.y, rect.width * 0.7f - 2f, rect.height);
+                        EditorGUI.PropertyField(subSettingsRect, p_subSettings);
+
+                        // Button
+                        var buttonRect = new Rect(rect.x + rect.width * 0.7f, rect.y, rect.width * 0.3f, rect.height);
+                        if (p_subSettings.objectReferenceValue != null)
+                        {
+                            if (AssetDatabase.GetAssetPath(p_subSettings.objectReferenceValue) != AssetDatabase.GetAssetPath(m_settings))
+                            {
+                                if (GUI.Button(buttonRect, "ADD TO ASSET"))
+                                {
+                                    if (AssetDatabase.IsSubAsset(p_subSettings.objectReferenceValue))
+                                    {
+                                        AssetDatabase.RemoveObjectFromAsset(p_subSettings.objectReferenceValue);
+                                    }
+                                    AssetDatabase.AddObjectToAsset(p_subSettings.objectReferenceValue, AssetDatabase.GetAssetPath(m_settings));
+                                }
+                            }
+                            else
+                            {
+                                using (new GUIHelper.GUIBackgroundColorScope(Color.red))
+                                {
+                                    if (GUI.Button(buttonRect, "DESTROY SUB SETTINGS"))
+                                    {
+                                        if (AssetDatabase.IsSubAsset(p_subSettings.objectReferenceValue))
+                                        {
+                                            AssetDatabase.RemoveObjectFromAsset(p_subSettings.objectReferenceValue);
+                                        }
+                                        DestroyImmediate(p_subSettings.objectReferenceValue);
+                                        p_subSettings.objectReferenceValue = null;
+                                        AssetDatabase.SaveAssetIfDirty(m_settings);
+                                    }
+                                }
+                            }
+                        }
+                        else if (!field.FieldType.IsAbstract && field.FieldType != typeof(ScriptableObject))
+                        {
+                            using (new GUIHelper.GUIBackgroundColorScope(Color.green))
+                            {
+                                if (GUI.Button(buttonRect, "CREATE " + field.FieldType.ToString().ToUpper()))
+                                {
+                                    var newSubSettings = Database.CreateScriptableAndAddToAsset(field.FieldType, m_settings);
+                                    newSubSettings.name = ObjectNames.NicifyVariableName(field.Name);
+                                    p_subSettings.objectReferenceValue = newSubSettings;
+                                    AssetDatabase.SaveAssetIfDirty(newSubSettings);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // TODO popup to create from child type
+                            EditorGUI.LabelField(buttonRect, "Can't create asset of type " + field.FieldType.Name);
+                        }
+
+                        EditorGUILayout.Space(5f);
+                    }
+                }
+            }
+        }
+
+        protected virtual void OnSubSettingsGUI()
+        {
+            if (m_subSettingsField.IsValid())
+            {
+                bool hasValidSubSettings = false;
+                foreach (var (field, attribute) in m_subSettingsField)
+                {
+                    var p_subSettings = serializedObject.FindProperty(field.Name);
+                    if (p_subSettings != null && p_subSettings.objectReferenceValue is ScriptableObject so)
+                    {
+                        var editor = GetOrCreateSubSettingsEditor(so, attribute);
+                        if (editor != null)
+                        {
+                            hasValidSubSettings = true;
+                            DrawSubSettingsElementGUI(p_subSettings, so, editor);
+                        }
+                    }
+                }
+
+                if (hasValidSubSettings)
+                {
+                    var rect = EditorGUILayout.GetControlRect(false, 2f);
+                    rect.x = 0f; rect.width = EditorGUIUtility.currentViewWidth;
+                    EditorGUI.DrawRect(rect, Color.white);
+                    EditorGUILayout.Space(5f);
+                }
+            }
+        }
+        protected virtual void DrawSubSettingsElementGUI(SerializedProperty property, ScriptableObject so, Editor editor)
+        {
+            var rect = EditorGUILayout.GetControlRect(false, 22f);
+            var decoRect = new Rect(0f, rect.y, EditorGUIUtility.currentViewWidth, rect.height);
+            EditorGUI.DrawRect(decoRect, GUIHelper.grey015);
+            decoRect.height = 1f;
+            EditorGUI.DrawRect(decoRect, Color.black);
+
+            property.isExpanded = EditorGUI.Foldout(rect, property.isExpanded, so.name, true);
+            if (property.isExpanded)
+            {
+                if (editor is ISubSettingsEditor subSettingsEditor)
+                {
+                    subSettingsEditor.DrawSubSettingsGUI();
+                }
+                else
+                {
+                    DrawPropertiesExcluding(editor.serializedObject, "m_Script");
+                }
+                EditorGUILayout.Space(2f);
+                rect = EditorGUILayout.GetControlRect(false, 1f);
+                rect.x = 0f; rect.width = EditorGUIUtility.currentViewWidth;
+                EditorGUI.DrawRect(rect, Color.black);
+            }
+            else
+            {
+                decoRect.y += 21f;
+                EditorGUI.DrawRect(decoRect, Color.black);
+            }
+        }
+
+        #endregion
 
         #endregion
     }

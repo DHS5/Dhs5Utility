@@ -55,7 +55,8 @@ namespace Dhs5.Utility.Editors
         public static GUIContent ScreenIcon => EditorGUIUtility.IconContent("BuildSettings.Standalone On");
         public static GUIContent ScreenInactiveIcon => EditorGUIUtility.IconContent("BuildSettings.LinuxHeadlessSimulation");
         public static GUIContent ConsoleIcon => EditorGUIUtility.IconContent("d_UnityEditor.ConsoleWindow@2x");
-        public static GUIContent Clipboard => EditorGUIUtility.IconContent("Clipboard");
+        public static GUIContent ClipboardIcon => EditorGUIUtility.IconContent("Clipboard");
+        public static GUIContent HierarchyIcon => EditorGUIUtility.IconContent("d_UnityEditor.HierarchyWindow");
 
         #endregion
 

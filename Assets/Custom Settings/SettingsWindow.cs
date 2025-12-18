@@ -22,6 +22,12 @@ namespace Dhs5.Utility.Settings
 
         #endregion
 
+        #region Static Properties
+
+        public static bool ShowSubSettingsReferences { get; set; }
+
+        #endregion
+
         #region Members
 
         private Editor m_editor;
@@ -74,7 +80,6 @@ namespace Dhs5.Utility.Settings
                 var rect = EditorGUILayout.GetControlRect(false, 2f);
                 rect.x = 0f; rect.width = position.width;
                 EditorGUI.DrawRect(rect, Color.white);
-                EditorGUILayout.Space(5f);
 
                 m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition);
 
@@ -97,12 +102,15 @@ namespace Dhs5.Utility.Settings
             GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
 
             float buttonsWidth = 40f;
-            int buttonsCount = 1;
+            int buttonsCount = 2;
 
             var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
             m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
 
-            var refreshButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
+            var subSettingsButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
+            ShowSubSettingsReferences = EditorGUIHelper.ToolbarToggle(subSettingsButtonRect, EditorGUIHelper.HierarchyIcon, ShowSubSettingsReferences);
+            
+            var refreshButtonRect = new Rect(popupRect.x + popupRect.width + buttonsWidth, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
             {
                 GetSettings();

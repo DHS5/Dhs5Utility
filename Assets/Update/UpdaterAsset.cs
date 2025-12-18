@@ -106,6 +106,7 @@ namespace Dhs5.Utility.Updates
 
 #if UNITY_EDITOR
 
+    [CustomEditor(typeof(UpdaterAsset))]
     public class UpdaterAssetEditor : Editor
     {
         #region Members
@@ -527,8 +528,8 @@ namespace Dhs5.Utility.Updates
                         if (AssetDatabase.IsSubAsset(channelObject))
                         {
                             AssetDatabase.RemoveObjectFromAsset(channelObject);
-                            AssetDatabase.AddObjectToAsset(channelObject, updaterAssetPath);
                         }
+                        AssetDatabase.AddObjectToAsset(channelObject, updaterAssetPath);
                     }
                 }
                 AssetDatabase.SaveAssets();
