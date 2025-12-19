@@ -1,6 +1,18 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6263823407700710226
+--- !u!114 &-6690389525659148095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6f707c2a9b21fe478ba7e8159fc6141, type: 3}
+  m_Name: Sub Set Test 2
+  m_EditorClassIdentifier: Assembly-CSharp::TestSubSettings2
+--- !u!114 &-4829237550265029634
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -57,6 +69,18 @@ MonoBehaviour:
     m_key: Player Pref Bool
     m_default: 0
     m_current: 0
-  m_subSetTest: {fileID: -6263823407700710226}
-  m_subSetTest2: {fileID: 0}
-  m_subSetTest3: {fileID: 0}
+  m_subSetTest: {fileID: -4829237550265029634}
+  m_subSetTest2: {fileID: -6690389525659148095}
+  m_subSetTest3: {fileID: 5641552958961620114}
+--- !u!114 &5641552958961620114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb35458f1083ecb4497f7447fa069f29, type: 3}
+  m_Name: Sub Set Test 3
+  m_EditorClassIdentifier: Assembly-CSharp::TestSubSettings3

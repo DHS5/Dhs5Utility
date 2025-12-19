@@ -109,6 +109,8 @@ namespace Dhs5.Utility.Updates
     [CustomEditor(typeof(UpdaterAsset))]
     public class UpdaterAssetEditor : Editor
     {
+        // TODO Assign enum index to channels object
+
         #region Members
 
         private UpdaterAsset m_updaterAsset;
@@ -516,45 +518,29 @@ namespace Dhs5.Utility.Updates
             EditorGUILayout.Space(5f);
             EditorGUILayout.LabelField("Asset Sanity", EditorStyles.boldLabel);
 
-            if (GUILayout.Button("Ensure channel objects are inside asset"))
+            using (new GUIHelper.GUIBackgroundColorScope(Color.green))
             {
-                AssetDatabase.Refresh();
-                var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
-                for (int i = 0; i < p_updateChannels.arraySize; i++)
+                if (GUILayout.Button("ENSURE ASSET SANITY"))
                 {
-                    if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject channelObject
-                        && AssetDatabase.GetAssetPath(channelObject) != updaterAssetPath)
+                    AssetDatabase.Refresh();
+
+                    // Put all channels in list inside the asset
+                    var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
+                    for (int i = 0; i < p_updateChannels.arraySize; i++)
                     {
-                        if (AssetDatabase.IsSubAsset(channelObject))
+                        if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject channelObject
+                            && AssetDatabase.GetAssetPath(channelObject) != updaterAssetPath)
                         {
-                            AssetDatabase.RemoveObjectFromAsset(channelObject);
+                            if (AssetDatabase.IsSubAsset(channelObject))
+                            {
+                                AssetDatabase.RemoveObjectFromAsset(channelObject);
+                            }
+                            AssetDatabase.AddObjectToAsset(channelObject, updaterAssetPath);
                         }
-                        AssetDatabase.AddObjectToAsset(channelObject, updaterAssetPath);
                     }
-                }
-                AssetDatabase.SaveAssets();
-            }
-            if (GUILayout.Button("Ensure no null objects in list"))
-            {
-                for (int i = p_updateChannels.arraySize - 1; i >= 0; i--)
-                {
-                    if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                    // Put all channels in asset inside list
+                    foreach (var subAsset in EditorDataUtility.GetSubAssets(m_updaterAsset))
                     {
-                        p_updateChannels.DeleteArrayElementAtIndex(i);
-                    }
-                }
-            }
-            if (GUILayout.Button("Ensure no intrusive object inside asset"))
-            {
-                var subAssets = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(m_updaterAsset));
-
-                if (subAssets.IsValid())
-                {
-                    for (int i = subAssets.Length - 1; i >= 0; i--)
-                    {
-                        var subAsset = subAssets[i];
-                        if (subAsset == m_updaterAsset) continue;
-
                         if (subAsset is UpdateChannelObject channelObject)
                         {
                             bool isInside = false;
@@ -562,7 +548,7 @@ namespace Dhs5.Utility.Updates
                             {
                                 if (p_updateChannels.GetArrayElementAtIndex(j).objectReferenceValue == channelObject)
                                 {
-                                    isInside = true; 
+                                    isInside = true;
                                     break;
                                 }
                             }
@@ -575,12 +561,22 @@ namespace Dhs5.Utility.Updates
                             continue;
                         }
                         // Same for Timelines
-
-                        AssetDatabase.RemoveObjectFromAsset(subAsset);
-                        DestroyImmediate(subAsset);
                     }
 
-                    AssetDatabase.SaveAssetIfDirty(m_updaterAsset);
+                    // Remove list null elements
+                    for (int i = p_updateChannels.arraySize - 1; i >= 0; i--)
+                    {
+                        if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                        {
+                            p_updateChannels.DeleteArrayElementAtIndex(i);
+                        }
+                    }
+
+                    // Destroy intrusive objects
+                    EditorDataUtility.EnsureAssetValidity(m_updaterAsset, (subAsset) =>
+                    {
+                        return subAsset is UpdateChannelObject or UpdateTimelineObject;
+                    });
                 }
             }
         }

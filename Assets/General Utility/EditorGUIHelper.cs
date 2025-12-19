@@ -228,6 +228,31 @@ namespace Dhs5.Utility.Editors
 
         #endregion
 
+        #region Child Type
+
+        public static void DrawChildTypeSelector(Type type, Action<Type> callback, bool canBeAbstract = false, Func<Type, bool> predicate = null)
+        {
+            var menu = new GenericMenu();
+
+            foreach (var childType in EditorDataUtility.GetAllChildTypes(type, predicate))
+            {
+                if (canBeAbstract || !childType.IsAbstract)
+                    menu.AddItem(new GUIContent(childType.Name), false, Callback, childType);
+            }
+
+            menu.ShowAsContext();
+
+            void Callback(object obj)
+            {
+                if (obj is Type type)
+                {
+                    callback?.Invoke(type);
+                }
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Scopes
