@@ -99,20 +99,88 @@ namespace Dhs5.Utility.Editors
 
         public class ScriptWriter
         {
+            #region ENUM ScriptType
 
+            public enum EScriptType
+            {
+                NONE = 0,
+                CLASS = 1,
+                STATIC_CLASS = 2,
+                STRUCT = 3,
+                ENUM = 4,
+                INTERFACE = 5,
+            }
+
+            #endregion
+
+            #region ENUM Protection
+
+            public enum EProtection
+            {
+                PUBLIC = 0,
+                PROTECTED = 1,
+                PRIVATE = 2,
+            }
+
+            #endregion
+
+
+            #region Members
+
+            protected readonly StringBuilder baseStringBuilder;
+            protected readonly StringBuilder usingStringBuilder;
+
+            public readonly EProtection scriptProtection;
+            public readonly EScriptType scriptType;
+            public readonly string scriptName;
+
+            #endregion
+
+            #region Constructor
+
+            public ScriptWriter(EScriptType scriptType, string scriptName, EProtection scriptProtection = EProtection.PUBLIC)
+            {
+                baseStringBuilder = new StringBuilder();
+                usingStringBuilder = new StringBuilder();
+
+                this.scriptProtection = scriptProtection;
+                this.scriptType = scriptType;
+                this.scriptName = scriptName;
+            }
+
+            #endregion
         }
 
         #region ENUM Writer
 
         public class EnumWriter : ScriptWriter
         {
+            #region ENUM EnumType
+
+            public enum EEnumType
+            {
+                INT32 = 0,
+                INT64 = 1,
+                INT8 = 2,
+            }
+
+            #endregion
+
             #region Members
 
-            public readonly string enumName;
-            public readonly Type enumType;
+            public readonly EEnumType enumType;
             public readonly string[] enumContent;
 
-            public readonly StringBuilder usingStringBuilder;
+            #endregion
+
+            #region Constructors
+
+            public EnumWriter(string enumName, string[] enumContent, EEnumType enumType = EEnumType.INT32, EProtection enumProtection = EProtection.PUBLIC) 
+                : base(EScriptType.ENUM, enumName, enumProtection)
+            {
+                this.enumType = enumType;
+                this.enumContent = enumContent;
+            }
 
             #endregion
 
