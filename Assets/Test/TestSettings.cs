@@ -1,4 +1,5 @@
 using Dhs5.Utility.Settings;
+using Dhs5.Utility.Updates;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,6 +23,8 @@ public class TestSettings : CustomSettings<TestSettings>
     [SerializeField, SubSettings] private TestSubSettings m_subSetTest;
     [SerializeField, SubSettings] private TestSubSettings1 m_subSetTest2;
     [SerializeField, SubSettings] private TestSubSettings1 m_subSetTest3;
+    [SerializeField] private SerializableMonoScript m_serializedMonoScript;
+    [SerializeField] private SerializableMonoScript<UpdateConditionObject> m_updateConditionType;
 
     public static PlayerPrefInt PlayerPrefInt => I.m_playerPrefInt;
 }

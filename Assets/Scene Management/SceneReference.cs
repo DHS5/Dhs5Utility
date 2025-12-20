@@ -16,7 +16,7 @@ namespace Dhs5.Utility.Scenes
         : ISerializationCallbackReceiver
 #endif
     {
-        #region Global Members
+        #region Members
 
 #if UNITY_EDITOR
         [SerializeField] private SceneAsset m_sceneAsset;

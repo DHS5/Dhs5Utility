@@ -24,6 +24,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76870bd849a99b147a709219633870d3, type: 3}
   m_Name: Sub Set Test
   m_EditorClassIdentifier: Assembly-CSharp::TestSubSettings
+  test: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -72,6 +73,14 @@ MonoBehaviour:
   m_subSetTest: {fileID: -4829237550265029634}
   m_subSetTest2: {fileID: -6690389525659148095}
   m_subSetTest3: {fileID: 5641552958961620114}
+  m_serializedMonoScript:
+    m_monoScript: {fileID: 11500000, guid: 1d3e791bad61a2b44a968a66f195ab45, type: 3}
+    m_typeName: Dhs5.Utility.Debuggers.BaseDebugger, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
+  m_updateConditionType:
+    m_monoScript: {fileID: 11500000, guid: 923491fd08b3a7f4e9ae50bc589432b1, type: 3}
+    m_typeName: Dhs5.Utility.Updates.UpdateConditionObject_Always, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
 --- !u!114 &5641552958961620114
 MonoBehaviour:
   m_ObjectHideFlags: 0
