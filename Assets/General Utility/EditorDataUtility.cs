@@ -133,12 +133,13 @@ namespace Dhs5.Utility.Editors
             public readonly EProtection scriptProtection;
             public readonly EScriptType scriptType;
             public readonly string scriptName;
+            public readonly string scriptNamespace;
 
             #endregion
 
             #region Constructor
 
-            public ScriptWriter(EScriptType scriptType, string scriptName, EProtection scriptProtection = EProtection.PUBLIC)
+            public ScriptWriter(EScriptType scriptType, string scriptName, string scriptNamespace, EProtection scriptProtection = EProtection.PUBLIC)
             {
                 baseStringBuilder = new StringBuilder();
                 usingStringBuilder = new StringBuilder();
@@ -146,6 +147,7 @@ namespace Dhs5.Utility.Editors
                 this.scriptProtection = scriptProtection;
                 this.scriptType = scriptType;
                 this.scriptName = scriptName;
+                this.scriptNamespace = scriptNamespace;
             }
 
             #endregion
@@ -175,8 +177,8 @@ namespace Dhs5.Utility.Editors
 
             #region Constructors
 
-            public EnumWriter(string enumName, string[] enumContent, EEnumType enumType = EEnumType.INT32, EProtection enumProtection = EProtection.PUBLIC) 
-                : base(EScriptType.ENUM, enumName, enumProtection)
+            public EnumWriter(string enumName, string[] enumContent, string enumNamespace, EEnumType enumType = EEnumType.INT32, EProtection enumProtection = EProtection.PUBLIC) 
+                : base(EScriptType.ENUM, enumName, enumNamespace, enumProtection)
             {
                 this.enumType = enumType;
                 this.enumContent = enumContent;
