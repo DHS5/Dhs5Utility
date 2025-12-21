@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-6098397490677468007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 128faac909f19f947859a19e1422af8c, type: 3}
+  m_Name: TEST3
+  m_EditorClassIdentifier: Assembly-CSharp::TestSaveSubObject
+  m_category: 2
+  int4: 0
+  int1: 1
+  int2: 2
+  string1: 
+  string2: 
+  vector1: {x: 0, y: 0, z: 0}
+  vector2: {x: 0, y: 0, z: 0}
+--- !u!114 &-4268417021430744894
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 128faac909f19f947859a19e1422af8c, type: 3}
+  m_Name: TEST2
+  m_EditorClassIdentifier: Assembly-CSharp::TestSaveSubObject
+  m_category: 1
+  int4: 0
+  int1: 2
+  int2: 2
+  string1: 
+  string2: 
+  vector1: {x: 0, y: 0, z: 0}
+  vector2: {x: 0, y: 0, z: 0}
+--- !u!114 &-1371869739204263913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 128faac909f19f947859a19e1422af8c, type: 3}
+  m_Name: TEST1
+  m_EditorClassIdentifier: Assembly-CSharp::TestSaveSubObject
+  m_category: 0
+  int4: 0
+  int1: 1
+  int2: 1
+  string1: 
+  string2: 
+  vector1: {x: 0, y: 0, z: 0}
+  vector2: {x: 0, y: 0, z: 0}
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2922ef3c137bd9944a0c064562ff247d, type: 3}
+  m_Name: TestLoadSaveObject2
+  m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.SaveLoad.SaveObject
+  m_editorSubObjects:
+  - {fileID: -1371869739204263913}
+  - {fileID: -4268417021430744894}
+  - {fileID: -6098397490677468007}

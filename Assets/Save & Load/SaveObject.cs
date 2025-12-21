@@ -39,10 +39,12 @@ namespace Dhs5.Utility.SaveLoad
         {
             public SubSaveWrapper(BaseSaveSubObject subObject)
             {
+                categoryName = subObject.Category.ToString();
                 typeName = subObject.GetType().AssemblyQualifiedName;
                 content = JsonUtility.ToJson(subObject);
             }
 
+            public string categoryName;
             public string typeName;
             public string content;
         }
@@ -63,7 +65,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Set Methods
 
-        public void Add(BaseSaveSubObject subObject)
+        internal void Add(BaseSaveSubObject subObject)
         {
             if (m_subObjectDictionary.ContainsKey(subObject.Category))
             {
@@ -73,15 +75,15 @@ namespace Dhs5.Utility.SaveLoad
 
             m_subObjectDictionary.Add(subObject.Category, subObject);
         }
-        public void Set(BaseSaveSubObject subObject)
+        internal void Set(BaseSaveSubObject subObject)
         {
             m_subObjectDictionary[subObject.Category] = subObject;
         }
-        public bool Remove(ESaveCategory category)
+        internal bool Remove(ESaveCategory category)
         {
             return m_subObjectDictionary.Remove(category);
         }
-        public bool Remove(ESaveCategory category, out BaseSaveSubObject subObject)
+        internal bool Remove(ESaveCategory category, out BaseSaveSubObject subObject)
         {
             return m_subObjectDictionary.Remove(category, out subObject);
         }
@@ -90,12 +92,28 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Access Methods
 
+        internal bool TryGetSubObject(ESaveCategory category, out BaseSaveSubObject subObject)
+        {
+            return m_subObjectDictionary.TryGetValue(category, out subObject);
+        }
+        internal bool TryGetSubObject<T>(ESaveCategory category, out T subObject) where T : BaseSaveSubObject
+        {
+            if (m_subObjectDictionary.TryGetValue(category, out var obj)
+                && obj is T t)
+            {
+                subObject = t;
+                return true;
+            }
+            subObject = null;
+            return false;
+        }
+
         #endregion
 
 
         #region Save
 
-        public string GetSaveContent()
+        internal string GetSaveContent()
         {
             SaveWrapper wrapper = new SaveWrapper(m_subObjectDictionary.Values);
 
@@ -106,7 +124,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Load
 
-        public void Load(string saveContent)
+        internal void Load(string saveContent)
         {
             Clear();
 
@@ -114,7 +132,7 @@ namespace Dhs5.Utility.SaveLoad
 
             foreach (var w in wrapper.subWrappers)
             {
-                if (TryLoadSubObject(w.typeName, w.content, out var subObject))
+                if (TryLoadSubObject(w.categoryName, w.typeName, w.content, out var subObject))
                 {
                     if (!m_subObjectDictionary.TryAdd(subObject.Category, subObject))
                     {
@@ -141,12 +159,29 @@ namespace Dhs5.Utility.SaveLoad
 #endif
         }
 
-        private bool TryLoadSubObject(string typeName, string content, out BaseSaveSubObject subObject)
+        private bool TryLoadSubObject(string categoryName, string typeName, string content, out BaseSaveSubObject subObject)
         {
             var type = Type.GetType(typeName, false);
-            if (type != null)
+            if (type != null && TryLoadSubObject(type, content, out subObject))
             {
-                return TryLoadSubObject(type, content, out subObject);
+                // Category double check
+                if (Enum.TryParse(typeof(ESaveCategory), categoryName, out var result))
+                {
+                    ESaveCategory category = (ESaveCategory)result;
+                    if (category != subObject.Category)
+                    {
+                        Debug.LogWarning("Sub Object category is " + subObject.Category + " but category name was " + categoryName + " when serializing\n" +
+                            "The category will be changed to " + category);
+                        subObject.Category = category;
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("Sub Object category is " + subObject.Category + " but category name was " + categoryName + " when serializing\n" +
+                            "Can't find Category with name " + categoryName + " so Sub Object category will stay " + subObject.Category);
+                }
+
+                return true;
             }
 
             // TODO : enable handling of wrong type for cases where the type name changed etc...
@@ -208,7 +243,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Editor Methods
 
-        public void Editor_RefreshDictionaryFromArray()
+        internal void Editor_RefreshDictionaryFromArray()
         {
             m_subObjectDictionary.Clear();
 

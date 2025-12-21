@@ -2,22 +2,55 @@ using UnityEngine;
 using Dhs5.Utility.GUIs;
 using Dhs5.Utility.Databases;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.SaveLoad
 {
-    public class SaveLoadWindow : EditorWindow
+    public class SaveWindow : EditorWindow
     {
         #region Static Constructor
 
         [MenuItem("Window/Dhs5 Utility/Save & Load", priority = 100)]
         public static void OpenWindow()
         {
-            SaveLoadWindow window = GetWindow<SaveLoadWindow>();
+            SaveWindow window = GetWindow<SaveWindow>();
             window.titleContent = new GUIContent(EditorGUIHelper.SaveIcon) { text = "Save Load" };
+        }
+
+        #endregion
+
+        #region Asset Management
+
+        private SaveAsset m_saveAsset;
+        private SaveAsset Asset
+        {
+            get
+            {
+                if (m_saveAsset == null)
+                {
+                    m_saveAsset = SaveAsset.Instance;
+                }
+                return m_saveAsset;
+            }
+        }
+
+        #endregion
+
+        #region Asset Editor
+
+        private SaveAssetEditor m_saveAssetEditor;
+        private SaveAssetEditor AssetEditor
+        {
+            get
+            {
+                if (m_saveAssetEditor == null && Asset != null)
+                {
+                    m_saveAssetEditor = Editor.CreateEditor(Asset, typeof(SaveAssetEditor)) as SaveAssetEditor;
+                }
+                return m_saveAssetEditor;
+            }
         }
 
         #endregion
@@ -39,7 +72,7 @@ namespace Dhs5.Utility.SaveLoad
         #region GUI Content
 
         private GUIContent g_title = new GUIContent("Save & Load");
-        private GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Save"), new GUIContent("Load"), new GUIContent("Debug"), new GUIContent("Settings") };
+        private GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Categories"), new GUIContent("Load"), new GUIContent("Debug"), new GUIContent("Settings") };
 
         private GUIContent g_saveTest = new GUIContent("Save Test");
         private GUIContent g_create = new GUIContent("Create");
@@ -66,18 +99,36 @@ namespace Dhs5.Utility.SaveLoad
             EditorGUI.DrawRect(rect, Color.white);
             EditorGUILayout.Space(5f);
 
+            if (AssetEditor != null)
+            {
+                AssetEditor.serializedObject.Update();
+            }
             switch (m_currentWindow)
             {
-                // SAVE
+                // CATEGORIES
                 case 0:
-                    DrawSaveGUI();
+                    if (Asset != null && AssetEditor != null)
+                    {
+                        AssetEditor.DrawCategoriesGUI();
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
+                    }
                     break;
                     
                 // LOAD
                 case 1:
-                    DrawLoadGUI();
+                    if (Asset != null && AssetEditor != null)
+                    {
+                        AssetEditor.DrawLoadGUI();
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
+                    }
                     break;
-                    
+
                 // DEBUG
                 case 2:
                     DrawDebugGUI();
@@ -88,24 +139,11 @@ namespace Dhs5.Utility.SaveLoad
                     DrawSettingsGUI();
                     break;
             }
-        }
 
-        #endregion
-
-        #region SAVE GUI
-
-        private void DrawSaveGUI()
-        {
-
-        }
-
-        #endregion
-
-        #region LOAD GUI
-
-        private void DrawLoadGUI()
-        {
-
+            if (AssetEditor != null)
+            {
+                AssetEditor.serializedObject.ApplyModifiedProperties();
+            }
         }
 
         #endregion
@@ -191,12 +229,67 @@ namespace Dhs5.Utility.SaveLoad
         }
 
         #endregion
-        
+
         #region SETTINGS GUI
 
         private void DrawSettingsGUI()
         {
+            EditorGUILayout.Space(10f);
+            EditorGUILayout.LabelField("Asset", EditorStyles.boldLabel);
 
+            // Assets
+            var array = Resources.LoadAll<SaveAsset>("Save");
+            if (array != null && array.Length > 0)
+            {
+                if (array.Length == 1)
+                {
+                    EditorGUI.BeginDisabledGroup(true);
+                    EditorGUILayout.ObjectField(array[0], typeof(SaveAsset), false);
+                    EditorGUI.EndDisabledGroup();
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("Too much SaveLoad Assets", MessageType.Error);
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        var rect = EditorGUILayout.GetControlRect(false, 22f);
+
+                        EditorGUI.BeginDisabledGroup(true);
+                        var objectRect = new Rect(rect.x, rect.y, rect.width - 32f, rect.height - 2f);
+                        EditorGUI.ObjectField(objectRect, array[i], typeof(SaveAsset), false);
+                        EditorGUI.EndDisabledGroup();
+
+                        var usedButtonRect = new Rect(rect.x + rect.width - 30f, rect.y + 1f, 30f, rect.height - 2f);
+                        using (new GUIHelper.GUIBackgroundColorScope(Color.red))
+                        {
+                            if (GUI.Button(usedButtonRect, EditorGUIHelper.DeleteIcon))
+                            {
+                                Database.DeleteAsset(array[i], true);
+                                AssetDatabase.SaveAssets();
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("No assets found", MessageType.Warning);
+                EditorGUILayout.Space(5f);
+
+                // Create asset button
+                if (GUILayout.Button("Create new asset"))
+                {
+                    Database.CreateAssetOfType(typeof(SaveAsset), "Assets/Resources/SaveLoad/SaveLoad.asset");
+                    AssetDatabase.SaveAssets();
+                }
+            }
+
+            // Assets Settings
+            if (AssetEditor != null)
+            {
+                EditorGUILayout.Space(5f);
+                AssetEditor.DrawSettingsGUI();
+            }
         }
 
         #endregion

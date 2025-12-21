@@ -110,6 +110,7 @@ namespace Dhs5.Utility.Updates
     public class UpdaterAssetEditor : Editor
     {
         // TODO Assign enum index to channels object
+        // Title is button to asset
 
         #region Members
 
@@ -311,8 +312,7 @@ namespace Dhs5.Utility.Updates
 
         private void DrawChannelsFooter()
         {
-            var rect = EditorGUILayout.BeginVertical();
-            //GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
+            EditorGUILayout.BeginVertical();
 
             EditorGUILayout.Space(3f);
             using (new GUIHelper.GUIBackgroundColorScope(Color.green))
@@ -489,25 +489,25 @@ namespace Dhs5.Utility.Updates
             // SCRIPTS
             EditorGUILayout.LabelField("Scripts", EditorStyles.boldLabel);
 
-            //if (p_updateChannelsTextAsset.objectReferenceValue == null
-            //    || p_updateConditionsTextAsset.objectReferenceValue == null)
-            //{
-            //    var scriptObj = serializedObject.FindProperty("m_Script").objectReferenceValue;
-            //    if (scriptObj != null)
-            //    {
-            //        string path;
-            //        if (p_updateChannelsTextAsset.objectReferenceValue == null)
-            //        {
-            //            path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/EUpdateChannel.cs";
-            //            p_updateChannelsTextAsset.objectReferenceValue = Database.CreateOrOverwriteScript(path, GetUpdateChannelScriptContent());
-            //        }
-            //        if (p_updateConditionsTextAsset.objectReferenceValue == null)
-            //        {
-            //            path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/EUpdateCondition.cs";
-            //            p_updateConditionsTextAsset.objectReferenceValue = Database.CreateOrOverwriteScript(path, GetUpdateConditionScriptContent());
-            //        }
-            //    }
-            //}
+            if (p_updateChannelsTextAsset.objectReferenceValue == null
+                || p_updateConditionsTextAsset.objectReferenceValue == null)
+            {
+                var scriptObj = serializedObject.FindProperty("m_Script").objectReferenceValue;
+                if (scriptObj != null)
+                {
+                    string path;
+                    if (p_updateChannelsTextAsset.objectReferenceValue == null)
+                    {
+                        path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/EUpdateChannel.cs";
+                        p_updateChannelsTextAsset.objectReferenceValue = Database.CreateOrLoadTextAsset(path);
+                    }
+                    if (p_updateConditionsTextAsset.objectReferenceValue == null)
+                    {
+                        path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/EUpdateCondition.cs";
+                        p_updateConditionsTextAsset.objectReferenceValue = Database.CreateOrLoadTextAsset(path);
+                    }
+                }
+            }
             using (new EditorGUI.DisabledGroupScope(true))
             {
                 EditorGUILayout.ObjectField(p_updateChannelsTextAsset);

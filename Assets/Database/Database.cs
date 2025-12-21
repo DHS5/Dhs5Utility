@@ -354,6 +354,19 @@ namespace Dhs5.Utility.Databases
             AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
         }
+        public static TextAsset CreateOrLoadTextAsset(string path)
+        {
+            if (File.Exists(path))
+            {
+                return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+            }
+
+            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            File.WriteAllText(path, "");
+            AssetDatabase.Refresh();
+            AssetDatabase.SaveAssets();
+            return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+        }
 
         #endregion
 
