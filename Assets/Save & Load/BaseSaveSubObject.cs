@@ -6,7 +6,7 @@ namespace Dhs5.Utility.SaveLoad
     {
         #region Members
 
-        [SerializeField, ReadOnly] private ESaveCategory m_category;
+        [SerializeField] private ESaveCategory m_category;
 
         #endregion
 

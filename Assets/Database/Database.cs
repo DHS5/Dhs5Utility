@@ -247,6 +247,10 @@ namespace Dhs5.Utility.Databases
             {
                 return CreateEmptyPrefab(path, triggerRename);
             }
+            else if (type == typeof(TextAsset))
+            {
+                return CreateEmptyTextAsset(path);
+            }
             return null;
         }
 
@@ -330,10 +334,22 @@ namespace Dhs5.Utility.Databases
         }
 
         // --- Scripts ---
-        public static TextAsset CreateOrOverwriteScript(string path, string content)
+        public static TextAsset CreateOrOverwriteTextAsset(string path, string content)
         {
             EditorUtils.EnsureAssetParentDirectoryExistence(path);
             File.WriteAllText(path, content);
+            AssetDatabase.Refresh();
+            AssetDatabase.SaveAssets();
+            return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+        }
+        public static TextAsset CreateOrOverwriteTextAsset(TextAsset textAsset, string content)
+        {
+            return CreateOrOverwriteTextAsset(AssetDatabase.GetAssetPath(textAsset), content);
+        }
+        public static TextAsset CreateEmptyTextAsset(string path)
+        {
+            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            File.WriteAllText(path, "");
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<TextAsset>(path);

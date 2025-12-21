@@ -119,7 +119,7 @@ namespace Dhs5.Utility.Databases
             }
             if (pathValid && (differentContent || differentPath))
             {
-                var newTextAsset = Database.CreateOrOverwriteScript(path, content);
+                var newTextAsset = Database.CreateOrOverwriteTextAsset(path, content);
                 if (m_textAsset != null
                     && newTextAsset != m_textAsset)
                 {
