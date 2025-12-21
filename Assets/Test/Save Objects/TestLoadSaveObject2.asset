@@ -1,46 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6098397490677468007
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 128faac909f19f947859a19e1422af8c, type: 3}
-  m_Name: TEST3
-  m_EditorClassIdentifier: Assembly-CSharp::TestSaveSubObject
-  m_category: 2
-  int4: 0
-  int1: 1
-  int2: 2
-  string1: 
-  string2: 
-  vector1: {x: 0, y: 0, z: 0}
-  vector2: {x: 0, y: 0, z: 0}
---- !u!114 &-4268417021430744894
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 128faac909f19f947859a19e1422af8c, type: 3}
-  m_Name: TEST2
-  m_EditorClassIdentifier: Assembly-CSharp::TestSaveSubObject
-  m_category: 1
-  int4: 0
-  int1: 2
-  int2: 2
-  string1: 
-  string2: 
-  vector1: {x: 0, y: 0, z: 0}
-  vector2: {x: 0, y: 0, z: 0}
---- !u!114 &-1371869739204263913
+--- !u!114 &-5350709434311814344
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -72,7 +32,69 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2922ef3c137bd9944a0c064562ff247d, type: 3}
   m_Name: TestLoadSaveObject2
   m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.SaveLoad.SaveObject
+  m_date:
+    m_year: 2025
+    m_month: 12
+    m_day: 21
+    m_hour: 18
+    m_minute: 24
+    m_second: 15
+    m_millisecond: 309
+  m_saveInfo: {fileID: 7397594615097754851}
   m_editorSubObjects:
-  - {fileID: -1371869739204263913}
-  - {fileID: -4268417021430744894}
-  - {fileID: -6098397490677468007}
+  - {fileID: -5350709434311814344}
+  - {fileID: 3007526384275663978}
+  - {fileID: 847560433436855933}
+--- !u!114 &847560433436855933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 128faac909f19f947859a19e1422af8c, type: 3}
+  m_Name: TEST3
+  m_EditorClassIdentifier: Assembly-CSharp::TestSaveSubObject
+  m_category: 2
+  int4: 0
+  int1: 1
+  int2: 2
+  string1: 
+  string2: 
+  vector1: {x: 0, y: 0, z: 0}
+  vector2: {x: 0, y: 0, z: 0}
+--- !u!114 &3007526384275663978
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 128faac909f19f947859a19e1422af8c, type: 3}
+  m_Name: TEST2
+  m_EditorClassIdentifier: Assembly-CSharp::TestSaveSubObject
+  m_category: 1
+  int4: 0
+  int1: 2
+  int2: 2
+  string1: 
+  string2: 
+  vector1: {x: 0, y: 0, z: 0}
+  vector2: {x: 0, y: 0, z: 0}
+--- !u!114 &7397594615097754851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c31c55dad0886140bb35c7eb70363a9, type: 3}
+  m_Name: SAVE INFO
+  m_EditorClassIdentifier: Assembly-CSharp::TestSaveInfo
+  string1: This is a test

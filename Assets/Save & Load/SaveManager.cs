@@ -28,6 +28,18 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Save Set Methods
 
+        public static void SetInfo(BaseSaveInfo saveInfo)
+        {
+            if (CurrentSaveObject != null && IsSaveProcessActive)
+            {
+                CurrentSaveObject.SetInfo(saveInfo);
+            }
+            else
+            {
+                if (CurrentSaveObject == null) Debug.LogError("SAVE SET ERROR : Current SaveObject is null");
+                else Debug.LogError("SAVE SET ERROR : Save Process is not active");
+            }
+        }
         public static void Add(BaseSaveSubObject subObject)
         {
             if (CurrentSaveObject != null && IsSaveProcessActive)
@@ -84,6 +96,18 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Save Access Methods
 
+        public static BaseSaveInfo GetSaveInfo()
+        {
+            if (CurrentSaveObject != null)
+            {
+                return CurrentSaveObject.GetSaveInfo();
+            }
+            else
+            {
+                Debug.LogError("SAVE GET ERROR : Current SaveObject is null");
+                return null;
+            }
+        }
         public static bool TryGetSubObject(ESaveCategory category, out BaseSaveSubObject subObject)
         {
             if (CurrentSaveObject != null)

@@ -17,17 +17,38 @@ namespace Dhs5.Utility.SaveLoad
         [Serializable]
         private struct SaveWrapper
         {
-            public SaveWrapper(ICollection<BaseSaveSubObject> saveSubObjects)
+            public SaveWrapper(BaseSaveInfo saveInfo, ICollection<BaseSaveSubObject> saveSubObjects)
             {
-                subWrappers = new();
+                infoWrapper = new(saveInfo);
 
+                subWrappers = new();
                 foreach (var subObject in saveSubObjects)
                 {
                     subWrappers.Add(new SubSaveWrapper(subObject));
                 }
             }
 
+            public SaveInfoWrapper infoWrapper;
             public List<SubSaveWrapper> subWrappers;
+        }
+
+        #endregion
+
+        #region STRUCT SaveInfoWrapper
+
+        [Serializable]
+        private struct SaveInfoWrapper
+        {
+            public SaveInfoWrapper(BaseSaveInfo saveInfo)
+            {
+                date = SerializableDate.Now;
+                typeName = saveInfo.GetType().AssemblyQualifiedName;
+                content = JsonUtility.ToJson(saveInfo);
+            }
+
+            public SerializableDate date;
+            public string typeName;
+            public string content;
         }
 
         #endregion
@@ -54,6 +75,9 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Members
 
+        [SerializeField, DateReadOnly] private SerializableDate m_date;
+        [SerializeField] private BaseSaveInfo m_saveInfo;
+
 #if UNITY_EDITOR
         [SerializeField] private BaseSaveSubObject[] m_editorSubObjects;
 #endif
@@ -65,15 +89,16 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Set Methods
 
+        internal void SetInfo(BaseSaveInfo saveInfo)
+        {
+            m_saveInfo = saveInfo;
+        }
         internal void Add(BaseSaveSubObject subObject)
         {
-            if (m_subObjectDictionary.ContainsKey(subObject.Category))
+            if (!m_subObjectDictionary.TryAdd(subObject.Category, subObject))
             {
                 Debug.LogError("This save object already contains sub object for category " + subObject.Category);
-                return;
             }
-
-            m_subObjectDictionary.Add(subObject.Category, subObject);
         }
         internal void Set(BaseSaveSubObject subObject)
         {
@@ -92,6 +117,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Access Methods
 
+        internal BaseSaveInfo GetSaveInfo() => m_saveInfo;
         internal bool TryGetSubObject(ESaveCategory category, out BaseSaveSubObject subObject)
         {
             return m_subObjectDictionary.TryGetValue(category, out subObject);
@@ -115,7 +141,7 @@ namespace Dhs5.Utility.SaveLoad
 
         internal string GetSaveContent()
         {
-            SaveWrapper wrapper = new SaveWrapper(m_subObjectDictionary.Values);
+            SaveWrapper wrapper = new(m_saveInfo, m_subObjectDictionary.Values);
 
             return JsonUtility.ToJson(wrapper);
         }
@@ -130,10 +156,19 @@ namespace Dhs5.Utility.SaveLoad
 
             var wrapper = JsonUtility.FromJson<SaveWrapper>(saveContent);
 
+            // Date
+            m_date = wrapper.infoWrapper.date;
+
+            // Save Info
+            TryLoadSaveInfo(wrapper.infoWrapper.typeName, wrapper.infoWrapper.content, out m_saveInfo);
+            m_saveInfo.name = "SAVE INFO";
+
+            // Sub Objects
             foreach (var w in wrapper.subWrappers)
             {
                 if (TryLoadSubObject(w.categoryName, w.typeName, w.content, out var subObject))
                 {
+                    subObject.name = subObject.Category.ToString();
                     if (!m_subObjectDictionary.TryAdd(subObject.Category, subObject))
                     {
                         Debug.LogError("LOAD ERROR : Save object already contains a sub object with category " + subObject.Category);
@@ -144,6 +179,11 @@ namespace Dhs5.Utility.SaveLoad
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
+                if (m_saveInfo != null)
+                {
+                    AssetDatabase.AddObjectToAsset(m_saveInfo, this);
+                }
+
                 m_editorSubObjects = new BaseSaveSubObject[m_subObjectDictionary.Count];
                 int i = 0;
                 foreach (var (_, subObject) in m_subObjectDictionary)
@@ -159,10 +199,26 @@ namespace Dhs5.Utility.SaveLoad
 #endif
         }
 
+        #region SubObject & SaveInfo Loading
+
+        private bool TryLoadSaveInfo(string typeName, string content, out BaseSaveInfo saveInfo)
+        {
+            var type = Type.GetType(typeName, false);
+            if (type != null)
+            {
+                return TryLoadScriptableObject(type, content, out saveInfo);
+            }
+
+            // TODO : enable handling of wrong type for cases where the type name changed etc...
+            Debug.LogError("LOAD ERROR : Type " + typeName + " is not valid");
+            saveInfo = null;
+            return false;
+        }
+
         private bool TryLoadSubObject(string categoryName, string typeName, string content, out BaseSaveSubObject subObject)
         {
             var type = Type.GetType(typeName, false);
-            if (type != null && TryLoadSubObject(type, content, out subObject))
+            if (type != null && TryLoadScriptableObject(type, content, out subObject))
             {
                 // Category double check
                 if (Enum.TryParse(typeof(ESaveCategory), categoryName, out var result))
@@ -189,34 +245,35 @@ namespace Dhs5.Utility.SaveLoad
             subObject = null;
             return false;
         }
-        private bool TryLoadSubObject(Type type, string content, out BaseSaveSubObject subObject)
+        private bool TryLoadScriptableObject<T>(Type type, string content, out T scriptableObject) where T : ScriptableObject
         {
             try
             {
-                subObject = ScriptableObject.CreateInstance(type) as BaseSaveSubObject;
-                if (subObject == null)
+                scriptableObject = ScriptableObject.CreateInstance(type) as T;
+                if (scriptableObject == null)
                 {
-                    Debug.LogError("LOAD ERROR : Unable to create instance of " + type + " as BaseSaveSubObject");
+                    Debug.LogError("LOAD ERROR : Unable to create instance of " + type + " as " + typeof(T).Name);
                     return false;
                 }
 
-                JsonUtility.FromJsonOverwrite(content, subObject);
-                if (subObject == null)
+                JsonUtility.FromJsonOverwrite(content, scriptableObject);
+                if (scriptableObject == null)
                 {
                     Debug.LogError("LOAD ERROR : Json Overwrite nulled the object");
                     return false;
                 }
 
-                subObject.name = subObject.Category.ToString();
                 return true;
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                subObject = null;
+                scriptableObject = null;
                 return false;
             }
         }
+
+        #endregion
 
         #endregion
 

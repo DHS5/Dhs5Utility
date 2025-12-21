@@ -12,6 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2922ef3c137bd9944a0c064562ff247d, type: 3}
   m_Name: TestSaveObject
   m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.SaveLoad.SaveObject
+  m_date:
+    m_year: 0
+    m_month: 0
+    m_day: 0
+    m_hour: 0
+    m_minute: 0
+    m_second: 0
+    m_millisecond: 0
+  m_saveInfo: {fileID: 11400000, guid: 82cff0f715c61fc4c8904053bf81e9f4, type: 2}
   m_editorSubObjects:
   - {fileID: 11400000, guid: c4d12a8624077174a81afe1b81bc923d, type: 2}
   - {fileID: 11400000, guid: b606e8213cd4dcf48ae6fef6eec4b916, type: 2}

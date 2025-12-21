@@ -25,6 +25,8 @@ public class TestSettings : CustomSettings<TestSettings>
     [SerializeField, SubSettings] private TestSubSettings1 m_subSetTest3;
     [SerializeField] private SerializableMonoScript m_serializedMonoScript;
     [SerializeField] private SerializableMonoScript<UpdateConditionObject> m_updateConditionType;
+    [SerializeField] private SerializableDate m_serializedDate;
+    [SerializeField, DateReadOnly] private SerializableDate m_serializedDate2;
 
     public static PlayerPrefInt PlayerPrefInt => I.m_playerPrefInt;
 }
