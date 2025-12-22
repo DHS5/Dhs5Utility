@@ -258,7 +258,7 @@ namespace Dhs5.Utility.Databases
         public static ScriptableObject CreateScriptableAsset(Type type, string path, bool triggerRename = false)
         {
             if (!path.EndsWith(".asset")) path += ".asset";
-            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            UtilityMethods.EnsureAssetParentDirectoryExistence(path);
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var obj = ScriptableObject.CreateInstance(type);
             if (obj != null)
@@ -272,7 +272,7 @@ namespace Dhs5.Utility.Databases
         public static T CreateScriptableAsset<T>(string path, bool triggerRename = false) where T : ScriptableObject
         {
             if (!path.EndsWith(".asset")) path += ".asset";
-            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            UtilityMethods.EnsureAssetParentDirectoryExistence(path);
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var obj = ScriptableObject.CreateInstance<T>();
             if (obj != null)
@@ -309,7 +309,7 @@ namespace Dhs5.Utility.Databases
         public static GameObject CreateEmptyPrefab(string path, bool triggerRename = false)
         {
             if (!path.EndsWith(".prefab")) path += ".prefab";
-            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            UtilityMethods.EnsureAssetParentDirectoryExistence(path);
             path = AssetDatabase.GenerateUniqueAssetPath(path);
             var template = new GameObject();
             var obj = PrefabUtility.SaveAsPrefabAsset(template, path, out var success);
@@ -336,7 +336,7 @@ namespace Dhs5.Utility.Databases
         // --- Scripts ---
         public static TextAsset CreateOrOverwriteTextAsset(string path, string content)
         {
-            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            UtilityMethods.EnsureAssetParentDirectoryExistence(path);
             File.WriteAllText(path, content);
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();
@@ -348,7 +348,7 @@ namespace Dhs5.Utility.Databases
         }
         public static TextAsset CreateEmptyTextAsset(string path)
         {
-            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            UtilityMethods.EnsureAssetParentDirectoryExistence(path);
             File.WriteAllText(path, "");
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();
@@ -361,7 +361,7 @@ namespace Dhs5.Utility.Databases
                 return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             }
 
-            EditorUtils.EnsureAssetParentDirectoryExistence(path);
+            UtilityMethods.EnsureAssetParentDirectoryExistence(path);
             File.WriteAllText(path, "");
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();

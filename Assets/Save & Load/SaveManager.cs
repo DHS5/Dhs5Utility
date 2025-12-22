@@ -1,27 +1,58 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Dhs5.Utility.SaveLoad
 {
     public static class SaveManager
     {
-        #region DELEGATE LoadEvent
+        #region Members
 
-        public delegate void LoadEvent(ESaveCategory category, uint cycle, BaseSaveSubObject subObject);
+        private static LoadProcessObject m_loadProcessObject;
 
         #endregion
 
         #region Properties
 
         public static bool IsSaveProcessActive { get; private set; }
+        public static bool IsLoadProcessActive { get; private set; }
 
         private static SaveObject CurrentSaveObject { get; set; }
 
         #endregion
 
-        #region Events
 
-        public static event LoadEvent OnLoadEvent;
+        #region Loadable Registration
+
+        private static Dictionary<ESaveCategory, HashSet<ILoadable>> _loadables = new();
+
+        public static void Register(bool register, ILoadable loadable, ESaveCategory category)
+        {
+            if (loadable == null) return;
+
+            if (register)
+            {
+                if (_loadables.TryGetValue(category, out var list) && list != null)
+                {
+                    list.Add(loadable);
+                }
+                else
+                {
+                    _loadables[category] = new()
+                    {
+                        loadable
+                    };
+                }
+            }
+            else
+            {
+                if (_loadables.TryGetValue(category, out var list) && list.IsValid())
+                {
+                    list.Remove(loadable);
+                }
+            }
+        }
 
         #endregion
 
@@ -149,8 +180,7 @@ namespace Dhs5.Utility.SaveLoad
         public static void CompleteSaveProcess()
         {
             IsSaveProcessActive = false;
-            var content = CurrentSaveObject.GetSaveContent();
-            // TODO use a scriptable object to manage content saved to disk
+            SaveAsset.SaveContentToDisk(CurrentSaveObject);
         }
 
         #endregion
@@ -159,24 +189,63 @@ namespace Dhs5.Utility.SaveLoad
 
         public static void StartLoadProcess()
         {
-            var content = "TODO"; // TODO use a scriptable object to manage the save file choice
+            IsLoadProcessActive = true;
+
+            var content = SaveAsset.ReadContentFromSelectedSaveFile();
+
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                m_loadProcessObject = new GameObject("LOAD PROCESS OBJECT").AddComponent<LoadProcessObject>();
+                m_loadProcessObject.StartLoadProcessCoroutine(LoadCoroutine(content));
+            }
+        }
+        private static void OnLoadProcessComplete()
+        {
+            if (m_loadProcessObject != null)
+            {
+                GameObject.Destroy(m_loadProcessObject.gameObject);
+                m_loadProcessObject = null;
+            }
+            IsLoadProcessActive = false;
+        }
+
+        private static IEnumerator LoadCoroutine(string content)
+        {
             CurrentSaveObject = SaveObject.CreateInstance<SaveObject>();
             CurrentSaveObject.Load(content);
 
-            foreach (var (category, cycle) in SaveAsset.GetCategoriesInLoadOrder())
+            foreach (var (category, iteration) in SaveAsset.GetCategoriesInLoadOrder())
             {
+                yield return null;
+
                 if (CurrentSaveObject.TryGetSubObject(category, out var subObject))
                 {
-                    try
+                    if (_loadables.TryGetValue(category, out var list))
                     {
-                        OnLoadEvent?.Invoke(category, cycle, subObject);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogException(e);
+                        foreach (var loadable in list)
+                        {
+                            IEnumerator coroutine = null;
+                            try
+                            {
+                                if (loadable.CanLoad(category, iteration))
+                                {
+                                    coroutine = loadable.LoadCoroutine(category, iteration, subObject);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.LogException(e);
+                            }
+
+                            if (coroutine != null) yield return coroutine;
+                        }
                     }
                 }
             }
+
+            yield return null;
+
+            OnLoadProcessComplete();
         }
 
         #endregion

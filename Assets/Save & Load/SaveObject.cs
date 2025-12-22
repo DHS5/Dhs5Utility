@@ -209,7 +209,12 @@ namespace Dhs5.Utility.SaveLoad
                 return TryLoadScriptableObject(type, content, out saveInfo);
             }
 
-            // TODO : enable handling of wrong type for cases where the type name changed etc...
+            if (SaveAsset.HasModifier(out var modifier) 
+                && modifier.TryHandleTypeDeserializingError(typeName, out type))
+            {
+                return TryLoadScriptableObject(type, content, out saveInfo);
+            }
+
             Debug.LogError("LOAD ERROR : Type " + typeName + " is not valid");
             saveInfo = null;
             return false;
@@ -218,6 +223,14 @@ namespace Dhs5.Utility.SaveLoad
         private bool TryLoadSubObject(string categoryName, string typeName, string content, out BaseSaveSubObject subObject)
         {
             var type = Type.GetType(typeName, false);
+
+            if (type == null
+                && SaveAsset.HasModifier(out var modifier)
+                && modifier.TryHandleTypeDeserializingError(typeName, out var backupType))
+            {
+                type = backupType;
+            }
+
             if (type != null && TryLoadScriptableObject(type, content, out subObject))
             {
                 // Category double check
@@ -240,7 +253,6 @@ namespace Dhs5.Utility.SaveLoad
                 return true;
             }
 
-            // TODO : enable handling of wrong type for cases where the type name changed etc...
             Debug.LogError("LOAD ERROR : Type " + typeName + " is not valid");
             subObject = null;
             return false;

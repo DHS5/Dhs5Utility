@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e6cff130677aad4898624afd5da336b, type: 3}
   m_Name: SaveAsset
   m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.SaveLoad.SaveLoadAsset
+  m_modifier: {fileID: 7920664208252339472}
   m_saveCategories:
   - TEST1
   - TEST2
@@ -19,3 +20,15 @@ MonoBehaviour:
   m_loadOrder: 000000000100000002000000
   m_saveCategoriesTextAsset: {fileID: 11500000, guid: 5c2356a01cdeaf04ab4a1787f2b9d6aa,
     type: 3}
+--- !u!114 &7920664208252339472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6534d50c38747404da028232440e0eda, type: 3}
+  m_Name: Test Save Process Modifier
+  m_EditorClassIdentifier: Assembly-CSharp::TestSaveProcessModifier

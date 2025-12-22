@@ -2,6 +2,7 @@ using UnityEngine;
 using Dhs5.Utility.Databases;
 using System.Collections.Generic;
 using System;
+using System.IO;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -16,6 +17,7 @@ namespace Dhs5.Utility.SaveLoad
     {
         #region Members
 
+        [SerializeField] private SaveProcessModifier m_modifier;
         [SerializeField] private List<string> m_saveCategories;
         [SerializeField] private List<ESaveCategory> m_loadOrder;
 
@@ -59,24 +61,135 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Static Accessors
 
+        internal static bool HasModifier(out SaveProcessModifier modifier)
+        {
+            modifier = Instance != null ? Instance.m_modifier : null;
+            return modifier != null;
+        }
+
         internal static IEnumerable<KeyValuePair<ESaveCategory, uint>> GetCategoriesInLoadOrder()
         {
-            Dictionary<ESaveCategory, uint> categoryCountDico = new();
-
-            foreach (var category in Instance.m_loadOrder)
+            if (Instance != null)
             {
-                if (categoryCountDico.ContainsKey(category))
-                {
-                    categoryCountDico[category]++;
-                }
-                else
-                {
-                    categoryCountDico.Add(category, 1);
-                }
+                Dictionary<ESaveCategory, uint> categoryIterationDico = new();
 
-                yield return new KeyValuePair<ESaveCategory, uint>(category, categoryCountDico[category]);
+                foreach (var category in Instance.m_loadOrder)
+                {
+                    if (categoryIterationDico.ContainsKey(category))
+                    {
+                        categoryIterationDico[category]++;
+                    }
+                    else
+                    {
+                        categoryIterationDico.Add(category, 1);
+                    }
+
+                    yield return new KeyValuePair<ESaveCategory, uint>(category, categoryIterationDico[category]);
+                }
             }
         }
+
+        #endregion
+
+        #region Static Process Methods
+
+        internal static void SaveContentToDisk(SaveObject saveObject)
+        {
+            // PATH
+            var path = CreateSavePath(saveObject);
+
+            // ENCRYPTION
+            var content = GetEncryptedContent(saveObject.GetSaveContent());
+
+            // PATH VALIDITY
+            UtilityMethods.EnsureAssetParentDirectoryExistence(path);
+
+            // WRITE
+            WriteToDisk(path, content);
+        }
+
+        /// <summary>
+        /// Can't work without a SaveProcessModifier
+        /// </summary>
+        internal static string ReadContentFromSelectedSaveFile()
+        {
+            // GET SAVE CONTENT
+            if (HasModifier(out var modifier))
+            {
+                return modifier.GetDecryptedContent(modifier.ReadSelectedSaveFileFromDisk());
+            }
+
+            return null;
+        }
+
+        #region Path
+
+        private static string CreateSavePath(SaveObject saveObject)
+        {
+            if (HasModifier(out var modifier))
+            {
+                try
+                {
+                    return modifier.CreateSavePath(saveObject);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+
+            return CreateBackupSavePath(saveObject);
+        }
+        private static string CreateBackupSavePath(SaveObject saveObject)
+        {
+            if (string.IsNullOrWhiteSpace(saveObject.name))
+            {
+                return Application.persistentDataPath + "/Save/SAVE_" + SerializableDate.Now.ToFullStringNoSeparator(true, true) + ".txt";
+            }
+            else
+            {
+                return Application.persistentDataPath + "/Save/SAVE_" + saveObject.name + ".txt";
+            }
+        }
+
+        #endregion
+
+        #region Encryption
+
+        private static string GetEncryptedContent(string content)
+        {
+            if (HasModifier(out var modifier))
+            {
+                try
+                {
+                    return modifier.GetEncryptedContent(content);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                    return content;
+                }
+            }
+            return content;
+        }
+
+        #endregion
+
+        #region Write
+
+        private static void WriteToDisk(string path, string content)
+        {
+            if (HasModifier(out var modifier))
+            {
+                modifier.WriteToDisk(path, content);
+            }
+            else
+            {
+                File.WriteAllText(path, content);
+            }
+        }
+
+        #endregion
 
         #endregion
 
@@ -114,6 +227,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Serialized Properties
 
+        private SerializedProperty p_modifier;
         private SerializedProperty p_saveCategories;
         private SerializedProperty p_loadOrder;
 
@@ -127,6 +241,7 @@ namespace Dhs5.Utility.SaveLoad
         {
             m_saveAsset = target as SaveAsset;
 
+            p_modifier = serializedObject.FindProperty("m_modifier");
             p_saveCategories = serializedObject.FindProperty("m_saveCategories");
             p_loadOrder = serializedObject.FindProperty("m_loadOrder");
 
@@ -336,7 +451,33 @@ namespace Dhs5.Utility.SaveLoad
 
         public void DrawSettingsGUI()
         {
+            // MODIFIER
+            EditorGUILayout.LabelField("Modifier", EditorStyles.boldLabel);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.ObjectField(p_modifier);
+            if (p_modifier.objectReferenceValue == null)
+            {
+                if (GUILayout.Button(new GUIContent("CREATE", EditorGUIHelper.DownIcon.image), GUILayout.Height(18f), GUILayout.Width(100f)))
+                {
+                    EditorGUIHelper.DrawChildTypeSelector(typeof(SaveProcessModifier), Callback);
+
+                    void Callback(Type type)
+                    {
+                        var newModifier = Database.CreateScriptableAndAddToAsset(type, m_saveAsset);
+                        newModifier.name = ObjectNames.NicifyVariableName(type.Name);
+                        if (serializedObject != null)
+                        {
+                            serializedObject.FindProperty("m_modifier").objectReferenceValue = newModifier;
+                            serializedObject.ApplyModifiedProperties();
+                        }
+                        AssetDatabase.SaveAssetIfDirty(newModifier);
+                    }
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
             // SCRIPTS
+            EditorGUILayout.Space(5f);
             EditorGUILayout.LabelField("Scripts", EditorStyles.boldLabel);
 
             if (p_saveCategoriesTextAsset.objectReferenceValue == null)
@@ -365,7 +506,22 @@ namespace Dhs5.Utility.SaveLoad
             {
                 if (GUILayout.Button("ENSURE ASSET SANITY"))
                 {
-                  
+                    if (p_modifier.objectReferenceValue != null
+                        && AssetDatabase.GetAssetPath(p_modifier.objectReferenceValue) != AssetDatabase.GetAssetPath(m_saveAsset))
+                    {
+                        if (AssetDatabase.IsSubAsset(p_modifier.objectReferenceValue))
+                        {
+                            AssetDatabase.RemoveObjectFromAsset(p_modifier.objectReferenceValue);
+                        }
+                        AssetDatabase.AddObjectToAsset(p_modifier.objectReferenceValue, m_saveAsset);
+                    }
+
+                    EditorDataUtility.EnsureAssetValidity(m_saveAsset, (obj) =>
+                    {
+                        return obj == p_modifier.objectReferenceValue;
+                    });
+
+                    AssetDatabase.SaveAssetIfDirty(m_saveAsset);
                 }
             }
         }
