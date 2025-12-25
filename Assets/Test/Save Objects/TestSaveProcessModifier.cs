@@ -1,36 +1,38 @@
 using System;
+using System.IO;
 using Dhs5.Utility.SaveLoad;
 using UnityEngine;
 
 public class TestSaveProcessModifier : SaveProcessModifier
 {
-    public override string CreateSavePath(SaveObject saveObject)
+    public override string CreateSavePath(SaveObject saveObject, ISaveParameter parameter)
     {
-        throw new NotImplementedException();
+        return Application.persistentDataPath + "/Save/SAVE.txt";
     }
 
     public override string GetDecryptedContent(string encryptedContent)
     {
-        throw new NotImplementedException();
+        return encryptedContent;
     }
 
     public override string GetEncryptedContent(string content)
     {
-        throw new NotImplementedException();
+        return content;
     }
 
     public override string ReadSelectedSaveFileFromDisk()
     {
-        throw new NotImplementedException();
+        return File.ReadAllText(Application.persistentDataPath + "/Save/SAVE.txt");
     }
 
     public override bool TryHandleTypeDeserializingError(string typeName, out Type type)
     {
-        throw new NotImplementedException();
+        type = null;
+        return false;
     }
 
-    public override void WriteToDisk(string path, string content)
+    public override void WriteToDisk(string path, string content, ISaveParameter parameter)
     {
-        throw new NotImplementedException();
+        File.WriteAllText(path, content);
     }
 }

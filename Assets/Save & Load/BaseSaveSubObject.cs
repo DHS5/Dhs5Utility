@@ -12,7 +12,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Properties
 
-        public ESaveCategory Category { get => m_category; set => m_category = value; }
+        public virtual ESaveCategory Category { get => m_category; set => m_category = value; }
 
         #endregion
     }

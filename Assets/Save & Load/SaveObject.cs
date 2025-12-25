@@ -24,7 +24,10 @@ namespace Dhs5.Utility.SaveLoad
                 subWrappers = new();
                 foreach (var subObject in saveSubObjects)
                 {
-                    subWrappers.Add(new SubSaveWrapper(subObject));
+                    if (subObject != null)
+                    {
+                        subWrappers.Add(new SubSaveWrapper(subObject));
+                    }
                 }
             }
 
@@ -42,8 +45,18 @@ namespace Dhs5.Utility.SaveLoad
             public SaveInfoWrapper(BaseSaveInfo saveInfo)
             {
                 date = SerializableDate.Now;
-                typeName = saveInfo.GetType().AssemblyQualifiedName;
-                content = JsonUtility.ToJson(saveInfo);
+
+                if (saveInfo != null)
+                {
+                    typeName = saveInfo.GetType().AssemblyQualifiedName;
+                    content = JsonUtility.ToJson(saveInfo);
+                }
+                else
+                {
+                    typeName = null;
+                    content = null;
+                    Debug.LogWarning("SAVE WARNING : No save info");
+                }
             }
 
             public SerializableDate date;
@@ -160,8 +173,10 @@ namespace Dhs5.Utility.SaveLoad
             m_date = wrapper.infoWrapper.date;
 
             // Save Info
-            TryLoadSaveInfo(wrapper.infoWrapper.typeName, wrapper.infoWrapper.content, out m_saveInfo);
-            m_saveInfo.name = "SAVE INFO";
+            if (TryLoadSaveInfo(wrapper.infoWrapper.typeName, wrapper.infoWrapper.content, out m_saveInfo))
+            {
+                m_saveInfo.name = "SAVE INFO";
+            }
 
             // Sub Objects
             foreach (var w in wrapper.subWrappers)
@@ -203,6 +218,13 @@ namespace Dhs5.Utility.SaveLoad
 
         private bool TryLoadSaveInfo(string typeName, string content, out BaseSaveInfo saveInfo)
         {
+            if (string.IsNullOrWhiteSpace(typeName))
+            {
+                Debug.LogWarning("LOAD WARNING : No save info");
+                saveInfo = null;
+                return false;
+            }
+
             var type = Type.GetType(typeName, false);
             if (type != null)
             {

@@ -22,6 +22,12 @@ namespace Dhs5.Utility.SaveLoad
 
         #endregion
 
+        #region Event
+
+        public static event Action LoadCompleted;
+
+        #endregion
+
 
         #region Loadable Registration
 
@@ -171,33 +177,51 @@ namespace Dhs5.Utility.SaveLoad
 
         #region SAVE Process
 
-        public static void StartSaveProcess()
+        public static bool StartSaveProcess()
         {
+            if (IsLoadProcessActive || IsSaveProcessActive) return false;
+
             CurrentSaveObject = SaveObject.CreateInstance<SaveObject>();
             IsSaveProcessActive = true;
+            return true;
         }
 
-        public static void CompleteSaveProcess()
+        public static void CompleteSaveProcess(ISaveParameter parameter = null)
         {
             IsSaveProcessActive = false;
-            SaveAsset.SaveContentToDisk(CurrentSaveObject);
+            SaveAsset.SaveContentToDisk(CurrentSaveObject, parameter);
         }
 
         #endregion
         
         #region LOAD Process
 
-        public static void StartLoadProcess()
+        public static bool StartLoadProcess()
         {
-            IsLoadProcessActive = true;
+            if (IsLoadProcessActive || IsSaveProcessActive) return false;
 
             var content = SaveAsset.ReadContentFromSelectedSaveFile();
+            return StartLoadProcess(content);
+        }
+        public static bool StartLoadProcess(string path, System.Text.Encoding encoding)
+        {
+            if (IsLoadProcessActive || IsSaveProcessActive) return false;
 
+            var content = SaveAsset.ReadContentAtPath(path, encoding);
+            return StartLoadProcess(content);
+        }
+        private static bool StartLoadProcess(string content)
+        {
             if (!string.IsNullOrWhiteSpace(content))
             {
+                IsLoadProcessActive = true;
+
                 m_loadProcessObject = new GameObject("LOAD PROCESS OBJECT").AddComponent<LoadProcessObject>();
                 m_loadProcessObject.StartLoadProcessCoroutine(LoadCoroutine(content));
+
+                return true;
             }
+            return false;
         }
         private static void OnLoadProcessComplete()
         {
@@ -207,6 +231,7 @@ namespace Dhs5.Utility.SaveLoad
                 m_loadProcessObject = null;
             }
             IsLoadProcessActive = false;
+            LoadCompleted?.Invoke();
         }
 
         private static IEnumerator LoadCoroutine(string content)

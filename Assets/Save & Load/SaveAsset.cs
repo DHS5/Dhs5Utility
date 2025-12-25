@@ -93,10 +93,10 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Static Process Methods
 
-        internal static void SaveContentToDisk(SaveObject saveObject)
+        internal static void SaveContentToDisk(SaveObject saveObject, ISaveParameter parameter)
         {
             // PATH
-            var path = CreateSavePath(saveObject);
+            var path = CreateSavePath(saveObject, parameter);
 
             // ENCRYPTION
             var content = GetEncryptedContent(saveObject.GetSaveContent());
@@ -105,7 +105,7 @@ namespace Dhs5.Utility.SaveLoad
             UtilityMethods.EnsureAssetParentDirectoryExistence(path);
 
             // WRITE
-            WriteToDisk(path, content);
+            WriteToDisk(path, content, parameter);
         }
 
         /// <summary>
@@ -121,16 +121,27 @@ namespace Dhs5.Utility.SaveLoad
 
             return null;
         }
+        internal static string ReadContentAtPath(string path, System.Text.Encoding encoding)
+        {
+            if (HasModifier(out var modifier))
+            {
+                return modifier.GetDecryptedContent(File.ReadAllText(path, encoding));
+            }
+            else
+            {
+                return File.ReadAllText(path, encoding);
+            }
+        }
 
         #region Path
 
-        private static string CreateSavePath(SaveObject saveObject)
+        private static string CreateSavePath(SaveObject saveObject, ISaveParameter parameter)
         {
             if (HasModifier(out var modifier))
             {
                 try
                 {
-                    return modifier.CreateSavePath(saveObject);
+                    return modifier.CreateSavePath(saveObject, parameter);
                 }
                 catch (Exception e)
                 {
@@ -138,17 +149,18 @@ namespace Dhs5.Utility.SaveLoad
                 }
             }
 
-            return CreateBackupSavePath(saveObject);
+            return CreateBackupSavePath(saveObject, parameter);
         }
-        private static string CreateBackupSavePath(SaveObject saveObject)
+        private static string CreateBackupSavePath(SaveObject saveObject, ISaveParameter parameter)
         {
+            var extension = parameter != null ? parameter.GetExtension() : ".txt";
             if (string.IsNullOrWhiteSpace(saveObject.name))
             {
-                return Application.persistentDataPath + "/Save/SAVE_" + SerializableDate.Now.ToFullStringNoSeparator(true, true) + ".txt";
+                return Application.persistentDataPath + "/Save/SAVE_" + SerializableDate.Now.ToFullStringNoSeparator(true, true) + extension;
             }
             else
             {
-                return Application.persistentDataPath + "/Save/SAVE_" + saveObject.name + ".txt";
+                return Application.persistentDataPath + "/Save/SAVE_" + saveObject.name + extension;
             }
         }
 
@@ -177,15 +189,16 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Write
 
-        private static void WriteToDisk(string path, string content)
+        private static void WriteToDisk(string path, string content, ISaveParameter parameter)
         {
             if (HasModifier(out var modifier))
             {
-                modifier.WriteToDisk(path, content);
+                modifier.WriteToDisk(path, content, parameter);
             }
             else
             {
-                File.WriteAllText(path, content);
+                var encoding = parameter != null ? parameter.GetEncoding() : System.Text.Encoding.Default;
+                File.WriteAllText(path, content, encoding);
             }
         }
 

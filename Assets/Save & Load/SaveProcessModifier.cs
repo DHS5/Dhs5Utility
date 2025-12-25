@@ -37,14 +37,14 @@ namespace Dhs5.Utility.SaveLoad
         /// <summary>
         /// Create a save path, including the name of the save file and the extension, for <paramref name="saveObject"/>.
         /// </summary>
-        public abstract string CreateSavePath(SaveObject saveObject);
+        public abstract string CreateSavePath(SaveObject saveObject, ISaveParameter parameter);
 
         // WRITE
 
         /// <summary>
         /// Writes the <paramref name="content"/> of the save file at <paramref name="path"/> using the method of your choice.
         /// </summary>
-        public abstract void WriteToDisk(string path, string content);
+        public abstract void WriteToDisk(string path, string content, ISaveParameter parameter);
         
         // READ
 
