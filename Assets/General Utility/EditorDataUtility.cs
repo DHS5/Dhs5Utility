@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dhs5.Utility.Updates;
-using UnityEditor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
 
 namespace Dhs5.Utility.Editors
 {
@@ -93,121 +94,7 @@ namespace Dhs5.Utility.Editors
         }
 
         #endregion
-
-
-        #region SCRIPT Writer
-
-        public class ScriptWriter
-        {
-            #region ENUM ScriptType
-
-            public enum EScriptType
-            {
-                NONE = 0,
-                CLASS = 1,
-                STATIC_CLASS = 2,
-                STRUCT = 3,
-                ENUM = 4,
-                INTERFACE = 5,
-            }
-
-            #endregion
-
-            #region ENUM Protection
-
-            public enum EProtection
-            {
-                PUBLIC = 0,
-                PROTECTED = 1,
-                PRIVATE = 2,
-            }
-
-            #endregion
-
-
-            #region Members
-
-            protected readonly StringBuilder baseStringBuilder;
-            protected readonly StringBuilder usingStringBuilder;
-
-            public readonly EProtection scriptProtection;
-            public readonly EScriptType scriptType;
-            public readonly string scriptName;
-            public readonly string scriptNamespace;
-
-            #endregion
-
-            #region Constructor
-
-            public ScriptWriter(EScriptType scriptType, string scriptName, string scriptNamespace, EProtection scriptProtection = EProtection.PUBLIC)
-            {
-                baseStringBuilder = new StringBuilder();
-                usingStringBuilder = new StringBuilder();
-
-                this.scriptProtection = scriptProtection;
-                this.scriptType = scriptType;
-                this.scriptName = scriptName;
-                this.scriptNamespace = scriptNamespace;
-            }
-
-            #endregion
-        }
-
-        #region ENUM Writer
-
-        public class EnumWriter : ScriptWriter
-        {
-            #region ENUM EnumType
-
-            public enum EEnumType
-            {
-                INT32 = 0,
-                INT64 = 1,
-                INT8 = 2,
-            }
-
-            #endregion
-
-            #region Members
-
-            public readonly EEnumType enumType;
-            public readonly string[] enumContent;
-
-            #endregion
-
-            #region Constructors
-
-            public EnumWriter(string enumName, string[] enumContent, string enumNamespace, EEnumType enumType = EEnumType.INT32, EProtection enumProtection = EProtection.PUBLIC) 
-                : base(EScriptType.ENUM, enumName, enumNamespace, enumProtection)
-            {
-                this.enumType = enumType;
-                this.enumContent = enumContent;
-            }
-
-            #endregion
-
-
-            // --- STATIC ---
-
-            #region Static Utility
-
-            public static string EnsureCorrectEnumName(string inputName)
-            {
-                var forbiddenCharacters = new char[] { ' ', '/', '\\', '<', '>', ':', ';', '*', '|', '"', '?', '!', '=', '+', '-', '.', ',', '\'', '{', '}', '(', ')', '[', ']',
-                '#', '&', '~', '¨', '^', '`', '°', '€', '$', '£', '¤', '%', 'é', 'è', 'ç', 'à', 'ù', '@', '§', 'µ' };
-                var result = inputName.Trim(forbiddenCharacters);
-                foreach (var c in forbiddenCharacters)
-                {
-                    result = result.Replace(c, '_');
-                }
-                return result.ToUpper();
-            }
-
-            #endregion
-        }
-
-        #endregion
-
-        #endregion
     }
 }
+
+#endif

@@ -1,8 +1,8 @@
-using UnityEngine;
+using System;
 
 namespace Dhs5.Utility.SaveLoad
 {
-    public enum ESaveCategory
+    public enum ESaveCategory : UInt16
     {
         TEST1 = 0,
         TEST2 = 1,

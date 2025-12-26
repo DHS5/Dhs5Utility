@@ -240,7 +240,7 @@ namespace Dhs5.Utility.Updates
                 var r_indexLabel = new Rect(marginedRect.x + enabledToggleTotalWidth, marginedRect.y, 20f, 20f);
                 var r_nameTextField = new Rect(marginedRect.x + enabledToggleTotalWidth + 20f, marginedRect.y, marginedRect.width - enabledToggleTotalWidth - buttonsTotalWidth - 20f, 20f);
                 EditorGUI.LabelField(r_indexLabel, index.ToString(), EditorStyles.boldLabel);
-                var newName = EditorDataUtility.EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, element.name));
+                var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, element.name));
                 if (newName != element.name)
                 {
                     element.name = newName;
@@ -426,7 +426,7 @@ namespace Dhs5.Utility.Updates
             var r_indexLabel = new Rect(marginedRect.x, marginedRect.y, 20f, 20f);
             var r_nameTextField = new Rect(marginedRect.x + 20f, marginedRect.y, marginedRect.width - buttonsTotalWidth - 20f, 20f);
             EditorGUI.LabelField(r_indexLabel, index.ToString(), EditorStyles.boldLabel);
-            var newName = EditorDataUtility.EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, p_name.stringValue));
+            var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, p_name.stringValue));
             if (newName != p_name.stringValue)
             {
                 p_name.stringValue = newName;

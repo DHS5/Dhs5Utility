@@ -307,7 +307,7 @@ namespace Dhs5.Utility.SaveLoad
             var r_indexLabel = new Rect(marginedRect.x, marginedRect.y, 20f, 20f);
             var r_nameTextField = new Rect(marginedRect.x + 20f, marginedRect.y, marginedRect.width - buttonsTotalWidth - 20f, 20f);
             EditorGUI.LabelField(r_indexLabel, index.ToString(), EditorStyles.boldLabel);
-            var newName = EditorDataUtility.EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, p_category.stringValue));
+            var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, p_category.stringValue));
             if (newName != p_category.stringValue)
             {
                 p_category.stringValue = newName;
@@ -340,7 +340,14 @@ namespace Dhs5.Utility.SaveLoad
             {
                 if (GUILayout.Button("UPDATE CHANNEL SCRIPT", GUILayout.Height(25f)))
                 {
-
+                    if (p_saveCategoriesTextAsset.objectReferenceValue is TextAsset textAsset)
+                    {
+                        Database.CreateOrOverwriteTextAsset(textAsset, GetSaveCategoriesScriptContent());
+                    }
+                    else
+                    {
+                        Debug.LogError("There is no ESaveCategory.cs to overwrite");
+                    }
                 }
             }
             EditorGUILayout.Space(3f);
@@ -431,11 +438,19 @@ namespace Dhs5.Utility.SaveLoad
 
             // Ensure at least one occurence of every categories
             HashSet<ESaveCategory> currentElementsInLoadOrder = new();
-            for (int  i = 0; i < p_loadOrder.arraySize; i++)
+            var enumValues = Enum.GetValues(typeof(ESaveCategory));
+            for (int  i = p_loadOrder.arraySize - 1; i >= 0; i--)
             {
-                currentElementsInLoadOrder.Add((ESaveCategory)p_loadOrder.GetArrayElementAtIndex(i).enumValueIndex);
+                var enumValueIndex = p_loadOrder.GetArrayElementAtIndex(i).enumValueIndex;
+                if (enumValueIndex >= enumValues.Length || enumValueIndex < 0)
+                {
+                    p_loadOrder.DeleteArrayElementAtIndex(i);
+                    continue;
+                }
+
+                currentElementsInLoadOrder.Add((ESaveCategory)enumValueIndex);
             }
-            foreach (var value in Enum.GetValues(typeof(ESaveCategory)))
+            foreach (var value in enumValues)
             {
                 ESaveCategory category = (ESaveCategory)value;
                 if (!currentElementsInLoadOrder.Contains(category))
@@ -541,6 +556,28 @@ namespace Dhs5.Utility.SaveLoad
 
         #endregion
 
+
+        #region Script Generation
+
+        private string GetSaveCategoriesScriptContent()
+        {
+            string[] saveCategories = new string[p_saveCategories.arraySize];
+            for (int i = 0; i < saveCategories.Length; i++)
+            {
+                saveCategories[i] = p_saveCategories.GetArrayElementAtIndex(i).stringValue;
+            }
+
+            var writer = new EnumWriter(
+                enumNamespace: "Dhs5.Utility.SaveLoad",
+                enumProtection: ScriptWriter.EProtection.PUBLIC,
+                enumName: "ESaveCategory",
+                enumContent: saveCategories,
+                enumType: EnumWriter.EEnumType.USHORT);
+
+            return writer.ToString();
+        }
+
+        #endregion
 
         #region Script Check
 
