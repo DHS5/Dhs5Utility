@@ -92,6 +92,27 @@ namespace Dhs5.Utility.Editors
 
         #endregion
 
+        #region STRUCT MethodParameter
+
+        public struct MethodParameter
+        {
+            public MethodParameter(Type type, string name)
+            {
+                this.typeName = type.Name;
+                this.name = name;
+            }
+            public MethodParameter(string typeName, string name)
+            {
+                this.typeName = typeName;
+                this.name = name;
+            }
+
+            public readonly string typeName;
+            public readonly string name;
+        }
+
+        #endregion
+
 
         #region Members
 
@@ -111,11 +132,12 @@ namespace Dhs5.Utility.Editors
         #region Constructor
 
         public ScriptWriter(string scriptNamespace, EProtection scriptProtection, EScriptType scriptType, string scriptName, 
-            Type[] parentTypes, params IAttribute[] attributes)
+            Type[] parentTypes = null, IAttribute[] attributes = null, int indentLevel = 0)
         {
             baseStringBuilder = new StringBuilder();
             usingStringBuilder = new StringBuilder();
 
+            this.indentLevel = indentLevel;
             this.scriptProtection = scriptProtection;
             this.scriptType = scriptType;
             this.scriptName = scriptName;
@@ -246,6 +268,9 @@ namespace Dhs5.Utility.Editors
 
         #region Public Set Methods
 
+        public void IncreaseIndentLevel() => indentLevel++;
+        public void DecreaseIndentLevel() => indentLevel--;
+
         /// <remarks>No need to put "using" at the beginning or ";" at the end</remarks>
         public virtual void AppendUsing(string usingName)
         {
@@ -286,7 +311,8 @@ namespace Dhs5.Utility.Editors
         /// Append a method with the content as an IEnumerable of strings without "\n" at the end, and optional attributes
         /// </summary>
         /// <remarks>If <paramref name="returnType"/> is null, void is used</remarks>
-        public virtual void AppendMethod(EProtection protection, bool isStatic, Type returnType, string methodName, IEnumerable<string> methodContent, params IAttribute[] attributes)
+        public virtual void AppendMethod(EProtection protection, bool isStatic, Type returnType, string methodName, 
+            bool isExtension, MethodParameter[] parameters, string[] methodContent, params IAttribute[] attributes)
         {
             ApplyIndent();
             if (TryGetAttributesAsString(out var result, attributes))
@@ -308,16 +334,30 @@ namespace Dhs5.Utility.Editors
             baseStringBuilder.Append(' ');
 
             baseStringBuilder.Append(methodName);
-            baseStringBuilder.AppendLine(";");
+
+            baseStringBuilder.Append('(');
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                if (isExtension && i == 0)
+                {
+                    baseStringBuilder.Append("this ");
+                }
+                baseStringBuilder.Append(parameters[i].typeName);
+                baseStringBuilder.Append(' ');
+                baseStringBuilder.Append(parameters[i].name);
+                if (i < parameters.Length - 1)
+                {
+                    baseStringBuilder.Append(", ");
+                }
+            }
+            baseStringBuilder.AppendLine(")");
 
             OpenBracket();
 
             foreach (var contentLine in methodContent)
             {
                 ApplyIndent();
-                baseStringBuilder.Append(contentLine);
-                if (contentLine.EndsWith(';')) baseStringBuilder.AppendLine();
-                else baseStringBuilder.AppendLine(";");
+                baseStringBuilder.AppendLine(contentLine);
             }
 
             CloseBracket();
@@ -333,6 +373,15 @@ namespace Dhs5.Utility.Editors
 
             sb.Append(usingStringBuilder.ToString());
             sb.AppendLine();
+            sb.Append(baseStringBuilder.ToString());
+            CompleteScript(sb);
+
+            return sb.ToString();
+        }
+        public virtual string ToStringWithoutUsings()
+        {
+            StringBuilder sb = new();
+
             sb.Append(baseStringBuilder.ToString());
             CompleteScript(sb);
 
@@ -390,8 +439,8 @@ namespace Dhs5.Utility.Editors
         #region Constructors
 
         public EnumWriter(string enumNamespace, EProtection enumProtection, string enumName, string[] enumContent, EEnumType enumType,
-            params IAttribute[] attributes)
-            : base(enumNamespace, enumProtection, EScriptType.ENUM, enumName, new Type[] { GetEnumSystemType(enumType) }, attributes)
+            IAttribute[] attributes = null, int indentLevel = 0)
+            : base(enumNamespace, enumProtection, EScriptType.ENUM, enumName, new Type[] { GetEnumSystemType(enumType) }, attributes, indentLevel)
         {
             this.enumType = enumType;
             this.enumContent = enumContent;
@@ -446,7 +495,7 @@ namespace Dhs5.Utility.Editors
 
             base.AppendUsing(usingName);
         }
-        public override void AppendMethod(EProtection protection, bool isStatic, Type returnType, string methodName, IEnumerable<string> methodContent, params IAttribute[] attributes)
+        public override void AppendMethod(EProtection protection, bool isStatic, Type returnType, string methodName, bool isExtension, MethodParameter[] parameters, string[] methodContent, params IAttribute[] attributes)
         {
             throw new Exception("Can't implement method in ENUM");
         }

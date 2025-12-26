@@ -40,6 +40,10 @@ MonoBehaviour:
   m_updateConditions:
   - m_name: ALWAYS
     m_object: {fileID: 11400000, guid: cdec9bda7bf01da479747ffadaa5d1ac, type: 2}
+  - m_name: GAME_PLAYING
+    m_object: {fileID: 0}
+  - m_name: GAME_PAUSED
+    m_object: {fileID: 0}
   m_updateChannelsTextAsset: {fileID: 11500000, guid: 517f058b72777174ba1255475785d1d7,
     type: 3}
   m_updateConditionsTextAsset: {fileID: 11500000, guid: 8b262fed26323244daf03c8e8f1f1d9f,

@@ -6,6 +6,6 @@ namespace Dhs5.Utility.Updates
     {
         public const string MenuPath = "Dhs5 Utility/Updater/Update Condition Object/";
 
-        public abstract bool CanUpdate(EUpdateChannel channel);
+        public abstract bool CanUpdate();
     }
 }

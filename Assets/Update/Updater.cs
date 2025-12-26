@@ -671,7 +671,7 @@ namespace Dhs5.Utility.Updates
         {
             foreach (var obj in Enum.GetValues(typeof(EUpdateChannel)))
             {
-                var channel = ((EUpdateChannel)obj).GetValue();
+                var channel = UpdaterAsset.GetChannel((EUpdateChannel)obj);
 
                 m_channels[(int)channel.Channel] = new(channel);
             }
@@ -787,20 +787,19 @@ namespace Dhs5.Utility.Updates
 
         private bool IsConditionFulfilled(EUpdateCondition condition)
         {
+            // TODO still useful ?
             if (Overrider != null
                 && Overrider.OverrideConditionFulfillment(condition, out bool fulfilled))
             {
                 return fulfilled;
             }
 
-            switch (condition)
+            var conditionObject = UpdaterAsset.GetConditionObject(condition);
+            if (conditionObject != null)
             {
-                case EUpdateCondition.ALWAYS: return true;
-                case EUpdateCondition.GAME_PLAYING: return UnityEngine.Time.timeScale > 0f;
-                case EUpdateCondition.GAME_PAUSED: return UnityEngine.Time.timeScale == 0f;
-                case EUpdateCondition.GAME_OVER: return false;
+                return conditionObject.CanUpdate();
             }
-            return false;
+            return true;
         }
 
         #endregion

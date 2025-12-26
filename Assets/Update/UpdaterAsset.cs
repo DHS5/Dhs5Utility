@@ -4,6 +4,7 @@ using Dhs5.Utility.Databases;
 using System.Collections.Generic;
 using System;
 using Dhs5.Utility.GUIs;
+using System.Text;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -21,6 +22,8 @@ namespace Dhs5.Utility.Updates
         {
             [SerializeField] private string m_name;
             [SerializeField] private UpdateConditionObject m_object;
+
+            public UpdateConditionObject Object => m_object;
         }
 
         #endregion
@@ -71,14 +74,27 @@ namespace Dhs5.Utility.Updates
             return null;
         }
 
-        public static IUpdateChannel GetChannelAtIndex(int index)
+        public static IUpdateChannel GetChannel(EUpdateChannel channel)
         {
             if (Instance != null)
             {
+                var index = (int)channel;
                 if (Instance.m_updateChannels.IsIndexValid(index, out var obj))
                     return obj;
 
                 Debug.LogWarning("No Update Channel found at index " + index);
+            }
+            return null;
+        }
+        public static UpdateConditionObject GetConditionObject(EUpdateCondition condition)
+        {
+            if (Instance != null)
+            {
+                var index = (int)condition;
+                if (Instance.m_updateConditions.IsIndexValid(index, out var element))
+                    return element.Object;
+
+                Debug.LogWarning("No Update Condition found at index " + index);
             }
             return null;
         }
@@ -331,7 +347,14 @@ namespace Dhs5.Utility.Updates
             {
                 if (GUILayout.Button("UPDATE CHANNEL SCRIPT", GUILayout.Height(25f)))
                 {
-
+                    if (p_updateChannelsTextAsset.objectReferenceValue is TextAsset textAsset)
+                    {
+                        Database.CreateOrOverwriteTextAsset(textAsset, GetUpdateChannelScriptContent());
+                    }
+                    else
+                    {
+                        Debug.LogError("No Update Channel text asset to overwrite");
+                    }
                 }
             }
             EditorGUILayout.Space(3f);
@@ -355,7 +378,6 @@ namespace Dhs5.Utility.Updates
 
             EditorGUILayout.EndVertical();
         }
-
 
         private void DrawConditionsList()
         {
@@ -463,7 +485,14 @@ namespace Dhs5.Utility.Updates
             {
                 if (GUILayout.Button("UPDATE CONDITION SCRIPT", GUILayout.Height(25f)))
                 {
-
+                    if (p_updateConditionsTextAsset.objectReferenceValue is TextAsset textAsset)
+                    {
+                        Database.CreateOrOverwriteTextAsset(textAsset, GetUpdateConditionScriptContent());
+                    }
+                    else
+                    {
+                        Debug.LogError("No Update Condition text asset to overwrite");
+                    }
                 }
             }
             EditorGUILayout.Space(3f);
@@ -588,11 +617,85 @@ namespace Dhs5.Utility.Updates
 
         private string GetUpdateChannelScriptContent()
         {
-            return null;
+            string[] enumContent = new string[p_updateChannels.arraySize];
+            for (int i = 0; i < enumContent.Length; i++)
+            {
+                enumContent[i] = p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue.name;
+            }
+
+            StringBuilder sb = new();
+
+            sb.AppendLine("using System;");
+            sb.AppendLine();
+            sb.AppendLine("namespace Dhs5.Utility.Updates");
+            sb.AppendLine("{");
+
+            sb.Append(new EnumWriter(
+                enumNamespace: null,
+                enumProtection: ScriptWriter.EProtection.PUBLIC,
+                enumName: "EUpdateChannel",
+                enumContent: enumContent,
+                enumType: EnumWriter.EEnumType.SHORT,
+                attributes: null,
+                indentLevel: 1)
+                .ToStringWithoutUsings());
+
+            sb.AppendLine();
+            foreach (var item in enumContent)
+            {
+                sb.Append("    public struct ");
+                sb.Append(item);
+                sb.AppendLine("_UpdateChannel { }");
+            }
+            sb.AppendLine();
+
+            var extensionScriptWriter = new ScriptWriter(
+                scriptNamespace: null,
+                scriptProtection: ScriptWriter.EProtection.PUBLIC,
+                scriptType: ScriptWriter.EScriptType.STATIC_CLASS,
+                scriptName: "UpdateChannelExtensions",
+                parentTypes: null,
+                attributes: null,
+                indentLevel: 1);
+            // GetChannelType Method
+            string[] methodContent = new string[4 + enumContent.Length];
+            methodContent[0] = "switch (e)";
+            methodContent[1] = "{";
+            for (int i = 0; i < enumContent.Length; i++)
+            {
+                methodContent[i + 2] = $"    case EUpdateChannel.{enumContent[i]}: return typeof({enumContent[i]}_UpdateChannel);";
+            }
+            methodContent[2 + enumContent.Length] = "    default: return typeof(Updater.DefaultUpdateChannel);";
+            methodContent[3 + enumContent.Length] = "}";
+            extensionScriptWriter.AppendMethod(
+                protection: ScriptWriter.EProtection.PUBLIC,
+                isStatic: true,
+                returnType: typeof(Type),
+                methodName: "GetChannelType",
+                isExtension: true,
+                parameters: new[] { new ScriptWriter.MethodParameter(typeof(EUpdateChannel), "e") },
+                methodContent: methodContent);
+            sb.Append(extensionScriptWriter.ToStringWithoutUsings());
+
+            sb.AppendLine("}");
+
+            return sb.ToString();
         }
         private string GetUpdateConditionScriptContent()
         {
-            return null;
+            string[] enumContent = new string[p_updateConditions.arraySize];
+            for (int i = 0; i < enumContent.Length; i++)
+            {
+                enumContent[i] = p_updateConditions.GetArrayElementAtIndex(i).FindPropertyRelative("m_name").stringValue;
+            }
+
+            return new EnumWriter(
+                enumNamespace: "Dhs5.Utility.Updates",
+                enumProtection: ScriptWriter.EProtection.PUBLIC,
+                enumName: "EUpdateCondition",
+                enumContent: enumContent,
+                enumType: EnumWriter.EEnumType.BYTE)
+                .ToString();
         }
 
         #endregion
