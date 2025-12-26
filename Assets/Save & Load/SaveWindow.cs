@@ -74,6 +74,8 @@ namespace Dhs5.Utility.SaveLoad
         private GUIContent g_title = new GUIContent("Save & Load");
         private GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Categories"), new GUIContent("Load"), new GUIContent("Debug"), new GUIContent("Settings") };
 
+        private GUIContent g_openSaveFolder = new GUIContent("OPEN PERSISTENT DATA FOLDER");
+
         private GUIContent g_saveTest = new GUIContent("Save Test");
         private GUIContent g_create = new GUIContent("Create");
         private GUIContent g_buttonSaveTest = new GUIContent("SAVE OBJECT INTO TEXT ASSET");
@@ -152,6 +154,11 @@ namespace Dhs5.Utility.SaveLoad
 
         private void DrawDebugGUI()
         {
+            if (GUILayout.Button(g_openSaveFolder))
+            {
+                EditorUtility.RevealInFinder(Application.persistentDataPath + "/");
+            }
+
             // SAVE TEST
             {
                 EditorGUILayout.LabelField(g_saveTest, EditorStyles.boldLabel);
@@ -226,7 +233,6 @@ namespace Dhs5.Utility.SaveLoad
                     }
                 }
             }
-            // TODO : Debug open save folder
         }
 
         #endregion

@@ -232,7 +232,7 @@ namespace Dhs5.Utility.SaveLoad
             }
 
             if (SaveAsset.HasModifier(out var modifier) 
-                && modifier.TryHandleTypeDeserializingError(typeName, out type))
+                && modifier.TryHandleTypeDeserializationError(typeName, out type))
             {
                 return TryLoadScriptableObject(type, content, out saveInfo);
             }
@@ -248,7 +248,7 @@ namespace Dhs5.Utility.SaveLoad
 
             if (type == null
                 && SaveAsset.HasModifier(out var modifier)
-                && modifier.TryHandleTypeDeserializingError(typeName, out var backupType))
+                && modifier.TryHandleTypeDeserializationError(typeName, out var backupType))
             {
                 type = backupType;
             }

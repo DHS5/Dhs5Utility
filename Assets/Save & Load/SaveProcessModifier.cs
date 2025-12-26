@@ -11,7 +11,14 @@ namespace Dhs5.Utility.SaveLoad
         /// Called when the type of a BaseSaveInfo or BaseSaveSubObject<br></br>
         /// can't be retrieved from <paramref name="typeName"/> to try to still retrieve it
         /// </summary>
-        public abstract bool TryHandleTypeDeserializingError(string typeName, out Type type);
+        /// <returns>TRUE if able to find a correct type</returns>
+        public abstract bool TryHandleTypeDeserializationError(string typeName, out Type type);
+
+        /// <summary>
+        /// Called when the load process encounters an <paramref name="exception"/>
+        /// </summary>
+        /// <returns>TRUE if the load process can continue</returns>
+        public abstract bool TryHandleLoadException(Exception exception);
 
         #endregion
 

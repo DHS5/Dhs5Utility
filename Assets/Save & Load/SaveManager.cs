@@ -20,18 +20,32 @@ namespace Dhs5.Utility.SaveLoad
 
         private static SaveObject CurrentSaveObject { get; set; }
 
+        public static SaveProcessModifier SaveProcessModifier
+        {
+            get => SaveAsset.HasModifier(out var modifier) ? modifier : null;
+        }
+        public static T GetSaveProcessModifierAs<T>() where T : SaveProcessModifier
+        {
+            if (SaveAsset.HasModifier(out var modifier) && modifier is T t)
+            {
+                return t;
+            }
+            return null;
+        }
+
         #endregion
 
         #region Event
 
         public static event Action LoadCompleted;
+        public static event Action<Exception> LoadCancelled;
 
         #endregion
 
 
         #region Loadable Registration
 
-        private static Dictionary<ESaveCategory, HashSet<ILoadable>> _loadables = new();
+        private readonly static Dictionary<ESaveCategory, HashSet<ILoadable>> _loadables = new();
 
         public static void Register(bool register, ILoadable loadable, ESaveCategory category)
         {
@@ -217,20 +231,32 @@ namespace Dhs5.Utility.SaveLoad
                 IsLoadProcessActive = true;
 
                 m_loadProcessObject = new GameObject("LOAD PROCESS OBJECT").AddComponent<LoadProcessObject>();
-                m_loadProcessObject.StartLoadProcessCoroutine(LoadCoroutine(content));
+                m_loadProcessObject.StartLoadProcessCoroutine(LoadCoroutine(content), OnLoadProcessCancelled);
 
                 return true;
             }
             return false;
         }
-        private static void OnLoadProcessComplete()
+        private static void OnLoadProcessFinished()
         {
             if (m_loadProcessObject != null)
             {
+                m_loadProcessObject.StopLoadProcessCoroutine();
                 GameObject.Destroy(m_loadProcessObject.gameObject);
                 m_loadProcessObject = null;
             }
             IsLoadProcessActive = false;
+        }
+        private static void OnLoadProcessCancelled() => OnLoadProcessCancelled(null);
+        private static void OnLoadProcessCancelled(Exception e)
+        {
+            Debug.Log("CANCELLING LOAD PROCESS");
+            OnLoadProcessFinished();
+            LoadCancelled?.Invoke(e);
+        }
+        private static void OnLoadProcessComplete()
+        {
+            OnLoadProcessFinished();
             LoadCompleted?.Invoke();
         }
 
@@ -262,7 +288,34 @@ namespace Dhs5.Utility.SaveLoad
                                 Debug.LogException(e);
                             }
 
-                            if (coroutine != null) yield return coroutine;
+                            if (coroutine != null)
+                            {
+                                bool running = true;
+                                while (running)
+                                {
+                                    yield return coroutine.Current;
+
+                                    try
+                                    {
+                                        running = coroutine.MoveNext();
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Debug.LogException(e);
+
+                                        if (SaveAsset.HasModifier(out var modifier)
+                                            && modifier.TryHandleLoadException(e))
+                                        {
+                                            Debug.Log("RESUMING LOAD PROCESS");
+                                        }
+                                        else
+                                        {
+                                            OnLoadProcessCancelled(e);
+                                            yield break;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

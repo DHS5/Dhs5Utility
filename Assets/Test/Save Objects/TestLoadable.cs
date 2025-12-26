@@ -1,4 +1,5 @@
 using Dhs5.Utility.SaveLoad;
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -14,6 +15,7 @@ public class TestLoadable : MonoBehaviour, ILoadable
         SaveManager.Register(true, this, ESaveCategory.TEST2);
         SaveManager.Register(true, this, ESaveCategory.TEST3);
         SaveManager.LoadCompleted += OnLoadCompleted;
+        SaveManager.LoadCancelled += OnLoadCancelled;
     }
     private void OnDisable()
     {
@@ -21,6 +23,7 @@ public class TestLoadable : MonoBehaviour, ILoadable
         SaveManager.Register(false, this, ESaveCategory.TEST2);
         SaveManager.Register(false, this, ESaveCategory.TEST3);
         SaveManager.LoadCompleted -= OnLoadCompleted;
+        SaveManager.LoadCancelled -= OnLoadCancelled;
     }
 
     private void Update()
@@ -63,6 +66,7 @@ public class TestLoadable : MonoBehaviour, ILoadable
                 Debug.Log("start load " + subObject + " " + iteration);
                 yield return new WaitForSeconds(3f);
                 Debug.Log("end load " + subObject + " " + iteration);
+                //throw new IndexOutOfRangeException();
                 break;
         }
     }
@@ -70,5 +74,9 @@ public class TestLoadable : MonoBehaviour, ILoadable
     private void OnLoadCompleted()
     {
         Debug.Log("Load completed");
+    }
+    private void OnLoadCancelled(Exception e)
+    {
+        Debug.Log("Load cancelled");
     }
 }

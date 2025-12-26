@@ -25,7 +25,7 @@ public class TestSaveProcessModifier : SaveProcessModifier
         return File.ReadAllText(Application.persistentDataPath + "/Save/SAVE.txt");
     }
 
-    public override bool TryHandleTypeDeserializingError(string typeName, out Type type)
+    public override bool TryHandleTypeDeserializationError(string typeName, out Type type)
     {
         type = null;
         return false;
@@ -34,5 +34,15 @@ public class TestSaveProcessModifier : SaveProcessModifier
     public override void WriteToDisk(string path, string content, ISaveParameter parameter)
     {
         File.WriteAllText(path, content);
+    }
+
+    public override bool TryHandleLoadException(Exception exception)
+    {
+        if (exception is IndexOutOfRangeException)
+        {
+            return false;
+        }
+
+        return true;
     }
 }
