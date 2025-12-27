@@ -21,7 +21,7 @@ public class TestUpdateTimeline : MonoBehaviour
             else if (Updater.CreateTimelineInstance(updateTimeline, out m_timelineHandle))
             {
                 m_timelineHandle.Updated += OnUpdateTimeline;
-                m_timelineHandle.EventTriggered += OnTimelineEvent;
+                m_timelineHandle.CustomEventTriggered += OnCustomTimelineEvent;
                 m_timelineHandle.Play();
             }
         }
@@ -31,26 +31,13 @@ public class TestUpdateTimeline : MonoBehaviour
     {
         Debug.Log("deltaTime : " + deltaTime + " time : " + m_timelineHandle.Time + " normalizedTime : " + m_timelineHandle.NormalizedTime);
     }
-    private void OnTimelineEvent(EUpdateTimelineEventType type, ushort id)
+    private void OnCustomTimelineEvent(ushort id)
     {
-        Debug.Log("Timeline Event received at " + m_timelineHandle.Time + " : " + type + " (id = " + id + ")");
+        Debug.Log("Timeline Event received at " + m_timelineHandle.Time + " (id = " + id + ")");
 
-        if (type == EUpdateTimelineEventType.CUSTOM && id == 0)
+        if (id == 0)
         {
             Updater.KillTimelineInstance(m_timelineHandle);
         }
-        //else if (type == EUpdateTimelineEventType.CUSTOM && id == 1 && m_timelineHandle.Time > 15f)
-        //{
-        //    m_timelineHandle.Stop();
-        //}
-        //else if (type == EUpdateTimelineEventType.PAUSE)
-        //{
-        //    m_timelineHandle.Timescale = 2f;
-        //    m_timelineHandle.Start();
-        //}
-        //else if (type == EUpdateTimelineEventType.START)
-        //{
-        //    m_timelineHandle.Timescale = 1f;
-        //}
     }
 }

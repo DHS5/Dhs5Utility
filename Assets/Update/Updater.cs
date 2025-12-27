@@ -73,12 +73,6 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Overrider
-
-        public static IUpdaterOverrider Overrider { get; set; }
-
-        #endregion
-
 
         #region Player Loop
 
@@ -687,7 +681,7 @@ namespace Dhs5.Utility.Updates
 
         #region Callbacks
 
-        private readonly Dictionary<int, UpdateCallback> m_channelCallbacks = new();
+        private readonly Dictionary<int, List<UpdateCallback>> m_channelCallbacks = new();
 
         public static void RegisterChannelCallback(bool register, EUpdateChannel channel, UpdateCallback callback)
         {
@@ -704,28 +698,38 @@ namespace Dhs5.Utility.Updates
         }
         private void RegisterChannelCallback(int channelIndex, UpdateCallback callback)
         {
-            if (m_channelCallbacks.ContainsKey(channelIndex))
+            if (m_channelCallbacks.TryGetValue(channelIndex, out var list) && list != null)
             {
-                m_channelCallbacks[channelIndex] += callback;
+                list.Add(callback);
             }
             else
             {
-                m_channelCallbacks.Add(channelIndex, callback);
+                m_channelCallbacks[channelIndex] = new List<UpdateCallback>() { callback };
             }
         }
         private void UnregisterChannelCallback(int channelIndex, UpdateCallback callback)
         {
-            if (m_channelCallbacks.ContainsKey(channelIndex))
+            if (m_channelCallbacks.TryGetValue(channelIndex, out var list) && list.IsValid())
             {
-                m_channelCallbacks[channelIndex] -= callback;
+                list.Remove(callback);
             }
         }
 
         private void TriggerChannelCallback(int channelIndex, float deltaTime)
         {
-            if (m_channelCallbacks.TryGetValue(channelIndex, out var callback))
+            if (m_channelCallbacks.TryGetValue(channelIndex, out var list) && list.IsValid())
             {
-                callback?.Invoke(deltaTime);
+                foreach (var callback in list)
+                {
+                    try
+                    {
+                        callback?.Invoke(deltaTime);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
+                }
             }
         }
 
@@ -787,19 +791,13 @@ namespace Dhs5.Utility.Updates
 
         private bool IsConditionFulfilled(EUpdateCondition condition)
         {
-            // TODO still useful ?
-            if (Overrider != null
-                && Overrider.OverrideConditionFulfillment(condition, out bool fulfilled))
-            {
-                return fulfilled;
-            }
-
             var conditionObject = UpdaterAsset.GetConditionObject(condition);
             if (conditionObject != null)
             {
                 return conditionObject.CanUpdate();
             }
-            return true;
+            Debug.LogWarning("No UpdateConditionObject found for " + condition);
+            return false;
         }
 
         #endregion
@@ -884,7 +882,7 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Acessors
+        #region Accessors
 
         internal bool TimelineInstanceExist(ulong key) => m_updateTimelineInstances.ContainsKey(key);
         internal bool TryGetUpdateTimelineInstance(ulong key, out UpdateTimelineInstance state) => m_updateTimelineInstances.TryGetValue(key, out state);
@@ -938,6 +936,22 @@ namespace Dhs5.Utility.Updates
             public abstract bool Update(float deltaTime);
 
             #endregion
+
+            #region Callback
+
+            protected void SafeInvokeCallback()
+            {
+                try
+                {
+                    m_callback?.Invoke();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+
+            #endregion
         }
         private class TimedDelayedCall : DelayedCall
         {
@@ -963,7 +977,7 @@ namespace Dhs5.Utility.Updates
                 m_remainingTime -= deltaTime;
                 if (m_remainingTime <= 0f)
                 {
-                    m_callback?.Invoke();
+                    SafeInvokeCallback();
                     return true;
                 }
                 return false;
@@ -1004,7 +1018,7 @@ namespace Dhs5.Utility.Updates
                 m_remainingFrames -= 1;
                 if (m_remainingFrames == 0)
                 {
-                    m_callback?.Invoke();
+                    SafeInvokeCallback();
                     return true;
                 }
                 return false;
@@ -1047,7 +1061,7 @@ namespace Dhs5.Utility.Updates
                 bool predicateResult = m_predicate.Invoke();
                 if (predicateResult == m_waitUntil)
                 {
-                    m_callback?.Invoke();
+                    SafeInvokeCallback();
                     return true;
                 }
                 return false;

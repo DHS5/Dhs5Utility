@@ -36,7 +36,6 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
     [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
     [SerializeField, FoldoutContent] private UpdateChannelObject m_foldoutElem;
-    [SerializeField] private EnumValues<EUpdateTimelineEventType, int> m_enumValues;
     [SerializeField] private EnumFlagValues<DebugCategory, DebugCategoryFlags, int> m_enumFlagValues;
     [SerializeField] private GameplayTagsList m_tags;
     [SerializeField] private GameplayTagsList m_tags2;

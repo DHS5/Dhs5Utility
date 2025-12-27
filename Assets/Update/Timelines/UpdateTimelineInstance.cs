@@ -87,13 +87,31 @@ namespace Dhs5.Utility.Updates
         /// This is called BEFORE the Custom Event callback
         /// </remarks>
         public event UpdateCallback Updated;
+
         /// <summary>
-        /// Event triggered when this UpdateTimeline encounters an Event
+        /// Callback triggered when this UpdateTimeline starts
+        /// </summary>
+        public event UpdateTimelineEvent Started;
+        /// <summary>
+        /// Callback triggered when this UpdateTimeline ends
+        /// </summary>
+        public event UpdateTimelineEvent Ended;
+        /// <summary>
+        /// Callback triggered when this UpdateTimeline is paused
+        /// </summary>
+        public event UpdateTimelineEvent Paused;
+        /// <summary>
+        /// Callback triggered when this UpdateTimeline is resumed
+        /// </summary>
+        public event UpdateTimelineEvent Resumed;
+
+        /// <summary>
+        /// Callback triggered when this UpdateTimeline encounters a custom event
         /// </summary>
         /// <remarks>
-        /// For a Custom Event, this is called JUST AFTER the Update callback
+        /// This is called JUST AFTER the Update callback
         /// </remarks>
-        public event UpdateTimelineEvent EventTriggered;
+        public event CustomUpdateTimelineEvent CustomEventTriggered;
 
         #endregion
 
@@ -253,11 +271,25 @@ namespace Dhs5.Utility.Updates
         private void OnStart()
         {
             FillCustomEventsQueue(0f);
-            EventTriggered?.Invoke(EUpdateTimelineEventType.START, 0);
+            try
+            {
+                Started?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
         private void OnEnd()
         {
-            EventTriggered?.Invoke(EUpdateTimelineEventType.END, 0);
+            try
+            {
+                Ended?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
 
         private void OnSetActive(bool triggerPauseEvents)
@@ -274,7 +306,14 @@ namespace Dhs5.Utility.Updates
             }
             else if (triggerPauseEvents)
             {
-                EventTriggered?.Invoke(EUpdateTimelineEventType.UNPAUSE, 0);
+                try
+                {
+                    Resumed?.Invoke();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
             }
         }
         private void OnSetInactive(bool triggerPauseEvents)
@@ -285,7 +324,14 @@ namespace Dhs5.Utility.Updates
             }
             else if (triggerPauseEvents)
             {
-                EventTriggered?.Invoke(EUpdateTimelineEventType.PAUSE, 0);
+                try
+                {
+                    Paused?.Invoke();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
             }
         }
 
@@ -295,13 +341,27 @@ namespace Dhs5.Utility.Updates
 
         private void TriggerUpdate(float deltaTime)
         {
-            Updated?.Invoke(deltaTime);
+            try
+            {
+                Updated?.Invoke(deltaTime);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
             CheckCustomEvents();
         }
 
         private void TriggerCustomEvent(ushort id)
         {
-            EventTriggered?.Invoke(EUpdateTimelineEventType.CUSTOM, id);
+            try
+            {
+                CustomEventTriggered?.Invoke(id);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
 
         #endregion
@@ -440,11 +500,37 @@ namespace Dhs5.Utility.Updates
             add { if (TryGetInstance(out var instance)) instance.Updated += value; } 
             remove { if (TryGetInstance(out var instance)) instance.Updated -= value; } 
         }
-        /// <inheritdoc cref="UpdateTimelineInstance.EventTriggered"/>
-        public event UpdateTimelineEvent EventTriggered
+
+        /// <inheritdoc cref="UpdateTimelineInstance.Started"/>
+        public event UpdateTimelineEvent Started
         {
-            add { if (TryGetInstance(out var instance)) instance.EventTriggered += value; }
-            remove { if (TryGetInstance(out var instance)) instance.EventTriggered -= value; }
+            add { if (TryGetInstance(out var instance)) instance.Started += value; }
+            remove { if (TryGetInstance(out var instance)) instance.Started -= value; }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.Ended"/>
+        public event UpdateTimelineEvent Ended
+        {
+            add { if (TryGetInstance(out var instance)) instance.Ended += value; }
+            remove { if (TryGetInstance(out var instance)) instance.Ended -= value; }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.Paused"/>
+        public event UpdateTimelineEvent Paused
+        {
+            add { if (TryGetInstance(out var instance)) instance.Paused += value; }
+            remove { if (TryGetInstance(out var instance)) instance.Paused -= value; }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.Resumed"/>
+        public event UpdateTimelineEvent Resumed
+        {
+            add { if (TryGetInstance(out var instance)) instance.Resumed += value; }
+            remove { if (TryGetInstance(out var instance)) instance.Resumed -= value; }
+        }
+
+        /// <inheritdoc cref="UpdateTimelineInstance.CustomEventTriggered"/>
+        public event CustomUpdateTimelineEvent CustomEventTriggered
+        {
+            add { if (TryGetInstance(out var instance)) instance.CustomEventTriggered += value; }
+            remove { if (TryGetInstance(out var instance)) instance.CustomEventTriggered -= value; }
         }
 
         #endregion

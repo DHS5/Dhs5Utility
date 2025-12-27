@@ -125,8 +125,7 @@ namespace Dhs5.Utility.Updates
     [CustomEditor(typeof(UpdaterAsset))]
     public class UpdaterAssetEditor : Editor
     {
-        // TODO Assign enum index to channels object
-        // Title is button to asset
+        // TODO Title is button to asset
 
         #region Members
 
@@ -158,6 +157,8 @@ namespace Dhs5.Utility.Updates
 
             p_updateChannelsTextAsset = serializedObject.FindProperty("m_updateChannelsTextAsset");
             p_updateConditionsTextAsset = serializedObject.FindProperty("m_updateConditionsTextAsset");
+
+            EnsureCorrectChannelsIndexation();
         }
 
         #endregion
@@ -247,15 +248,17 @@ namespace Dhs5.Utility.Updates
                 if (ret)
                 {
                     so.Dispose();
+                    EnsureCorrectChannelsIndexation();
                     return;
                 }
 
                 // Name
                 var enabledToggleTotalWidth = 22f;
                 var buttonsTotalWidth = 100f;
+                var p_enumIndex = so.FindProperty("m_enumIndex");
                 var r_indexLabel = new Rect(marginedRect.x + enabledToggleTotalWidth, marginedRect.y, 20f, 20f);
                 var r_nameTextField = new Rect(marginedRect.x + enabledToggleTotalWidth + 20f, marginedRect.y, marginedRect.width - enabledToggleTotalWidth - buttonsTotalWidth - 20f, 20f);
-                EditorGUI.LabelField(r_indexLabel, index.ToString(), EditorStyles.boldLabel);
+                EditorGUI.LabelField(r_indexLabel, p_enumIndex.intValue.ToString(), EditorStyles.boldLabel);
                 var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, element.name));
                 if (newName != element.name)
                 {
@@ -331,6 +334,7 @@ namespace Dhs5.Utility.Updates
             EditorGUILayout.BeginVertical();
 
             EditorGUILayout.Space(3f);
+            EditorGUI.BeginDisabledGroup(p_updateChannels.arraySize == 32);
             using (new GUIHelper.GUIBackgroundColorScope(Color.green))
             {
                 if (GUILayout.Button("ADD NEW CHANNEL", GUILayout.Height(25f)))
@@ -343,6 +347,7 @@ namespace Dhs5.Utility.Updates
                     AssetDatabase.SaveAssetIfDirty(newElement);
                 }
             }
+            EditorGUI.EndDisabledGroup();
             using (new GUIHelper.GUIBackgroundColorScope(DoesUpdateChannelScriptNeedUpdate() ? Color.cyan : Color.grey))
             {
                 if (GUILayout.Button("UPDATE CHANNEL SCRIPT", GUILayout.Height(25f)))
@@ -360,6 +365,29 @@ namespace Dhs5.Utility.Updates
             EditorGUILayout.Space(3f);
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void EnsureCorrectChannelsIndexation()
+        {
+            if (p_updateChannels != null)
+            {
+                for (int i = 0; i < p_updateChannels.arraySize; i++)
+                {
+                    var obj = p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue;
+
+                    if (obj != null)
+                    {
+                        var so = new SerializedObject(obj);
+                        if (so != null)
+                        {
+                            so.FindProperty("m_enumIndex").intValue = i;
+
+                            so.ApplyModifiedProperties();
+                            so.Dispose();
+                        }
+                    }
+                }
+            }
         }
 
         #endregion
@@ -471,6 +499,7 @@ namespace Dhs5.Utility.Updates
             EditorGUILayout.BeginVertical();
 
             EditorGUILayout.Space(3f);
+            EditorGUI.BeginDisabledGroup(p_updateConditions.arraySize == 256);
             using (new GUIHelper.GUIBackgroundColorScope(Color.green))
             {
                 if (GUILayout.Button("ADD NEW CONDITION", GUILayout.Height(25f)))
@@ -481,6 +510,7 @@ namespace Dhs5.Utility.Updates
                     p_element.FindPropertyRelative("m_object").objectReferenceValue = null;
                 }
             }
+            EditorGUI.EndDisabledGroup();
             using (new GUIHelper.GUIBackgroundColorScope(DoesUpdateConditionScriptNeedUpdate() ? Color.cyan : Color.grey))
             {
                 if (GUILayout.Button("UPDATE CONDITION SCRIPT", GUILayout.Height(25f)))
@@ -635,7 +665,7 @@ namespace Dhs5.Utility.Updates
                 enumProtection: ScriptWriter.EProtection.PUBLIC,
                 enumName: "EUpdateChannel",
                 enumContent: enumContent,
-                enumType: EnumWriter.EEnumType.SHORT,
+                enumType: EnumWriter.EEnumType.BYTE,
                 attributes: null,
                 indentLevel: 1)
                 .ToStringWithoutUsings());
