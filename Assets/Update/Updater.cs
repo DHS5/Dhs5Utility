@@ -403,7 +403,7 @@ namespace Dhs5.Utility.Updates
 
         private void OnAfterEarlyUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.AFTER_EARLY_UPDATE, DeltaTime);
+            UpdateDelayedCalls(EUpdatePass.AFTER_EARLY_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateAfterEarly?.Invoke(DeltaTime);
             OneShotAfterEarlyUpdate?.Invoke();
             OneShotAfterEarlyUpdate = null;
@@ -412,7 +412,7 @@ namespace Dhs5.Utility.Updates
         }
         private void OnBeforeUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.CLASSIC_UPDATE, DeltaTime);
+            UpdateDelayedCalls(EUpdatePass.CLASSIC_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateClassic?.Invoke(DeltaTime);
             OneShotClassicUpdate?.Invoke();
             OneShotClassicUpdate = null;
@@ -421,7 +421,7 @@ namespace Dhs5.Utility.Updates
         }
         private void OnAfterUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.AFTER_UPDATE, DeltaTime);
+            UpdateDelayedCalls(EUpdatePass.AFTER_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateAfterClassic?.Invoke(DeltaTime);
             OneShotAfterClassicUpdate?.Invoke();
             OneShotAfterClassicUpdate = null;
@@ -430,7 +430,7 @@ namespace Dhs5.Utility.Updates
         }
         private void OnAfterLateUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.AFTER_LATE_UPDATE, DeltaTime);
+            UpdateDelayedCalls(EUpdatePass.AFTER_LATE_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateAfterLate?.Invoke(DeltaTime);
             OneShotAfterLateUpdate?.Invoke();
             OneShotAfterLateUpdate = null;
@@ -440,7 +440,7 @@ namespace Dhs5.Utility.Updates
 
         private void OnBeforeFixedUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.BEFORE_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime);
+            UpdateDelayedCalls(EUpdatePass.BEFORE_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime, UnityEngine.Time.fixedUnscaledDeltaTime);
             OnUpdateBeforeFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
             OneShotBeforeFixedUpdate?.Invoke();
             OneShotBeforeFixedUpdate = null;
@@ -449,7 +449,7 @@ namespace Dhs5.Utility.Updates
         }
         private void OnAfterPhysicsFixedUpdate()
         {
-            UpdateDelayedCalls(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime);
+            UpdateDelayedCalls(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime, UnityEngine.Time.fixedUnscaledDeltaTime);
             OnUpdateAfterPhysicsFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
             OneShotAfterPhysicsFixedUpdate?.Invoke();
             OneShotAfterPhysicsFixedUpdate = null;
@@ -933,7 +933,7 @@ namespace Dhs5.Utility.Updates
 
             #region Update
 
-            public abstract bool Update(float deltaTime);
+            public abstract bool Update(float deltaTime, float realDeltaTime);
 
             #endregion
 
@@ -957,14 +957,16 @@ namespace Dhs5.Utility.Updates
         {
             #region Members
 
+            private bool m_realtime;
             private float m_remainingTime;
 
             #endregion
 
             #region Constructor
 
-            public TimedDelayedCall(float delay, EUpdatePass pass, EUpdateCondition condition, Action callback) : base(pass, condition, callback)
+            public TimedDelayedCall(float delay, EUpdatePass pass, EUpdateCondition condition, bool realtime, Action callback) : base(pass, condition, callback)
             {
+                m_realtime = realtime;
                 m_remainingTime = delay;
             }
 
@@ -972,9 +974,10 @@ namespace Dhs5.Utility.Updates
 
             #region Update
 
-            public override bool Update(float deltaTime)
+            public override bool Update(float deltaTime, float realDeltaTime)
             {
-                m_remainingTime -= deltaTime;
+                var dt = m_realtime ? realDeltaTime : deltaTime;
+                m_remainingTime -= dt;
                 if (m_remainingTime <= 0f)
                 {
                     SafeInvokeCallback();
@@ -1013,7 +1016,7 @@ namespace Dhs5.Utility.Updates
 
             #region Update
 
-            public override bool Update(float deltaTime)
+            public override bool Update(float _, float __)
             {
                 m_remainingFrames -= 1;
                 if (m_remainingFrames == 0)
@@ -1056,7 +1059,7 @@ namespace Dhs5.Utility.Updates
 
             #region Update
 
-            public override bool Update(float deltaTime)
+            public override bool Update(float _, float __)
             {
                 bool predicateResult = m_predicate.Invoke();
                 if (predicateResult == m_waitUntil)
@@ -1106,7 +1109,7 @@ namespace Dhs5.Utility.Updates
 
         #region Typed Registration
 
-        private void RegisterTimedDelayedCall(ulong key, float delay, EUpdatePass pass, EUpdateCondition condition, Action callback)
+        private void RegisterTimedDelayedCall(ulong key, float delay, EUpdatePass pass, EUpdateCondition condition, bool realtime, Action callback)
         {
             // If delay = 0f and condition is fulfilled
             // we need to trigger the callback and don't register the delayed call
@@ -1118,7 +1121,7 @@ namespace Dhs5.Utility.Updates
                 return;
             }
 
-            PreRegisterDelayedCall(key, new TimedDelayedCall(delay, pass, condition, callback));
+            PreRegisterDelayedCall(key, new TimedDelayedCall(delay, pass, condition, realtime, callback));
         }
         private void RegisterFrameDelayedCall(ulong key, int framesToWait, EUpdatePass pass, EUpdateCondition condition, Action callback)
         {
@@ -1194,7 +1197,22 @@ namespace Dhs5.Utility.Updates
             }
 
             var key = GetUniqueRegistrationKey();
-            Instance.RegisterTimedDelayedCall(key, time, pass, condition, callback);
+            Instance.RegisterTimedDelayedCall(key, time, pass, condition, false, callback);
+            handle = new DelayedCallHandle(key);
+        }
+        /// <summary>
+        /// Register a callback to be called once in <paramref name="time"/> realtime seconds
+        /// </summary>
+        public static void CallInXRealtimeSeconds(float time, Action callback, out DelayedCallHandle handle, EUpdatePass pass = EUpdatePass.CLASSIC_UPDATE, EUpdateCondition condition = EUpdateCondition.ALWAYS)
+        {
+            if (callback == null || time < 0f)
+            {
+                handle = DelayedCallHandle.Empty;
+                return;
+            }
+
+            var key = GetUniqueRegistrationKey();
+            Instance.RegisterTimedDelayedCall(key, time, pass, condition, true, callback);
             handle = new DelayedCallHandle(key);
         }
         /// <summary>
@@ -1237,7 +1255,7 @@ namespace Dhs5.Utility.Updates
 
         #region Update
 
-        private void UpdateDelayedCalls(EUpdatePass pass, float deltaTime)
+        private void UpdateDelayedCalls(EUpdatePass pass, float deltaTime, float realDeltaTime)
         {
             List<ulong> toDestroy = new();
             foreach (var (key, delayedCall) in m_delayedCalls)
@@ -1248,7 +1266,7 @@ namespace Dhs5.Utility.Updates
                 }
                 else if (IsConditionFulfilled(delayedCall.condition)
                     && delayedCall.pass == pass
-                    && delayedCall.Update(deltaTime))
+                    && delayedCall.Update(deltaTime, realDeltaTime))
                 {
                     toDestroy.Add(key);
                 }

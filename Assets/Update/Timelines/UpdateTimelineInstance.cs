@@ -11,8 +11,11 @@ namespace Dhs5.Utility.Updates
 
         public UpdateTimelineInstance(IUpdateTimeline updateTimeline)
         {
-            IsActive = false;
+            IsPlaying = false;
+            HasStarted = false;
+            HasEnded = false;
             Time = 0f;
+            Iteration = -1;
 
             this.timelineUID = updateTimeline.UID;
             this.updateChannel = updateTimeline.UpdateChannel;
@@ -50,7 +53,19 @@ namespace Dhs5.Utility.Updates
         /// <summary>
         /// Is this UpdateTimeline currently active
         /// </summary>
-        public bool IsActive { get; private set; }
+        public bool IsPlaying { get; private set; }
+        /// <summary>
+        /// Has this UpdateTimeline started
+        /// </summary>
+        public bool HasStarted { get; private set; }
+        /// <summary>
+        /// Has this UpdateTimeline ended
+        /// </summary>
+        public bool HasEnded { get; private set; }
+        /// <summary>
+        /// Whether this UpdateTimeline is paused
+        /// </summary>
+        public bool IsPaused => HasStarted && !IsPlaying && !HasEnded;
         /// <summary>
         /// Current time relative to this UpdateTimeline
         /// </summary>
@@ -66,6 +81,12 @@ namespace Dhs5.Utility.Updates
                 Time = value * duration;
             }
         }
+        /// <summary>
+        /// Index of the current iteration of this UpdateTimeline<br></br>
+        /// -1 before first start<br></br>
+        /// 0 for first iteration
+        /// </summary>
+        public int Iteration { get; private set; }
 
         /// <summary>
         /// Whether this UpdateTimeline loops
@@ -118,25 +139,40 @@ namespace Dhs5.Utility.Updates
 
         #region Methods
 
-        private void SetActive(bool active, bool force, bool triggerPauseEvents)
+        private void SetPlaying(bool playing, bool force, bool triggerPauseEvents)
         {
-            if (IsActive == active && !force) return;
+            if (IsPlaying == playing && !force)
+            {
+                Debug.LogWarning($"UPDATE TIMELINE ({timelineUID}) is already {(IsPlaying ? "playing" : HasEnded ? "ended" : "paused")}");
+                return;
+            }
 
-            IsActive = active;
+            IsPlaying = playing;
 
-            if (IsActive) 
-                OnSetActive(triggerPauseEvents);
+            if (IsPlaying) 
+                OnSetPlaying(triggerPauseEvents);
             else 
-                OnSetInactive(triggerPauseEvents);
+                OnSetStopped(triggerPauseEvents);
         }
 
         public void Play()
         {
-            SetActive(true, false, true);
+            SetPlaying(true, false, true);
+        }
+        public void Resume()
+        {
+            if (IsPaused)
+            {
+                SetPlaying(true, false, true);
+            }
+            else
+            {
+                Debug.LogWarning($"UPDATE TIMELINE ({timelineUID}) can't be resumed as it's not paused");
+            }
         }
         public void Pause()
         {
-            SetActive(true, false, true);
+            SetPlaying(false, false, true);
         }
 
         public void SetTime(float time, bool triggerCustomEvents)
@@ -166,7 +202,11 @@ namespace Dhs5.Utility.Updates
 
         public void Complete(bool triggerCustomEvents)
         {
-            if (Time == duration) return;
+            if (Time == duration)
+            {
+                Debug.LogWarning($"UPDATE TIMELINE ({timelineUID}) is already complete");
+                return;
+            }
 
             Time = duration;
 
@@ -174,7 +214,7 @@ namespace Dhs5.Utility.Updates
             {
                 CheckCustomEvents(); // Will trigger all custom events left   
             }
-            SetActive(false, true, false); // Will trigger end event
+            SetPlaying(false, true, false); // Will trigger end event
         }
         public void Restart(bool complete)
         {
@@ -183,12 +223,15 @@ namespace Dhs5.Utility.Updates
                 Complete(true);
             }
             Time = 0f;
-            SetActive(true, true, false);
+            HasEnded = false;
+            SetPlaying(true, true, false);
         }
         public void Reset()
         {
             Time = 0f;
-            SetActive(false, false, false);
+            HasStarted = false;
+            HasEnded = false;
+            SetPlaying(false, false, false);
         }
 
         #endregion
@@ -197,7 +240,7 @@ namespace Dhs5.Utility.Updates
 
         public void OnUpdate(float deltaTime)
         {
-            if (IsActive)
+            if (IsPlaying)
             {
                 deltaTime *= Timescale;
                 Time += deltaTime; // Increments time
@@ -228,7 +271,7 @@ namespace Dhs5.Utility.Updates
                     {
                         Time = duration;
                         TriggerUpdate(deltaTime - surplus);
-                        SetActive(false, false, false);
+                        SetPlaying(false, false, false);
                     }
                 }
                 else
@@ -271,6 +314,8 @@ namespace Dhs5.Utility.Updates
         private void OnStart()
         {
             FillCustomEventsQueue(0f);
+            HasStarted = true;
+            Iteration++;
             try
             {
                 Started?.Invoke();
@@ -282,6 +327,7 @@ namespace Dhs5.Utility.Updates
         }
         private void OnEnd()
         {
+            HasEnded = true;
             try
             {
                 Ended?.Invoke();
@@ -292,7 +338,7 @@ namespace Dhs5.Utility.Updates
             }
         }
 
-        private void OnSetActive(bool triggerPauseEvents)
+        private void OnSetPlaying(bool triggerPauseEvents)
         {
             // If complete, restart
             if (Mathf.Approximately(Time, duration))
@@ -316,7 +362,7 @@ namespace Dhs5.Utility.Updates
                 }
             }
         }
-        private void OnSetInactive(bool triggerPauseEvents)
+        private void OnSetStopped(bool triggerPauseEvents)
         {
             if (Mathf.Approximately(Time, duration))
             {
@@ -403,14 +449,50 @@ namespace Dhs5.Utility.Updates
         /// </summary>
         public readonly bool IsValid => Updater.Instance.TimelineInstanceExist(key);
 
-        /// <inheritdoc cref="UpdateTimelineInstance.IsActive"/>
-        public readonly bool IsActive
+        /// <inheritdoc cref="UpdateTimelineInstance.IsPlaying"/>
+        public readonly bool IsPlaying
         {
             get
             {
                 if (TryGetInstance(out var instance))
                 {
-                    return instance.IsActive;
+                    return instance.IsPlaying;
+                }
+                return false;
+            }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.HasStarted"/>
+        public readonly bool HasStarted
+        {
+            get
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    return instance.HasStarted;
+                }
+                return false;
+            }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.HasEnded"/>
+        public readonly bool HasEnded
+        {
+            get
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    return instance.HasEnded;
+                }
+                return false;
+            }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.IsPaused"/>
+        public readonly bool IsPaused
+        {
+            get
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    return instance.IsPaused;
                 }
                 return false;
             }
@@ -449,6 +531,18 @@ namespace Dhs5.Utility.Updates
                     return instance.duration;
                 }
                 return 0f;
+            }
+        }
+        /// <inheritdoc cref="UpdateTimelineInstance.Iteration"/>
+        public readonly int Iteration
+        {
+            get
+            {
+                if (TryGetInstance(out var instance))
+                {
+                    return instance.Iteration;
+                }
+                return -1;
             }
         }
         /// <inheritdoc cref="UpdateTimelineInstance.Loop"/>
@@ -538,12 +632,20 @@ namespace Dhs5.Utility.Updates
         #region Methods
 
         /// <summary>
-        /// Starts or Unpause the UpdateTimeline
+        /// Starts or Resume the UpdateTimeline
         /// </summary>
         public readonly void Play()
         {
             if (TryGetInstance(out var instance))
                 instance.Play();
+        }
+        /// <summary>
+        /// Resume the UpdateTimeline if paused
+        /// </summary>
+        public readonly void Resume()
+        {
+            if (TryGetInstance(out var instance))
+                instance.Resume();
         }
         /// <summary>
         /// Pause the UpdateTimeline

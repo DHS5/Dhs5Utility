@@ -125,8 +125,6 @@ namespace Dhs5.Utility.Updates
     [CustomEditor(typeof(UpdaterAsset))]
     public class UpdaterAssetEditor : Editor
     {
-        // TODO Title is button to asset
-
         #region Members
 
         private UpdaterAsset m_updaterAsset;
@@ -187,7 +185,9 @@ namespace Dhs5.Utility.Updates
             {
                 if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject element)
                 {
+                    EditorGUI.BeginDisabledGroup(i == 0);
                     DrawChannelListElement(element, i);
+                    EditorGUI.EndDisabledGroup();
                     if (i < p_updateChannels.arraySize - 1)
                     {
                         EditorGUILayout.Space(2f);
@@ -216,7 +216,7 @@ namespace Dhs5.Utility.Updates
                 // Up/Down/Delete Buttons
                 bool ret = false;
                 var r_upButton = new Rect(marginedRect.x + marginedRect.width - 94f, marginedRect.y - 2f, 32f, 20f);
-                using (new EditorGUI.DisabledGroupScope(index == 0))
+                using (new EditorGUI.DisabledGroupScope(index <= 1))
                 {
                     if (GUI.Button(r_upButton, EditorGUIHelper.UpIcon))
                     {
@@ -416,7 +416,9 @@ namespace Dhs5.Utility.Updates
                 var p_element = p_updateConditions.GetArrayElementAtIndex(i);
                 if (p_element != null)
                 {
+                    EditorGUI.BeginDisabledGroup(i == 0);
                     DrawConditionListElement(p_element, i);
+                    EditorGUI.EndDisabledGroup();
                     if (i < p_updateConditions.arraySize - 1)
                     {
                         EditorGUILayout.Space(2f);
@@ -437,7 +439,7 @@ namespace Dhs5.Utility.Updates
             // Up/Down/Delete Buttons
             bool ret = false;
             var r_upButton = new Rect(marginedRect.x + marginedRect.width - 94f, marginedRect.y - 2f, 32f, 20f);
-            using (new EditorGUI.DisabledGroupScope(index == 0))
+            using (new EditorGUI.DisabledGroupScope(index <= 1))
             {
                 if (GUI.Button(r_upButton, EditorGUIHelper.UpIcon))
                 {

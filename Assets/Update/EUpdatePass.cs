@@ -21,7 +21,7 @@ namespace Dhs5.Utility.Updates
         [InspectorName("Before Fixed Update"), Tooltip("Updated inside the Fixed Update of the PlayerLoop, before the FixedUpdate method")]
         BEFORE_FIXED_UPDATE,
         
-        [InspectorName("After Physics Fixed Update"), Tooltip("Updated inside the Fixed Update of the PlayerLoop, after the Physics Update")]
+        [InspectorName("After Physics Fixed Update"), Tooltip("Updated inside the Fixed Update of the PlayerLoop, after the Physics FixedUpdate")]
         AFTER_PHYSICS_FIXED_UPDATE,
     }
 
