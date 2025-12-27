@@ -36,7 +36,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
     [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
     [SerializeField, FoldoutContent] private UpdateChannelObject m_foldoutElem;
-    [SerializeField] private EnumFlagValues<DebugCategory, DebugCategoryFlags, int> m_enumFlagValues;
+    [SerializeField] private EnumFlagValues<EDebugCategory, DebugCategoryFlags, int> m_enumFlagValues;
     [SerializeField] private GameplayTagsList m_tags;
     [SerializeField] private GameplayTagsList m_tags2;
 
@@ -77,7 +77,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
 
         if (!done && Updater.Time > 2f)
         {
-            TestDebugger.Log(DebugCategory.GAME, "Frame : " + Updater.Frame, 0);
+            TestDebugger.Log(EDebugCategory.GAME, "Frame : " + Updater.Frame, 0);
             done = true;
             Updater.CallInXFrames(1, OnNextUpdate, out _);
         }
@@ -87,14 +87,14 @@ public class TestScript : MonoBehaviour, IDataContainerElement
         if (!done2 && Updater.Time > 3f)
         {
             done2 = true;
-            TestDebugger.Log(DebugCategory.GAME, "on late register, frame : " + Updater.Frame, 0);
-            Updater.CallInXFrames(0, () => TestDebugger.Log(DebugCategory.GAME, "on late, frame : " + Updater.Frame, 0), out _, EUpdatePass.AFTER_LATE_UPDATE);
+            TestDebugger.Log(EDebugCategory.GAME, "on late register, frame : " + Updater.Frame, 0);
+            Updater.CallInXFrames(0, () => TestDebugger.Log(EDebugCategory.GAME, "on late, frame : " + Updater.Frame, 0), out _, EUpdatePass.AFTER_LATE_UPDATE);
         }
     }
 
     private void OnNextUpdate()
     {
-        TestDebugger.Log(DebugCategory.GAME, "On Next update, Frame : " + Updater.Frame, 0);
+        TestDebugger.Log(EDebugCategory.GAME, "On Next update, Frame : " + Updater.Frame, 0);
     }
 
     private void OnInputTest()
