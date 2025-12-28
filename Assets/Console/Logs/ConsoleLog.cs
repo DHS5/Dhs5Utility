@@ -11,6 +11,7 @@ namespace Dhs5.Utility.Console
             this.level = level;
             this.message = message;
             this.context = context;
+            this.timestamp = Time.timeAsDouble;
         }
 
         public readonly EDebugCategory category;
@@ -18,5 +19,6 @@ namespace Dhs5.Utility.Console
         public readonly int level;
         public readonly string message;
         public readonly UnityEngine.Object context;
+        public readonly double timestamp;
     }
 }
