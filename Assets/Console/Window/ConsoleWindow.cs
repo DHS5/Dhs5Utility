@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Dhs5.Utility.Debuggers;
+using System.Linq;
+
 
 
 
@@ -39,7 +41,8 @@ namespace Dhs5.Utility.Console
         private Vector2 m_selectedLogScrollPosition;
 
         // COMMANDS
-        private string m_commandFieldContent;
+        private bool m_isWritingOnCommandLine;
+        private Vector2 m_commandsOptionsScrollPosition;
 
         #endregion
 
@@ -106,14 +109,22 @@ namespace Dhs5.Utility.Console
             // COMMAND LINE
             if (IsWritingOnCommandLine())
             {
-                var width = Mathf.Min(position.width, 500f);
-                var height = Mathf.Min(position.height - 50f, 150f);
-                var r_commandLineHints = new Rect(1f, position.height - 30f - height, width, height);
-                DrawCommandLineHintsWindow(r_commandLineHints);
+                // Events
+                HandleCommandLineEvents();
             }
 
+            // Command Line
             rect = new Rect(1f, position.height - 29f, position.width - 2f, 28f);
             DrawCommandLineGUI(rect);
+
+            // Options
+            if (m_isWritingOnCommandLine)
+            {
+                var width = Mathf.Min(position.width, 500f);
+                var height = Mathf.Min(position.height - 50f, 150f);
+                var r_commandLineOptions = new Rect(1f, position.height - 30f - height, width, height);
+                DrawCommandLineOptionsWindow(r_commandLineOptions);
+            }
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
             {
@@ -248,29 +259,57 @@ namespace Dhs5.Utility.Console
 
         private bool IsWritingOnCommandLine()
         {
-            return EditorGUIUtility.editingTextField
-                && GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl
-                && !string.IsNullOrWhiteSpace(m_commandFieldContent);
+            if (Event.current.type != EventType.Repaint)
+            {
+                m_isWritingOnCommandLine = EditorGUIUtility.editingTextField
+                    && GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl
+                    && !string.IsNullOrWhiteSpace(ConsoleCommandsRegister.CommandLineContent);
+            }
+
+            return m_isWritingOnCommandLine;
         }
         private void DrawCommandLineGUI(Rect rect)
         {
             var previous = GUI.skin.textField.fontSize;
             GUI.skin.textField.fontSize = previous + 4;
             GUI.SetNextControlName(ConsoleCommandTextFieldControl);
-            m_commandFieldContent = EditorGUI.TextField(rect, m_commandFieldContent);
+            ConsoleCommandsRegister.CommandLineContent = EditorGUI.TextField(rect, ConsoleCommandsRegister.CommandLineContent);
             GUI.skin.textField.fontSize = previous;
         }
-        private void DrawCommandLineHintsWindow(Rect rect)
+        private void DrawCommandLineOptionsWindow(Rect rect)
         {
-            GUI.Box(rect, GUIContent.none, GUI.skin.window);
+            // Draw options
+            var options = ConsoleCommandsRegister.GetCurrentOptions().ToList();
+            if (options.IsValid())
+            {
+                // Background
+                GUI.Box(rect, GUIContent.none, GUI.skin.window);
 
+                // Options
+                var r_view = new Rect(0f, 0f, rect.width - 16f, options.Count * 15f);
+                m_commandsOptionsScrollPosition = GUI.BeginScrollView(rect, m_commandsOptionsScrollPosition, r_view);
+                
+                //var r_command = new Rect(rect.x, rect.y, r_view.width, 15f);
+                var r_command = new Rect(0f, 0f, r_view.width, 15f);
+                foreach (var command in options)
+                {
+                    EditorGUI.LabelField(r_command, command);
+                    r_command.y += 15f;
+                }
+
+                GUI.EndScrollView();
+            }
+        }
+
+        private void HandleCommandLineEvents()
+        {
             switch (Event.current.type)
             {
                 case EventType.KeyDown:
                     if (Event.current.keyCode == KeyCode.Return)
                     {
                         Event.current.Use();
-                        ConsoleLogsContainer.AddLog(new ConsoleLog(EDebugCategory.GAME, LogType.Log, 0, m_commandFieldContent, null));
+                        ConsoleCommandsRegister.ValidateCommand();
                     }
                     break;
             }

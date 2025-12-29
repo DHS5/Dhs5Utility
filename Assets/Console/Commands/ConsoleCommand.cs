@@ -85,7 +85,7 @@ namespace Dhs5.Utility.Console
         {
             this.name = name;
             this.scope = scope;
-            this.parameters = parameters;
+            this.parameters = parameters != null ? parameters : new EParameter[0];
             this.callback = callback;
 
             this.optionString = GetOptionString();
@@ -111,6 +111,10 @@ namespace Dhs5.Utility.Console
                         throw new InvalidTypeParameterException(methodParameters[i].ParameterType);
                     }
                 }
+            }
+            else
+            {
+                this.parameters = new EParameter[0];
             }
 
             this.callback = (parameters) => methodInfo.Invoke(null, parameters);
@@ -144,8 +148,11 @@ namespace Dhs5.Utility.Console
 
                         if (i == commandLineContentAsArray.Length - 1)
                         {
-                            if (matchResult is EMatchResult.NO_MATCH
-                                || commandLineContentAsArray.Length - 1 == parameters.Length)
+                            if (matchResult is EMatchResult.NO_MATCH)
+                            {
+                                return EMatchResult.NAME_MATCH;
+                            }
+                            if (commandLineContentAsArray.Length - 1 == parameters.Length)
                             {
                                 return matchResult;
                             }
@@ -154,9 +161,13 @@ namespace Dhs5.Utility.Console
                     }
                 }
             }
-            else if (name.StartsWith(commandLineContentAsArray[0], StringComparison.InvariantCultureIgnoreCase))
+            else if (string.Equals(name, commandLineContentAsArray[0], StringComparison.InvariantCultureIgnoreCase))
             {
                 return parameters.Length > 0 ? EMatchResult.PARTIAL_MATCH : EMatchResult.PERFECT_MATCH;
+            }
+            else if (name.StartsWith(commandLineContentAsArray[0], StringComparison.InvariantCultureIgnoreCase))
+            {
+                return EMatchResult.PARTIAL_MATCH;
             }
             return EMatchResult.NO_MATCH;
         }
@@ -168,6 +179,8 @@ namespace Dhs5.Utility.Console
 
         private string GetOptionString()
         {
+            if (!parameters.IsValid()) return name;
+
             StringBuilder sb = new();
 
             sb.Append(name);

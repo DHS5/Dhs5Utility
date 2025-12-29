@@ -2,7 +2,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Reflection;
 using System;
-using static UnityEditor.Profiling.FrameDataView;
 
 namespace Dhs5.Utility.Console
 {
@@ -32,7 +31,7 @@ namespace Dhs5.Utility.Console
             // Built-in Commands
             foreach (var command in GetBuiltInCommands())
             {
-                if (!_commands.Add(command))
+                if (IsScopeValid(command.scope) && !_commands.Add(command))
                 {
                     Debug.LogWarning("Could not register Built-in Command with name " + command.name);
                 }
@@ -50,12 +49,8 @@ namespace Dhs5.Utility.Console
                         foreach (var methodInfo in type.GetMethods(bindingFlags))
                         {
                             var attribute = methodInfo.GetCustomAttribute<ConsoleCommandAttribute>(inherit:false);
-                            if (attribute != null)
+                            if (attribute != null && IsScopeValid(attribute.scope))
                             {
-                                if (!Application.isPlaying && attribute.scope == ConsoleCommand.EScope.RUNTIME) continue;
-#if !UNITY_EDITOR
-                                if (attribute.scope == ConsoleCommand.EScope.EDITOR) continue;
-#endif
                                 if (!_commands.Add(new ConsoleCommand(attribute.name, attribute.scope, methodInfo)))
                                 {
                                     Debug.LogWarning("Could not register ConsoleCommand with name " + attribute.name
@@ -71,6 +66,14 @@ namespace Dhs5.Utility.Console
                 }
             }
         }
+        private static bool IsScopeValid(ConsoleCommand.EScope scope)
+        {
+            if (!Application.isPlaying && scope == ConsoleCommand.EScope.RUNTIME) return false;
+#if !UNITY_EDITOR
+            if (scope == ConsoleCommand.EScope.EDITOR) return false;
+#endif
+            return true;
+        }
 
         private static IEnumerable<ConsoleCommand> GetBuiltInCommands()
         {
@@ -84,6 +87,35 @@ namespace Dhs5.Utility.Console
 
             #endregion
 
+            #region Test
+
+            yield return new ConsoleCommand(
+                "test",
+                ConsoleCommand.EScope.EDITOR,
+                null,
+                (parameters) => { Debug.Log("test"); });
+            yield return new ConsoleCommand(
+                "testing",
+                ConsoleCommand.EScope.EDITOR,
+                null,
+                (parameters) => { Debug.Log("testing"); });
+            yield return new ConsoleCommand(
+                "test",
+                ConsoleCommand.EScope.EDITOR,
+                new ConsoleCommand.EParameter[] { ConsoleCommand.EParameter.BOOL },
+                (parameters) => { Debug.Log("test " + parameters[0]); });
+            yield return new ConsoleCommand(
+                "test",
+                ConsoleCommand.EScope.EDITOR,
+                new ConsoleCommand.EParameter[] { ConsoleCommand.EParameter.FLOAT, ConsoleCommand.EParameter.FLOAT },
+                (parameters) => { Debug.Log("test " + parameters[0] + " " + parameters[1]); });
+            yield return new ConsoleCommand(
+                "test",
+                ConsoleCommand.EScope.EDITOR,
+                new ConsoleCommand.EParameter[] { ConsoleCommand.EParameter.VECTOR3 },
+                (parameters) => { Debug.Log("test " + parameters[0]); });
+
+            #endregion
         }
 
         #endregion
@@ -98,21 +130,26 @@ namespace Dhs5.Utility.Console
             get => _commandLineContent;
             set
             {
-                SetCommandLineContent(value);
+                if (value != _commandLineContent)
+                {
+                    SetCommandLineContent(value);
+                }
             }
         }
         public static void SetCommandLineContent(string content)
         {
             _commandLineContent = content;
-            _commandLineContentAsArray = content.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            _commandLineContentAsArray = string.IsNullOrEmpty(content) ? null : content.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             if (string.IsNullOrEmpty(content)
-                || _commandLineContentAsArray.Length == 0)
+                || !_commandLineContentAsArray.IsValid())
             {
+                _commandLineContentAsArray = null;
                 ClearCommandOptions();
             }
             else
             {
+                
                 ComputeCommandOptions();
             }
         }
@@ -127,14 +164,22 @@ namespace Dhs5.Utility.Console
         #region Command Options
 
         private static Dictionary<ConsoleCommand, ConsoleCommand.EMatchResult> _currentCommandOptions = new();
+        private static ConsoleCommand _closestMatch;
 
         private static void ClearCommandOptions()
         {
             _currentCommandOptions.Clear();
+            _closestMatch = null;
         }
         private static void ComputeCommandOptions()
         {
+            if (_commands == null)
+            {
+                RegisterCommands();
+            }
+
             _currentCommandOptions.Clear();
+            _closestMatch = null;
 
             foreach (var command in _commands)
             {
@@ -142,6 +187,25 @@ namespace Dhs5.Utility.Console
                 if (matchResult != ConsoleCommand.EMatchResult.NO_MATCH)
                 {
                     _currentCommandOptions.Add(command, matchResult);
+
+                    switch (matchResult)
+                    {
+                        case ConsoleCommand.EMatchResult.PERFECT_MATCH:
+                            _closestMatch = command;
+                            break;
+
+                        case ConsoleCommand.EMatchResult.PARTIAL_MATCH:
+                            if (_closestMatch == null
+                                || _currentCommandOptions[_closestMatch] == ConsoleCommand.EMatchResult.NAME_MATCH)
+                            {
+                                _closestMatch = command;
+                            }
+                            break;
+
+                        case ConsoleCommand.EMatchResult.NAME_MATCH:
+                            _closestMatch ??= command;
+                            break;
+                    }
                 }
             }
         }
@@ -155,6 +219,44 @@ namespace Dhs5.Utility.Console
                     yield return command.optionString;
                 }
             }
+        }
+
+        #endregion
+
+        #region Command History
+
+        private static List<string> _commandsHistory = new();
+
+        private static void AddToCommandHistory(string rawCommand)
+        {
+            _commandsHistory.Add(rawCommand);
+
+            if (_commandsHistory.Count > 20) // TODO
+            {
+                _commandsHistory.RemoveAt(0);
+            }
+        }
+
+        #endregion
+
+        #region Command Validation
+
+        public static void ValidateCommand()
+        {
+            AddToCommandHistory(CommandLineContent);
+
+            if (_closestMatch != null
+                && _currentCommandOptions[_closestMatch] == ConsoleCommand.EMatchResult.PERFECT_MATCH)
+            {
+                // Run command
+                Debug.Log("run " + CommandLineContent + " as " + _closestMatch.optionString);
+            }
+            else
+            {
+                Debug.LogWarning("Could not run " + CommandLineContent);
+            }
+
+            ClearCommandLineContent();
         }
 
         #endregion
