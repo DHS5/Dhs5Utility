@@ -117,6 +117,12 @@ namespace Dhs5.Utility.Console
             rect = new Rect(1f, position.height - 29f, position.width - 2f, 28f);
             DrawCommandLineGUI(rect);
 
+            if (IsWritingOnCommandLine())
+            {
+                // Events 2
+                HandleCommandLineEvents2();
+            }
+
             // Options
             if (m_isWritingOnCommandLine)
             {
@@ -261,8 +267,8 @@ namespace Dhs5.Utility.Console
         {
             if (Event.current.type != EventType.Repaint)
             {
-                m_isWritingOnCommandLine = EditorGUIUtility.editingTextField
-                    && GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl
+                m_isWritingOnCommandLine = //EditorGUIUtility.editingTextField && 
+                    GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl
                     && !string.IsNullOrWhiteSpace(ConsoleCommandsRegister.CommandLineContent);
             }
 
@@ -270,11 +276,16 @@ namespace Dhs5.Utility.Console
         }
         private void DrawCommandLineGUI(Rect rect)
         {
-            var previous = GUI.skin.textField.fontSize;
-            GUI.skin.textField.fontSize = previous + 4;
+            GUI.skin.textField.fontSize += 4;
+            EditorStyles.label.fontSize += 4;
             GUI.SetNextControlName(ConsoleCommandTextFieldControl);
-            ConsoleCommandsRegister.CommandLineContent = EditorGUI.TextField(rect, ConsoleCommandsRegister.CommandLineContent);
-            GUI.skin.textField.fontSize = previous;
+            ConsoleCommandsRegister.CommandLineContent = GUI.TextField(rect, ConsoleCommandsRegister.CommandLineContent);
+            using (new GUIHelper.GUIContentColorScope(new Color(1f, 1f, 1f, 0.3f)))
+            {
+                EditorGUI.LabelField(new Rect(rect.x + 2f, rect.y - 2f, rect.width, rect.height), ConsoleCommandsRegister.GetHintString());
+            }
+            GUI.skin.textField.fontSize -= 4;
+            EditorStyles.label.fontSize -= 4;
         }
         private void DrawCommandLineOptionsWindow(Rect rect)
         {
@@ -289,15 +300,33 @@ namespace Dhs5.Utility.Console
                 var r_view = new Rect(0f, 0f, rect.width - 16f, options.Count * 15f);
                 m_commandsOptionsScrollPosition = GUI.BeginScrollView(rect, m_commandsOptionsScrollPosition, r_view);
                 
-                //var r_command = new Rect(rect.x, rect.y, r_view.width, 15f);
-                var r_command = new Rect(0f, 0f, r_view.width, 15f);
-                foreach (var command in options)
+                var r_command = new Rect(2f, 0f, r_view.width + 12f, 15f);
+                int index = 0;
+                foreach (var (command, matchResult) in options)
                 {
-                    EditorGUI.LabelField(r_command, command);
+                    var selected = ConsoleCommandsRegister.SelectedOptionIndex == index;
+                    var color = matchResult switch
+                    {
+                        ConsoleCommand.EMatchResult.NAME_MATCH => Color.red,
+                        ConsoleCommand.EMatchResult.PARTIAL_MATCH => Color.white,
+                        ConsoleCommand.EMatchResult.PERFECT_MATCH => Color.green,
+                        _ => Color.white
+                    };
+
+                    if (selected)
+                    {
+                        EditorGUI.DrawRect(r_command, Color.gray1);
+                        GUI.ScrollTo(r_command);
+                    }
+                    using (new GUIHelper.GUIContentColorScope(color))
+                    {
+                        EditorGUI.LabelField(r_command, command);
+                    }
                     r_command.y += 15f;
+                    index++;
                 }
 
-                GUI.EndScrollView();
+                GUI.EndScrollView(handleScrollWheel:false);
             }
         }
 
@@ -311,8 +340,55 @@ namespace Dhs5.Utility.Console
                         Event.current.Use();
                         ConsoleCommandsRegister.ValidateCommand();
                     }
+                    else if (Event.current.keyCode == KeyCode.Tab || Event.current.character == '\t')
+                    {
+                        Event.current.Use();
+                        ConsoleCommandsRegister.FillFromOption();
+                    }
+                    else if (Event.current.keyCode == KeyCode.UpArrow)
+                    {
+                        Event.current.Use();
+                        if (Event.current.modifiers.HasFlag(EventModifiers.Control))
+                        {
+                            ConsoleCommandsRegister.SelectPreviousCommandInHistory();
+                        }
+                        else
+                        {
+                            ConsoleCommandsRegister.SelectPreviousOption();
+                        }
+                    }
+                    else if (Event.current.keyCode == KeyCode.DownArrow)
+                    {
+                        Event.current.Use();
+                        if (Event.current.modifiers.HasFlag(EventModifiers.Control))
+                        {
+                            ConsoleCommandsRegister.SelectNextCommandInHistory();
+                        }
+                        else
+                        {
+                            ConsoleCommandsRegister.SelectNextOption();
+                        }
+                    }
                     break;
             }
+        }
+        private void HandleCommandLineEvents2()
+        {
+            //switch (Event.current.type)
+            //{
+            //    case EventType.KeyDown:
+            //        if (Event.current.keyCode == KeyCode.UpArrow)
+            //        {
+            //            Event.current.Use();
+            //            ConsoleCommandsRegister.SelectNextOption();
+            //        }
+            //        else if (Event.current.keyCode == KeyCode.DownArrow)
+            //        {
+            //            Event.current.Use();
+            //            ConsoleCommandsRegister.SelectPreviousOption();
+            //        }
+            //        break;
+            //}
         }
 
         #endregion

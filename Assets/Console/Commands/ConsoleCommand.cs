@@ -76,6 +76,7 @@ namespace Dhs5.Utility.Console
         public readonly Action<object[]> callback;
 
         public readonly string optionString;
+        public readonly string hintString;
 
         #endregion
 
@@ -89,6 +90,7 @@ namespace Dhs5.Utility.Console
             this.callback = callback;
 
             this.optionString = GetOptionString();
+            this.hintString = GetHintString();
         }
 
         public ConsoleCommand(string name, EScope scope, MethodInfo methodInfo)
@@ -120,6 +122,7 @@ namespace Dhs5.Utility.Console
             this.callback = (parameters) => methodInfo.Invoke(null, parameters);
 
             this.optionString = GetOptionString();
+            this.hintString = GetHintString();
         }
 
         #endregion
@@ -230,6 +233,23 @@ namespace Dhs5.Utility.Console
             for (int i = 0; i < parameters.Length; i++)
             {
                 sb.Append(parameters[i].ToString());
+                if (i < parameters.Length - 1) sb.Append(' ');
+            }
+
+            return sb.ToString();
+        }
+        private string GetHintString()
+        {
+            if (!parameters.IsValid()) return name;
+
+            StringBuilder sb = new();
+
+            sb.Append(name);
+            sb.Append(' ');
+
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                sb.Append(GetParameterDefaultValueAsString(parameters[i]));
                 if (i < parameters.Length - 1) sb.Append(' ');
             }
 
@@ -519,6 +539,28 @@ namespace Dhs5.Utility.Console
                         return null;
                     }
 
+                default: throw new NotImplementedException();
+            }
+        }
+
+        #endregion
+
+        #region Static Parameter Default Value
+
+        public static string GetParameterDefaultValueAsString(EParameter parameter)
+        {
+            switch (parameter)
+            {
+                case EParameter.BOOL: return "false";
+                case EParameter.INT: return "0";
+                case EParameter.FLOAT: return "0.0";
+                case EParameter.STRING: return "_";
+                case EParameter.ENUM: return ""; // TODO
+                case EParameter.VECTOR2: return "0,0";
+                case EParameter.VECTOR2INT: return "0,0";
+                case EParameter.VECTOR3: return "0,0,0";
+                case EParameter.VECTOR3INT: return "0,0,0";
+                case EParameter.COLOR: return "0,0,0,0";
                 default: throw new NotImplementedException();
             }
         }

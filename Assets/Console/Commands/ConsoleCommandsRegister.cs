@@ -163,13 +163,18 @@ namespace Dhs5.Utility.Console
 
         #region Command Options
 
-        private static Dictionary<ConsoleCommand, ConsoleCommand.EMatchResult> _currentCommandOptions = new();
+        private static List<ConsoleCommand> _currentCommandOptions = new();
+        private static Dictionary<ConsoleCommand, ConsoleCommand.EMatchResult> _optionsMatchResult = new();
         private static ConsoleCommand _closestMatch;
+        public static int SelectedOptionIndex { get; private set; } = -1;
 
         private static void ClearCommandOptions()
         {
             _currentCommandOptions.Clear();
+            _optionsMatchResult.Clear();
             _closestMatch = null;
+            SelectedOptionIndex = -1;
+            _commandsHistoryIndex = -1;
         }
         private static void ComputeCommandOptions()
         {
@@ -179,44 +184,105 @@ namespace Dhs5.Utility.Console
             }
 
             _currentCommandOptions.Clear();
+            _optionsMatchResult.Clear();
             _closestMatch = null;
 
+            int index = 0;
             foreach (var command in _commands)
             {
                 var matchResult = command.IsMatch(_commandLineContentAsArray);
                 if (matchResult != ConsoleCommand.EMatchResult.NO_MATCH)
                 {
-                    _currentCommandOptions.Add(command, matchResult);
+                    _currentCommandOptions.Add(command);
+                    _optionsMatchResult.Add(command, matchResult);
 
                     switch (matchResult)
                     {
                         case ConsoleCommand.EMatchResult.PERFECT_MATCH:
                             _closestMatch = command;
+                            SelectedOptionIndex = index;
                             break;
 
                         case ConsoleCommand.EMatchResult.PARTIAL_MATCH:
                             if (_closestMatch == null
-                                || _currentCommandOptions[_closestMatch] == ConsoleCommand.EMatchResult.NAME_MATCH)
+                                || _optionsMatchResult[_closestMatch] == ConsoleCommand.EMatchResult.NAME_MATCH)
                             {
                                 _closestMatch = command;
+                                SelectedOptionIndex = index;
                             }
                             break;
 
                         case ConsoleCommand.EMatchResult.NAME_MATCH:
-                            _closestMatch ??= command;
+                            if (_closestMatch == null)
+                            {
+                                _closestMatch = command;
+                                SelectedOptionIndex = index;
+                            }
                             break;
                     }
+
+                    index++;
                 }
             }
         }
 
-        public static IEnumerable<string> GetCurrentOptions()
+        public static IEnumerable<KeyValuePair<string, ConsoleCommand.EMatchResult>> GetCurrentOptions()
         {
             if (_currentCommandOptions.IsValid())
             {
-                foreach (var (command, _) in _currentCommandOptions)
+                foreach (var command in _currentCommandOptions)
                 {
-                    yield return command.optionString;
+                    yield return new KeyValuePair<string, ConsoleCommand.EMatchResult>(command.optionString, _optionsMatchResult[command]);
+                }
+            }
+        }
+        public static string GetHintString()
+        {
+            if (_closestMatch != null
+                && _commandLineContentAsArray.Length == 1)
+            {
+                return _closestMatch.hintString;
+            }
+            return string.Empty;
+        }
+
+        public static void SelectNextOption()
+        {
+            if (_currentCommandOptions.IsValid())
+            {
+                if (SelectedOptionIndex < _currentCommandOptions.Count - 1)
+                    SelectedOptionIndex++;
+                else
+                    SelectedOptionIndex = 0;
+            }
+            else
+            {
+                SelectedOptionIndex = -1;
+            }
+        }
+        public static void SelectPreviousOption()
+        {
+            if (_currentCommandOptions.IsValid())
+            {
+                if (SelectedOptionIndex > 0)
+                    SelectedOptionIndex--;
+                else
+                    SelectedOptionIndex = _currentCommandOptions.Count - 1;
+            }
+            else
+            {
+                SelectedOptionIndex = -1;
+            }
+        }
+
+        public static void FillFromOption()
+        {
+            if (_currentCommandOptions.IsIndexValid(SelectedOptionIndex, out var command))
+            {
+                if (_commandLineContentAsArray.Length == 1
+                    || _optionsMatchResult[command] is ConsoleCommand.EMatchResult.NO_MATCH or ConsoleCommand.EMatchResult.NAME_MATCH)
+                {
+                    CommandLineContent = command.hintString;
                 }
             }
         }
@@ -226,14 +292,32 @@ namespace Dhs5.Utility.Console
         #region Command History
 
         private static List<string> _commandsHistory = new();
+        private static int _commandsHistoryIndex = -1;
 
         private static void AddToCommandHistory(string rawCommand)
         {
-            _commandsHistory.Add(rawCommand);
+            _commandsHistory.Insert(0, rawCommand);
 
             if (_commandsHistory.Count > 20) // TODO
             {
-                _commandsHistory.RemoveAt(0);
+                _commandsHistory.RemoveAt(_commandsHistory.Count - 1);
+            }
+        }
+
+        public static void SelectPreviousCommandInHistory()
+        {
+            if (_commandsHistoryIndex < _commandsHistory.Count - 1)
+            {
+                _commandsHistoryIndex++;
+                CommandLineContent = _commandsHistory[_commandsHistoryIndex];
+            }
+        }
+        public static void SelectNextCommandInHistory()
+        {
+            if (_commandsHistoryIndex > 0)
+            {
+                _commandsHistoryIndex--;
+                CommandLineContent = _commandsHistory[_commandsHistoryIndex];
             }
         }
 
@@ -246,11 +330,9 @@ namespace Dhs5.Utility.Console
             AddToCommandHistory(CommandLineContent);
 
             if (_closestMatch != null
-                && _currentCommandOptions[_closestMatch] == ConsoleCommand.EMatchResult.PERFECT_MATCH)
+                && _optionsMatchResult[_closestMatch] == ConsoleCommand.EMatchResult.PERFECT_MATCH)
             {
                 // Run command
-                Debug.Log("run " + CommandLineContent + " as " + _closestMatch.optionString);
-
                 if (_commandLineContentAsArray.Length > 1)
                 {
                     string[] stringParameters = new string[_commandLineContentAsArray.Length - 1];
