@@ -174,6 +174,47 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
+        #region Run
+
+        public void Run(string[] stringParameters)
+        {
+            if (!stringParameters.IsValid())
+            {
+                Run(commandParameters: null);
+                return;
+            }
+
+            object[] commandParameters = new object[stringParameters.Length];
+
+            for (int i = 0; i < commandParameters.Length; i++)
+            {
+                var parsedParam = ParseParameter(parameters[i], stringParameters[i]);
+
+                if (parsedParam == null)
+                {
+                    Debug.LogError(stringParameters[i] + " parsed as null (parameter " + i + ")  in command " + name);
+                    return;
+                }
+
+                commandParameters[i] = parsedParam;
+            }
+
+            Run(commandParameters);
+        }
+        public void Run(object[] commandParameters)
+        {
+            try
+            {
+                callback.Invoke(commandParameters);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
+
+        #endregion
+
 
         #region Utility
 
@@ -312,7 +353,7 @@ namespace Dhs5.Utility.Console
                         if (arguments.Length > 2) return EMatchResult.NO_MATCH;
                         for (int i = 0; i < arguments.Length; i++)
                         {
-                            if (!float.TryParse(parameterString, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                            if (!float.TryParse(arguments[i], NumberStyles.Float, CultureInfo.InvariantCulture, out _))
                                 return EMatchResult.NO_MATCH;
                         }
                         return arguments.Length == 2 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
@@ -324,7 +365,7 @@ namespace Dhs5.Utility.Console
                         if (arguments.Length > 2) return EMatchResult.NO_MATCH;
                         for (int i = 0; i < arguments.Length; i++)
                         {
-                            if (!int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+                            if (!int.TryParse(arguments[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
                                 return EMatchResult.NO_MATCH;
                         }
                         return arguments.Length == 2 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
@@ -336,7 +377,7 @@ namespace Dhs5.Utility.Console
                         if (arguments.Length > 3) return EMatchResult.NO_MATCH;
                         for (int i = 0; i < arguments.Length; i++)
                         {
-                            if (!float.TryParse(parameterString, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                            if (!float.TryParse(arguments[i], NumberStyles.Float, CultureInfo.InvariantCulture, out _))
                                 return EMatchResult.NO_MATCH;
                         }
                         return arguments.Length == 3 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
@@ -348,7 +389,7 @@ namespace Dhs5.Utility.Console
                         if (arguments.Length > 3) return EMatchResult.NO_MATCH;
                         for (int i = 0; i < arguments.Length; i++)
                         {
-                            if (!int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+                            if (!int.TryParse(arguments[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
                                 return EMatchResult.NO_MATCH;
                         }
                         return arguments.Length == 3 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
@@ -360,10 +401,122 @@ namespace Dhs5.Utility.Console
                         if (arguments.Length > 4) return EMatchResult.NO_MATCH;
                         for (int i = 0; i < arguments.Length; i++)
                         {
-                            if (!float.TryParse(parameterString, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                            if (!float.TryParse(arguments[i], NumberStyles.Float, CultureInfo.InvariantCulture, out _))
                                 return EMatchResult.NO_MATCH;
                         }
                         return (arguments.Length == 3 || arguments.Length == 4) ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
+                    }
+
+                default: throw new NotImplementedException();
+            }
+        }
+
+        public static object ParseParameter(EParameter parameterType, string parameterString)
+        {
+            switch (parameterType)
+            {
+                case EParameter.BOOL:
+                    if (string.Equals("true", parameterString, StringComparison.InvariantCultureIgnoreCase)
+                        || "true".StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase)
+                        || parameterString == "1")
+                    {
+                        return true;
+                    }
+                    else if (string.Equals("false", parameterString, StringComparison.InvariantCultureIgnoreCase)
+                        || "false".StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase)
+                        || parameterString == "0")
+                    {
+                        return false;
+                    }
+                    return null;
+
+                case EParameter.INT:
+                    if (int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intRes))
+                    {
+                        return intRes;
+                    }
+                    return null;
+
+                case EParameter.FLOAT:
+                    if (float.TryParse(parameterString, NumberStyles.Float, CultureInfo.InvariantCulture, out var floatRes))
+                    {
+                        return floatRes;
+                    }
+                    return null;
+
+                case EParameter.STRING: return parameterString;
+
+                case EParameter.ENUM: return null;// TODO handle ints and string
+
+                case EParameter.VECTOR2:
+                    {
+                        var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        if (arguments.Length == 2
+                            && float.TryParse(arguments[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                            && float.TryParse(arguments[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
+                        {
+                            return new Vector2(x, y);
+                        }
+                        return null;
+                    }
+
+                case EParameter.VECTOR2INT:
+                    {
+                        var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        if (arguments.Length == 2
+                            && int.TryParse(arguments[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
+                            && int.TryParse(arguments[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y))
+                        {
+                            return new Vector2Int(x, y);
+                        }
+                        return null;
+                    }
+
+                case EParameter.VECTOR3:
+                    {
+                        var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        if (arguments.Length == 3
+                            && float.TryParse(arguments[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                            && float.TryParse(arguments[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y)
+                            && float.TryParse(arguments[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
+                        {
+                            return new Vector3(x, y, z);
+                        }
+                        return null;
+                    }
+
+                case EParameter.VECTOR3INT:
+                    {
+                        var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        if (arguments.Length == 3
+                            && int.TryParse(arguments[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
+                            && int.TryParse(arguments[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)
+                            && int.TryParse(arguments[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var z))
+                        {
+                            return new Vector3Int(x, y, z);
+                        }
+                        return null;
+                    }
+
+                case EParameter.COLOR:
+                    {
+                        var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        if (arguments.Length == 3
+                            && float.TryParse(arguments[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var r)
+                            && float.TryParse(arguments[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var g)
+                            && float.TryParse(arguments[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var b))
+                        {
+                            return new Color(r, g, b);
+                        }
+                        if (arguments.Length == 4
+                            && float.TryParse(arguments[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var r2)
+                            && float.TryParse(arguments[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var g2)
+                            && float.TryParse(arguments[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var b2)
+                            && float.TryParse(arguments[3], NumberStyles.Float, CultureInfo.InvariantCulture, out var a))
+                        {
+                            return new Color(r2, g2, b2, a);
+                        }
+                        return null;
                     }
 
                 default: throw new NotImplementedException();

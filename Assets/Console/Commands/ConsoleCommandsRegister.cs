@@ -250,6 +250,20 @@ namespace Dhs5.Utility.Console
             {
                 // Run command
                 Debug.Log("run " + CommandLineContent + " as " + _closestMatch.optionString);
+
+                if (_commandLineContentAsArray.Length > 1)
+                {
+                    string[] stringParameters = new string[_commandLineContentAsArray.Length - 1];
+                    for (int i = 0; i < stringParameters.Length; i++)
+                    {
+                        stringParameters[i] = _commandLineContentAsArray[i + 1];
+                    }
+                    _closestMatch.Run(stringParameters);
+                }
+                else
+                {
+                    _closestMatch.Run(commandParameters:null);
+                }
             }
             else
             {
