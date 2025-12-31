@@ -158,6 +158,9 @@ namespace Dhs5.Utility.Console
 
         public EMatchResult IsMatch(string[] commandLineContentAsArray)
         {
+            // To see options when typing a blank space
+            if (!commandLineContentAsArray.IsValid()) return EMatchResult.PARTIAL_MATCH;
+
             if (commandLineContentAsArray.Length > 1)
             {
                 if (string.Equals(name, commandLineContentAsArray[0], StringComparison.InvariantCultureIgnoreCase))

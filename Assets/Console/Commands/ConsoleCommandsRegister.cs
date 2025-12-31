@@ -143,18 +143,16 @@ namespace Dhs5.Utility.Console
         }
         public static void SetCommandLineContent(string content)
         {
-            _commandLineContent = content;
+            _commandLineContent = string.IsNullOrWhiteSpace(content) ? content : content.TrimStart();
             _commandLineContentAsArray = string.IsNullOrEmpty(content) ? null : content.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-            if (string.IsNullOrEmpty(content)
-                || !_commandLineContentAsArray.IsValid())
+            if (string.IsNullOrEmpty(content))
             {
                 _commandLineContentAsArray = null;
                 ClearCommandOptions();
             }
             else
             {
-                
                 ComputeCommandOptions();
             }
         }
@@ -284,7 +282,8 @@ namespace Dhs5.Utility.Console
         {
             if (_currentCommandOptions.IsIndexValid(SelectedOptionIndex, out var command))
             {
-                if (_commandLineContentAsArray.Length == 1
+                if (!_commandLineContentAsArray.IsValid()
+                    || _commandLineContentAsArray.Length == 1
                     || _optionsMatchResult[command] is ConsoleCommand.EMatchResult.NO_MATCH or ConsoleCommand.EMatchResult.NAME_MATCH)
                 {
                     CommandLineContent = command.hintString;
@@ -336,6 +335,7 @@ namespace Dhs5.Utility.Console
 
         public static void ValidateCommand()
         {
+            CommandLineContent = CommandLineContent.Trim();
             AddToCommandHistory(CommandLineContent);
 
             if (_closestMatch != null

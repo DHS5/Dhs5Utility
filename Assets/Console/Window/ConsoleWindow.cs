@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using Dhs5.Utility.Debuggers;
 using System.Linq;
 
-
-
-
 #if UNITY_EDITOR
 using Dhs5.Utility.GUIs;
 using UnityEditor;
@@ -107,7 +104,7 @@ namespace Dhs5.Utility.Console
             DrawLogsListGUI(logsListHeight);
 
             // COMMAND LINE
-            if (IsWritingOnCommandLine())
+            if (m_isWritingOnCommandLine)
             {
                 // Events
                 HandleCommandLineEvents();
@@ -116,6 +113,8 @@ namespace Dhs5.Utility.Console
             // Command Line
             rect = new Rect(1f, position.height - 29f, position.width - 2f, 28f);
             DrawCommandLineGUI(rect);
+
+            CheckIsWritingOnCommandLine();
 
             // Options
             if (m_isWritingOnCommandLine)
@@ -257,14 +256,12 @@ namespace Dhs5.Utility.Console
 
         #region COMMAND LINE GUI
 
-        private bool IsWritingOnCommandLine()
+        private void CheckIsWritingOnCommandLine()
         {
             if (Event.current.type != EventType.Repaint)
             {
                 m_isWritingOnCommandLine = GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl;
             }
-
-            return m_isWritingOnCommandLine;
         }
         private void DrawCommandLineGUI(Rect rect)
         {
