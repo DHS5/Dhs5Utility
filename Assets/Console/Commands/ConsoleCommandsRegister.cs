@@ -82,7 +82,7 @@ namespace Dhs5.Utility.Console
             yield return new ConsoleCommand(
                 "timescale",
                 ConsoleCommand.EScope.RUNTIME,
-                new ConsoleCommand.EParameter[] { ConsoleCommand.EParameter.FLOAT },
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.FLOAT, typeof(float)) },
                 (parameters) => { Time.timeScale = (float)parameters[0]; });
 
             #endregion
@@ -102,17 +102,22 @@ namespace Dhs5.Utility.Console
             yield return new ConsoleCommand(
                 "test",
                 ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.EParameter[] { ConsoleCommand.EParameter.BOOL },
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.BOOL, typeof(bool)) },
                 (parameters) => { Debug.Log("test " + parameters[0]); });
             yield return new ConsoleCommand(
                 "test",
                 ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.EParameter[] { ConsoleCommand.EParameter.FLOAT, ConsoleCommand.EParameter.FLOAT },
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.FLOAT, typeof(float)), new(ConsoleCommand.EParameterType.FLOAT, typeof(float)) },
                 (parameters) => { Debug.Log("test " + parameters[0] + " " + parameters[1]); });
             yield return new ConsoleCommand(
                 "test",
                 ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.EParameter[] { ConsoleCommand.EParameter.VECTOR3 },
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.VECTOR3, typeof(Vector3)) },
+                (parameters) => { Debug.Log("test " + parameters[0]); });
+            yield return new ConsoleCommand(
+                "test_enum",
+                ConsoleCommand.EScope.EDITOR,
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.ENUM, typeof(EDebugCategory)) },
                 (parameters) => { Debug.Log("test " + parameters[0]); });
 
             #endregion
@@ -318,6 +323,10 @@ namespace Dhs5.Utility.Console
             {
                 _commandsHistoryIndex--;
                 CommandLineContent = _commandsHistory[_commandsHistoryIndex];
+            }
+            else
+            {
+                CommandLineContent = string.Empty;
             }
         }
 

@@ -117,12 +117,6 @@ namespace Dhs5.Utility.Console
             rect = new Rect(1f, position.height - 29f, position.width - 2f, 28f);
             DrawCommandLineGUI(rect);
 
-            if (IsWritingOnCommandLine())
-            {
-                // Events 2
-                HandleCommandLineEvents2();
-            }
-
             // Options
             if (m_isWritingOnCommandLine)
             {
@@ -267,9 +261,7 @@ namespace Dhs5.Utility.Console
         {
             if (Event.current.type != EventType.Repaint)
             {
-                m_isWritingOnCommandLine = //EditorGUIUtility.editingTextField && 
-                    GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl
-                    && !string.IsNullOrWhiteSpace(ConsoleCommandsRegister.CommandLineContent);
+                m_isWritingOnCommandLine = GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl;
             }
 
             return m_isWritingOnCommandLine;
@@ -332,10 +324,12 @@ namespace Dhs5.Utility.Console
 
         private void HandleCommandLineEvents()
         {
+            var commandLineContentEmpty = string.IsNullOrWhiteSpace(ConsoleCommandsRegister.CommandLineContent);
             switch (Event.current.type)
             {
                 case EventType.KeyDown:
-                    if (Event.current.keyCode == KeyCode.Return)
+                    if (Event.current.keyCode == KeyCode.Return
+                        && !commandLineContentEmpty)
                     {
                         Event.current.Use();
                         ConsoleCommandsRegister.ValidateCommand();
@@ -344,6 +338,7 @@ namespace Dhs5.Utility.Console
                     {
                         Event.current.Use();
                         ConsoleCommandsRegister.FillFromOption();
+                        ((TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl))?.MoveLineEnd();
                     }
                     else if (Event.current.keyCode == KeyCode.UpArrow)
                     {
@@ -351,6 +346,7 @@ namespace Dhs5.Utility.Console
                         if (Event.current.modifiers.HasFlag(EventModifiers.Control))
                         {
                             ConsoleCommandsRegister.SelectPreviousCommandInHistory();
+                            ((TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl))?.MoveLineEnd();
                         }
                         else
                         {
@@ -363,6 +359,7 @@ namespace Dhs5.Utility.Console
                         if (Event.current.modifiers.HasFlag(EventModifiers.Control))
                         {
                             ConsoleCommandsRegister.SelectNextCommandInHistory();
+                            ((TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl))?.MoveLineEnd();
                         }
                         else
                         {
@@ -371,24 +368,6 @@ namespace Dhs5.Utility.Console
                     }
                     break;
             }
-        }
-        private void HandleCommandLineEvents2()
-        {
-            //switch (Event.current.type)
-            //{
-            //    case EventType.KeyDown:
-            //        if (Event.current.keyCode == KeyCode.UpArrow)
-            //        {
-            //            Event.current.Use();
-            //            ConsoleCommandsRegister.SelectNextOption();
-            //        }
-            //        else if (Event.current.keyCode == KeyCode.DownArrow)
-            //        {
-            //            Event.current.Use();
-            //            ConsoleCommandsRegister.SelectPreviousOption();
-            //        }
-            //        break;
-            //}
         }
 
         #endregion

@@ -21,7 +21,7 @@ namespace Dhs5.Utility.Console
 
         #region ENUM Parameter
 
-        public enum EParameter
+        public enum EParameterType
         {
             BOOL,
             INT,
@@ -33,6 +33,33 @@ namespace Dhs5.Utility.Console
             VECTOR3,
             VECTOR3INT,
             COLOR,
+        }
+
+        #endregion
+
+        #region STRUCT Parameter
+
+        public struct Parameter
+        {
+            public Parameter(EParameterType type, Type underlyingType)
+            {
+                this.type = type;
+                this.underlyingType = underlyingType;
+                this.hasDefaultValue = false;
+                this.defaultValue = null;
+            }
+            public Parameter(EParameterType type, Type underlyingType, object defaultValue)
+            {
+                this.type = type;
+                this.underlyingType = underlyingType;
+                this.hasDefaultValue = true;
+                this.defaultValue = defaultValue;
+            }
+
+            public readonly EParameterType type;
+            public readonly Type underlyingType;
+            public readonly bool hasDefaultValue;
+            public readonly object defaultValue;
         }
 
         #endregion
@@ -72,7 +99,7 @@ namespace Dhs5.Utility.Console
 
         public readonly string name;
         public readonly EScope scope;
-        public readonly EParameter[] parameters;
+        public readonly Parameter[] parameters;
         public readonly Action<object[]> callback;
 
         public readonly string optionString;
@@ -82,11 +109,11 @@ namespace Dhs5.Utility.Console
 
         #region Constructors
 
-        public ConsoleCommand(string name, EScope scope, EParameter[] parameters, Action<object[]> callback)
+        public ConsoleCommand(string name, EScope scope, Parameter[] parameters, Action<object[]> callback)
         {
             this.name = name;
             this.scope = scope;
-            this.parameters = parameters != null ? parameters : new EParameter[0];
+            this.parameters = parameters != null ? parameters : new Parameter[0];
             this.callback = callback;
 
             this.optionString = GetOptionString();
@@ -101,7 +128,7 @@ namespace Dhs5.Utility.Console
             var methodParameters = methodInfo.GetParameters();
             if (methodParameters.IsValid())
             {
-                this.parameters = new EParameter[methodParameters.Length];
+                this.parameters = new Parameter[methodParameters.Length];
                 for (int i = 0; i < methodParameters.Length; i++)
                 {
                     if (TryParseParameterInfo(methodParameters[i], out var parameter))
@@ -116,7 +143,7 @@ namespace Dhs5.Utility.Console
             }
             else
             {
-                this.parameters = new EParameter[0];
+                this.parameters = new Parameter[0];
             }
 
             this.callback = (parameters) => methodInfo.Invoke(null, parameters);
@@ -232,7 +259,7 @@ namespace Dhs5.Utility.Console
 
             for (int i = 0; i < parameters.Length; i++)
             {
-                sb.Append(parameters[i].ToString());
+                sb.Append(parameters[i].type.ToString());
                 if (i < parameters.Length - 1) sb.Append(' ');
             }
 
@@ -272,79 +299,79 @@ namespace Dhs5.Utility.Console
 
         #region Static ParameterInfo Parsing
 
-        public static bool TryParseParameterInfo(ParameterInfo parameterInfo, out EParameter parameter)
+        public static bool TryParseParameterInfo(ParameterInfo parameterInfo, out Parameter parameter)
         {
-            if (parameterInfo.RawDefaultValue != DBNull.Value)
-            {
-                Debug.Log("default param " + parameterInfo.RawDefaultValue);
-            }
+            var hasDefaultValue = parameterInfo.RawDefaultValue != DBNull.Value;
 
             var type = parameterInfo.ParameterType;
+            EParameterType parameterType;
 
             if (type == typeof(bool))
             {
-                parameter = EParameter.BOOL;
-                return true;
+                parameterType = EParameterType.BOOL;
             }
-            if (type == typeof(int))
+            else if (type == typeof(int))
             {
-                parameter = EParameter.INT;
-                return true;
+                parameterType = EParameterType.INT;
             }
-            if (type == typeof(float))
+            else if (type == typeof(float))
             {
-                parameter = EParameter.FLOAT;
-                return true;
+                parameterType = EParameterType.FLOAT;
             }
-            if (type == typeof(string))
+            else if (type == typeof(string))
             {
-                parameter = EParameter.STRING;
-                return true;
+                parameterType = EParameterType.STRING;
             }
-            if (type.IsEnum)
+            else if (type.IsEnum)
             {
-                parameter = EParameter.ENUM;
-                return true;
+                parameterType = EParameterType.ENUM;
             }
-            if (type == typeof(Vector2))
+            else if (type == typeof(Vector2))
             {
-                parameter = EParameter.VECTOR2;
-                return true;
+                parameterType = EParameterType.VECTOR2;
             }
-            if (type == typeof(Vector2Int))
+            else if (type == typeof(Vector2Int))
             {
-                parameter = EParameter.VECTOR2INT;
-                return true;
+                parameterType = EParameterType.VECTOR2INT;
             }
-            if (type == typeof(Vector3))
+            else if (type == typeof(Vector3))
             {
-                parameter = EParameter.VECTOR3;
-                return true;
+                parameterType = EParameterType.VECTOR3;
             }
-            if (type == typeof(Vector3Int))
+            else if (type == typeof(Vector3Int))
             {
-                parameter = EParameter.VECTOR3INT;
-                return true;
+                parameterType = EParameterType.VECTOR3INT;
             }
-            if (type == typeof(Color))
+            else if (type == typeof(Color))
             {
-                parameter = EParameter.COLOR;
-                return true;
+                parameterType = EParameterType.COLOR;
+            }
+            else
+            {
+                parameter = default;
+                return false;
             }
 
-            parameter = 0;
-            return false;
+            if (hasDefaultValue)
+            {
+                parameter = new Parameter(parameterType, type, parameterInfo.RawDefaultValue);
+            }
+            else
+            {
+                parameter = new Parameter(parameterType, type);
+            }
+            return true;
         }
 
         #endregion
 
         #region Static Parameter Parsing
 
-        public static EMatchResult IsParameterMatch(EParameter parameterType, string parameterString)
+        public static EMatchResult IsParameterMatch(Parameter parameter, string parameterString)
         {
-            switch (parameterType)
+            switch (parameter.type)
             {
-                case EParameter.BOOL:
+                case EParameterType.BOOL:
                     if (string.Equals("true", parameterString, StringComparison.InvariantCultureIgnoreCase)
                         || string.Equals("false", parameterString, StringComparison.InvariantCultureIgnoreCase)
                         || "true".StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase)
@@ -355,19 +382,45 @@ namespace Dhs5.Utility.Console
                     }
                     return EMatchResult.NO_MATCH;
 
-                case EParameter.INT:
+                case EParameterType.INT:
                     return int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) 
                         ? EMatchResult.PERFECT_MATCH : EMatchResult.NO_MATCH;
                 
-                case EParameter.FLOAT:
+                case EParameterType.FLOAT:
                     return float.TryParse(parameterString, NumberStyles.Float, CultureInfo.InvariantCulture, out _)
                         ? EMatchResult.PERFECT_MATCH : EMatchResult.NO_MATCH;
 
-                case EParameter.STRING: return EMatchResult.PERFECT_MATCH;
+                case EParameterType.STRING: return EMatchResult.PERFECT_MATCH;
 
-                case EParameter.ENUM: return EMatchResult.NO_MATCH;// handle ints and string
+                case EParameterType.ENUM:
+                    bool isInt = int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intRes);
+                    var values = Enum.GetValues(parameter.underlyingType);
+                    if (values.Length > 0)
+                    {
+                        for (int i = 0; i < values.Length; i++)
+                        {
+                            if (isInt && intRes == (int)values.GetValue(i)) 
+                                return EMatchResult.PERFECT_MATCH;
+                            var str = values.GetValue(i).ToString();
+                            if (string.Equals(str, parameterString, StringComparison.InvariantCultureIgnoreCase))
+                                return EMatchResult.PERFECT_MATCH;
+                            if (str.StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase))
+                                return EMatchResult.PARTIAL_MATCH;
+                        }
 
-                case EParameter.VECTOR2:
+                        if (isInt)
+                        {
+                            for (int i = 0; i < values.Length; i++)
+                            {
+                                var str = ((int)values.GetValue(i)).ToString();
+                                if (str.StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase))
+                                    return EMatchResult.PARTIAL_MATCH;
+                            }
+                        }
+                    }
+                    return EMatchResult.NO_MATCH;
+
+                case EParameterType.VECTOR2:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length > 2) return EMatchResult.NO_MATCH;
@@ -379,7 +432,7 @@ namespace Dhs5.Utility.Console
                         return arguments.Length == 2 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
                     }
                 
-                case EParameter.VECTOR2INT:
+                case EParameterType.VECTOR2INT:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length > 2) return EMatchResult.NO_MATCH;
@@ -391,7 +444,7 @@ namespace Dhs5.Utility.Console
                         return arguments.Length == 2 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
                     }
 
-                case EParameter.VECTOR3:
+                case EParameterType.VECTOR3:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length > 3) return EMatchResult.NO_MATCH;
@@ -403,7 +456,7 @@ namespace Dhs5.Utility.Console
                         return arguments.Length == 3 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
                     }
 
-                case EParameter.VECTOR3INT:
+                case EParameterType.VECTOR3INT:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length > 3) return EMatchResult.NO_MATCH;
@@ -415,7 +468,7 @@ namespace Dhs5.Utility.Console
                         return arguments.Length == 3 ? EMatchResult.PERFECT_MATCH : EMatchResult.PARTIAL_MATCH;
                     }
 
-                case EParameter.COLOR:
+                case EParameterType.COLOR:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length > 4) return EMatchResult.NO_MATCH;
@@ -431,11 +484,11 @@ namespace Dhs5.Utility.Console
             }
         }
 
-        public static object ParseParameter(EParameter parameterType, string parameterString)
+        public static object ParseParameter(Parameter parameter, string parameterString)
         {
-            switch (parameterType)
+            switch (parameter.type)
             {
-                case EParameter.BOOL:
+                case EParameterType.BOOL:
                     if (string.Equals("true", parameterString, StringComparison.InvariantCultureIgnoreCase)
                         || "true".StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase)
                         || parameterString == "1")
@@ -450,25 +503,34 @@ namespace Dhs5.Utility.Console
                     }
                     return null;
 
-                case EParameter.INT:
+                case EParameterType.INT:
                     if (int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intRes))
                     {
                         return intRes;
                     }
                     return null;
 
-                case EParameter.FLOAT:
+                case EParameterType.FLOAT:
                     if (float.TryParse(parameterString, NumberStyles.Float, CultureInfo.InvariantCulture, out var floatRes))
                     {
                         return floatRes;
                     }
                     return null;
 
-                case EParameter.STRING: return parameterString;
+                case EParameterType.STRING: return parameterString;
 
-                case EParameter.ENUM: return null;// TODO handle ints and string
+                case EParameterType.ENUM:
+                    {
+                        if (Enum.TryParse(parameter.underlyingType, parameterString, true, out var result))
+                            return result;
 
-                case EParameter.VECTOR2:
+                        else if (int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+                            return Enum.ToObject(parameter.underlyingType, intValue);
+
+                        return null;
+                    }
+
+                case EParameterType.VECTOR2:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length == 2
@@ -480,7 +542,7 @@ namespace Dhs5.Utility.Console
                         return null;
                     }
 
-                case EParameter.VECTOR2INT:
+                case EParameterType.VECTOR2INT:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length == 2
@@ -492,7 +554,7 @@ namespace Dhs5.Utility.Console
                         return null;
                     }
 
-                case EParameter.VECTOR3:
+                case EParameterType.VECTOR3:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length == 3
@@ -505,7 +567,7 @@ namespace Dhs5.Utility.Console
                         return null;
                     }
 
-                case EParameter.VECTOR3INT:
+                case EParameterType.VECTOR3INT:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length == 3
@@ -518,7 +580,7 @@ namespace Dhs5.Utility.Console
                         return null;
                     }
 
-                case EParameter.COLOR:
+                case EParameterType.COLOR:
                     {
                         var arguments = parameterString.Split(',', StringSplitOptions.RemoveEmptyEntries);
                         if (arguments.Length == 3
@@ -547,20 +609,22 @@ namespace Dhs5.Utility.Console
 
         #region Static Parameter Default Value
 
-        public static string GetParameterDefaultValueAsString(EParameter parameter)
+        public static string GetParameterDefaultValueAsString(Parameter parameter)
         {
-            switch (parameter)
+            if (parameter.hasDefaultValue) return parameter.defaultValue.ToString();
+
+            switch (parameter.type)
             {
-                case EParameter.BOOL: return "false";
-                case EParameter.INT: return "0";
-                case EParameter.FLOAT: return "0.0";
-                case EParameter.STRING: return "_";
-                case EParameter.ENUM: return ""; // TODO
-                case EParameter.VECTOR2: return "0,0";
-                case EParameter.VECTOR2INT: return "0,0";
-                case EParameter.VECTOR3: return "0,0,0";
-                case EParameter.VECTOR3INT: return "0,0,0";
-                case EParameter.COLOR: return "0,0,0,0";
+                case EParameterType.BOOL: return "false";
+                case EParameterType.INT: return "0";
+                case EParameterType.FLOAT: return "0.0";
+                case EParameterType.STRING: return "_";
+                case EParameterType.ENUM: return Enum.GetName(parameter.underlyingType, 0);
+                case EParameterType.VECTOR2: return "0,0";
+                case EParameterType.VECTOR2INT: return "0,0";
+                case EParameterType.VECTOR3: return "0,0,0";
+                case EParameterType.VECTOR3INT: return "0,0,0";
+                case EParameterType.COLOR: return "0,0,0,0";
                 default: throw new NotImplementedException();
             }
         }
