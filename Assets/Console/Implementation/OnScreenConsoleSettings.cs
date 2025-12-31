@@ -8,16 +8,6 @@ using UnityEngine.InputSystem;
 [Settings("Editor/OnScreen Console", Scope.User)]
 public class OnScreenConsoleSettings : CustomSettings<OnScreenConsoleSettings>
 {
-    #region Predefined Commands
-
-    [Header("Predefined Commands")]
-
-    [SerializeField] private List<PredefinedConsoleCommand> m_predefinedCommands;
-
-    public static IEnumerable<PredefinedConsoleCommand> PredefinedCommands => I != null ? I.m_predefinedCommands : null;
-
-    #endregion
-
     #region Inputs
 
     [Header("Inputs")]

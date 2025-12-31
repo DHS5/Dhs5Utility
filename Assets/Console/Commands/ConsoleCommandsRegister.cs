@@ -170,6 +170,7 @@ namespace Dhs5.Utility.Console
         private static Dictionary<ConsoleCommand, ConsoleCommand.EMatchResult> _optionsMatchResult = new();
         private static ConsoleCommand _closestMatch;
         public static int SelectedOptionIndex { get; private set; } = -1;
+        public static int CurrentOptionsCount => _currentCommandOptions.Count;
 
         private static void ClearCommandOptions()
         {

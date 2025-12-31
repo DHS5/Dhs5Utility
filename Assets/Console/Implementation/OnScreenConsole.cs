@@ -10,61 +10,6 @@ namespace Dhs5.Utility.Console
 {
     public class OnScreenConsole : BaseOnScreenConsole<OnScreenConsole>
     {
-        #region Accessors
-
-        protected override int GetInputFontSize()
-        {
-            return OnScreenConsoleSettings.InputFontSize;
-        }
-        protected override Color GetInputTextColor()
-        {
-            return OnScreenConsoleSettings.InputTextColor;
-        }
-        protected override Color GetValidInputTextColor()
-        {
-            return OnScreenConsoleSettings.InputValidTextColor;
-        }
-        protected override int GetOptionFontSize()
-        {
-            return OnScreenConsoleSettings.OptionFontSize;
-        }
-        protected override Color GetOptionTextColor()
-        {
-            return OnScreenConsoleSettings.OptionTextColor;
-        }
-
-        protected override float GetInputRectHeight()
-        {
-            return OnScreenConsoleSettings.InputRectHeight;
-        }
-        protected override float GetOptionRectHeight()
-        {
-            return OnScreenConsoleSettings.OptionRectHeight;
-        }
-        protected override int GetMaxOptionsDisplayed()
-        {
-            return OnScreenConsoleSettings.MaxOptionsDisplayed;
-        }
-
-        #endregion
-
-        #region Core Behaviour
-
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-
-            RegisterPredefinedCommands(true);
-        }
-        protected override void OnDisable()
-        {
-            base.OnDisable();
-
-            RegisterPredefinedCommands(false);
-        }
-
-        #endregion
-
         #region Initialization
 
         protected override void InitInputs()
@@ -79,29 +24,6 @@ namespace Dhs5.Utility.Console
             }
 
             base.InitInputs();
-        }
-
-        #endregion
-
-
-        #region Predefined Commands
-
-        private void RegisterPredefinedCommands(bool register)
-        {
-            if (register)
-            {
-                foreach (var cmd in OnScreenConsoleSettings.PredefinedCommands)
-                {
-                    RegisterCommand(cmd, cmd.Callback);
-                }
-            }
-            else
-            {
-                foreach (var cmd in OnScreenConsoleSettings.PredefinedCommands)
-                {
-                    UnregisterCommand(cmd, cmd.Callback);
-                }
-            }
         }
 
         #endregion
