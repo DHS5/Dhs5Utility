@@ -10,7 +10,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Debuggers
 {
-    public class DebuggerDatabaseElement : BaseEnumDatabaseElement
+    public class DebugCategoryElement : BaseEnumDatabaseElement
     {
         #region Members
 
@@ -72,12 +72,12 @@ namespace Dhs5.Utility.Debuggers
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(DebuggerDatabaseElement), editorForChildClasses:true)]
+    [CustomEditor(typeof(DebugCategoryElement), editorForChildClasses:true)]
     public class DebuggerDatabaseElementEditor : BaseEnumDatabaseElementEditor
     {
         #region Members
 
-        protected DebuggerDatabaseElement m_element;
+        protected DebugCategoryElement m_element;
 
         protected SerializedProperty p_color;
         protected SerializedProperty p_colorString;
@@ -102,7 +102,7 @@ namespace Dhs5.Utility.Debuggers
         {
             base.OnEnable();
 
-            m_element = (DebuggerDatabaseElement)target;
+            m_element = (DebugCategoryElement)target;
 
             p_color = serializedObject.FindProperty("m_color");
             p_colorString = serializedObject.FindProperty("m_colorString");

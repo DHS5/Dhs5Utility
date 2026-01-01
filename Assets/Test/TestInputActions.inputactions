@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "TestInputActions",
     "maps": [
         {
@@ -28,7 +29,7 @@
                 {
                     "name": "",
                     "id": "c7d0013c-9cf8-477d-8ca0-31c4fac6b9c9",
-                    "path": "<Keyboard>/escape",
+                    "path": "<Keyboard>/f12",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -39,7 +40,7 @@
                 {
                     "name": "",
                     "id": "a87b8775-eac5-4dee-bce2-42cb792595aa",
-                    "path": "<Keyboard>/tab",
+                    "path": "<Keyboard>/f12",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

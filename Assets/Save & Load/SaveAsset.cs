@@ -338,7 +338,7 @@ namespace Dhs5.Utility.SaveLoad
             }
             using (new GUIHelper.GUIBackgroundColorScope(DoesUpdateChannelScriptNeedUpdate() ? Color.cyan : Color.grey))
             {
-                if (GUILayout.Button("UPDATE CHANNEL SCRIPT", GUILayout.Height(25f)))
+                if (GUILayout.Button("UPDATE CATEGORY SCRIPT", GUILayout.Height(25f)))
                 {
                     if (p_saveCategoriesTextAsset.objectReferenceValue is TextAsset textAsset)
                     {

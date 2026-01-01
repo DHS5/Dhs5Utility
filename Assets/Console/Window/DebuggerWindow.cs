@@ -1,40 +1,38 @@
 using UnityEngine;
-using Dhs5.Utility.Databases;
 using Dhs5.Utility.GUIs;
-using System.IO;
-using Dhs5.Utility.Settings;
+using Dhs5.Utility.Databases;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using Dhs5.Utility.Editors;
 
-namespace Dhs5.Utility.Updates
+namespace Dhs5.Utility.Console
 {
-    public class UpdaterWindow : EditorWindow
+    public class DebuggerWindow : EditorWindow
     {
         #region Static Constructor
 
-        [MenuItem("Window/Dhs5 Utility/Updater", priority = 100)]
+        [MenuItem("Window/Dhs5 Utility/Debugger", priority = 100)]
         public static void OpenWindow()
         {
-            UpdaterWindow window = GetWindow<UpdaterWindow>();
-            window.titleContent = new GUIContent(EditorGUIUtility.IconContent("d_UnityEditor.AnimationWindow")) { text = "Updater" };
+            DebuggerWindow window = GetWindow<DebuggerWindow>();
+            window.titleContent = new GUIContent(EditorGUIHelper.DebugIcon) { text = "Debugger" };
         }
 
         #endregion
 
         #region Asset Management
 
-        private UpdaterAsset m_updaterAsset;
-        private UpdaterAsset Asset
+        private DebuggerAsset m_debuggerAsset;
+        private DebuggerAsset Asset
         {
             get
             {
-                if (m_updaterAsset == null)
+                if (m_debuggerAsset == null)
                 {
-                    m_updaterAsset = UpdaterAsset.Instance;
+                    m_debuggerAsset = DebuggerAsset.Instance;
                 }
-                return m_updaterAsset;
+                return m_debuggerAsset;
             }
         }
 
@@ -42,16 +40,16 @@ namespace Dhs5.Utility.Updates
 
         #region Asset Editor
 
-        private UpdaterAssetEditor m_updaterAssetEditor;
-        private UpdaterAssetEditor AssetEditor
+        private DebuggerAssetEditor m_debuggerAssetEditor;
+        private DebuggerAssetEditor AssetEditor
         {
             get
             {
-                if (m_updaterAssetEditor == null && Asset != null)
+                if (m_debuggerAssetEditor == null && Asset != null)
                 {
-                    m_updaterAssetEditor = Editor.CreateEditor(Asset, typeof(UpdaterAssetEditor)) as UpdaterAssetEditor;
+                    m_debuggerAssetEditor = Editor.CreateEditor(Asset, typeof(DebuggerAssetEditor)) as DebuggerAssetEditor;
                 }
-                return m_updaterAssetEditor;
+                return m_debuggerAssetEditor;
             }
         }
 
@@ -66,8 +64,8 @@ namespace Dhs5.Utility.Updates
 
         #region GUI Content
 
-        private GUIContent g_title = new GUIContent("Updater");
-        private GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Channels"), new GUIContent("Conditions"), new GUIContent("Timelines"), new GUIContent("Settings") };
+        private GUIContent g_title = new GUIContent("Debugger");
+        private GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Categories"), new GUIContent("Runtime"), new GUIContent("Settings") };
 
         #endregion
 
@@ -76,9 +74,9 @@ namespace Dhs5.Utility.Updates
 
         private void OnDisable()
         {
-            if (m_updaterAssetEditor != null)
+            if (m_debuggerAssetEditor != null)
             {
-                DestroyImmediate(m_updaterAssetEditor);
+                DestroyImmediate(m_debuggerAssetEditor);
             }
         }
 
@@ -104,44 +102,28 @@ namespace Dhs5.Utility.Updates
             }
             switch (m_currentWindow)
             {
-                // CHANNELS
+                // CATEGORIES
                 case 0:
                     if (Asset != null && AssetEditor != null)
                     {
-                        AssetEditor.DrawChannelsGUI();
+                        AssetEditor.DrawCategoriesGUI();
                     }
                     else
                     {
                         EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
                     }
                     break;
-                    
-                // UPDATE CONDITIONS
+
+                // RUNTIME
                 case 1:
-                    if (Asset != null && AssetEditor != null)
+                    if (Application.isPlaying)
                     {
-                        AssetEditor.DrawConditonsGUI();
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
+                        
                     }
                     break;
-                    
-                // TIMELINES
-                case 2:
-                    if (Asset != null && AssetEditor != null)
-                    {
-                        AssetEditor.DrawTimelinesGUI();
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
-                    }
-                    break;
-                    
+
                 // SETTINGS
-                case 3:
+                case 2:
                     DrawSettingsGUI();
                     break;
             }
@@ -162,25 +144,25 @@ namespace Dhs5.Utility.Updates
             EditorGUILayout.LabelField("Asset", EditorStyles.boldLabel);
 
             // Assets
-            var array = Resources.LoadAll<UpdaterAsset>("Updater");
+            var array = Resources.LoadAll<DebuggerAsset>("Debugger");
             if (array != null && array.Length > 0)
             {
                 if (array.Length == 1)
                 {
                     EditorGUI.BeginDisabledGroup(true);
-                    EditorGUILayout.ObjectField(array[0], typeof(UpdaterAsset), false);
+                    EditorGUILayout.ObjectField(array[0], typeof(DebuggerAsset), false);
                     EditorGUI.EndDisabledGroup();
                 }
                 else
                 {
-                    EditorGUILayout.HelpBox("Too much Updater Assets", MessageType.Error);
+                    EditorGUILayout.HelpBox("Too much Debugger Assets", MessageType.Error);
                     for (int i = 0; i < array.Length; i++)
                     {
                         var rect = EditorGUILayout.GetControlRect(false, 22f);
 
                         EditorGUI.BeginDisabledGroup(true);
                         var objectRect = new Rect(rect.x, rect.y, rect.width - 32f, rect.height - 2f);
-                        EditorGUI.ObjectField(objectRect, array[i], typeof(UpdaterAsset), false);
+                        EditorGUI.ObjectField(objectRect, array[i], typeof(DebuggerAsset), false);
                         EditorGUI.EndDisabledGroup();
 
                         var deleteButtonRect = new Rect(rect.x + rect.width - 30f, rect.y + 1f, 30f, rect.height - 2f);
@@ -203,7 +185,7 @@ namespace Dhs5.Utility.Updates
                 // Create asset button
                 if (GUILayout.Button("Create new asset"))
                 {
-                    Database.CreateAssetOfType(typeof(UpdaterAsset), "Assets/Resources/Updater/Updater.asset");
+                    Database.CreateAssetOfType(typeof(DebuggerAsset), "Assets/Resources/Debugger/Debugger.asset");
                     AssetDatabase.SaveAssets();
                 }
             }

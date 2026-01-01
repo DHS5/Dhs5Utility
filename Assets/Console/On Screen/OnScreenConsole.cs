@@ -1,13 +1,10 @@
 using Dhs5.Utility.GUIs;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Dhs5.Utility.Console
 {
-    public abstract class BaseOnScreenConsole<T> : MonoBehaviour where T : BaseOnScreenConsole<T>
+    public class OnScreenConsole : MonoBehaviour
     {
         #region INSTANCE
 
@@ -34,21 +31,6 @@ namespace Dhs5.Utility.Console
         private bool m_justOpenedConsole;
         private Vector2 m_optionsScrollPos;
 
-        // TEXTURES
-        private Texture2D _whiteTexture;
-        private Texture2D WhiteTexture
-        {
-            get
-            {
-                if (_whiteTexture == null)
-                {
-                    _whiteTexture = new Texture2D(1, 1);
-                    _whiteTexture.SetPixel(0, 0, Color.white);
-                }
-                return _whiteTexture;
-            }
-        }
-
         #endregion
 
         #region Properties
@@ -68,7 +50,7 @@ namespace Dhs5.Utility.Console
             }
 
             DontDestroyOnLoad(gameObject);
-            Instance = this as T;
+            Instance = this;
         }
 
         protected virtual void OnEnable()
@@ -180,7 +162,7 @@ namespace Dhs5.Utility.Console
             if (IsActive)
             {
                 float inputRectHeight = 50f;//TODO settings
-                var inputRect = new Rect(0f, Screen.height - inputRectHeight, Screen.width, inputRectHeight);
+                var inputRect = new Rect(0f, Screen.height - inputRectHeight - 7f, Screen.width, inputRectHeight);
                 bool hasFocus = GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl;
 
                 // EVENTS
@@ -192,7 +174,7 @@ namespace Dhs5.Utility.Console
                 // OPTIONS
                 if (hasFocus)
                 {
-                    OnOptionsGUI(inputRect.y, inputRect.width);
+                    OnOptionsGUI(inputRect.y, inputRect.width * 0.5f);
                 }
             }
         }
@@ -224,7 +206,7 @@ namespace Dhs5.Utility.Console
                     }
                     else
                     {
-                        ConsoleCommandsRegister.SelectPreviousOption();
+                        ConsoleCommandsRegister.SelectNextOption();
                     }
                 }
                 else if (Event.current.keyCode == KeyCode.DownArrow)
@@ -237,7 +219,7 @@ namespace Dhs5.Utility.Console
                     }
                     else
                     {
-                        ConsoleCommandsRegister.SelectNextOption();
+                        ConsoleCommandsRegister.SelectPreviousOption();
                     }
                 }
             }
@@ -245,14 +227,24 @@ namespace Dhs5.Utility.Console
 
         private void OnInputGUI(Rect rect, bool hasFocus)
         {
-            DrawRect(rect, hasFocus ? m_transparentBlack07 : m_transparentBlack03);
-
+            var prevInputFontSize = GUI.skin.textField.fontSize;
+            var prevLabelFontSize = GUI.skin.label.fontSize;
+            var prevInputAlignment = GUI.skin.textField.alignment;
+            var prevLabelAlignment = GUI.skin.label.alignment;
+            GUI.skin.textField.fontSize = 32;// TODO settings
+            GUI.skin.label.fontSize = 32;// TODO settings
+            GUI.skin.textField.alignment = TextAnchor.MiddleLeft;
+            GUI.skin.label.alignment = TextAnchor.MiddleLeft;
             GUI.SetNextControlName(ConsoleCommandTextFieldControl);
             ConsoleCommandsRegister.CommandLineContent = GUI.TextField(rect, ConsoleCommandsRegister.CommandLineContent);
             using (new GUIHelper.GUIContentColorScope(new Color(1f, 1f, 1f, 0.3f)))
             {
-                GUI.Label(new Rect(rect.x + 2f, rect.y - 2f, rect.width, rect.height), ConsoleCommandsRegister.GetHintString());
+                GUI.Label(new Rect(rect.x + 2f, rect.y, rect.width, rect.height), ConsoleCommandsRegister.GetHintString());
             }
+            GUI.skin.textField.fontSize = prevInputFontSize;
+            GUI.skin.label.fontSize = prevLabelFontSize;
+            GUI.skin.textField.alignment = prevInputAlignment;
+            GUI.skin.label.alignment = prevLabelAlignment;
 
             if (m_justOpenedConsole)
             {
@@ -264,12 +256,12 @@ namespace Dhs5.Utility.Console
         private void OnOptionsGUI(float y, float width)
         {
             var optionsCount = ConsoleCommandsRegister.CurrentOptionsCount;
-            float optionRectHeight = 30f;//TODO settings
+            float optionRectHeight = 32f;//TODO settings
             float scrollViewRectHeight = 300f;//TODO settings
             var scrollViewRect = new Rect(0, y - scrollViewRectHeight, width, scrollViewRectHeight);
             var viewRect = new Rect(0, 0, width - 25f, Mathf.Max(scrollViewRectHeight, optionRectHeight * optionsCount));
 
-            DrawRect(scrollViewRect, m_transparentBlack01);
+            GUIHelper.DrawRect(scrollViewRect, m_transparentBlack01);
 
             m_optionsScrollPos = GUI.BeginScrollView(scrollViewRect, m_optionsScrollPos, viewRect);
 
@@ -291,9 +283,17 @@ namespace Dhs5.Utility.Console
 
                 if (selected)
                 {
-                    DrawRect(optionRect, Color.gray1);
+                    GUIHelper.DrawRect(optionRect, Color.gray1);
                     GUI.ScrollTo(optionRect);
                 }
+
+                var prevFontSize = GUI.skin.label.fontSize;
+                GUI.skin.label.fontSize = 24;
+                using (new GUIHelper.GUIContentColorScope(color))
+                {
+                    GUI.Label(new Rect(optionRect.x + 2f, optionRect.y, optionRect.width - 4f, optionRect.height), option);
+                }
+                GUI.skin.label.fontSize = prevFontSize;
 
                 index++;
             }
@@ -303,38 +303,22 @@ namespace Dhs5.Utility.Console
 
         #endregion
 
-        #region GUI Helper
-
-        private void DrawRect(Rect rect, Color color)
-        {
-            if (Event.current.type == EventType.Repaint)
-            {
-                Color color2 = GUI.color;
-                GUI.color *= color;
-                GUI.DrawTexture(rect, WhiteTexture);
-                GUI.color = color2;
-            }
-        }
-
         #endregion
 
-        #endregion
-
-        // ---------- ---------- ---------- 
 
         #region STATIC
 
         #region Instance Creation
 
-        private static T Instance { get; set; }
+        private static OnScreenConsole Instance { get; set; }
 
         private static void CreateInstance()
         {
             var obj = new GameObject("OnScreen Console");
-            obj.AddComponent<T>();
+            obj.AddComponent<OnScreenConsole>();
         }
 
-        private static T GetInstance()
+        private static OnScreenConsole GetInstance()
         {
             if (Instance == null)
             {
@@ -347,9 +331,13 @@ namespace Dhs5.Utility.Console
 
         #region Activation
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         public static void Init()
         {
-            GetInstance();
+            if (Instance == null)
+            {
+                CreateInstance();
+            }
         }
         public static void Open()
         {
