@@ -14,11 +14,11 @@ namespace Dhs5.Utility.Debuggers
 
         #region Database Access
 
-        private static DebugCategoryElement GetElement(Enum e)
+        private static DebugCategoryObject GetElement(Enum e)
         {
             return DebuggerDatabase.GetAtIndex(Convert.ToInt32(e));
         }
-        private static DebugCategoryElement GetElement(int index)
+        private static DebugCategoryObject GetElement(int index)
         {
             return DebuggerDatabase.GetAtIndex(index);
         }
@@ -27,7 +27,7 @@ namespace Dhs5.Utility.Debuggers
 
         #region Log Verification
 
-        private static bool CanLog(Enum e, LogType logType, int level, out DebugCategoryElement element)
+        private static bool CanLog(Enum e, LogType logType, int level, out DebugCategoryObject element)
         {
             element = GetElement(e);
             if (element != null)
@@ -36,7 +36,7 @@ namespace Dhs5.Utility.Debuggers
             }
             return false;
         }
-        private static bool CanLog(int index, LogType logType, int level, out DebugCategoryElement element)
+        private static bool CanLog(int index, LogType logType, int level, out DebugCategoryObject element)
         {
             element = GetElement(index);
             if (element != null)
@@ -51,7 +51,7 @@ namespace Dhs5.Utility.Debuggers
 
         #region Log Enhancement
 
-        private static string CategorizeMessage(object message, int level, DebugCategoryElement element, bool onScreen = false)
+        private static string CategorizeMessage(object message, int level, DebugCategoryObject element, bool onScreen = false)
         {
             StringBuilder sb = new();
 
@@ -79,14 +79,14 @@ namespace Dhs5.Utility.Debuggers
 
         internal static void ComplexLog(Enum e, object message, LogType logType, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
-            if (CanLog(e, logType, level, out DebugCategoryElement element))
+            if (CanLog(e, logType, level, out DebugCategoryObject element))
             {
                 Internal_Log(message, logType, element, level, onScreen, context);
             }
         }
         internal static void ComplexLog(int index, object message, LogType logType, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
-            if (CanLog(index, logType, level, out DebugCategoryElement element))
+            if (CanLog(index, logType, level, out DebugCategoryObject element))
             {
                 Internal_Log(message, logType, element, level, onScreen, context);
             }
@@ -96,7 +96,7 @@ namespace Dhs5.Utility.Debuggers
         internal static void Log(Enum e, object message, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
             var logType = LogType.Log;
-            if (CanLog(e, logType, level, out DebugCategoryElement element))
+            if (CanLog(e, logType, level, out DebugCategoryObject element))
             {
                 Internal_Log(message, logType, element, level, onScreen, context);
             }
@@ -106,7 +106,7 @@ namespace Dhs5.Utility.Debuggers
         internal static void LogWarning(Enum e, object message, int level = BaseDebugger.MAX_DEBUGGER_LEVEL, bool onScreen = false, UnityEngine.Object context = null)
         {
             var logType = LogType.Warning;
-            if (CanLog(e, logType, level, out DebugCategoryElement element))
+            if (CanLog(e, logType, level, out DebugCategoryObject element))
             {
                 Internal_Log(message, logType, element, level, onScreen, context);
             }
@@ -117,7 +117,7 @@ namespace Dhs5.Utility.Debuggers
         {
             var logType = LogType.Error;
             int level = 0;
-            if (CanLog(e, logType, level, out DebugCategoryElement element))
+            if (CanLog(e, logType, level, out DebugCategoryObject element))
             {
                 Internal_Log(message, logType, element, level, onScreen, context);
             }
@@ -147,7 +147,7 @@ namespace Dhs5.Utility.Debuggers
 
         #region Private Log Behaviour
 
-        private static void Internal_Log(object message, LogType logType, DebugCategoryElement element, int level, bool onScreen, UnityEngine.Object context)
+        private static void Internal_Log(object message, LogType logType, DebugCategoryObject element, int level, bool onScreen, UnityEngine.Object context)
         {
             string consoleMessage = CategorizeMessage(message, level, element, false);
 
@@ -169,7 +169,7 @@ namespace Dhs5.Utility.Debuggers
             }
         }
 
-        private static void Internal_LogOnScreen(object message, DebugCategoryElement element, LogType logType, int level, float duration)
+        private static void Internal_LogOnScreen(object message, DebugCategoryObject element, LogType logType, int level, float duration)
         {
             if (element.ShowOnScreen && Application.isPlaying)
             {

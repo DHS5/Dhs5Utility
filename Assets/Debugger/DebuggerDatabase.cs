@@ -11,13 +11,13 @@ using Dhs5.Utility.GUIs;
 
 namespace Dhs5.Utility.Debuggers
 {
-    [Database("Debugger", typeof(DebugCategoryElement))]
+    [Database("Debugger", typeof(DebugCategoryObject))]
     public class DebuggerDatabase : EnumDatabase
     {
         #region Static Accessors
 
-        public static DebugCategoryElement GetAtIndex(int index) 
-            => Database.Get<DebuggerDatabase>().GetDataAtIndex(index) as DebugCategoryElement;
+        public static DebugCategoryObject GetAtIndex(int index) 
+            => Database.Get<DebuggerDatabase>().GetDataAtIndex(index) as DebugCategoryObject;
 
         #endregion
 
@@ -99,7 +99,7 @@ namespace Dhs5.Utility.Debuggers
 
         protected override void OnContentListElementWithNameAndTextureGUI(Rect rect, int index, bool selected, Object obj, string name, Texture2D texture)
         {
-            if (obj is DebugCategoryElement elem)
+            if (obj is DebugCategoryObject elem)
             {
                 var so = new SerializedObject(elem);
                 SerializedProperty property;

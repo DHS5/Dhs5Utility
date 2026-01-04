@@ -1,27 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-7002647680321824663
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
-  m_Name: UI
-  m_EditorClassIdentifier: 
-  m_uid: 4
-  m_enumIndex: 3
-  m_color: {r: 1, g: 0, b: 0.83840847, a: 1}
-  m_colorString: FF00D6
-  m_level: -1
-  m_showLogs: 1
-  m_showWarnings: 1
-  m_showErrors: 1
-  m_showInConsole: 1
-  m_showOnScreen: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -35,78 +13,12 @@ MonoBehaviour:
   m_Name: DebuggerDatabase
   m_EditorClassIdentifier: 
   m_content:
-  - {fileID: 6690754561762255559}
-  - {fileID: 697256396391879857}
-  - {fileID: 5819532464124954668}
-  - {fileID: -7002647680321824663}
+  - {fileID: 6690754561762255559, guid: 405d8568ecbccbb4fa3ce044cb0ba42b, type: 2}
+  - {fileID: 697256396391879857, guid: 405d8568ecbccbb4fa3ce044cb0ba42b, type: 2}
+  - {fileID: 5819532464124954668, guid: 405d8568ecbccbb4fa3ce044cb0ba42b, type: 2}
+  - {fileID: -7002647680321824663, guid: 405d8568ecbccbb4fa3ce044cb0ba42b, type: 2}
   m_enumName: DebugCategory
   m_enumNamespace: 
   m_usings: 
   m_scriptFolder: Assets/Test
   m_textAsset: {fileID: 11500000, guid: ef18ad4b8ee1efe48b2ddf583abbc769, type: 3}
---- !u!114 &697256396391879857
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
-  m_Name: GAME
-  m_EditorClassIdentifier: 
-  m_uid: 2
-  m_enumIndex: 1
-  m_color: {r: 0, g: 0.08001089, b: 1, a: 1}
-  m_colorString: 0014FF
-  m_level: 2
-  m_showLogs: 1
-  m_showWarnings: 1
-  m_showErrors: 1
-  m_showInConsole: 1
-  m_showOnScreen: 1
---- !u!114 &5819532464124954668
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
-  m_Name: FLOW
-  m_EditorClassIdentifier: 
-  m_uid: 3
-  m_enumIndex: 2
-  m_color: {r: 1, g: 0.79222596, b: 0, a: 1}
-  m_colorString: 58FF00
-  m_level: -1
-  m_showLogs: 1
-  m_showWarnings: 1
-  m_showErrors: 1
-  m_showInConsole: 1
-  m_showOnScreen: 1
---- !u!114 &6690754561762255559
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb7a6c333aa25e946ae0d7add2989fd2, type: 3}
-  m_Name: NONE
-  m_EditorClassIdentifier: 
-  m_uid: 1
-  m_enumIndex: 0
-  m_color: {r: 1, g: 0, b: 0, a: 1}
-  m_colorString: FF0000
-  m_level: -1
-  m_showLogs: 1
-  m_showWarnings: 1
-  m_showErrors: 1
-  m_showInConsole: 1
-  m_showOnScreen: 1
