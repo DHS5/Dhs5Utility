@@ -25,7 +25,6 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [Header("Header 1")]
     [SerializeField, Show(nameof(_showName))] private string _name2;
     [SerializeField] private DataPicker _dataPicker1;
-    [SerializeField] private DataPicker<DebuggerDatabase> _dataPicker2;
     [SerializeField] private SceneReference m_sceneRef;
     [SerializeField, FolderPicker] private string m_folder;
     [SerializeField, FolderPicker("Assets/Test")] private string m_folder2;
@@ -36,7 +35,6 @@ public class TestScript : MonoBehaviour, IDataContainerElement
     [SerializeField, VectorRange(12, 38)] private Vector2Int m_intRange;
     [SerializeField, Creator] private BaseEnumDatabaseElement m_creator;
     [SerializeField, FoldoutContent] private UpdateChannelObject m_foldoutElem;
-    [SerializeField] private EnumFlagValues<EDebugCategory, DebugCategoryFlags, int> m_enumFlagValues;
     [SerializeField] private GameplayTagsList m_tags;
     [SerializeField] private GameplayTagsList m_tags2;
 
@@ -77,7 +75,7 @@ public class TestScript : MonoBehaviour, IDataContainerElement
 
         if (!done && Updater.Time > 2f)
         {
-            TestDebugger.Log(EDebugCategory.GAME, "Frame : " + Updater.Frame, 0);
+            Logger.Log(EDebugCategory.GAME, "Frame : " + Updater.Frame, 0);
             done = true;
             Updater.CallInXFrames(1, OnNextUpdate, out _);
         }
@@ -87,14 +85,14 @@ public class TestScript : MonoBehaviour, IDataContainerElement
         if (!done2 && Updater.Time > 3f)
         {
             done2 = true;
-            TestDebugger.Log(EDebugCategory.GAME, "on late register, frame : " + Updater.Frame, 0);
-            Updater.CallInXFrames(0, () => TestDebugger.Log(EDebugCategory.GAME, "on late, frame : " + Updater.Frame, 0), out _, EUpdatePass.AFTER_LATE_UPDATE);
+            Logger.Log(EDebugCategory.GAME, "on late register, frame : " + Updater.Frame, 0);
+            Updater.CallInXFrames(0, () => Logger.Log(EDebugCategory.GAME, "on late, frame : " + Updater.Frame, 0), out _, EUpdatePass.AFTER_LATE_UPDATE);
         }
     }
 
     private void OnNextUpdate()
     {
-        TestDebugger.Log(EDebugCategory.GAME, "On Next update, Frame : " + Updater.Frame, 0);
+        Logger.Log(EDebugCategory.GAME, "On Next update, Frame : " + Updater.Frame, 0);
     }
 
     private void OnInputTest()

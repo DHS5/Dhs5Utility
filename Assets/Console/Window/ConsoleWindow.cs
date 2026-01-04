@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Dhs5.Utility.Debuggers;
 using System.Linq;
 
 #if UNITY_EDITOR
@@ -83,7 +82,7 @@ namespace Dhs5.Utility.Console
         {
             if (m_categoryColors.TryGetValue(category, out var color)) return color;
 
-            m_categoryColors[category] = DebuggerDatabase.GetAtIndex((int)category).Color;
+            m_categoryColors[category] = DebuggerAsset.GetDebugCategoryObject(category).Color;
             return m_categoryColors[category];
         }
 

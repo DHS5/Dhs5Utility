@@ -1,42 +1,28 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Dhs5.Utility.Databases;
 
-#if UNITY_EDITOR
-using UnityEditor;
-using Dhs5.Utility.Editors;
-#endif
-
-namespace Dhs5.Utility.Debuggers
+namespace Dhs5.Utility.Console
 {
-    public class DebugCategoryObject : BaseEnumDatabaseElement
+    public class DebugCategoryObject : ScriptableObject
     {
         #region Members
 
+        [SerializeField] private int m_enumIndex;
         [SerializeField] private Color m_color;
         [SerializeField] private string m_colorString;
-        [SerializeField, Range(-1, BaseDebugger.MAX_DEBUGGER_LEVEL)] private int m_level;
-
-        [SerializeField] private bool m_showLogs = true;
-        [SerializeField] private bool m_showWarnings = true;
-        [SerializeField] private bool m_showErrors = true;
-
-        [SerializeField] private bool m_showInConsole = true;
-        [SerializeField] private bool m_showOnScreen = true;
+        [SerializeField, Range(-1, DebuggerAsset.MAX_DEBUGGER_LEVEL)] private int m_level;
 
         #endregion
 
         #region Properties
 
+        public int EnumIndex => m_enumIndex;
         public Color Color => m_color;
         public string ColorString => m_colorString;
 
         public bool Active => Level >= 0;
         public int Level => m_level;
-
-        public bool ShowInConsole => m_showInConsole;
-        public bool ShowOnScreen => m_showOnScreen;
 
         #endregion
 
@@ -46,12 +32,12 @@ namespace Dhs5.Utility.Debuggers
         {
             switch (logType)
             {
-                case LogType.Log: return Active && m_showLogs && logLevel <= Level;
-                case LogType.Warning: return Active && m_showWarnings && logLevel <= Level;
+                case LogType.Log: return Active && logLevel <= Level;
+                case LogType.Warning: return Active && logLevel <= Level;
                 case LogType.Error:
                 case LogType.Exception:
                 case LogType.Assert:
-                    return m_showErrors;
+                    return Active;
                 default: return false;
             }
         }
@@ -67,182 +53,4 @@ namespace Dhs5.Utility.Debuggers
 
         #endregion
     }
-
-    #region Editor
-
-#if UNITY_EDITOR
-
-    [CustomEditor(typeof(DebugCategoryObject), editorForChildClasses:true)]
-    public class DebuggerDatabaseElementEditor : BaseEnumDatabaseElementEditor
-    {
-        #region Members
-
-        protected DebugCategoryObject m_element;
-
-        protected SerializedProperty p_color;
-        protected SerializedProperty p_colorString;
-        protected SerializedProperty p_level;
-        protected SerializedProperty p_showLogs;
-        protected SerializedProperty p_showWarnings;
-        protected SerializedProperty p_showErrors;
-        protected SerializedProperty p_showInConsole;
-        protected SerializedProperty p_showOnScreen;
-
-
-        protected bool m_testLogOpen;
-        protected string m_testString;
-        protected int m_testLevel;
-        protected LogType m_testLogType;
-
-        #endregion
-
-        #region Core Behaviour
-
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-
-            m_element = (DebugCategoryObject)target;
-
-            p_color = serializedObject.FindProperty("m_color");
-            p_colorString = serializedObject.FindProperty("m_colorString");
-            p_level = serializedObject.FindProperty("m_level");
-            p_showLogs = serializedObject.FindProperty("m_showLogs");
-            p_showWarnings = serializedObject.FindProperty("m_showWarnings");
-            p_showErrors = serializedObject.FindProperty("m_showErrors");
-            p_showInConsole = serializedObject.FindProperty("m_showInConsole");
-            p_showOnScreen = serializedObject.FindProperty("m_showOnScreen");
-
-            m_excludedProperties.Add(p_color.propertyPath);
-            m_excludedProperties.Add(p_colorString.propertyPath);
-            m_excludedProperties.Add(p_showLogs.propertyPath);
-            m_excludedProperties.Add(p_showWarnings.propertyPath);
-            m_excludedProperties.Add(p_showErrors.propertyPath);
-            m_excludedProperties.Add(p_showInConsole.propertyPath);
-            m_excludedProperties.Add(p_showOnScreen.propertyPath);
-        }
-
-        #endregion
-        
-        #region GUI
-
-        public override void OnInspectorGUI()
-        {
-            serializedObject.Update();
-
-            // Utility buttons
-            {
-                EditorGUILayout.BeginHorizontal();
-
-                if (GUILayout.Button("Enable All", EditorStyles.toolbarButton))
-                {
-                    p_showLogs.boolValue = true;
-                    p_showWarnings.boolValue = true;
-                    p_showErrors.boolValue = true;
-                }
-                if (GUILayout.Button("Disable All", EditorStyles.toolbarButton))
-                {
-                    p_showLogs.boolValue = false;
-                    p_showWarnings.boolValue = false;
-                    p_showErrors.boolValue = false;
-                }
-                if (GUILayout.Button("Error Only", EditorStyles.toolbarButton))
-                {
-                    p_showLogs.boolValue = false;
-                    p_showWarnings.boolValue = false;
-                    p_showErrors.boolValue = true;
-                }
-
-                EditorGUILayout.EndHorizontal();
-            }
-            // Log type buttons
-            {
-                var rect = EditorGUILayout.GetControlRect(false, 40f);
-                float startX = rect.x - 2f;
-                rect.x = startX;
-                rect.width += 4f;
-                rect.y -= 1f;
-                rect.height = 20f;
-
-                // First row
-
-                float totalWidth = rect.width;
-                float width = totalWidth / 3;
-                rect.width = width;
-
-                p_showLogs.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showLogs.boolValue ? EditorGUIHelper.ConsoleInfoIcon : EditorGUIHelper.ConsoleInfoInactiveIcon, p_showLogs.boolValue);
-                
-                rect.x += width;
-                p_showWarnings.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showWarnings.boolValue ? EditorGUIHelper.ConsoleWarningIcon : EditorGUIHelper.ConsoleWarningInactiveIcon, p_showWarnings.boolValue);
-
-                rect.x += width;
-                p_showErrors.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showErrors.boolValue ? EditorGUIHelper.ConsoleErrorIcon : EditorGUIHelper.ConsoleErrorInactiveIcon, p_showErrors.boolValue);
-
-                // Second row
-
-                width = totalWidth / 2;
-                rect.width = width;
-                rect.y += 21f;
-
-                rect.x = startX;
-                p_showInConsole.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showInConsole.boolValue ? EditorGUIHelper.ConsoleIcon : EditorGUIHelper.ConsoleIcon, p_showInConsole.boolValue);
-
-                rect.x += width;
-                p_showOnScreen.boolValue = EditorGUIHelper.ToolbarToggle(rect, p_showOnScreen.boolValue ? EditorGUIHelper.ScreenIcon : EditorGUIHelper.ScreenInactiveIcon, p_showOnScreen.boolValue);
-            }
-
-            EditorGUILayout.Space(5f);
-
-            // Color
-            {
-                EditorGUI.BeginChangeCheck();
-                p_color.colorValue = EditorGUILayout.ColorField(new GUIContent(p_color.displayName), p_color.colorValue, true, false, false);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    p_color.colorValue = new Color(p_color.colorValue.r, p_color.colorValue.g, p_color.colorValue.b, 1f);
-                    p_colorString.stringValue = ColorUtility.ToHtmlStringRGB(p_color.colorValue);
-                }
-
-                EditorGUI.BeginDisabledGroup(true);
-                EditorGUILayout.PropertyField(p_colorString);
-                EditorGUI.EndDisabledGroup();
-            }
-
-            DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
-
-            EditorGUILayout.Space(15f);
-
-            // Test Log
-            {
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                m_testLogOpen = EditorGUILayout.Foldout(m_testLogOpen, "Test Log", true);
-
-                if (m_testLogOpen)
-                {
-                    EditorGUILayout.Space(5f);
-                    m_testString = EditorGUILayout.TextField(m_testString);
-                    m_testLevel = EditorGUILayout.IntSlider(m_testLevel, 0, BaseDebugger.MAX_DEBUGGER_LEVEL);
-                    m_testLogType = (LogType)EditorGUILayout.EnumPopup(m_testLogType);
-                    if (GUILayout.Button("Log"))
-                    {
-                        BaseDebugger.ComplexLog(m_element.EnumIndex, m_testString, m_testLogType, m_testLevel);
-                    }
-                }
-                EditorGUILayout.EndVertical();
-            }
-
-            if (Database.DebugModeEnabled)
-            {
-                OnDatabaseDebugModeGUI();
-            }
-
-            serializedObject.ApplyModifiedProperties();
-        }
-
-        #endregion
-    }
-
-#endif
-
-    #endregion
 }

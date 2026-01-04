@@ -3,8 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Dhs5.Utility.GUIs;
+using Dhs5.Utility.Debuggers;
 
-namespace Dhs5.Utility.Debuggers
+namespace Dhs5.Utility.Console
 {
     public class OnScreenDebugger : MonoBehaviour
     {
@@ -112,14 +113,14 @@ namespace Dhs5.Utility.Debuggers
         private List<ScreenLog> m_activeScreenLogs = new();
         private List<LogDisposalTime> m_logsDisposalTime = new();
 
-        private void AddScreenLog(string message, LogType logType, float duration)
+        private void AddScreenLog(OnScreenLog log)
         {
             float time = Time.time;
 
-            var screenLog = new ScreenLog(message, logType, time);
+            var screenLog = new ScreenLog(log.message, log.type, time);
             m_activeScreenLogs.Add(screenLog);
 
-            var logDisposalTime = new LogDisposalTime(screenLog.id, time + duration);
+            var logDisposalTime = new LogDisposalTime(screenLog.id, time + 5.0f);//TODO settings
             m_logsDisposalTime.Add(logDisposalTime);
 
             SortDisposalTimes();
@@ -264,9 +265,9 @@ namespace Dhs5.Utility.Debuggers
 
         #region Log Behaviour
 
-        public static void Log(string message, LogType logType, float duration)
+        public static void Log(OnScreenLog log)
         {
-            GetInstance().AddScreenLog(message, logType, duration);
+            GetInstance().AddScreenLog(log);
         }
 
         #endregion

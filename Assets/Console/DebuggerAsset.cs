@@ -14,6 +14,13 @@ namespace Dhs5.Utility.Console
 {
     public class DebuggerAsset : ScriptableObject
     {
+        #region Consts
+
+        public const int MAX_DEBUGGER_LEVEL = 2;
+        public const float DEFAULT_SCREEN_LOG_DURATION = 5.0f;
+
+        #endregion
+
         #region Members
 
         [SerializeField] private List<DebugCategoryObject> m_debugCategories;
@@ -51,6 +58,16 @@ namespace Dhs5.Utility.Console
             {
                 Debug.LogError("No Debugger Asset found in project");
             }
+            return null;
+        }
+
+        public static DebugCategoryObject GetDebugCategoryObject(EDebugCategory category)
+        {
+            if (Instance.m_debugCategories.IsIndexValid((int)category, out var obj))
+            {
+                return obj;
+            }
+            Debug.LogWarning("No DebugCategoryObject found for category " + category);
             return null;
         }
 
@@ -133,9 +150,7 @@ namespace Dhs5.Utility.Console
             {
                 if (p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue is DebugCategoryObject element)
                 {
-                    EditorGUI.BeginDisabledGroup(i == 0);
                     DrawCategoryListElement(element, i);
-                    EditorGUI.EndDisabledGroup();
                     if (i < p_debugCategories.arraySize - 1)
                     {
                         EditorGUILayout.Space(2f);
@@ -158,36 +173,38 @@ namespace Dhs5.Utility.Console
 
                 // Up/Down/Delete Buttons
                 bool ret = false;
-                var r_upButton = new Rect(marginedRect.x + marginedRect.width - 94f, marginedRect.y - 2f, 32f, 20f);
-                using (new EditorGUI.DisabledGroupScope(index <= 1))
+                using (new EditorGUI.DisabledGroupScope(index == 0))
                 {
-                    if (GUI.Button(r_upButton, EditorGUIHelper.UpIcon))
+                    var r_upButton = new Rect(marginedRect.x + marginedRect.width - 94f, marginedRect.y - 2f, 32f, 20f);
+                    using (new EditorGUI.DisabledGroupScope(index <= 1))
                     {
-                        p_debugCategories.MoveArrayElement(index, index - 1);
-                        ret = true;
+                        if (GUI.Button(r_upButton, EditorGUIHelper.UpIcon))
+                        {
+                            p_debugCategories.MoveArrayElement(index, index - 1);
+                            ret = true;
+                        }
+                    }
+                    var r_downButton = new Rect(marginedRect.x + marginedRect.width - 62f, marginedRect.y - 2f, 32f, 20f);
+                    using (new EditorGUI.DisabledGroupScope(index == p_debugCategories.arraySize - 1))
+                    {
+                        if (GUI.Button(r_downButton, EditorGUIHelper.DownIcon))
+                        {
+                            p_debugCategories.MoveArrayElement(index, index + 1);
+                            ret = true;
+                        }
+                    }
+                    var r_deleteButton = new Rect(marginedRect.x + marginedRect.width - 30f, marginedRect.y - 2f, 32f, 20f);
+                    using (new GUIHelper.GUIBackgroundColorScope(Color.red))
+                    {
+                        if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
+                            && Database.DeleteNestedAsset(element, true))
+                        {
+                            p_debugCategories.DeleteArrayElementAtIndex(index);
+                            AssetDatabase.SaveAssetIfDirty(m_debuggerAsset);
+                            ret = true;
+                        }
                     }
                 }
-                var r_downButton = new Rect(marginedRect.x + marginedRect.width - 62f, marginedRect.y - 2f, 32f, 20f);
-                using (new EditorGUI.DisabledGroupScope(index == p_debugCategories.arraySize - 1))
-                {
-                    if (GUI.Button(r_downButton, EditorGUIHelper.DownIcon))
-                    {
-                        p_debugCategories.MoveArrayElement(index, index + 1);
-                        ret = true;
-                    }
-                }
-                var r_deleteButton = new Rect(marginedRect.x + marginedRect.width - 30f, marginedRect.y - 2f, 32f, 20f);
-                using (new GUIHelper.GUIBackgroundColorScope(Color.red))
-                {
-                    if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
-                        && Database.DeleteNestedAsset(element, true))
-                    {
-                        p_debugCategories.DeleteArrayElementAtIndex(index);
-                        AssetDatabase.SaveAssetIfDirty(m_debuggerAsset);
-                        ret = true;
-                    }
-                }
-
                 if (ret)
                 {
                     so.Dispose();
@@ -196,6 +213,7 @@ namespace Dhs5.Utility.Console
                 }
 
                 // Name
+                EditorGUI.BeginDisabledGroup(index == 0);
                 var buttonsTotalWidth = 100f;
                 var p_enumIndex = so.FindProperty("m_enumIndex");
                 var r_indexLabel = new Rect(marginedRect.x, marginedRect.y, 20f, 20f);
@@ -207,6 +225,7 @@ namespace Dhs5.Utility.Console
                     element.name = newName;
                     AssetDatabase.SaveAssetIfDirty(element);
                 }
+                EditorGUI.EndDisabledGroup();
 
                 marginedRect.y += 22f;
                 marginedRect.height -= 22f;
@@ -218,9 +237,10 @@ namespace Dhs5.Utility.Console
                 // Level
                 var r_level = new Rect(marginedRect.x + 30f, marginedRect.y, marginedRect.width - 30f - 100f, 18f);
                 var p_level = so.FindProperty("m_level");
-                p_level.intValue = EditorGUI.IntSlider(r_level, p_level.intValue, -1, BaseDebugger.MAX_DEBUGGER_LEVEL);
+                p_level.intValue = EditorGUI.IntSlider(r_level, p_level.intValue, -1, DebuggerAsset.MAX_DEBUGGER_LEVEL);
 
                 // Color
+                EditorGUI.BeginDisabledGroup(index == 0);
                 var r_color = new Rect(marginedRect.x + marginedRect.width - 94f, marginedRect.y, 94f, 18f);
                 var p_color = so.FindProperty("m_color");
                 EditorGUI.BeginChangeCheck();
@@ -229,6 +249,7 @@ namespace Dhs5.Utility.Console
                 {
                     element.RefreshColorString();
                 }
+                EditorGUI.EndDisabledGroup();
 
                 so.ApplyModifiedProperties();
                 so.Dispose();
@@ -250,6 +271,7 @@ namespace Dhs5.Utility.Console
                     newElement.name = "NEW_CATEGORY";
                     p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
+                    EnsureCorrectChannelsIndexation();
                 }
             }
             using (new GUIHelper.GUIBackgroundColorScope(DoesDebugCategoryScriptNeedUpdate() ? Color.cyan : Color.grey))
@@ -399,7 +421,7 @@ namespace Dhs5.Utility.Console
             string[] debugCategories = new string[p_debugCategories.arraySize];
             for (int i = 0; i < debugCategories.Length; i++)
             {
-                debugCategories[i] = p_debugCategories.GetArrayElementAtIndex(i).stringValue;
+                debugCategories[i] = p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue.name;
             }
 
             var writer = new EnumWriter(
@@ -428,7 +450,7 @@ namespace Dhs5.Utility.Console
                 {
                     var value = (EDebugCategory)obj;
                     if (p_debugCategories.arraySize <= i
-                        || value.ToString() != p_debugCategories.GetArrayElementAtIndex(i).stringValue)
+                        || value.ToString() != p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue.name)
                     {
                         return true;
                     }
