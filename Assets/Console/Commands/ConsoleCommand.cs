@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Text;
 using UnityEngine;
 
-namespace Dhs5.Utility.Console
+namespace Dhs5.Utility.Debugger
 {
     public class ConsoleCommand
     {

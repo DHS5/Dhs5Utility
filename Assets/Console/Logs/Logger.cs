@@ -1,5 +1,5 @@
 using UnityEngine;
-using Dhs5.Utility.Console;
+using Dhs5.Utility.Debugger;
 using System.Text;
 
 public static class Logger
@@ -15,6 +15,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
+            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, msgString, context));
+
             if (CanLog(categoryObj, logType, level))
             {
                 var categorizedMessage = CategorizeMessage(categoryObj, level, message);
@@ -22,11 +24,9 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenDebugger.Log(new OnScreenLog(category, logType, level, message));
+                    OnScreenLogger.Log(logIndex);
                 }
             }
-
-            ConsoleLogsContainer.AddLog(new ConsoleLog(category, logType, level, msgString, context));
         }
     }
 
@@ -41,6 +41,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
+            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, msgString, context));
+
             if (CanLog(categoryObj, logType, level))
             {
                 var categorizedMessage = CategorizeMessage(categoryObj, level, message);
@@ -48,11 +50,9 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenDebugger.Log(new OnScreenLog(category, logType, level, message));
+                    OnScreenLogger.Log(logIndex);
                 }
             }
-
-            ConsoleLogsContainer.AddLog(new ConsoleLog(category, logType, level, msgString, context));
         }
     }
 
@@ -67,6 +67,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
+            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, msgString, context));
+
             if (CanLog(categoryObj, logType, level))
             {
                 var categorizedMessage = CategorizeMessage(categoryObj, level, message);
@@ -74,11 +76,9 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenDebugger.Log(new OnScreenLog(category, logType, level, message));
+                    OnScreenLogger.Log(logIndex);
                 }
             }
-
-            ConsoleLogsContainer.AddLog(new ConsoleLog(category, logType, level, msgString, context));
         }
     }
 
@@ -93,6 +93,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
+            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, 0, msgString, context));
+
             if (CanLog(categoryObj, logType, 0))
             {
                 var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
@@ -100,11 +102,9 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenDebugger.Log(new OnScreenLog(category, logType, 0, message));
+                    OnScreenLogger.Log(logIndex);
                 }
             }
-
-            ConsoleLogsContainer.AddLog(new ConsoleLog(category, logType, 0, msgString, context));
         }
     }
 
@@ -118,15 +118,15 @@ public static class Logger
         {
             var msgString = message.ToString();
 
+            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, 0, msgString, context));
+
             var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
             Debug.Log(categorizedMessage, context);
 
             if (onScreen && Application.isPlaying)
             {
-                OnScreenDebugger.Log(new OnScreenLog(category, logType, 0, message));
+                OnScreenLogger.Log(logIndex);
             }
-
-            ConsoleLogsContainer.AddLog(new ConsoleLog(category, logType, 0, msgString, context));
         }
     }
 
@@ -136,7 +136,9 @@ public static class Logger
     {
         if (Application.isPlaying)
         {
-            OnScreenDebugger.Log(new OnScreenLog(category, logType, level, message));
+            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, message, null));
+
+            OnScreenLogger.Log(logIndex, duration);
         }
     }
 

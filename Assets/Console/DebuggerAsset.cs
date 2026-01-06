@@ -1,16 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Dhs5.Utility.Debuggers;
 using Dhs5.Utility.Databases;
 using Dhs5.Utility.GUIs;
 using System;
+using UnityEngine.InputSystem;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
 using Dhs5.Utility.Editors;
 #endif
 
-namespace Dhs5.Utility.Console
+namespace Dhs5.Utility.Debugger
 {
     public class DebuggerAsset : ScriptableObject
     {
@@ -25,12 +26,15 @@ namespace Dhs5.Utility.Console
 
         [SerializeField] private List<DebugCategoryObject> m_debugCategories;
 
+        [SerializeField] private InputActionReference m_openOnScreenConsoleInputRef;
+        [SerializeField] private InputActionReference m_closeOnScreenConsoleInputRef;
+
         #endregion
 
 
         // --- STATIC ---
 
-        #region Static Accessors
+        #region Instance
 
         private static DebuggerAsset _instance;
         internal static DebuggerAsset Instance
@@ -61,6 +65,10 @@ namespace Dhs5.Utility.Console
             return null;
         }
 
+        #endregion
+
+        #region Static Accessors
+
         public static DebugCategoryObject GetDebugCategoryObject(EDebugCategory category)
         {
             if (Instance.m_debugCategories.IsIndexValid((int)category, out var obj))
@@ -69,6 +77,42 @@ namespace Dhs5.Utility.Console
             }
             Debug.LogWarning("No DebugCategoryObject found for category " + category);
             return null;
+        }
+
+        private readonly static Dictionary<EDebugCategory, Color> _categoryColors = new();
+        public static Color GetCategoryColor(EDebugCategory category)
+        {
+            if (_categoryColors.TryGetValue(category, out var color)) return color;
+
+            _categoryColors[category] = GetDebugCategoryObject(category).Color;
+            return _categoryColors[category];
+        }
+
+        #endregion
+
+        #region Settings Static Accessors
+
+        internal static bool TryGetOpenOnScreenConsoleInputRef(out InputActionReference inputRef)
+        {
+            if (Instance != null && Instance.m_openOnScreenConsoleInputRef != null)
+            {
+                inputRef = Instance.m_openOnScreenConsoleInputRef;
+                return true;
+            }
+
+            inputRef = null;
+            return false;
+        }
+        internal static bool TryGetCloseOnScreenConsoleInputRef(out InputActionReference inputRef)
+        {
+            if (Instance != null && Instance.m_closeOnScreenConsoleInputRef != null)
+            {
+                inputRef = Instance.m_closeOnScreenConsoleInputRef;
+                return true;
+            }
+
+            inputRef = null;
+            return false;
         }
 
         #endregion
@@ -106,6 +150,8 @@ namespace Dhs5.Utility.Console
         #region Serialized Properties
 
         private SerializedProperty p_debugCategories;
+        private SerializedProperty p_openOnScreenConsoleInputRef;
+        private SerializedProperty p_closeOnScreenConsoleInputRef;
 
         private SerializedProperty p_debugCategoriesTextAsset;
 
@@ -118,6 +164,8 @@ namespace Dhs5.Utility.Console
             m_debuggerAsset = (DebuggerAsset)target;
 
             p_debugCategories = serializedObject.FindProperty("m_debugCategories");
+            p_openOnScreenConsoleInputRef = serializedObject.FindProperty("m_openOnScreenConsoleInputRef");
+            p_closeOnScreenConsoleInputRef = serializedObject.FindProperty("m_closeOnScreenConsoleInputRef");
 
             p_debugCategoriesTextAsset = serializedObject.FindProperty("m_debugCategoriesTextAsset");
 
@@ -409,6 +457,12 @@ namespace Dhs5.Utility.Console
                     });
                 }
             }
+
+            // CONSOLE
+            EditorGUILayout.Space(15f);
+            EditorGUILayout.LabelField("Console", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(p_openOnScreenConsoleInputRef);
+            EditorGUILayout.PropertyField(p_closeOnScreenConsoleInputRef);
         }
 
         #endregion

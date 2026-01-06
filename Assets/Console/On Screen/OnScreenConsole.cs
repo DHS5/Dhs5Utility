@@ -2,7 +2,7 @@ using Dhs5.Utility.GUIs;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Dhs5.Utility.Console
+namespace Dhs5.Utility.Debugger
 {
     public class OnScreenConsole : MonoBehaviour
     {
@@ -15,11 +15,6 @@ namespace Dhs5.Utility.Console
         #endregion
 
         #region Members
-
-        // INPUTS
-        [Header("Inputs")]
-        [SerializeField] protected InputAction m_openConsoleAction;
-        [SerializeField] protected InputAction m_closeConsoleAction;
 
         // GUI COLORS
         protected Color m_transparentBlack01 = new Color(0f, 0f, 0f, 0.1f);
@@ -84,32 +79,32 @@ namespace Dhs5.Utility.Console
 
         private void RegisterInputs(bool register)
         {
-            if (m_openConsoleAction != null)
+            if (DebuggerAsset.TryGetOpenOnScreenConsoleInputRef(out var openInputRef))
             {
-                if (register) m_openConsoleAction.performed += OpenConsoleCallback;
-                else m_openConsoleAction.performed -= OpenConsoleCallback;
+                if (register) openInputRef.action.performed += OpenConsoleCallback;
+                else openInputRef.action.performed -= OpenConsoleCallback;
             }
-            if (m_closeConsoleAction != null)
+            if (DebuggerAsset.TryGetCloseOnScreenConsoleInputRef(out var closeInputRef))
             {
-                if (register) m_closeConsoleAction.performed += CloseConsoleCallback;
-                else m_closeConsoleAction.performed -= CloseConsoleCallback;
+                if (register) closeInputRef.action.performed += CloseConsoleCallback;
+                else closeInputRef.action.performed -= CloseConsoleCallback;
             }
         }
 
         protected void EnableOpenConsoleInput(bool enable)
         {
-            if (m_openConsoleAction != null)
+            if (DebuggerAsset.TryGetOpenOnScreenConsoleInputRef(out var openInputRef))
             {
-                if (enable) m_openConsoleAction.Enable();
-                else m_openConsoleAction.Disable();
+                if (enable) openInputRef.action.Enable();
+                else openInputRef.action.Disable();
             }
         }
         protected void EnableCloseConsoleInput(bool enable)
         {
-            if (m_closeConsoleAction != null)
+            if (DebuggerAsset.TryGetCloseOnScreenConsoleInputRef(out var closeInputRef))
             {
-                if (enable) m_closeConsoleAction.Enable();
-                else m_closeConsoleAction.Disable();
+                if (enable) closeInputRef.action.Enable();
+                else closeInputRef.action.Disable();
             }
         }
 

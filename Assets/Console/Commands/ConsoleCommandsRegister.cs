@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System;
 
-namespace Dhs5.Utility.Console
+namespace Dhs5.Utility.Debugger
 {
     public static class ConsoleCommandsRegister
     {

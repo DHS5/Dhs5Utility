@@ -3,6 +3,7 @@ using Dhs5.Utility.Updates;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 //#if UNITY_EDITOR
 //using UnityEditor;
@@ -27,6 +28,8 @@ public class TestSettings : CustomSettings<TestSettings>
     [SerializeField] private SerializableMonoScript<UpdateConditionObject> m_updateConditionType;
     [SerializeField] private SerializableDate m_serializedDate;
     [SerializeField, DateReadOnly] private SerializableDate m_serializedDate2;
+    [SerializeField] private InputAction m_openOnScreenConsoleInputRef;
+    [SerializeField] private InputActionReference m_closeOnScreenConsoleInputRef;
 
     public static PlayerPrefInt PlayerPrefInt => I.m_playerPrefInt;
 }

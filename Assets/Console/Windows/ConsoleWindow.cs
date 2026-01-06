@@ -7,7 +7,7 @@ using Dhs5.Utility.GUIs;
 using UnityEditor;
 using Dhs5.Utility.Editors;
 
-namespace Dhs5.Utility.Console
+namespace Dhs5.Utility.Debugger
 {
     public class ConsoleWindow : EditorWindow
     {
@@ -46,7 +46,6 @@ namespace Dhs5.Utility.Console
 
         private Dictionary<LogType, GUIContent> m_logTypeIcons = new();
         private Dictionary<LogType, Color> m_logTypeColors = new();
-        private Dictionary<EDebugCategory, Color> m_categoryColors = new();
 
         private GUIContent GetLogTypeIcon(LogType logType)
         {
@@ -77,13 +76,6 @@ namespace Dhs5.Utility.Console
                 _ => Color.white
             };
             return m_logTypeColors[logType];
-        }
-        private Color GetCategoryColor(EDebugCategory category)
-        {
-            if (m_categoryColors.TryGetValue(category, out var color)) return color;
-
-            m_categoryColors[category] = DebuggerAsset.GetDebugCategoryObject(category).Color;
-            return m_categoryColors[category];
         }
 
         #endregion
@@ -150,7 +142,7 @@ namespace Dhs5.Utility.Console
             m_logsScrollPosition = EditorGUILayout.BeginScrollView(m_logsScrollPosition, GUILayout.Height(listHeight));
 
             int index = 0;
-            foreach (var log in ConsoleLogsContainer.GetLogs())
+            foreach (var log in DebuggerLogsContainer.GetLogs())
             {
                 var selected = m_selectedLogIndex == index;
                 var g_message = new GUIContent(log.message);
@@ -167,7 +159,7 @@ namespace Dhs5.Utility.Console
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawLog(Rect rect, int index, bool selected, GUIContent g_message, ConsoleLog log)
+        private void DrawLog(Rect rect, int index, bool selected, GUIContent g_message, DebuggerLog log)
         {
             // Background
             EditorGUI.DrawRect(rect, selected ? Color.gray1 : index % 2 == 0 ? Color.gray3 : Color.gray2);
@@ -192,7 +184,7 @@ namespace Dhs5.Utility.Console
             }
 
             // Icon
-            var categoryColor = GetCategoryColor(log.category);
+            var categoryColor = DebuggerAsset.GetCategoryColor(log.category);
             var r_icon = new Rect(rect.x + 2f, rect.y + 1f, 18f, 18f);
             using (new GUIHelper.GUIContentColorScope(categoryColor))
             {

@@ -6,7 +6,7 @@ using Dhs5.Utility.Databases;
 using UnityEditor;
 using Dhs5.Utility.Editors;
 
-namespace Dhs5.Utility.Console
+namespace Dhs5.Utility.Debugger
 {
     public class DebuggerWindow : EditorWindow
     {

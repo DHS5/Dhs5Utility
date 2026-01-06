@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-namespace Dhs5.Utility.Console
+namespace Dhs5.Utility.Debugger
 {
     [AttributeUsage(AttributeTargets.Method)]
     public class ConsoleCommandAttribute : Attribute

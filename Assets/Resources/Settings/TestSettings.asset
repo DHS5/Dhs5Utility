@@ -75,12 +75,45 @@ MonoBehaviour:
   m_subSetTest3: {fileID: 5641552958961620114}
   m_serializedMonoScript:
     m_monoScript: {fileID: 11500000, guid: 1d3e791bad61a2b44a968a66f195ab45, type: 3}
-    m_typeName: Dhs5.Utility.Debuggers.BaseDebugger, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
+    m_typeName: 
   m_updateConditionType:
     m_monoScript: {fileID: 11500000, guid: 923491fd08b3a7f4e9ae50bc589432b1, type: 3}
     m_typeName: Dhs5.Utility.Updates.UpdateConditionObject_Always, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  m_serializedDate:
+    m_year: 0
+    m_month: 0
+    m_day: 0
+    m_hour: 0
+    m_minute: 0
+    m_second: 0
+    m_millisecond: 0
+  m_serializedDate2:
+    m_year: 0
+    m_month: 0
+    m_day: 0
+    m_hour: 0
+    m_minute: 0
+    m_second: 0
+    m_millisecond: 0
+  m_openOnScreenConsoleInputRef:
+    m_Name: Open On Screen Console Input Ref
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: c69abc9c-af79-474f-b77b-6639a56cf160
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings:
+    - m_Name: 
+      m_Id: 2ae7ac46-fa89-4969-b163-eb7eaee26f37
+      m_Path: <Keyboard>/f12
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Open On Screen Console Input Ref
+      m_Flags: 0
+    m_Flags: 0
+  m_closeOnScreenConsoleInputRef: {fileID: 0}
 --- !u!114 &5641552958961620114
 MonoBehaviour:
   m_ObjectHideFlags: 0
