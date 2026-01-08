@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Dhs5.Utility.Debugger
 {
-    public class ConsoleCommand
+    public class ConsoleCommand : IEquatable<ConsoleCommand>
     {
         #region ENUM Scope
 
@@ -71,7 +71,8 @@ namespace Dhs5.Utility.Debugger
             NO_MATCH = 0,
             NAME_MATCH = 1,
             PARTIAL_MATCH = 2,
-            PERFECT_MATCH = 3,
+            ACCEPTED_MATCH = 3,
+            PERFECT_MATCH = 4,
         }
 
         #endregion
@@ -165,6 +166,7 @@ namespace Dhs5.Utility.Debugger
             {
                 if (string.Equals(name, commandLineContentAsArray[0], StringComparison.InvariantCultureIgnoreCase))
                 {
+                    // Too much parameters to match
                     if (commandLineContentAsArray.Length - 1 > parameters.Length)
                     {
                         return EMatchResult.NAME_MATCH;
@@ -174,7 +176,7 @@ namespace Dhs5.Utility.Debugger
                         var matchResult = IsParameterMatch(parameters[i - 1], commandLineContentAsArray[i]);
 
                         // Not a perfect match before the last element --> NAME_MATCH
-                        if (matchResult != EMatchResult.PERFECT_MATCH && i < commandLineContentAsArray.Length - 1)
+                        if (matchResult is not (EMatchResult.PERFECT_MATCH or EMatchResult.ACCEPTED_MATCH) && i < commandLineContentAsArray.Length - 1)
                         {
                             return EMatchResult.NAME_MATCH;
                         }
@@ -189,6 +191,10 @@ namespace Dhs5.Utility.Debugger
                             {
                                 return matchResult;
                             }
+                            if (parameters[commandLineContentAsArray.Length - 1].hasDefaultValue)
+                            {
+                                return matchResult == EMatchResult.PERFECT_MATCH ? EMatchResult.ACCEPTED_MATCH : matchResult;
+                            }
                             return EMatchResult.PARTIAL_MATCH;
                         }
                     }
@@ -196,7 +202,7 @@ namespace Dhs5.Utility.Debugger
             }
             else if (string.Equals(name, commandLineContentAsArray[0], StringComparison.InvariantCultureIgnoreCase))
             {
-                return parameters.Length > 0 ? EMatchResult.PARTIAL_MATCH : EMatchResult.PERFECT_MATCH;
+                return parameters.Length > 0 ? (parameters[0].hasDefaultValue ? EMatchResult.ACCEPTED_MATCH : EMatchResult.PARTIAL_MATCH) : EMatchResult.PERFECT_MATCH;
             }
             else if (name.StartsWith(commandLineContentAsArray[0], StringComparison.InvariantCultureIgnoreCase))
             {
@@ -238,7 +244,26 @@ namespace Dhs5.Utility.Debugger
         {
             try
             {
-                callback.Invoke(commandParameters);
+                if (parameters.Length > commandParameters.Length)
+                {
+                    object[] completedParameters = new object[parameters.Length];
+                    for (int i = 0; i < completedParameters.Length; i++)
+                    {
+                        if (i < commandParameters.Length)
+                        {
+                            completedParameters[i] = commandParameters[i];
+                        }
+                        else
+                        {
+                            completedParameters[i] = parameters[i].defaultValue;
+                        }
+                    }
+                    callback.Invoke(completedParameters);
+                }
+                else
+                {
+                    callback.Invoke(commandParameters);
+                }
             }
             catch (Exception e)
             {
@@ -262,7 +287,19 @@ namespace Dhs5.Utility.Debugger
 
             for (int i = 0; i < parameters.Length; i++)
             {
-                sb.Append(parameters[i].type.ToString());
+                if (parameters[i].type == EParameterType.ENUM)
+                {
+                    sb.Append(parameters[i].underlyingType.Name);
+                }
+                else
+                {
+                    sb.Append(parameters[i].type.ToString());
+                }
+                if (parameters[i].hasDefaultValue)
+                {
+                    sb.Append("=");
+                    sb.Append(parameters[i].defaultValue);
+                }
                 if (i < parameters.Length - 1) sb.Append(' ');
             }
 
@@ -292,7 +329,24 @@ namespace Dhs5.Utility.Debugger
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(name, parameters);
+            return name.ToLowerInvariant().GetHashCode(); 
+        }
+        public bool Equals(ConsoleCommand other)
+        {
+            if (string.Equals(name, other.name, StringComparison.InvariantCultureIgnoreCase))
+            {
+                var minLength = Mathf.Min(parameters.Length, other.parameters.Length);
+                for (int i = 0; i < minLength; i++)
+                {
+                    if (parameters[i].type != other.parameters[i].type) return false;
+                }
+
+                if (parameters.Length == other.parameters.Length) return true;
+                if (parameters.Length > minLength && parameters[minLength].hasDefaultValue) return true;
+                if (other.parameters.Length > minLength && other.parameters[minLength].hasDefaultValue) return true;
+            }
+        
+            return false;
         }
 
         #endregion
@@ -378,10 +432,13 @@ namespace Dhs5.Utility.Debugger
                     if (string.Equals("true", parameterString, StringComparison.InvariantCultureIgnoreCase)
                         || string.Equals("false", parameterString, StringComparison.InvariantCultureIgnoreCase)
                         || "true".StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase)
-                        || "false".StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase)
-                        || parameterString == "0" || parameterString == "1")
+                        || "false".StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase))
                     {
                         return EMatchResult.PERFECT_MATCH;
+                    }
+                    if (parameterString == "0" || parameterString == "1")
+                    {
+                        return EMatchResult.ACCEPTED_MATCH;
                     }
                     return EMatchResult.NO_MATCH;
 
@@ -390,6 +447,7 @@ namespace Dhs5.Utility.Debugger
                         ? EMatchResult.PERFECT_MATCH : EMatchResult.NO_MATCH;
                 
                 case EParameterType.FLOAT:
+                    if (int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)) return EMatchResult.ACCEPTED_MATCH;
                     return float.TryParse(parameterString, NumberStyles.Float, CultureInfo.InvariantCulture, out _)
                         ? EMatchResult.PERFECT_MATCH : EMatchResult.NO_MATCH;
 
@@ -403,7 +461,7 @@ namespace Dhs5.Utility.Debugger
                         for (int i = 0; i < values.Length; i++)
                         {
                             if (isInt && intRes == (int)values.GetValue(i)) 
-                                return EMatchResult.PERFECT_MATCH;
+                                return EMatchResult.ACCEPTED_MATCH;
                             var str = values.GetValue(i).ToString();
                             if (string.Equals(str, parameterString, StringComparison.InvariantCultureIgnoreCase))
                                 return EMatchResult.PERFECT_MATCH;

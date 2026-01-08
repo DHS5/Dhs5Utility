@@ -33,7 +33,7 @@ namespace Dhs5.Utility.Debugger
             {
                 if (IsScopeValid(command.scope) && !_commands.Add(command))
                 {
-                    Debug.LogWarning("Could not register Built-in Command with name " + command.name);
+                    Debug.LogWarning("Could not register Built-in Command " + command.optionString);
                 }
             }
 
@@ -107,7 +107,17 @@ namespace Dhs5.Utility.Debugger
             yield return new ConsoleCommand(
                 "test",
                 ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.FLOAT, typeof(float)), new(ConsoleCommand.EParameterType.FLOAT, typeof(float)) },
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.INT, typeof(int), 5) },
+                (parameters) => { Debug.Log("test " + parameters[0]); });
+            yield return new ConsoleCommand(
+                "test",
+                ConsoleCommand.EScope.EDITOR,
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.INT, typeof(int)) },
+                (parameters) => { Debug.Log("test " + parameters[0]); });
+            yield return new ConsoleCommand(
+                "test",
+                ConsoleCommand.EScope.EDITOR,
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.FLOAT, typeof(float)), new(ConsoleCommand.EParameterType.FLOAT, typeof(float), 0.2f) },
                 (parameters) => { Debug.Log("test " + parameters[0] + " " + parameters[1]); });
             yield return new ConsoleCommand(
                 "test",
@@ -119,6 +129,11 @@ namespace Dhs5.Utility.Debugger
                 ConsoleCommand.EScope.EDITOR,
                 new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.ENUM, typeof(EDebugCategory)) },
                 (parameters) => { Debug.Log("test " + parameters[0]); });
+            yield return new ConsoleCommand(
+                "testdef",
+                ConsoleCommand.EScope.EDITOR,
+                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.INT, typeof(int), 5) },
+                (parameters) => { Debug.Log("test default " + parameters[0]); });
 
             #endregion
         }
@@ -205,6 +220,15 @@ namespace Dhs5.Utility.Debugger
                         case ConsoleCommand.EMatchResult.PERFECT_MATCH:
                             _closestMatch = command;
                             SelectedOptionIndex = index;
+                            break;
+
+                        case ConsoleCommand.EMatchResult.ACCEPTED_MATCH:
+                            if (_closestMatch == null
+                                || _optionsMatchResult[_closestMatch] != ConsoleCommand.EMatchResult.PERFECT_MATCH)
+                            {
+                                _closestMatch = command;
+                                SelectedOptionIndex = index;
+                            }
                             break;
 
                         case ConsoleCommand.EMatchResult.PARTIAL_MATCH:

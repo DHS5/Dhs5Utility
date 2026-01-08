@@ -33,6 +33,7 @@ MonoBehaviour:
   - {fileID: 697256396391879857}
   - {fileID: -7002647680321824663}
   - {fileID: 5819532464124954668}
+  m_enableOnScreenConsole: 1
   m_openOnScreenConsoleInputRef: {fileID: 0}
   m_closeOnScreenConsoleInputRef: {fileID: 0}
   m_debugCategoriesTextAsset: {fileID: 11500000, guid: 2f131b65ccc467349837c7c6abe9a0c6,

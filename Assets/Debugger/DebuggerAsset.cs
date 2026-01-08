@@ -26,6 +26,7 @@ namespace Dhs5.Utility.Debugger
 
         [SerializeField] private List<DebugCategoryObject> m_debugCategories;
 
+        [SerializeField] private bool m_enableOnScreenConsole;
         [SerializeField] private InputActionReference m_openOnScreenConsoleInputRef;
         [SerializeField] private InputActionReference m_closeOnScreenConsoleInputRef;
 
@@ -92,6 +93,7 @@ namespace Dhs5.Utility.Debugger
 
         #region Settings Static Accessors
 
+        internal static bool EnableOnScreenConsole => Instance != null && Instance.m_enableOnScreenConsole;
         internal static bool TryGetOpenOnScreenConsoleInputRef(out InputActionReference inputRef)
         {
             if (Instance != null && Instance.m_openOnScreenConsoleInputRef != null)
@@ -150,6 +152,7 @@ namespace Dhs5.Utility.Debugger
         #region Serialized Properties
 
         private SerializedProperty p_debugCategories;
+        private SerializedProperty p_enableOnScreenConsole;
         private SerializedProperty p_openOnScreenConsoleInputRef;
         private SerializedProperty p_closeOnScreenConsoleInputRef;
 
@@ -164,6 +167,7 @@ namespace Dhs5.Utility.Debugger
             m_debuggerAsset = (DebuggerAsset)target;
 
             p_debugCategories = serializedObject.FindProperty("m_debugCategories");
+            p_enableOnScreenConsole = serializedObject.FindProperty("m_enableOnScreenConsole");
             p_openOnScreenConsoleInputRef = serializedObject.FindProperty("m_openOnScreenConsoleInputRef");
             p_closeOnScreenConsoleInputRef = serializedObject.FindProperty("m_closeOnScreenConsoleInputRef");
 
@@ -461,6 +465,7 @@ namespace Dhs5.Utility.Debugger
             // CONSOLE
             EditorGUILayout.Space(15f);
             EditorGUILayout.LabelField("Console", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(p_enableOnScreenConsole);
             EditorGUILayout.PropertyField(p_openOnScreenConsoleInputRef);
             EditorGUILayout.PropertyField(p_closeOnScreenConsoleInputRef);
         }

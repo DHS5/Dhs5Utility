@@ -289,6 +289,7 @@ namespace Dhs5.Utility.Debugger
                     {
                         ConsoleCommand.EMatchResult.NAME_MATCH => Color.red,
                         ConsoleCommand.EMatchResult.PARTIAL_MATCH => Color.white,
+                        ConsoleCommand.EMatchResult.ACCEPTED_MATCH => Color.greenYellow,
                         ConsoleCommand.EMatchResult.PERFECT_MATCH => Color.green,
                         _ => Color.white
                     };

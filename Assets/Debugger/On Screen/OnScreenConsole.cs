@@ -270,6 +270,7 @@ namespace Dhs5.Utility.Debugger
                 {
                     ConsoleCommand.EMatchResult.NAME_MATCH => Color.red,
                     ConsoleCommand.EMatchResult.PARTIAL_MATCH => Color.white,
+                    ConsoleCommand.EMatchResult.ACCEPTED_MATCH => Color.greenYellow,
                     ConsoleCommand.EMatchResult.PERFECT_MATCH => Color.green,
                     _ => Color.white
                 };
@@ -309,8 +310,11 @@ namespace Dhs5.Utility.Debugger
 
         private static void CreateInstance()
         {
-            var obj = new GameObject("OnScreen Console");
-            obj.AddComponent<OnScreenConsole>();
+            if (DebuggerAsset.EnableOnScreenConsole)
+            {
+                var obj = new GameObject("OnScreen Console");
+                Instance = obj.AddComponent<OnScreenConsole>();
+            }
         }
 
         private static OnScreenConsole GetInstance()
@@ -329,14 +333,15 @@ namespace Dhs5.Utility.Debugger
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         public static void Init()
         {
-            if (Instance == null)
-            {
-                CreateInstance();
-            }
+            GetInstance();
         }
         public static void Open()
         {
-            GetInstance().OpenConsole();
+            var instance = GetInstance();
+            if (instance != null)
+            {
+                instance.OpenConsole();
+            }
         }
 
         #endregion
