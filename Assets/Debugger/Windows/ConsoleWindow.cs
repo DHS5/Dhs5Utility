@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+
 
 #if UNITY_EDITOR
 using Dhs5.Utility.GUIs;
@@ -31,6 +33,11 @@ namespace Dhs5.Utility.Debugger
 
         #region Members
 
+        // TOOLBAR
+        private bool m_filtersOpen;
+        private Vector2 m_filtersScrollPosition;
+        private int[] m_filtersValues;
+
         // LOGS
         private int m_selectedLogIndex = -1;
         private Vector2 m_logsScrollPosition;
@@ -39,6 +46,13 @@ namespace Dhs5.Utility.Debugger
         // COMMANDS
         private bool m_isWritingOnCommandLine;
         private Vector2 m_commandsOptionsScrollPosition;
+
+        #endregion
+
+        #region GUI Content
+
+        private GUIContent g_clearButton = new GUIContent("Clear");
+        private GUIContent g_filtersButton = new GUIContent("Filters");
 
         #endregion
 
@@ -92,7 +106,16 @@ namespace Dhs5.Utility.Debugger
 
             // LOGS
             var logsListHeight = position.height - 50f;
+
+            EditorGUILayout.BeginHorizontal();
             DrawLogsListGUI(logsListHeight);
+
+            // FILTERS
+            if (m_filtersOpen)
+            {
+                DrawFiltersGUI();
+            }
+            EditorGUILayout.EndHorizontal();
 
             // COMMAND LINE
             if (m_isWritingOnCommandLine)
@@ -131,6 +154,86 @@ namespace Dhs5.Utility.Debugger
         private void DrawToolbarGUI(Rect rect)
         {
             GUI.Box(rect, GUIContent.none, EditorStyles.toolbar);
+
+            // Clear
+            var r_clearButton = new Rect(rect.x, rect.y, 70f, rect.height);
+            if (GUI.Button(r_clearButton, g_clearButton, EditorStyles.toolbarButton))
+            {
+                DebuggerLogsContainer.ClearLogs();
+            }
+
+            // Filters
+            var r_filtersButton = new Rect(rect.x + rect.width - 250f, rect.y, 250f, rect.height);
+            m_filtersOpen = EditorGUIHelper.ToolbarToggleDropdown(r_filtersButton, g_filtersButton, m_filtersOpen);
+        }
+
+        #endregion
+
+        #region FILTERS GUI
+
+        private void DrawFiltersGUI()
+        {
+            // Separator
+            EditorGUI.DrawRect(new Rect(position.width - 251f, 20f, 1f, position.height - 48f), Color.gray1);
+
+            m_filtersScrollPosition = EditorGUILayout.BeginScrollView(m_filtersScrollPosition, GUILayout.Width(250f));
+
+            var values = Enum.GetValues(typeof(EDebugCategory));
+            if (m_filtersValues == null || values.Length != m_filtersValues.Length)
+            {
+                int[] newFiltersValues = new int[values.Length];
+                newFiltersValues.InitWithConstantValue(DebuggerAsset.MAX_DEBUGGER_LEVEL);
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    if (m_filtersValues.IsIndexValid(i, out var currentValue))
+                    {
+                        newFiltersValues[i] = currentValue;
+                    }
+                }
+                m_filtersValues = newFiltersValues;
+            }
+
+            int index = 0;
+            foreach (var obj in values)
+            {
+                var value = (EDebugCategory)obj;
+                var color = DebuggerAsset.GetCategoryColor(value);
+                var r_color = EditorGUILayout.GetControlRect(false, 2f);
+                EditorGUI.DrawRect(r_color, color);
+
+                var r_firstLine = EditorGUILayout.GetControlRect(false, 18f);
+
+                // Light rim
+                var r_lightRim = new Rect(r_firstLine.x, r_firstLine.y, 22f, 22f);
+                EditorGUI.LabelField(r_lightRim, m_filtersValues[index] > -1 ? EditorGUIHelper.GreenLightIcon : EditorGUIHelper.RedLightIcon);
+
+                // Label
+                using (new GUIHelper.GUIContentColorScope(color))
+                {
+                    EditorGUI.LabelField(new Rect(r_firstLine.x + 30f, r_firstLine.y, r_firstLine.width - 30f, r_firstLine.height), value.ToString(), EditorStyles.boldLabel);
+                }
+
+                // Slider
+                m_filtersValues[index] = EditorGUILayout.IntSlider(m_filtersValues[index], -1, DebuggerAsset.MAX_DEBUGGER_LEVEL);
+                EditorGUILayout.Space(2f);
+
+                index++;
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
+
+        private bool DoesLogPassFilters(DebuggerLog log)
+        {
+            var categoryIndex = (int)log.category;
+
+            if (m_filtersValues.IsIndexValid(categoryIndex, out var level))
+            {
+                return level >= log.level;
+            }
+
+            return true;
         }
 
         #endregion
@@ -144,15 +247,18 @@ namespace Dhs5.Utility.Debugger
             int index = 0;
             foreach (var log in DebuggerLogsContainer.GetLogs())
             {
-                var selected = m_selectedLogIndex == index;
-                var g_message = new GUIContent(log.message);
-                var prevWrap = EditorStyles.label.wordWrap;
-                EditorStyles.label.wordWrap = true;
-                var height = selected ? Mathf.Max(38f, Mathf.Min(100f, EditorStyles.label.CalcHeight(g_message, position.width - 150f) + 4f)) : 19f;
-                EditorStyles.label.wordWrap = prevWrap;
-                var rect = EditorGUILayout.GetControlRect(false, height);
-                rect.width += rect.x + 3f; rect.x = 0f; rect.height++;
-                DrawLog(rect, index, selected, g_message, log);
+                if (DoesLogPassFilters(log))
+                {
+                    var selected = m_selectedLogIndex == index;
+                    var g_message = new GUIContent(log.message);
+                    var prevWrap = EditorStyles.label.wordWrap;
+                    EditorStyles.label.wordWrap = true;
+                    var height = selected ? Mathf.Max(38f, Mathf.Min(100f, EditorStyles.label.CalcHeight(g_message, position.width - 150f) + 4f)) : 19f;
+                    EditorStyles.label.wordWrap = prevWrap;
+                    var rect = EditorGUILayout.GetControlRect(false, height);
+                    rect.width += rect.x + 3f; rect.x = 0f; rect.height++;
+                    DrawLog(rect, index, selected, g_message, log);
+                }
                 index++;
             }
 

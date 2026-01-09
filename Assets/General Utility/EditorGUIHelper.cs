@@ -192,6 +192,12 @@ namespace Dhs5.Utility.Editors
             EditorGUI.LabelField(rect, content, GUIHelper.centeredLabel);
             return result;
         }
+        public static bool ToolbarToggleDropdown(Rect rect, GUIContent content, bool value)
+        {
+            bool result = GUI.Toggle(rect, value, GUIContent.none, EditorStyles.toolbarDropDown);
+            EditorGUI.LabelField(rect, content, GUIHelper.centeredLabel);
+            return result;
+        }
 
         #endregion
 
