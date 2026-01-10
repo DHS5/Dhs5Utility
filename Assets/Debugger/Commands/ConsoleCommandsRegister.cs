@@ -266,6 +266,10 @@ namespace Dhs5.Utility.Debugger
         }
         public static string GetHintString()
         {
+            if (string.IsNullOrEmpty(CommandLineContent))
+            {
+                return "Type command here..."; 
+            }
             if (_closestMatch != null
                 && _commandLineContentAsArray.Length == 1)
             {

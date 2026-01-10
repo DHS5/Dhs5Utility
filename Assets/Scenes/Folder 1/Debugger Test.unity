@@ -352,6 +352,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0d7c13519c77534aa8c28506d36e370, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DebuggerTest
+  m_runtimeTest2: {fileID: 6690754561762255559, guid: 405d8568ecbccbb4fa3ce044cb0ba42b,
+    type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

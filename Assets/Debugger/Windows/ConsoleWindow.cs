@@ -113,7 +113,7 @@ namespace Dhs5.Utility.Debugger
             // FILTERS
             if (m_filtersOpen)
             {
-                DrawFiltersGUI();
+                DrawFiltersGUI(logsListHeight);
             }
             EditorGUILayout.EndHorizontal();
 
@@ -171,12 +171,12 @@ namespace Dhs5.Utility.Debugger
 
         #region FILTERS GUI
 
-        private void DrawFiltersGUI()
+        private void DrawFiltersGUI(float height)
         {
             // Separator
             EditorGUI.DrawRect(new Rect(position.width - 251f, 20f, 1f, position.height - 48f), Color.gray1);
 
-            m_filtersScrollPosition = EditorGUILayout.BeginScrollView(m_filtersScrollPosition, GUILayout.Width(250f));
+            m_filtersScrollPosition = EditorGUILayout.BeginScrollView(m_filtersScrollPosition, GUILayout.Width(250f), GUILayout.Height(height - 2f));
 
             var values = Enum.GetValues(typeof(EDebugCategory));
             if (m_filtersValues == null || values.Length != m_filtersValues.Length)

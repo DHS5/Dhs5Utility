@@ -118,7 +118,11 @@ namespace Dhs5.Utility.Debugger
                 case 1:
                     if (Application.isPlaying)
                     {
-                        
+                        DrawRuntimeGUI();
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("Usable only in play mode", MessageType.Info);
                     }
                     break;
 
@@ -132,6 +136,15 @@ namespace Dhs5.Utility.Debugger
             {
                 AssetEditor.serializedObject.ApplyModifiedProperties();
             }
+        }
+
+        #endregion
+
+        #region RUNTIME GUI
+
+        private void DrawRuntimeGUI()
+        {
+            
         }
 
         #endregion
