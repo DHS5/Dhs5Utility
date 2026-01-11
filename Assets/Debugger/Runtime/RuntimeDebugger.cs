@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using System.Reflection;
 #endif
 
 namespace Dhs5.Utility.Debugger
@@ -15,9 +15,9 @@ namespace Dhs5.Utility.Debugger
 
         #region STRUCT MemberInformations
 
-        public struct MemberInformations
+        public struct DebugInformations
         {
-            public MemberInformations(RuntimeDebugAttribute attribute, Type type)
+            public DebugInformations(RuntimeDebugAttribute attribute, Type type)
             {
                 this.attribute = attribute;
                 this.propertyType = GetPropertyTypeFromType(type);
@@ -127,14 +127,26 @@ namespace Dhs5.Utility.Debugger
 
         private struct TypeInformations
         {
-            public TypeInformations(Dictionary<FieldInfo, MemberInformations> fieldInfos, Dictionary<PropertyInfo, MemberInformations> propertyInfos)
+            public TypeInformations(Dictionary<FieldInfo, DebugInformations> fieldInfos, Dictionary<PropertyInfo, DebugInformations> propertyInfos)
             {
                 this.fieldInfos = new(fieldInfos);
                 this.propertyInfos = new(propertyInfos);
             }
 
-            public readonly Dictionary<FieldInfo, MemberInformations> fieldInfos;
-            public readonly Dictionary<PropertyInfo, MemberInformations> propertyInfos;
+            public readonly Dictionary<FieldInfo, DebugInformations> fieldInfos;
+            public readonly Dictionary<PropertyInfo, DebugInformations> propertyInfos;
+
+            public IEnumerable<MemberInfo> GetAllMemberInfos()
+            {
+                foreach (var (fieldInfo, _) in fieldInfos)
+                {
+                    yield return fieldInfo;
+                }
+                foreach (var (propertyInfo, _) in propertyInfos)
+                {
+                    yield return propertyInfo;
+                }
+            }
         }
 
         #endregion
@@ -143,13 +155,13 @@ namespace Dhs5.Utility.Debugger
 
         public struct MemberSnapshot
         {
-            public MemberSnapshot(UnityEngine.Object obj, FieldInfo fieldInfo, MemberInformations informations)
+            public MemberSnapshot(UnityEngine.Object obj, FieldInfo fieldInfo, DebugInformations informations)
             {
                 this.name = ObjectNames.NicifyVariableName(fieldInfo.Name);
                 this.value = fieldInfo.GetValue(obj);
                 this.propertyType = informations.propertyType;
             }
-            public MemberSnapshot(UnityEngine.Object obj, PropertyInfo propertyInfo, MemberInformations informations)
+            public MemberSnapshot(UnityEngine.Object obj, PropertyInfo propertyInfo, DebugInformations informations)
             {
                 this.name = ObjectNames.NicifyVariableName(propertyInfo.Name);
                 this.value = propertyInfo.GetValue(obj);
@@ -255,23 +267,23 @@ namespace Dhs5.Utility.Debugger
                 var bindingFlags = BindingFlags.Instance| BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
                 RuntimeDebugAttribute attribute = null;
 
-                Dictionary<FieldInfo, MemberInformations> fieldInfos = new();
+                Dictionary<FieldInfo, DebugInformations> fieldInfos = new();
                 foreach (var fieldInfo in type.GetFields(bindingFlags))
                 {
                     attribute = fieldInfo.GetCustomAttribute<RuntimeDebugAttribute>();
                     if (attribute != null)
                     {
-                        fieldInfos.Add(fieldInfo, new MemberInformations(attribute, fieldInfo.FieldType));
+                        fieldInfos.Add(fieldInfo, new DebugInformations(attribute, fieldInfo.FieldType));
                     }
                 }
 
-                Dictionary<PropertyInfo, MemberInformations> propertyInfos = new();
+                Dictionary<PropertyInfo, DebugInformations> propertyInfos = new();
                 foreach (var propertyInfo in type.GetProperties(bindingFlags))
                 {
                     attribute = propertyInfo.GetCustomAttribute<RuntimeDebugAttribute>();
                     if (attribute != null)
                     {
-                        propertyInfos.Add(propertyInfo, new MemberInformations(attribute, propertyInfo.PropertyType));
+                        propertyInfos.Add(propertyInfo, new DebugInformations(attribute, propertyInfo.PropertyType));
                     }
                 }
 
@@ -289,28 +301,94 @@ namespace Dhs5.Utility.Debugger
 
         #region Accessors
 
-        public static IEnumerable<KeyValuePair<EDebugCategory, IEnumerable<UnityEngine.Object>>> GetRegisteredObjects(EDebugCategoryFlags flags)
+        public static IEnumerable<KeyValuePair<EDebugCategory, IEnumerable<UnityEngine.Object>>> GetRegisteredObjectsByCategory(EDebugCategoryFlags flags)
         {
-            foreach (var (category, objects) in _registeredObjects)
+            foreach (var value in Enum.GetValues(typeof(EDebugCategory)))
             {
-                if (flags.HasCategory(category))
+                var category = (EDebugCategory)value;
+                if (flags.HasCategory(category) 
+                    && _registeredObjects.TryGetValue(category, out var objects) 
+                    && objects.IsValid())
                 {
                     yield return new KeyValuePair<EDebugCategory, IEnumerable<UnityEngine.Object>>(category, objects);
                 }
             }
         }
+        public static IEnumerable<UnityEngine.Object> GetRegisteredObjectsNameFiltered(EDebugCategoryFlags flags, string nameFilter)
+        {
+            foreach (var (category, objects) in _registeredObjects)
+            {
+                if (flags.HasCategory(category))
+                {
+                    foreach (var obj in objects)
+                    {
+                        if (obj.name.Contains(nameFilter, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            yield return obj;
+                        }
+                    }
+                }
+            }
+        }
+        public static IEnumerable<UnityEngine.Object> GetRegisteredObjectsMemberFiltered(EDebugCategoryFlags flags, string memberFilter)
+        {
+            foreach (var (category, objects) in _registeredObjects)
+            {
+                if (flags.HasCategory(category))
+                {
+                    foreach (var obj in objects)
+                    {
+                        if (_typeInformations.TryGetValue(obj.GetType(), out var typeInformations))
+                        {
+                            foreach (var memberInfo in typeInformations.GetAllMemberInfos())
+                            {
+                                if (ObjectNames.NicifyVariableName(memberInfo.Name).Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
+                                {
+                                    yield return obj;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public static IEnumerable<MemberSnapshot> GetMemberSnapshotsOfObject(UnityEngine.Object obj)
         {
             if (_typeInformations.TryGetValue(obj.GetType(), out var typeInformations))
             {
-                foreach (var (fieldInfo, memberInfo) in typeInformations.fieldInfos)
+                foreach (var (fieldInfo, debugInfo) in typeInformations.fieldInfos)
                 {
-                    yield return new MemberSnapshot(obj, fieldInfo, memberInfo);
+                    yield return new MemberSnapshot(obj, fieldInfo, debugInfo);
                 }
                 
-                foreach (var (propertyInfo, memberInfo) in typeInformations.propertyInfos)
+                foreach (var (propertyInfo, debugInfo) in typeInformations.propertyInfos)
                 {
-                    yield return new MemberSnapshot(obj, propertyInfo, memberInfo);
+                    yield return new MemberSnapshot(obj, propertyInfo, debugInfo);
+                }
+            }
+        }
+        public static IEnumerable<MemberSnapshot> GetMemberSnapshotsOfObjectFiltered(UnityEngine.Object obj, string memberFilter)
+        {
+            if (_typeInformations.TryGetValue(obj.GetType(), out var typeInformations))
+            {
+                foreach (var (fieldInfo, debugInfo) in typeInformations.fieldInfos)
+                {
+                    var memberSnapshot = new MemberSnapshot(obj, fieldInfo, debugInfo);
+                    if (memberSnapshot.name.Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
+                    { 
+                        yield return memberSnapshot; 
+                    }
+                }
+                
+                foreach (var (propertyInfo, debugInfo) in typeInformations.propertyInfos)
+                {
+                    var memberSnapshot = new MemberSnapshot(obj, propertyInfo, debugInfo);
+                    if (memberSnapshot.name.Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        yield return memberSnapshot;
+                    }
                 }
             }
         }

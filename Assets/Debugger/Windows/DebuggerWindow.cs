@@ -69,6 +69,9 @@ namespace Dhs5.Utility.Debugger
         private bool[] m_runtimeDebugOpenCategories;
         private Dictionary<UnityEngine.Object, bool> m_runtimeDebugOpenObjects = new();
 
+        // SETTINGS
+        private Vector2 m_settingsScrollPosition;
+
         #endregion
 
         #region GUI Content
@@ -137,14 +140,7 @@ namespace Dhs5.Utility.Debugger
 
                 // RUNTIME
                 case 1:
-                    if (Application.isPlaying || true)
-                    {
-                        DrawRuntimeGUI();
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox("Usable only in play mode", MessageType.Info);
-                    }
+                    DrawRuntimeGUI();
                     break;
 
                 // SETTINGS
@@ -170,12 +166,19 @@ namespace Dhs5.Utility.Debugger
             rect.x = 0f; rect.width = position.width;
             DrawRuntimeDebugToolbarGUI(rect);
 
-            // CATEGORIES
-            m_runtimeDebugScrollPosition = EditorGUILayout.BeginScrollView(m_runtimeDebugScrollPosition); 
+            if (Application.isPlaying)
+            {
+                // CATEGORIES
+                m_runtimeDebugScrollPosition = EditorGUILayout.BeginScrollView(m_runtimeDebugScrollPosition);
 
-            DrawRuntimeDebugCategoriesGUI();
+                DrawRuntimeDebugCategoriesGUI();
 
-            EditorGUILayout.EndScrollView();
+                EditorGUILayout.EndScrollView();
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Usable only in play mode", MessageType.Info);
+            }
         }
 
         private void DrawRuntimeDebugToolbarGUI(Rect rect)
@@ -197,9 +200,30 @@ namespace Dhs5.Utility.Debugger
             // No search
             if (string.IsNullOrWhiteSpace(m_runtimeDebugSearchString))
             {
-                foreach (var (category, objects) in RuntimeDebugger.GetRegisteredObjects(m_runtimeDebugCategoryFlags))
+                foreach (var (category, objects) in RuntimeDebugger.GetRegisteredObjectsByCategory(m_runtimeDebugCategoryFlags))
                 {
                     DrawRuntimeDebugCategoryGUI(category, objects);
+                }
+            }
+            else
+            {
+                if (m_runtimeDebugSearchString.StartsWith("m:", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var correctSearchString = m_runtimeDebugSearchString.Replace("m:", "").Trim();
+                    if (!string.IsNullOrWhiteSpace(correctSearchString))
+                    {
+                        foreach (var objects in RuntimeDebugger.GetRegisteredObjectsMemberFiltered(m_runtimeDebugCategoryFlags, correctSearchString))
+                        {
+                            DrawRuntimeDebugObjectGUI(objects, correctSearchString);
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var objects in RuntimeDebugger.GetRegisteredObjectsNameFiltered(m_runtimeDebugCategoryFlags, m_runtimeDebugSearchString))
+                    {
+                        DrawRuntimeDebugObjectGUI(objects);
+                    }
                 }
             }
         }
@@ -245,8 +269,10 @@ namespace Dhs5.Utility.Debugger
                 EditorGUI.DrawRect(new Rect(rect.x, rect.y + 22f, rect.width, 2f), color);
             }
         }
-        private void DrawRuntimeDebugObjectGUI(UnityEngine.Object obj)
+        private void DrawRuntimeDebugObjectGUI(UnityEngine.Object obj, string memberFilterString = null)
         {
+            bool hasMemberFilter = !string.IsNullOrWhiteSpace(memberFilterString);
+
             // Init if necessary
             if (!m_runtimeDebugOpenObjects.ContainsKey(obj))
             {
@@ -254,109 +280,42 @@ namespace Dhs5.Utility.Debugger
             }
 
             EditorGUI.indentLevel++;
-            m_runtimeDebugOpenObjects[obj] = EditorGUILayout.Foldout(m_runtimeDebugOpenObjects[obj], obj.name, true);
-            if (m_runtimeDebugOpenObjects[obj])
+            var rect = EditorGUILayout.GetControlRect(false, 20f);
+            var r_foldout = new Rect(rect.x, rect.y, rect.width - 35f, 18f);
+            // Foldout / Label
+            if (!hasMemberFilter)
+            {
+                m_runtimeDebugOpenObjects[obj] = EditorGUI.Foldout(r_foldout, m_runtimeDebugOpenObjects[obj], obj.name, true);
+            }
+            else
+            {
+                EditorGUI.LabelField(r_foldout, obj.name);
+            }
+            // Focus Button
+            var r_button = new Rect(rect.x + rect.width - 30f, rect.y, 30f, 18f);
+            if (GUI.Button(r_button, EditorGUIHelper.CanSeeIcon))
+            {
+                EditorGUIUtility.PingObject(obj);
+            }
+
+            // Members
+            if (hasMemberFilter || m_runtimeDebugOpenObjects[obj])
             {
                 EditorGUI.BeginDisabledGroup(true);
 
                 EditorGUI.indentLevel++;
-                foreach (var memberSnapshot in RuntimeDebugger.GetMemberSnapshotsOfObject(obj))
+                if (!hasMemberFilter)
                 {
-                    switch (memberSnapshot.propertyType)
+                    foreach (var memberSnapshot in RuntimeDebugger.GetMemberSnapshotsOfObject(obj))
                     {
-                        case SerializedPropertyType.Integer:
-                            EditorGUILayout.IntField(memberSnapshot.name, (int)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Float:
-                            EditorGUILayout.FloatField(memberSnapshot.name, (float)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Boolean:
-                            EditorGUILayout.Toggle(memberSnapshot.name, (bool)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.String:
-                            EditorGUILayout.TextField(memberSnapshot.name, (string)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Color:
-                            EditorGUILayout.ColorField(memberSnapshot.name, (Color)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.ObjectReference:
-                            var unityObj = (UnityEngine.Object)memberSnapshot.value;
-                            EditorGUILayout.ObjectField(memberSnapshot.name, unityObj, unityObj.GetType(), true);
-                            break;
-
-                        case SerializedPropertyType.LayerMask:
-                            EditorGUILayout.LayerField(memberSnapshot.name, (LayerMask)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Enum:
-                            EditorGUILayout.EnumPopup(memberSnapshot.name, (Enum)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Vector2:
-                            EditorGUILayout.Vector2Field(memberSnapshot.name, (Vector2)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Vector3:
-                            EditorGUILayout.Vector3Field(memberSnapshot.name, (Vector3)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Vector4:
-                            EditorGUILayout.Vector4Field(memberSnapshot.name, (Vector4)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Rect:
-                            EditorGUILayout.RectField(memberSnapshot.name, (Rect)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Character:
-                            EditorGUILayout.TextField(memberSnapshot.name, ((char)memberSnapshot.value).ToString());
-                            break;
-
-                        case SerializedPropertyType.AnimationCurve:
-                            EditorGUILayout.CurveField(memberSnapshot.name, (AnimationCurve)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Bounds:
-                            EditorGUILayout.BoundsField(memberSnapshot.name, (Bounds)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Gradient:
-                            EditorGUILayout.GradientField(memberSnapshot.name, (Gradient)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Quaternion:
-                            var quaternion = (Quaternion)memberSnapshot.value;
-                            EditorGUILayout.Vector4Field(memberSnapshot.name, new Vector4(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
-                            break;
-
-                        case SerializedPropertyType.Vector2Int:
-                            EditorGUILayout.Vector2IntField(memberSnapshot.name, (Vector2Int)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.Vector3Int:
-                            EditorGUILayout.Vector3IntField(memberSnapshot.name, (Vector3Int)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.RectInt:
-                            EditorGUILayout.RectIntField(memberSnapshot.name, (RectInt)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.BoundsInt:
-                            EditorGUILayout.BoundsIntField(memberSnapshot.name, (BoundsInt)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.RenderingLayerMask:
-                            EditorGUILayout.RenderingLayerMaskField(memberSnapshot.name, (RenderingLayerMask)memberSnapshot.value);
-                            break;
-
-                        case SerializedPropertyType.EntityId:
-                            EditorGUILayout.IntField(memberSnapshot.name, (EntityId)memberSnapshot.value);
-                            break;
+                        DrawRuntimeDebugMemberSnapshotGUI(memberSnapshot);
+                    }
+                }
+                else
+                {
+                    foreach (var memberSnapshot in RuntimeDebugger.GetMemberSnapshotsOfObjectFiltered(obj, memberFilterString))
+                    {
+                        DrawRuntimeDebugMemberSnapshotGUI(memberSnapshot);
                     }
                 }
                 EditorGUI.indentLevel--;
@@ -364,6 +323,104 @@ namespace Dhs5.Utility.Debugger
                 EditorGUI.EndDisabledGroup();
             }
             EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space(2f);
+        }
+        private void DrawRuntimeDebugMemberSnapshotGUI(RuntimeDebugger.MemberSnapshot memberSnapshot)
+        {
+            switch (memberSnapshot.propertyType)
+            {
+                case SerializedPropertyType.Integer:
+                case SerializedPropertyType.Float:
+                    EditorGUILayout.TextField(memberSnapshot.name, memberSnapshot.value.ToString());
+                    break;
+
+                case SerializedPropertyType.Boolean:
+                    EditorGUILayout.Toggle(memberSnapshot.name, (bool)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.String:
+                    EditorGUILayout.TextField(memberSnapshot.name, (string)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Color:
+                    EditorGUILayout.ColorField(memberSnapshot.name, (Color)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.ObjectReference:
+                    var unityObj = (UnityEngine.Object)memberSnapshot.value;
+                    EditorGUILayout.ObjectField(memberSnapshot.name, unityObj, unityObj.GetType(), true);
+                    break;
+
+                case SerializedPropertyType.LayerMask:
+                    EditorGUILayout.LayerField(memberSnapshot.name, (LayerMask)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Enum:
+                    EditorGUILayout.EnumPopup(memberSnapshot.name, (Enum)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Vector2:
+                    EditorGUILayout.Vector2Field(memberSnapshot.name, (Vector2)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Vector3:
+                    EditorGUILayout.Vector3Field(memberSnapshot.name, (Vector3)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Vector4:
+                    EditorGUILayout.Vector4Field(memberSnapshot.name, (Vector4)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Rect:
+                    EditorGUILayout.RectField(memberSnapshot.name, (Rect)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Character:
+                    EditorGUILayout.TextField(memberSnapshot.name, ((char)memberSnapshot.value).ToString());
+                    break;
+
+                case SerializedPropertyType.AnimationCurve:
+                    EditorGUILayout.CurveField(memberSnapshot.name, (AnimationCurve)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Bounds:
+                    EditorGUILayout.BoundsField(memberSnapshot.name, (Bounds)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Gradient:
+                    EditorGUILayout.GradientField(memberSnapshot.name, (Gradient)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Quaternion:
+                    var quaternion = (Quaternion)memberSnapshot.value;
+                    EditorGUILayout.Vector4Field(memberSnapshot.name, new Vector4(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
+                    break;
+
+                case SerializedPropertyType.Vector2Int:
+                    EditorGUILayout.Vector2IntField(memberSnapshot.name, (Vector2Int)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.Vector3Int:
+                    EditorGUILayout.Vector3IntField(memberSnapshot.name, (Vector3Int)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.RectInt:
+                    EditorGUILayout.RectIntField(memberSnapshot.name, (RectInt)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.BoundsInt:
+                    EditorGUILayout.BoundsIntField(memberSnapshot.name, (BoundsInt)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.RenderingLayerMask:
+                    EditorGUILayout.RenderingLayerMaskField(memberSnapshot.name, (RenderingLayerMask)memberSnapshot.value);
+                    break;
+
+                case SerializedPropertyType.EntityId:
+                    EditorGUILayout.IntField(memberSnapshot.name, (EntityId)memberSnapshot.value);
+                    break;
+            }
         }
 
         #endregion
@@ -372,6 +429,8 @@ namespace Dhs5.Utility.Debugger
 
         private void DrawSettingsGUI()
         {
+            m_settingsScrollPosition = EditorGUILayout.BeginScrollView(m_settingsScrollPosition);
+
             EditorGUILayout.Space(10f);
             EditorGUILayout.LabelField("Asset", EditorStyles.boldLabel);
 
@@ -428,6 +487,8 @@ namespace Dhs5.Utility.Debugger
                 EditorGUILayout.Space(5f);
                 AssetEditor.DrawSettingsGUI();
             }
+
+            EditorGUILayout.EndScrollView();
         }
 
         #endregion

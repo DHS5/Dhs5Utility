@@ -285,7 +285,7 @@ namespace Dhs5.Utility.Debugger
 
                 if (log.context != null)
                 {
-                    Selection.activeObject = log.context;
+                    EditorGUIUtility.PingObject(log.context);
                 }
             }
 
