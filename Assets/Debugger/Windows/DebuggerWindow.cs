@@ -3,6 +3,8 @@ using Dhs5.Utility.GUIs;
 using Dhs5.Utility.Databases;
 using System.Collections.Generic;
 using System;
+using System.Linq;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -68,6 +70,7 @@ namespace Dhs5.Utility.Debugger
         private string m_runtimeDebugSearchString;
         private bool[] m_runtimeDebugOpenCategories;
         private Dictionary<UnityEngine.Object, bool> m_runtimeDebugOpenObjects = new();
+        private Dictionary<Type, bool> m_runtimeDebugOpenStaticClasses = new();
 
         // SETTINGS
         private Vector2 m_settingsScrollPosition;
@@ -200,9 +203,11 @@ namespace Dhs5.Utility.Debugger
             // No search
             if (string.IsNullOrWhiteSpace(m_runtimeDebugSearchString))
             {
-                foreach (var (category, objects) in RuntimeDebugger.GetRegisteredObjectsByCategory(m_runtimeDebugCategoryFlags))
+                foreach (var category in GetDebugCategoriesFiltered(m_runtimeDebugCategoryFlags))
                 {
-                    DrawRuntimeDebugCategoryGUI(category, objects);
+                    var objects = RuntimeDebugger.GetRegisteredObjectsOfCategory(category);
+                    var staticClasses = RuntimeDebugger.GetRegisteredStaticClassesOfCategory(category);
+                    DrawRuntimeDebugCategoryGUI(category, objects.ToList(), staticClasses.ToList());
                 }
             }
             else
@@ -212,22 +217,79 @@ namespace Dhs5.Utility.Debugger
                     var correctSearchString = m_runtimeDebugSearchString.Replace("m:", "").Trim();
                     if (!string.IsNullOrWhiteSpace(correctSearchString))
                     {
-                        foreach (var objects in RuntimeDebugger.GetRegisteredObjectsMemberFiltered(m_runtimeDebugCategoryFlags, correctSearchString))
+                        foreach (var category in GetDebugCategoriesFiltered(m_runtimeDebugCategoryFlags))
                         {
-                            DrawRuntimeDebugObjectGUI(objects, correctSearchString);
+                            var objects = RuntimeDebugger.GetRegisteredObjectsOfCategoryMemberFiltered(category, correctSearchString).ToList();
+                            var staticClasses = RuntimeDebugger.GetRegisteredStaticClassesOfCategoryMemberFiltered(category, correctSearchString).ToList();
+
+                            if (objects.IsValid() || staticClasses.IsValid())
+                            {
+                                var color = DebuggerAsset.GetCategoryColor(category);
+                                var r_categoryStart = EditorGUILayout.GetControlRect(false, 2f);
+                                r_categoryStart.x = 0f; r_categoryStart.width = position.width;
+                                EditorGUI.DrawRect(r_categoryStart, color);
+
+                                if (staticClasses != null)
+                                {
+                                    foreach (var type in staticClasses)
+                                    {
+                                        DrawRuntimeDebugStaticClassGUI(type, correctSearchString);
+                                    }
+                                }
+                                if (objects != null)
+                                {
+                                    foreach (var obj in objects)
+                                    {
+                                        DrawRuntimeDebugObjectGUI(obj, correctSearchString);
+                                    }
+                                }
+
+                                var r_categoryEnd = EditorGUILayout.GetControlRect(false, 2f);
+                                r_categoryEnd.x = 0f; r_categoryEnd.width = position.width;
+                                EditorGUI.DrawRect(r_categoryEnd, color);
+                            }
                         }
                     }
                 }
                 else
                 {
-                    foreach (var objects in RuntimeDebugger.GetRegisteredObjectsNameFiltered(m_runtimeDebugCategoryFlags, m_runtimeDebugSearchString))
+                    foreach (var category in GetDebugCategoriesFiltered(m_runtimeDebugCategoryFlags))
                     {
-                        DrawRuntimeDebugObjectGUI(objects);
+                        var objects = RuntimeDebugger.GetRegisteredObjectsOfCategoryNameFiltered(category, m_runtimeDebugSearchString).ToList();
+                        var staticClasses = RuntimeDebugger.GetRegisteredStaticClassesOfCategoryNameFiltered(category, m_runtimeDebugSearchString).ToList();
+
+                        if (objects.IsValid() || staticClasses.IsValid())
+                        {
+                            var color = DebuggerAsset.GetCategoryColor(category);
+                            var r_categoryStart = EditorGUILayout.GetControlRect(false, 2f);
+                            r_categoryStart.x = 0f; r_categoryStart.width = position.width;
+                            EditorGUI.DrawRect(r_categoryStart, color);
+
+                            if (staticClasses != null)
+                            {
+                                foreach (var type in staticClasses)
+                                {
+                                    DrawRuntimeDebugStaticClassGUI(type);
+                                }
+                            }
+                            if (objects != null)
+                            {
+                                foreach (var obj in objects)
+                                {
+                                    DrawRuntimeDebugObjectGUI(obj);
+                                }
+                            }
+
+                            var r_categoryEnd = EditorGUILayout.GetControlRect(false, 2f);
+                            r_categoryEnd.x = 0f; r_categoryEnd.width = position.width;
+                            EditorGUI.DrawRect(r_categoryEnd, color);
+                        }
                     }
                 }
             }
         }
-        private void DrawRuntimeDebugCategoryGUI(EDebugCategory category, IEnumerable<UnityEngine.Object> objects)
+        private void DrawRuntimeDebugCategoryGUI(EDebugCategory category, 
+            List<UnityEngine.Object> objects, List<Type> staticClasses)
         {
             var categoryIndex = (int)category;
             var rect = EditorGUILayout.GetControlRect(false, 25f);
@@ -252,14 +314,30 @@ namespace Dhs5.Utility.Debugger
             EditorStyles.foldout.fontStyle = FontStyle.Normal;
             if (m_runtimeDebugOpenCategories[categoryIndex])
             {
-                foreach (var obj in objects)
+                if (staticClasses.IsValid())
                 {
-                    if (obj != null)
+                    EditorGUILayout.LabelField("--- Static Classes ---", EditorStyles.miniBoldLabel);
+                    foreach (var type in staticClasses)
                     {
-                        DrawRuntimeDebugObjectGUI(obj);
+                        if (type != null)
+                        {
+                            DrawRuntimeDebugStaticClassGUI(type);
+                        }
+                    }
+                }
+                if (objects.IsValid())
+                {
+                    EditorGUILayout.LabelField("--- Objects ---", EditorStyles.miniBoldLabel);
+                    foreach (var obj in objects)
+                    {
+                        if (obj != null)
+                        {
+                            DrawRuntimeDebugObjectGUI(obj);
+                        }
                     }
                 }
 
+                EditorGUILayout.Space(2f);
                 rect = EditorGUILayout.GetControlRect(false, 2f);
                 rect.x = 0f; rect.width = position.width;
                 EditorGUI.DrawRect(rect, color);
@@ -318,13 +396,74 @@ namespace Dhs5.Utility.Debugger
                         DrawRuntimeDebugMemberSnapshotGUI(memberSnapshot);
                     }
                 }
-                EditorGUI.indentLevel--;
 
                 EditorGUI.EndDisabledGroup();
-            }
-            EditorGUI.indentLevel--;
 
-            EditorGUILayout.Space(2f);
+                if (!hasMemberFilter)
+                {
+                    RuntimeDebugger.InvokeRuntimeDebugMethodsOfObject(obj);
+                }
+
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUI.indentLevel--;
+        }
+        private void DrawRuntimeDebugStaticClassGUI(Type type, string memberFilterString = null)
+        {
+            bool hasMemberFilter = !string.IsNullOrWhiteSpace(memberFilterString);
+
+            // Init if necessary
+            if (!m_runtimeDebugOpenStaticClasses.ContainsKey(type))
+            {
+                m_runtimeDebugOpenStaticClasses[type] = false;
+            }
+
+            EditorGUI.indentLevel++;
+            var rect = EditorGUILayout.GetControlRect(false, 20f);
+            var r_foldout = new Rect(rect.x, rect.y, rect.width - 10f, 18f);
+            // Foldout / Label
+            if (!hasMemberFilter)
+            {
+                m_runtimeDebugOpenStaticClasses[type] = EditorGUI.Foldout(r_foldout, m_runtimeDebugOpenStaticClasses[type], type.Name, true);
+            }
+            else
+            {
+                EditorGUI.LabelField(r_foldout, type.Name);
+            }
+
+            // Members
+            if (hasMemberFilter || m_runtimeDebugOpenStaticClasses[type])
+            {
+                EditorGUI.BeginDisabledGroup(true);
+
+                EditorGUI.indentLevel++;
+                if (!hasMemberFilter)
+                {
+                    foreach (var memberSnapshot in RuntimeDebugger.GetMemberSnapshotsOfStaticClass(type))
+                    {
+                        DrawRuntimeDebugMemberSnapshotGUI(memberSnapshot);
+                    }
+                }
+                else
+                {
+                    foreach (var memberSnapshot in RuntimeDebugger.GetMemberSnapshotsOfStaticClassFiltered(type, memberFilterString))
+                    {
+                        DrawRuntimeDebugMemberSnapshotGUI(memberSnapshot);
+                    }
+                }
+
+                EditorGUI.EndDisabledGroup();
+
+                if (!hasMemberFilter)
+                {
+                    RuntimeDebugger.InvokeRuntimeDebugMethodsOfStaticClass(type);
+                }
+
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUI.indentLevel--;
         }
         private void DrawRuntimeDebugMemberSnapshotGUI(RuntimeDebugger.MemberSnapshot memberSnapshot)
         {
@@ -489,6 +628,30 @@ namespace Dhs5.Utility.Debugger
             }
 
             EditorGUILayout.EndScrollView();
+        }
+
+        #endregion
+
+
+        #region Utility
+
+        private IEnumerable<EDebugCategory> GetDebugCategories()
+        {
+            foreach (var value in Enum.GetValues(typeof(EDebugCategory)))
+            {
+                yield return (EDebugCategory)value;
+            }
+        }
+        private IEnumerable<EDebugCategory> GetDebugCategoriesFiltered(EDebugCategoryFlags flags)
+        {
+            foreach (var value in Enum.GetValues(typeof(EDebugCategory)))
+            {
+                var category = (EDebugCategory)value;
+                if (flags.HasCategory(category))
+                {
+                    yield return category;
+                }
+            }
         }
 
         #endregion

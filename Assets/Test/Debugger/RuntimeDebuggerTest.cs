@@ -1,6 +1,10 @@
 using Dhs5.Utility.Debugger;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 public class RuntimeDebuggerTest : MonoBehaviour
 {
     [SerializeField] private EDebugCategory m_category;
@@ -41,9 +45,19 @@ public class RuntimeDebuggerTest : MonoBehaviour
     private void OnEnable()
     {
         RuntimeDebugger.Register(true, m_category, this);
+        RuntimeDebuggerStaticTest.Register(true);
     }
     private void OnDisable()
     {
         RuntimeDebugger.Register(false, m_category, this);
+        RuntimeDebuggerStaticTest.Register(false);
     }
+
+#if UNITY_EDITOR
+    [RuntimeDebug]
+    public void Editor_DrawRuntimeDebugExtensionGUI()
+    {
+        EditorGUILayout.LabelField("Extension");
+    }
+#endif
 }
