@@ -4,7 +4,7 @@ using UnityEngine;
 public class DebuggerTest : MonoBehaviour
 {
     [RuntimeDebug]
-    private int m_runtimeTest1;
+    [SerializeField] private int m_runtimeTest1;
     
     [RuntimeDebug]
     [SerializeField] private ScriptableObject m_runtimeTest2;
@@ -24,6 +24,9 @@ public class DebuggerTest : MonoBehaviour
         }
     }
 
+    [RuntimeDebug]
+    public static string RuntimeTest6 => "Test 6";
+
     private void Start()
     {
         Logger.Log(EDebugCategory.BASE, "Test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111", level: 0, onScreen: true, this);
@@ -39,9 +42,13 @@ public class DebuggerTest : MonoBehaviour
     private void OnEnable()
     {
         RuntimeDebugger.Register(true, EDebugCategory.GAME, this);
+        RuntimeDebugger.Register(true, EDebugCategory.FLOW, this);
+        RuntimeDebugger.Register(true, EDebugCategory.UI, this);
     }
     private void OnDisable()
     {
         RuntimeDebugger.Register(false, EDebugCategory.GAME, this);
+        RuntimeDebugger.Register(false, EDebugCategory.FLOW, this);
+        RuntimeDebugger.Register(false, EDebugCategory.UI, this);
     }
 }

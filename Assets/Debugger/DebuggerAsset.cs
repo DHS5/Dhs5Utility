@@ -4,6 +4,8 @@ using Dhs5.Utility.Databases;
 using Dhs5.Utility.GUIs;
 using System;
 using UnityEngine.InputSystem;
+using System.Text;
+
 
 
 #if UNITY_EDITOR
@@ -483,14 +485,48 @@ namespace Dhs5.Utility.Debugger
                 debugCategories[i] = p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue.name;
             }
 
+            var sb = new StringBuilder();
+
             var writer = new EnumWriter(
                 enumNamespace: null,
                 enumProtection: ScriptWriter.EProtection.PUBLIC,
                 enumName: "EDebugCategory",
                 enumContent: debugCategories,
                 enumType: EnumWriter.EEnumType.USHORT);
+            sb.AppendLine(writer.ToString());
 
-            return writer.ToString();
+            var flagsWriter = new EnumWriter(
+                enumNamespace: null,
+                enumProtection: ScriptWriter.EProtection.PUBLIC,
+                enumName: "EDebugCategoryFlags",
+                enumContent: debugCategories,
+                enumType: EnumWriter.EEnumType.INT,
+                attributes: new ScriptWriter.IAttribute[] { new ScriptWriter.EnumFlagsAttribute() });
+            sb.AppendLine(flagsWriter.ToStringWithoutUsings());
+
+            var extensionWriter = new ScriptWriter(
+                scriptNamespace: null,
+                scriptProtection: ScriptWriter.EProtection.PUBLIC,
+                scriptType: ScriptWriter.EScriptType.STATIC_CLASS,
+                scriptName: "DebugCategoryExtensions");
+            extensionWriter.AppendMethod(
+                protection: ScriptWriter.EProtection.PUBLIC,
+                isStatic: true,
+                returnType: typeof(bool),
+                methodName: "HasCategory",
+                isExtension: true,
+                parameters: new ScriptWriter.MethodParameter[]
+                {
+                    new ScriptWriter.MethodParameter(typeof(EDebugCategoryFlags), "flags"),
+                    new ScriptWriter.MethodParameter(typeof(EDebugCategory), "category")
+                },
+                methodContent: new string[]
+                {
+                    "return (flags & ((EDebugCategoryFlags)(1 << ((int)category)))) != 0;"
+                });
+            sb.Append(extensionWriter.ToStringWithoutUsings());
+
+            return sb.ToString();
         }
 
         #endregion
