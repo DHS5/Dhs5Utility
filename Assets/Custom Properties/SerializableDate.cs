@@ -128,7 +128,7 @@ public struct SerializableDate
     #endregion
 }
 
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
 public class DateReadOnlyAttribute : PropertyAttribute
 {
 

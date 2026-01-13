@@ -3,7 +3,7 @@ using System;
 
 namespace Dhs5.Utility.Debugger
 {
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class ConsoleCommandAttribute : Attribute
     {
         public ConsoleCommandAttribute(string name, ConsoleCommand.EScope scope = ConsoleCommand.EScope.RUNTIME)

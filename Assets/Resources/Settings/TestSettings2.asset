@@ -12,3 +12,71 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48528e58cb3b85f41b64bdf98f0d6ed4, type: 3}
   m_Name: TestSettings2
   m_EditorClassIdentifier: 
+  m_word: 
+  m_playerPrefInt:
+    m_key: 
+    m_default: 0
+    m_current: 0
+  m_playerPrefVector3:
+    m_key: 
+    m_default: {x: 0, y: 0, z: 0}
+    m_current: {x: 0, y: 0, z: 0}
+  m_playerPrefVector3Int:
+    m_key: 
+    m_default: {x: 0, y: 0, z: 0}
+    m_current: {x: 0, y: 0, z: 0}
+  m_playerPrefVector2:
+    m_key: 
+    m_default: {x: 0, y: 0}
+    m_current: {x: 0, y: 0}
+  m_playerPrefVector2Int:
+    m_key: 
+    m_default: {x: 0, y: 0}
+    m_current: {x: 0, y: 0}
+  m_playerPrefFloat:
+    m_key: 
+    m_default: 0
+    m_current: 0
+  m_playerPrefString:
+    m_key: 
+    m_default: 
+    m_current: 
+  m_playerPrefBool:
+    m_key: 
+    m_default: 0
+    m_current: 0
+  m_subSetTest: {fileID: 0}
+  m_subSetTest2: {fileID: 0}
+  m_subSetTest3: {fileID: 0}
+  m_serializedMonoScript:
+    m_monoScript: {fileID: 0}
+    m_typeName: 
+  m_updateConditionType:
+    m_monoScript: {fileID: 0}
+    m_typeName: 
+  m_serializedDate:
+    m_year: 0
+    m_month: 0
+    m_day: 0
+    m_hour: 0
+    m_minute: 0
+    m_second: 0
+    m_millisecond: 0
+  m_serializedDate2:
+    m_year: 0
+    m_month: 0
+    m_day: 0
+    m_hour: 0
+    m_minute: 0
+    m_second: 0
+    m_millisecond: 0
+  m_openOnScreenConsoleInputRef:
+    m_Name: Open On Screen Console Input Ref
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 1b392664-062e-4712-b176-12a80eb02189
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  m_closeOnScreenConsoleInputRef: {fileID: 0}

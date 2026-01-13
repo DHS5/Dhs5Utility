@@ -5,6 +5,7 @@ namespace Dhs5.Utility.Databases
     /// <summary>
     /// Attribute used to specify the type of the objects contained in a <see cref="BaseDataContainer"/>
     /// </summary>
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class DataContainerAttribute : Attribute
     {
         #region Constructor

@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[Settings("Oups", Scope.Project)]
-public class TestSettings2 : CustomSettings<TestSettings2>
+[Settings("Test 2", Scope.Project, overrideBaseType = true)]
+public class TestSettings2 : TestSettings
 {
     
 }

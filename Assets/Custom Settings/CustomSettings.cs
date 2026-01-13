@@ -5,14 +5,12 @@ using System;
 using System.Linq;
 using Dhs5.Utility.Databases;
 using Dhs5.Utility.GUIs;
-using Dhs5.Utility.Editors;
-
 
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine.UIElements;
 using System.Reflection;
-using System.IO;
+using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Settings
@@ -29,9 +27,10 @@ namespace Dhs5.Utility.Settings
             if (!_instances.TryGetValue(type, out var instance) 
                 || instance == null)
             {
+                // LoadAll does load every object of type and child types
                 var list = Resources.LoadAll("Settings", type);
 
-                if (list != null && list.Length > 0)
+                if (list.IsValid())
                 {
                     instance = list[0] as BaseSettings;
                     _instances[type] = instance;
@@ -121,6 +120,40 @@ namespace Dhs5.Utility.Settings
 
         private static Type[] GetAllChildTypes()
         {
+            List<Type> childTypes = new();
+            HashSet<Type> overridenTypes = new();
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                try
+                {
+                    foreach (var type in assembly.GetTypes())
+                    {
+                        if (!overridenTypes.Contains(type)
+                            && type.IsSubclassOf(typeof(BaseSettings))
+                            && !type.IsAbstract
+                            && TryGetAttribute(type, out var attribute))
+                        {
+                            childTypes.Add(type);
+
+                            if (attribute.overrideBaseType
+                                && type.BaseType != null)
+                            {
+                                overridenTypes.Add(type.BaseType);
+                                childTypes.Remove(type.BaseType);
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+            return childTypes.ToArray();
+        }
+        private static Type[] GetAllChildTypes2()
+        {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
                 .Where(t => t.IsSubclassOf(typeof(BaseSettings)) && !t.IsAbstract && TryGetAttribute(t, out _))
@@ -128,9 +161,8 @@ namespace Dhs5.Utility.Settings
         }
         private static Type[] GetAllChildTypes(Func<Type, bool> predicate)
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseSettings)) && !t.IsAbstract && TryGetAttribute(t, out _) && predicate.Invoke(t))
+            return GetAllChildTypes()
+                .Where(t => predicate.Invoke(t))
                 .ToArray();
         }
 
@@ -343,7 +375,7 @@ namespace Dhs5.Utility.Settings
             m_subSettingsFields = new();
             try
             {
-                var fields = target.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var fields = target.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 for (int i = 0; i < fields.Length; i++)
                 {
                     var attribute = fields[i].GetCustomAttribute<SubSettingsAttribute>();

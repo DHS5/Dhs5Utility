@@ -7,7 +7,7 @@ using System;
 using UnityEditor;
 #endif
 
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
 public class ReadOnlyAttribute : PropertyAttribute
 {
     #region Members

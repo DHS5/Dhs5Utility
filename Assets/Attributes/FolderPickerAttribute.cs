@@ -8,7 +8,7 @@ using System.IO;
 using UnityEditor;
 #endif
 
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
 public class FolderPickerAttribute : PropertyAttribute
 {
     #region Members

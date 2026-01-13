@@ -21,9 +21,9 @@ public class TestSettings : CustomSettings<TestSettings>
     [SerializeField] private PlayerPrefFloat m_playerPrefFloat;
     [SerializeField] private PlayerPrefString m_playerPrefString;
     [SerializeField] private PlayerPrefBool m_playerPrefBool;
-    [SerializeField, SubSettings] private TestSubSettings m_subSetTest;
-    [SerializeField, SubSettings] private TestSubSettings1 m_subSetTest2;
-    [SerializeField, SubSettings] private TestSubSettings1 m_subSetTest3;
+    [SerializeField, SubSettings] protected TestSubSettings m_subSetTest;
+    [SerializeField, SubSettings] protected TestSubSettings1 m_subSetTest2;
+    [SerializeField, SubSettings] protected TestSubSettings1 m_subSetTest3;
     [SerializeField] private SerializableMonoScript m_serializedMonoScript;
     [SerializeField] private SerializableMonoScript<UpdateConditionObject> m_updateConditionType;
     [SerializeField] private SerializableDate m_serializedDate;

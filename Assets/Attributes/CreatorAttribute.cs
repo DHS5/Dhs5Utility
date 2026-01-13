@@ -8,7 +8,7 @@ using System.Linq;
 using UnityEditor;
 #endif
 
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
 public class CreatorAttribute : PropertyAttribute
 {
 

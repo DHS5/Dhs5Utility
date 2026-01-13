@@ -9,6 +9,7 @@ namespace Dhs5.Utility.Databases
     /// Databases are <see cref="BaseDataContainer"/> Singletons accessible via <see cref="Database.Get{T}()"/><br></br>
     /// If you don't need your container to be a Singleton, use <see cref="DataContainerAttribute"/> instead
     /// </remarks>
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class DatabaseAttribute : DataContainerAttribute
     {
         #region Constructor

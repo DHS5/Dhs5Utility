@@ -11,6 +11,7 @@ namespace Dhs5.Utility.Settings
         Project = 1
     }
 
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class SettingsAttribute : Attribute
     {
         #region Constructor
@@ -27,6 +28,7 @@ namespace Dhs5.Utility.Settings
 
         public readonly string path;
         public readonly Scope scope;
+        public bool overrideBaseType;
 
         #endregion
     }
