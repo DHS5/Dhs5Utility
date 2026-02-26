@@ -20,6 +20,9 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
+        [Header("References")]
+        [SerializeField, ReadOnly] private UINavigationBox m_box;
+
         #endregion
 
         #region Properties

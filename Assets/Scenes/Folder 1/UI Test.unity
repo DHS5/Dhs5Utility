@@ -886,9 +886,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1639258043}
-  - component: {fileID: 1639258046}
   - component: {fileID: 1639258045}
   - component: {fileID: 1639258044}
+  - component: {fileID: 1639258046}
   m_Layer: 5
   m_Name: Test
   m_TagString: Untagged
@@ -962,12 +962,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1639258042}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ff4ddc7cb19d6245b33e325e7e06415, type: 3}
+  m_Script: {fileID: 11500000, guid: ca22f345c7b923046b0848e7ff92c766, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.UI.UINavigationBox
+  m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.UI.UISelectable
   m_Navigation:
     m_Mode: 4
-    m_WrapAround: 1
+    m_WrapAround: 0
     m_SelectOnUp: {fileID: 994353119}
     m_SelectOnDown: {fileID: 426285009}
     m_SelectOnLeft: {fileID: 0}
@@ -976,8 +976,8 @@ MonoBehaviour:
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 1, g: 0, b: 0, a: 1}
-    m_PressedColor: {r: 1, g: 0.8784314, b: 0, a: 1}
-    m_SelectedColor: {r: 0, g: 0.87058824, b: 1, a: 1}
+    m_PressedColor: {r: 1, g: 0.87076914, b: 0, a: 1}
+    m_SelectedColor: {r: 0, g: 0.8562715, b: 1, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -994,7 +994,6 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1639258044}
-  m_selectable: {fileID: 426285009}
 --- !u!1 &1782976407
 GameObject:
   m_ObjectHideFlags: 0
