@@ -16,16 +16,17 @@ namespace Dhs5.Utility.UI
         SELECTION = 4,
     }
 
-    public class UISelectable : Selectable
+    public class UISelectable : Selectable, IUIBoxable
     {
         #region Members
 
-        [Header("References")]
-        [SerializeField, ReadOnly] private UINavigationBox m_box;
+
 
         #endregion
 
         #region Properties
+
+        public UINavBox Box { get; set; }
 
         public virtual bool IsPointerInside { get; private set; }
         public virtual bool IsLeftPointerDown { get; private set; }
@@ -182,6 +183,51 @@ namespace Dhs5.Utility.UI
                 return;
 
             base.DoStateTransition(state, instant);
+        }
+
+        #endregion
+
+        #region Navigation
+
+        public override void OnMove(AxisEventData eventData)
+        {
+            Selectable nextSelection = null;
+
+            switch (eventData.moveDir)
+            {
+                case MoveDirection.Right:
+                    nextSelection = FindSelectableOnRight();
+                    break;
+
+                case MoveDirection.Up:
+                    nextSelection = FindSelectableOnUp();
+                    break;
+
+                case MoveDirection.Left:
+                    nextSelection = FindSelectableOnLeft();
+                    break;
+
+                case MoveDirection.Down:
+                    nextSelection = FindSelectableOnDown();
+                    break;
+            }
+
+            if (!Navigate(eventData, nextSelection)
+                && Box != null)
+            {
+                Navigate(eventData, Box.FindSelectableOnChildFailed(this, eventData));
+            }
+        }
+
+        protected bool Navigate(AxisEventData eventData, Selectable sel)
+        {
+            if (sel != null && sel.IsActive())
+            {
+                eventData.selectedObject = sel.gameObject;
+                return true;
+            }
+
+            return false;
         }
 
         #endregion
