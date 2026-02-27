@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -20,13 +22,30 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
+        [SerializeField] private List<UITransition> m_transitions;
+        [SerializeField] private bool m_useDefaultTransitions;
 
+        private UINavBox m_box;
+
+        private bool m_transitionInitialized;
+        private FUIState m_lastState;
 
         #endregion
 
         #region Properties
 
-        public UINavBox Box { get; set; }
+        public UINavBox Box
+        {
+            get => m_box;
+            set
+            {
+                if (m_box != value)
+                {
+                    m_box = value;
+                    OnSetParentBox(value);
+                }
+            }
+        }
 
         public virtual bool IsPointerInside { get; private set; }
         public virtual bool IsLeftPointerDown { get; private set; }
@@ -177,12 +196,66 @@ namespace Dhs5.Utility.UI
 
         #region Transitions
 
+        protected virtual FUIState GetCurrentState()
+        {
+            FUIState state = 0;
+
+            if (IsPointerInside) state &= FUIState.HIGHLIGHTED;
+            if (IsLeftPointerDown) state &= FUIState.PRESSED;
+            if (HasSelection) state &= FUIState.SELECTED;
+            if (!interactable) state &= FUIState.DISABLED;
+
+            if (state == 0) return FUIState.NORMAL;
+            return state;
+        }
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
             if (!gameObject.activeInHierarchy)
                 return;
 
-            base.DoStateTransition(state, instant);
+            if (m_useDefaultTransitions)
+            {
+                base.DoStateTransition(state, instant);
+            }
+
+            if (!m_transitionInitialized)
+            {
+                m_lastState = 0;
+                m_transitions = m_transitions.Where(t => t != null).ToList();
+                m_transitions.Sort();
+                m_transitionInitialized = true;
+            }
+
+            var currentState = GetCurrentState();
+            if (currentState == m_lastState)
+                return;
+
+            ApplyTransitions(currentState, instant);
+
+            m_lastState = currentState;
+        }
+        protected virtual void ApplyTransitions(FUIState newState, bool instant)
+        {
+            foreach (var transition in m_transitions)
+            {
+                if (transition != null)
+                {
+                    transition.UpdateState(m_lastState, newState, instant, GetTransitionParam(m_lastState, newState));
+                }
+            }
+        }
+        protected virtual IUITransitionParam GetTransitionParam(FUIState oldState, FUIState newState) { return null; }
+
+        protected override void InstantClearState()
+        {
+            base.InstantClearState();
+
+            IsPointerInside = false;
+            IsLeftPointerDown = false;
+            IsRightPointerDown = false;
+            HasSelection = false;
+
+            ApplyTransitions(FUIState.NORMAL, true);
         }
 
         #endregion
@@ -229,6 +302,13 @@ namespace Dhs5.Utility.UI
 
             return false;
         }
+
+        #endregion
+
+
+        #region Box
+
+        protected virtual void OnSetParentBox(UINavBox box) { }
 
         #endregion
     }

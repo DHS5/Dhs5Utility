@@ -68,7 +68,7 @@ namespace Dhs5.Utility.UI
             // Validate List
             for (int i = Count - 1; i >= 0; i--)
             {
-                if (m_selectables[i] == null)
+                if (m_selectables[i] == null || m_selectables[i] == this)
                 {
                     m_selectables.RemoveAt(i);
                 }
@@ -98,10 +98,10 @@ namespace Dhs5.Utility.UI
         {
             bool needSetup = false;
 
-            switch (moveDirection)
+            switch (m_axis)
             {
-                case MoveDirection.Right:
-                case MoveDirection.Down:
+                case EAxis.VERTICAL when moveDirection is MoveDirection.Down or MoveDirection.Left or MoveDirection.Right:
+                case EAxis.HORIZONTAL when moveDirection is MoveDirection.Right or MoveDirection.Up or MoveDirection.Down:
                     for (int i = 0; i < Count; i++)
                     {
                         if (m_selectables != null)
@@ -120,8 +120,8 @@ namespace Dhs5.Utility.UI
                     }
                     return null;
 
-                case MoveDirection.Left:
-                case MoveDirection.Up:
+                case EAxis.VERTICAL when moveDirection is MoveDirection.Up:
+                case EAxis.HORIZONTAL when moveDirection is MoveDirection.Left:
                     for (int i = Count - 1; i >= 0; i--)
                     {
                         if (m_selectables != null)
@@ -162,16 +162,16 @@ namespace Dhs5.Utility.UI
                         mode = Navigation.Mode.Explicit,
                         selectOnRight = next,
                         selectOnLeft = previous,
-                        selectOnDown = null,
-                        selectOnUp = null,
+                        selectOnDown = navigation.selectOnDown,
+                        selectOnUp = navigation.selectOnUp,
                     };
 
                 case EAxis.VERTICAL:
                     return new Navigation()
                     {
                         mode = Navigation.Mode.Explicit,
-                        selectOnRight = null,
-                        selectOnLeft = null,
+                        selectOnRight = navigation.selectOnRight,
+                        selectOnLeft = navigation.selectOnLeft,
                         selectOnDown = next,
                         selectOnUp = previous,
                     };
@@ -183,6 +183,22 @@ namespace Dhs5.Utility.UI
 
         protected virtual Selectable GetPreviousSelectable(int index, bool availableOnly)
         {
+            if (index == 0)
+            {
+                switch (m_axis)
+                {
+                    case EAxis.HORIZONTAL:
+                        if (navigation.selectOnLeft != null && navigation.selectOnLeft.IsActive())
+                            return navigation.selectOnLeft;
+                        break;
+
+                    case EAxis.VERTICAL:
+                        if (navigation.selectOnUp != null && navigation.selectOnUp.IsActive())
+                            return navigation.selectOnUp;
+                        break;
+                }
+            }
+
             Selectable previous = null;
 
             do
@@ -210,6 +226,22 @@ namespace Dhs5.Utility.UI
         }
         protected virtual Selectable GetNextSelectable(int index, bool availableOnly)
         {
+            if (index == Count - 1)
+            {
+                switch (m_axis)
+                {
+                    case EAxis.HORIZONTAL:
+                        if (navigation.selectOnRight != null && navigation.selectOnRight.IsActive())
+                            return navigation.selectOnRight;
+                        break;
+
+                    case EAxis.VERTICAL:
+                        if (navigation.selectOnDown != null && navigation.selectOnDown.IsActive())
+                            return navigation.selectOnDown;
+                        break;
+                }
+            }
+
             Selectable next = null;
 
             do
@@ -238,6 +270,18 @@ namespace Dhs5.Utility.UI
 
         public override Selectable FindSelectableOnChildFailed(Selectable child, AxisEventData axisEventData)
         {
+            // If move is not along list axis :
+            // ask parent box for next available selectable
+            switch (m_axis)
+            {
+                case EAxis.VERTICAL when axisEventData.moveDir is MoveDirection.Left or MoveDirection.Right:
+                    return Box != null ? Box.FindSelectableOnChildFailed(this, axisEventData) : null;
+
+                case EAxis.HORIZONTAL when axisEventData.moveDir is MoveDirection.Up or MoveDirection.Down:
+                    return Box != null ? Box.FindSelectableOnChildFailed(this, axisEventData) : null;
+            }
+
+            // Get next available child inside list
             if (TryGetChildIndex(child, out var index))
             {
                 switch (axisEventData.moveDir)

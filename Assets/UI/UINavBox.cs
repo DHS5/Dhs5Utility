@@ -13,9 +13,30 @@ namespace Dhs5.Utility.UI
 {
     public abstract class UINavBox : Selectable, IUpdateSelectedHandler, IUIBoxable
     {
+        #region Members
+
+        [Tooltip("Whether to setup children on Start or let the setup be done manually\n" +
+            "If this box has a parent box, uncheck this option as the parent will trigger the setup")]
+        [SerializeField] protected bool m_setupOnStart;
+
+        private UINavBox m_box;
+
+        #endregion
+
         #region Properties
 
-        public UINavBox Box { get; set; }
+        public UINavBox Box
+        {
+            get => m_box;
+            set
+            {
+                if (m_box != value)
+                {
+                    m_box = value;
+                    OnSetParentBox(value);
+                }
+            }
+        }
 
         public Selectable NextSelection { get; protected set; }
 
@@ -27,7 +48,10 @@ namespace Dhs5.Utility.UI
         {
             base.Start();
 
-            SetupChildren();
+            if (m_setupOnStart)
+            {
+                SetupChildren();
+            }
         }
 
         #endregion
@@ -119,6 +143,16 @@ namespace Dhs5.Utility.UI
         public abstract Selectable FindSelectableOnChildFailed(Selectable child, AxisEventData axisEventData);
 
         #endregion
+
+
+        #region Box
+
+        protected virtual void OnSetParentBox(UINavBox box)
+        {
+            SetupChildren();
+        }
+
+        #endregion
     }
 
     #region Editor
@@ -175,6 +209,8 @@ namespace Dhs5.Utility.UI
 
         public override void OnInspectorGUI()
         {
+            serializedObject.Update();
+
             using (new EditorGUI.DisabledScope(true))
             {
                 EditorGUILayout.PropertyField(p_script);
@@ -183,6 +219,8 @@ namespace Dhs5.Utility.UI
             EditorGUILayout.PropertyField(p_interactable);
 
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
+
+            serializedObject.ApplyModifiedProperties();
         }
 
         #endregion
