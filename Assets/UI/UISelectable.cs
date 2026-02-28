@@ -22,13 +22,13 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
-        [SerializeField] private List<UITransition> m_transitions;
-        [SerializeField] private bool m_useDefaultTransitions;
+        [SerializeField] protected List<UITransitioner> m_transitioners;
+        [SerializeField] protected bool m_useDefaultTransitions;
 
         private UINavBox m_box;
 
         private bool m_transitionInitialized;
-        private FUIState m_lastState;
+        protected FUIState m_lastState;
 
         #endregion
 
@@ -200,10 +200,10 @@ namespace Dhs5.Utility.UI
         {
             FUIState state = 0;
 
-            if (IsPointerInside) state &= FUIState.HIGHLIGHTED;
-            if (IsLeftPointerDown) state &= FUIState.PRESSED;
-            if (HasSelection) state &= FUIState.SELECTED;
-            if (!interactable) state &= FUIState.DISABLED;
+            if (IsPointerInside) state |= FUIState.HIGHLIGHTED;
+            if (IsLeftPointerDown) state |= FUIState.PRESSED;
+            if (HasSelection) state |= FUIState.SELECTED;
+            if (!interactable) state |= FUIState.DISABLED;
 
             if (state == 0) return FUIState.NORMAL;
             return state;
@@ -218,11 +218,14 @@ namespace Dhs5.Utility.UI
                 base.DoStateTransition(state, instant);
             }
 
+            if (!m_transitioners.IsValid())
+                return;
+
             if (!m_transitionInitialized)
             {
                 m_lastState = 0;
-                m_transitions = m_transitions.Where(t => t != null).ToList();
-                m_transitions.Sort();
+                m_transitioners = m_transitioners.Where(t => t != null).ToList();
+                m_transitioners.Sort();
                 m_transitionInitialized = true;
             }
 
@@ -236,15 +239,18 @@ namespace Dhs5.Utility.UI
         }
         protected virtual void ApplyTransitions(FUIState newState, bool instant)
         {
-            foreach (var transition in m_transitions)
+            foreach (var transitioner in m_transitioners)
             {
-                if (transition != null)
+                if (transitioner != null && transitioner.enabled)
                 {
-                    transition.UpdateState(m_lastState, newState, instant, GetTransitionParam(m_lastState, newState));
+                    transitioner.UpdateState(m_lastState, newState, instant, GetTransitionParam(transitioner, m_lastState, newState));
                 }
             }
         }
-        protected virtual IUITransitionParam GetTransitionParam(FUIState oldState, FUIState newState) { return null; }
+        protected virtual IUITransitionParam GetTransitionParam(UITransitioner transitioner, FUIState oldState, FUIState newState) 
+        { 
+            return new UIDefaultTransitionParam(transitioner);
+        }
 
         protected override void InstantClearState()
         {
@@ -255,7 +261,10 @@ namespace Dhs5.Utility.UI
             IsRightPointerDown = false;
             HasSelection = false;
 
-            ApplyTransitions(FUIState.NORMAL, true);
+            if (m_transitioners.IsValid())
+            {
+                ApplyTransitions(FUIState.NORMAL, true);
+            }
         }
 
         #endregion

@@ -198,6 +198,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 60410877}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &60410877
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -289,7 +291,7 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 1798457796}
+    m_SelectOnUp: {fileID: 1761823815}
     m_SelectOnDown: {fileID: 1779241119}
     m_SelectOnLeft: {fileID: 1251092505}
     m_SelectOnRight: {fileID: 684209844}
@@ -315,6 +317,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 319301706}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &319301706
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -432,6 +436,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 350001419}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &350001419
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -526,7 +532,7 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 0}
+    m_SelectOnUp: {fileID: 1761823815}
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 1718542882}
     m_SelectOnRight: {fileID: 1251092505}
@@ -743,6 +749,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1015620432}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1015620432
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -947,6 +955,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1235651138}
+  m_transitioners: []
+  m_useDefaultTransitions: 1
 --- !u!114 &1235651138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1041,7 +1051,7 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 0}
+    m_SelectOnUp: {fileID: 1761823815}
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 684209844}
     m_SelectOnRight: {fileID: 1718542882}
@@ -1129,10 +1139,10 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 1870832133}
-    m_SelectOnDown: {fileID: 1355737678}
-    m_SelectOnLeft: {fileID: 684209844}
-    m_SelectOnRight: {fileID: 1718542882}
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 1146383385}
+    m_SelectOnLeft: {fileID: 1510628158}
+    m_SelectOnRight: {fileID: 1317118670}
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 0.9150943, g: 0.9150943, b: 0.9150943, a: 1}
@@ -1155,6 +1165,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1283196598}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1283196598
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1246,10 +1258,10 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 1870832133}
-    m_SelectOnDown: {fileID: 1355737678}
-    m_SelectOnLeft: {fileID: 684209844}
-    m_SelectOnRight: {fileID: 1718542882}
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 1146383385}
+    m_SelectOnLeft: {fileID: 1283196597}
+    m_SelectOnRight: {fileID: 1510628158}
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 0.9150943, g: 0.9150943, b: 0.9150943, a: 1}
@@ -1272,6 +1284,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1317118671}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1317118671
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1389,6 +1403,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1355737679}
+  m_transitioners: []
+  m_useDefaultTransitions: 1
 --- !u!114 &1355737679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1439,6 +1455,7 @@ GameObject:
   - component: {fileID: 1419826171}
   - component: {fileID: 1419826170}
   - component: {fileID: 1419826169}
+  - component: {fileID: 1419826172}
   m_Layer: 5
   m_Name: Button (1)
   m_TagString: Untagged
@@ -1480,11 +1497,11 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 1870832133}
+    m_SelectOnUp: {fileID: 1761823815}
     m_SelectOnDown: {fileID: 1355737678}
     m_SelectOnLeft: {fileID: 684209844}
     m_SelectOnRight: {fileID: 1718542882}
-  m_Transition: 1
+  m_Transition: 0
   m_Colors:
     m_NormalColor: {r: 0.9150943, g: 0.9150943, b: 0.9150943, a: 1}
     m_HighlightedColor: {r: 1, g: 0, b: 0, a: 1}
@@ -1506,6 +1523,9 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1419826170}
+  m_transitioners:
+  - {fileID: 1419826172}
+  m_useDefaultTransitions: 0
 --- !u!114 &1419826170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1544,6 +1564,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1419826167}
   m_CullTransparentMesh: 1
+--- !u!114 &1419826172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1419826167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1459c6bea32b074dbaa3efa1c4b1572, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.UI.UIGenericTransitioner
+  m_priority: 0
+  m_graphics:
+  - {fileID: 1419826170}
+  m_transitionDatas:
+  - {fileID: 11400000, guid: d4a476aa03ed32049a1c1abdfcd7b95e, type: 2}
+  - {fileID: 11400000, guid: 0ab75eed80c23f547bf657909598128e, type: 2}
 --- !u!1 &1487724662
 GameObject:
   m_ObjectHideFlags: 0
@@ -1597,7 +1635,7 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 1543346730}
+    m_SelectOnUp: {fileID: 1761823815}
     m_SelectOnDown: {fileID: 1874266996}
     m_SelectOnLeft: {fileID: 1718542882}
     m_SelectOnRight: {fileID: 1251092505}
@@ -1623,6 +1661,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1487724665}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1487724665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1714,10 +1754,10 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 1870832133}
-    m_SelectOnDown: {fileID: 1355737678}
-    m_SelectOnLeft: {fileID: 684209844}
-    m_SelectOnRight: {fileID: 1718542882}
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 1146383385}
+    m_SelectOnLeft: {fileID: 1317118670}
+    m_SelectOnRight: {fileID: 1283196597}
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 0.9150943, g: 0.9150943, b: 0.9150943, a: 1}
@@ -1740,6 +1780,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1510628159}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1510628159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1857,6 +1899,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1543346731}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1543346731
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1974,6 +2018,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1671693245}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1671693245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2068,7 +2114,7 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 0
-    m_SelectOnUp: {fileID: 0}
+    m_SelectOnUp: {fileID: 1761823815}
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 1251092505}
     m_SelectOnRight: {fileID: 684209844}
@@ -2269,6 +2315,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1779241120}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1779241120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2665,6 +2713,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1798457797}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1798457797
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2782,6 +2832,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1863980816}
+  m_transitioners: []
+  m_useDefaultTransitions: 1
 --- !u!114 &1863980816
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2899,6 +2951,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1870832134}
+  m_transitioners: []
+  m_useDefaultTransitions: 1
 --- !u!114 &1870832134
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3016,6 +3070,8 @@ MonoBehaviour:
     m_DisabledTrigger: Disabled
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1874266997}
+  m_transitioners: []
+  m_useDefaultTransitions: 0
 --- !u!114 &1874266997
 MonoBehaviour:
   m_ObjectHideFlags: 0
