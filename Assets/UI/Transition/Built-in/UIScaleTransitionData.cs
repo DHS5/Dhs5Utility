@@ -10,7 +10,7 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
-        private List<Coroutine> m_coroutines;
+        private List<UITransitionTween> m_tweens;
 
         #endregion
 
@@ -18,13 +18,13 @@ namespace Dhs5.Utility.UI
 
         protected void StopCoroutines(MonoBehaviour monoBehaviour)
         {
-            if (m_coroutines.IsValid())
+            if (m_tweens.IsValid())
             {
-                foreach (var coroutine in m_coroutines)
+                foreach (var tween in m_tweens)
                 {
-                    if (coroutine != null)
+                    if (tween != null)
                     {
-                        monoBehaviour.StopCoroutine(coroutine);
+                        tween.Stop();
                     }
                 }
             }
@@ -34,7 +34,7 @@ namespace Dhs5.Utility.UI
         {
             StopCoroutines(param.MonoBehaviour);
 
-            m_coroutines = ApplyScaleTransition(param.MonoBehaviour, graphics, duration, value);
+            m_tweens = RunTransitionTween<ScaleTween>(param.MonoBehaviour, graphics, duration, value);
         }
 
         protected override void ApplyValueInstant(IEnumerable<Graphic> graphics, Vector2 value, IUITransitionParam param)
@@ -62,53 +62,25 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Tween
 
-        #region STATIC
-
-        public static List<Coroutine> ApplyScaleTransition(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, Vector3 scale)
+        public class ScaleTween : UITransitionTween<Vector2>
         {
-            if (monoBehaviour == null)
+            private Vector3 m_startScale;
+
+            protected override void OnComplete(Graphic graphic, Vector2 targetValue)
             {
-                Debug.LogError("MonoBehaviour is null, can't start coroutines");
-                return null;
+                graphic.transform.localScale = targetValue;
             }
 
-            List<Coroutine> coroutines = new();
-            foreach (var g in graphics)
+            protected override void OnInit(Graphic graphic, Vector2 targetValue)
             {
-                coroutines.Add(monoBehaviour.StartCoroutine(ScaleTween(g.transform, duration, scale)));
+                m_startScale = graphic.transform.localScale;
             }
 
-            return coroutines;
-        }
-
-        protected static IEnumerator ScaleTween(Transform transform, float duration, Vector3 scale)
-        {
-            if (transform == null)
+            protected override void Update(Graphic graphic, float normalizedTime, Vector2 targetValue)
             {
-                yield break;
-            }
-
-            var startScale = transform.localScale;
-            var elapsedTime = 0.0f;
-
-            while (elapsedTime < duration)
-            {
-                if (transform == null)
-                {
-                    Debug.LogError("Transform is null, can't finish scale tween");
-                    yield break;
-                }
-
-                elapsedTime += Time.unscaledDeltaTime;
-                var percentage = Mathf.Clamp01(elapsedTime / duration);
-                transform.localScale = Vector3.Lerp(startScale, scale, percentage);
-                yield return null;
-            }
-
-            if (transform != null)
-            {
-                transform.localScale = scale;
+                graphic.transform.localScale = Vector3.Lerp(m_startScale, targetValue, normalizedTime);
             }
         }
 

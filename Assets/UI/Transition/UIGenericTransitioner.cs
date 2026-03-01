@@ -11,6 +11,7 @@ namespace Dhs5.Utility.UI
 
         [SerializeField] private List<Graphic> m_graphics;
         [SerializeField] private List<UIGenericTransitionData> m_transitionDatas;
+        [SerializeField] private UIGenericTransitionSelector m_selector;
 
         #endregion
 

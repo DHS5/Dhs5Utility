@@ -3,6 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
+using Unity.VisualScripting;
+
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -13,6 +17,8 @@ namespace Dhs5.Utility.UI
     public abstract class UIGenericTransitionData : ScriptableObject
     {
         public abstract void UpdateState(IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param);
+
+        public abstract IUIGenericTransitionInstance GetInstance();
     }
     public abstract class UIGenericTransitionData<T> : UIGenericTransitionData
     {
@@ -93,9 +99,11 @@ namespace Dhs5.Utility.UI
             return m_normalState.GetValue();
         }
 
+        public override IUIGenericTransitionInstance GetInstance() => new UIGenericTransitionInstance<T>();
+
         #endregion
 
-        #region Utility
+        #region Initialization
 
         protected virtual void Reset()
         {
@@ -103,6 +111,29 @@ namespace Dhs5.Utility.UI
         }
 
         protected abstract void OnInitValues();
+
+        #endregion
+
+        #region Utility
+
+        public List<UITransitionTween> RunTransitionTween<Tween>(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, T targetValue) where Tween : UITransitionTween<T>, new()
+        {
+            if (monoBehaviour == null)
+            {
+                Debug.LogError("MonoBehaviour is null, can't start coroutines");
+                return null;
+            }
+
+            List<UITransitionTween> tweens = new();
+            foreach (var g in graphics)
+            {
+                var tween = new Tween();
+                tween.Start(monoBehaviour, g, duration, targetValue);
+                tweens.Add(tween);
+            }
+
+            return tweens;
+        }
 
         #endregion
     }
@@ -272,6 +303,74 @@ namespace Dhs5.Utility.UI
 #endif
 
     #endregion
+
+    #endregion
+
+    #region TransitionTween
+
+    public abstract class UITransitionTween
+    {
+        protected MonoBehaviour m_monoBehaviour;
+
+        public Coroutine Coroutine { get; protected set; }
+
+        public virtual void Stop()
+        {
+            if (m_monoBehaviour != null && Coroutine != null)
+            {
+                m_monoBehaviour.StopCoroutine(Coroutine);
+                Coroutine = null;
+            }
+        }
+    }
+    public abstract class UITransitionTween<T> : UITransitionTween
+    {
+        protected virtual bool IsValid(Graphic graphic) => graphic != null;
+        protected abstract void Update(Graphic graphic, float normalizedTime, T targetValue);
+        protected abstract void OnInit(Graphic graphic, T targetValue);
+        protected abstract void OnComplete(Graphic graphic, T targetValue);
+
+        public void Start(MonoBehaviour monoBehaviour, Graphic graphic, float duration, T targetValue)
+        {
+            m_monoBehaviour = monoBehaviour;
+
+            if (monoBehaviour == null
+                && graphic == null
+                && duration <= 0f)
+            {
+                Debug.LogError("Invalid tween");
+                return;
+            }
+
+            Coroutine = monoBehaviour.StartCoroutine(TweenCoroutine(graphic, duration, targetValue));
+        }
+        public virtual IEnumerator TweenCoroutine(Graphic graphic, float duration, T targetValue)
+        {
+            if (!IsValid(graphic))
+            {
+                yield break;
+            }
+
+            OnInit(graphic, targetValue);
+            var elapsedTime = 0.0f;
+
+            while (elapsedTime < duration)
+            {
+                if (!IsValid(graphic))
+                {
+                    Debug.LogError("Tween is not valid anymore, can't finish tween");
+                    yield break;
+                }
+
+                elapsedTime += Time.unscaledDeltaTime;
+                var percentage = Mathf.Clamp01(elapsedTime / duration);
+                Update(graphic, percentage, targetValue);
+                yield return null;
+            }
+
+            OnComplete(graphic, targetValue);
+        }
+    }
 
     #endregion
 }
