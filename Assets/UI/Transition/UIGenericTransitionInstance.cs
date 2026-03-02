@@ -9,70 +9,80 @@ using UnityEditor;
 
 namespace Dhs5.Utility.UI
 {
-    public interface IUIGenericTransitionInstance
-    {
-        public void UpdateState(UIGenericTransitionData data, IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param);
-    }
     [Serializable]
-    public struct UIGenericTransitionInstance<T> : IUIGenericTransitionInstance
+    public class UIGenericTransitionInstance
     {
         #region Members
 
-        [SerializeField] private TransitionValue<T> m_normalState;
-        [SerializeField] private EnabledTransitionValue<T> m_highlightedState;
-        [SerializeField] private EnabledTransitionValue<T> m_pressedState;
-        [SerializeField] private EnabledTransitionValue<T> m_selectedState;
-        [SerializeField] private EnabledTransitionValue<T> m_disabledState;
+        [SerializeField] private UIGenericTransitionData m_data;
+        [SerializeField] private int m_presetIndex;
+
+        private IUIGenericTransitionPayload m_payload;
 
         #endregion
 
-        public void UpdateState(UIGenericTransitionData data, IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param)
+        #region Methods
+
+        public void UpdateState(IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param)
         {
-
+            if (m_payload != null) m_data.HandlePreviousPayload(m_payload, param);
+            m_payload = m_data.UpdateState(m_presetIndex, graphics, oldStates, newStates, instant, param);
         }
+
+        #endregion
     }
 
-    [Serializable]
-    public class UIGenericTransitionSelector
-    {
-        [SerializeField] private UIGenericTransitionData m_data;
-        [SerializeReference] private IUIGenericTransitionInstance m_instance;
-    }
+    #region Drawer
 
 #if UNITY_EDITOR
-    [CustomPropertyDrawer(typeof(UIGenericTransitionSelector))]
-    public class UIGenericTransitionSelectorDrawer : PropertyDrawer
+
+    [CustomPropertyDrawer(typeof(UIGenericTransitionInstance))]
+    public class UIGenericTransitionInstanceDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             var p_data = property.FindPropertyRelative("m_data");
-            var p_instance = property.FindPropertyRelative("m_instance");
+            var p_presetIndex = property.FindPropertyRelative("m_presetIndex");
 
             EditorGUI.BeginProperty(position, label, property);
 
             EditorGUI.BeginChangeCheck();
-            EditorGUI.PropertyField(new Rect(position.x, position.y, position.width, 18f), p_data);
+            EditorGUI.PropertyField(new Rect(position.x, position.y, position.width, 18f), p_data, true);
+            var hasData = p_data.objectReferenceValue != null;
             if (EditorGUI.EndChangeCheck())
             {
-                var d = p_data.objectReferenceValue;
-                if (d is UIGenericTransitionData data)
-                {
-                    p_instance.managedReferenceValue = data.GetInstance();
-                }
-                else 
-                {
-                    p_instance.managedReferenceValue = null;
-                    p_instance.isExpanded = false;
-                }
+                p_presetIndex.intValue = hasData ? 0 : -1;
             }
-            EditorGUI.PropertyField(new Rect(position.x, position.y + 20f, position.width, 18f), p_instance, true);
+
+            if (hasData)
+                EditorGUI.PropertyField(new Rect(position.x, position.y + 20f, position.width, 18f), p_presetIndex, true);
 
             EditorGUI.EndProperty();
         }
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return property.FindPropertyRelative("m_instance").isExpanded ? 60f : 40f;
+            return property.FindPropertyRelative("m_data").objectReferenceValue != null ? 40f : 20f;
         }
     }
+
 #endif
+
+    #endregion
+
+    public interface IUIGenericTransitionPayload { }
+
+    public struct UITransitionTweenPayload : IUIGenericTransitionPayload
+    {
+        public UITransitionTweenPayload(List<UITransitionTween> tweens) { m_tweens = tweens; }
+
+        private readonly List<UITransitionTween> m_tweens;
+
+        public readonly IEnumerable<UITransitionTween> Tweens
+        {
+            get
+            {
+                foreach (var t in m_tweens) yield return t;
+            }
+        }
+    }
 }

@@ -3,9 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
-using Unity.VisualScripting;
-
 
 
 #if UNITY_EDITOR
@@ -16,9 +13,9 @@ namespace Dhs5.Utility.UI
 {
     public abstract class UIGenericTransitionData : ScriptableObject
     {
-        public abstract void UpdateState(IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param);
-
-        public abstract IUIGenericTransitionInstance GetInstance();
+        public abstract void HandlePreviousPayload(IUIGenericTransitionPayload previousPayload, IUITransitionParam param);
+        public abstract IUIGenericTransitionPayload UpdateState
+            (int presetIndex, IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param);
     }
     public abstract class UIGenericTransitionData<T> : UIGenericTransitionData
     {
@@ -47,22 +44,23 @@ namespace Dhs5.Utility.UI
 
         #region Process
 
-        public override void UpdateState(IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param)
+        public override IUIGenericTransitionPayload UpdateState
+            (int presetIndex, IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param)
         {
             (T value, float duration) = GetValueAndDuration(newStates);
 
             if (instant || Mathf.Approximately(0f, duration))
             {
-                ApplyValueInstant(graphics, value, param);
+                return ApplyValueInstant(graphics, value, param);
             }
             else
             {
-                ApplyValue(graphics, value, duration, param);
+                return ApplyValue(graphics, value, duration, param);
             }
         }
 
-        protected abstract void ApplyValue(IEnumerable<Graphic> graphics, T value, float duration, IUITransitionParam param);
-        protected abstract void ApplyValueInstant(IEnumerable<Graphic> graphics, T value, IUITransitionParam param);
+        protected abstract IUIGenericTransitionPayload ApplyValue(IEnumerable<Graphic> graphics, T value, float duration, IUITransitionParam param);
+        protected abstract IUIGenericTransitionPayload ApplyValueInstant(IEnumerable<Graphic> graphics, T value, IUITransitionParam param);
 
         #endregion
 
@@ -99,8 +97,6 @@ namespace Dhs5.Utility.UI
             return m_normalState.GetValue();
         }
 
-        public override IUIGenericTransitionInstance GetInstance() => new UIGenericTransitionInstance<T>();
-
         #endregion
 
         #region Initialization
@@ -114,7 +110,7 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Utility
+        #region Tween Utility
 
         public List<UITransitionTween> RunTransitionTween<Tween>(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, T targetValue) where Tween : UITransitionTween<T>, new()
         {
@@ -133,6 +129,16 @@ namespace Dhs5.Utility.UI
             }
 
             return tweens;
+        }
+        protected void StopTweenCoroutines(MonoBehaviour monoBehaviour, IEnumerable<UITransitionTween> tweens)
+        {
+            foreach (var tween in tweens)
+            {
+                if (tween != null)
+                {
+                    tween.Stop();
+                }
+            }
         }
 
         #endregion

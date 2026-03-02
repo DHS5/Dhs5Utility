@@ -9,17 +9,28 @@ namespace Dhs5.Utility.UI
     {
         #region Apply
 
-        protected override void ApplyValue(IEnumerable<Graphic> graphics, bool value, float duration, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValue(IEnumerable<Graphic> graphics, bool value, float duration, IUITransitionParam param)
         {
-            ApplyValueInstant(graphics, value, param);
+            return ApplyValueInstant(graphics, value, param);
         }
 
-        protected override void ApplyValueInstant(IEnumerable<Graphic> graphics, bool value, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValueInstant(IEnumerable<Graphic> graphics, bool value, IUITransitionParam param)
         {
             foreach (var g in graphics)
             {
                 g.enabled = value;
             }
+
+            return null;
+        }
+
+        #endregion
+
+        #region Payload Handling
+
+        public override void HandlePreviousPayload(IUIGenericTransitionPayload previousPayload, IUITransitionParam param)
+        {
+            throw new System.NotImplementedException();
         }
 
         #endregion

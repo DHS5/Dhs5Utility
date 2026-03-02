@@ -203,7 +203,7 @@ namespace Dhs5.Utility.UI
             if (IsPointerInside) state |= FUIState.HIGHLIGHTED;
             if (IsLeftPointerDown) state |= FUIState.PRESSED;
             if (HasSelection) state |= FUIState.SELECTED;
-            if (!interactable) state |= FUIState.DISABLED;
+            if (!IsInteractable()) state |= FUIState.DISABLED;
 
             if (state == 0) return FUIState.NORMAL;
             return state;

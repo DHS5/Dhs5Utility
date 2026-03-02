@@ -10,8 +10,7 @@ namespace Dhs5.Utility.UI
         #region Members
 
         [SerializeField] private List<Graphic> m_graphics;
-        [SerializeField] private List<UIGenericTransitionData> m_transitionDatas;
-        [SerializeField] private UIGenericTransitionSelector m_selector;
+        [SerializeField] private List<UIGenericTransitionInstance> m_transitionInstances;
 
         #endregion
 
@@ -21,9 +20,9 @@ namespace Dhs5.Utility.UI
         {
             var graphics = m_graphics.Where(g => g != null);
 
-            foreach (var data in m_transitionDatas)
+            foreach (var instance in m_transitionInstances)
             {
-                data.UpdateState(graphics, oldStates, newStates, instant, param);
+                instance.UpdateState(graphics, oldStates, newStates, instant, param);
             }
         }
 

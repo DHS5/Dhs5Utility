@@ -8,42 +8,34 @@ namespace Dhs5.Utility.UI
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Scale")]
     public class UIScaleTransitionData : UIGenericTransitionData<Vector2>
     {
-        #region Members
-
-        private List<UITransitionTween> m_tweens;
-
-        #endregion
-
         #region Apply
 
-        protected void StopCoroutines(MonoBehaviour monoBehaviour)
+        protected override IUIGenericTransitionPayload ApplyValue(IEnumerable<Graphic> graphics, Vector2 value, float duration, IUITransitionParam param)
         {
-            if (m_tweens.IsValid())
-            {
-                foreach (var tween in m_tweens)
-                {
-                    if (tween != null)
-                    {
-                        tween.Stop();
-                    }
-                }
-            }
+            var tweens = RunTransitionTween<ScaleTween>(param.MonoBehaviour, graphics, duration, value);
+
+            return new UITransitionTweenPayload(tweens);
         }
 
-        protected override void ApplyValue(IEnumerable<Graphic> graphics, Vector2 value, float duration, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValueInstant(IEnumerable<Graphic> graphics, Vector2 value, IUITransitionParam param)
         {
-            StopCoroutines(param.MonoBehaviour);
-
-            m_tweens = RunTransitionTween<ScaleTween>(param.MonoBehaviour, graphics, duration, value);
-        }
-
-        protected override void ApplyValueInstant(IEnumerable<Graphic> graphics, Vector2 value, IUITransitionParam param)
-        {
-            StopCoroutines(param.MonoBehaviour);
-
             foreach (Graphic g in graphics)
             {
                 g.transform.localScale = value;
+            }
+
+            return null;
+        }
+
+        #endregion
+
+        #region Payload Handling
+
+        public override void HandlePreviousPayload(IUIGenericTransitionPayload previousPayload, IUITransitionParam param)
+        {
+            if (previousPayload is UITransitionTweenPayload tweenPayload)
+            {
+                StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
             }
         }
 
