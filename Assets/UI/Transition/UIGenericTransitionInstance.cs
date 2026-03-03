@@ -21,12 +21,18 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Properties
+
+        public int PresetIndex => m_presetIndex;
+        public IUIGenericTransitionPayload Payload => m_payload;
+
+        #endregion
+
         #region Methods
 
         public void UpdateState(IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param)
         {
-            if (m_payload != null) m_data.HandlePreviousPayload(m_payload, param);
-            m_payload = m_data.UpdateState(m_presetIndex, graphics, oldStates, newStates, instant, param);
+            m_payload = m_data.UpdateState(this, graphics, oldStates, newStates, instant, param);
         }
 
         #endregion

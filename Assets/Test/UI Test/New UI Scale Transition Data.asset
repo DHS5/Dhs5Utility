@@ -32,3 +32,26 @@ MonoBehaviour:
     m_value: {x: 0.8, y: 0.8}
     m_duration: 0.05
     m_enabled: 1
+  m_presets:
+  - m_name: Button
+    m_stateOrder:
+      m_order: 02000000010000000400000003000000
+    m_normalState:
+      m_value: {x: 1, y: 1}
+      m_duration: 0.05
+    m_highlightedState:
+      m_value: {x: 1.2, y: 1.2}
+      m_duration: 0.05
+      m_enabled: 1
+    m_pressedState:
+      m_value: {x: 1.5, y: 1.3}
+      m_duration: 0.05
+      m_enabled: 1
+    m_selectedState:
+      m_value: {x: 1, y: 1}
+      m_duration: 0.05
+      m_enabled: 1
+    m_disabledState:
+      m_value: {x: 0.8, y: 0.8}
+      m_duration: 0.05
+      m_enabled: 1

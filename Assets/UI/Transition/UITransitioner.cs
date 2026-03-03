@@ -78,7 +78,7 @@ namespace Dhs5.Utility.UI
                 }
             }
         }
-        public static IEnumerable<EUIState> GetStates(this FUIState state, List<int> customOrder)
+        public static IEnumerable<EUIState> GetStates(this FUIState state, IEnumerable<int> customOrder)
         {
             foreach(var i in customOrder)
             {

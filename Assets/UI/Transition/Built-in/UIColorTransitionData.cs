@@ -5,11 +5,11 @@ using System.Collections.Generic;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Color")]
-    public class UIColorTransitionData : UIGenericTransitionData<Color>
+    public class UIColorTransitionData : UIGenericTransitionData<Color, TransitionPreset<Color>>
     {
         #region Apply
 
-        protected override IUIGenericTransitionPayload ApplyValue(IEnumerable<Graphic> graphics, Color value, float duration, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValue(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, Color value, float duration, IUITransitionParam param)
         {
             foreach (Graphic g in graphics)
             {
@@ -19,7 +19,7 @@ namespace Dhs5.Utility.UI
             return null;
         }
 
-        protected override IUIGenericTransitionPayload ApplyValueInstant(IEnumerable<Graphic> graphics, Color value, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValueInstant(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, Color value, IUITransitionParam param)
         {
             foreach (Graphic g in graphics)
             {
@@ -31,24 +31,12 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Payload Handling
-
-        public override void HandlePreviousPayload(IUIGenericTransitionPayload previousPayload, IUITransitionParam param)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        #endregion
-
         #region Initialization
 
-        protected override void OnInitValues()
+        protected override void GetDefaultValueAndDuration(out Color value, out float duration)
         {
-            m_normalState = new(Color.white, 0.1f);
-            m_highlightedState = new(true, Color.white, 0.1f);
-            m_pressedState = new(true, Color.white, 0.1f);
-            m_selectedState = new(true, Color.white, 0.1f);
-            m_disabledState = new(true, Color.white, 0.1f);
+            value = Color.white;
+            duration = 0.1f;
         }
 
         #endregion

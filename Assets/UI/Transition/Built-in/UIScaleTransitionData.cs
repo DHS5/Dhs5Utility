@@ -6,19 +6,29 @@ using System.Collections;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Scale")]
-    public class UIScaleTransitionData : UIGenericTransitionData<Vector2>
+    public class UIScaleTransitionData : UIGenericTransitionData<Vector2, TransitionPreset<Vector2>>
     {
         #region Apply
 
-        protected override IUIGenericTransitionPayload ApplyValue(IEnumerable<Graphic> graphics, Vector2 value, float duration, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValue(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, Vector2 value, float duration, IUITransitionParam param)
         {
+            if (instance.Payload is UITransitionTweenPayload tweenPayload)
+            {
+                StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
+            }
+
             var tweens = RunTransitionTween<ScaleTween>(param.MonoBehaviour, graphics, duration, value);
 
             return new UITransitionTweenPayload(tweens);
         }
 
-        protected override IUIGenericTransitionPayload ApplyValueInstant(IEnumerable<Graphic> graphics, Vector2 value, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValueInstant(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, Vector2 value, IUITransitionParam param)
         {
+            if (instance.Payload is UITransitionTweenPayload tweenPayload)
+            {
+                StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
+            }
+
             foreach (Graphic g in graphics)
             {
                 g.transform.localScale = value;
@@ -29,27 +39,12 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Payload Handling
-
-        public override void HandlePreviousPayload(IUIGenericTransitionPayload previousPayload, IUITransitionParam param)
-        {
-            if (previousPayload is UITransitionTweenPayload tweenPayload)
-            {
-                StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
-            }
-        }
-
-        #endregion
-
         #region Initialization
 
-        protected override void OnInitValues()
+        protected override void GetDefaultValueAndDuration(out Vector2 value, out float duration)
         {
-            m_normalState = new(Vector2.one, 0.1f);
-            m_highlightedState = new(true, Vector2.one, 0.1f);
-            m_pressedState = new(true, Vector2.one, 0.1f);
-            m_selectedState = new(true, Vector2.one, 0.1f);
-            m_disabledState = new(true, Vector2.one, 0.1f);
+            value = Vector2.one;
+            duration = 0.1f;
         }
 
         #endregion

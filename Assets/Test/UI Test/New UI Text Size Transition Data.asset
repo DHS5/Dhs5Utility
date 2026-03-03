@@ -32,3 +32,4 @@ MonoBehaviour:
     m_value: 32
     m_duration: 0.05
     m_enabled: 1
+  m_presets: []

@@ -5,16 +5,16 @@ using UnityEngine.UI;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Color")]
-    public class UISpriteTransitionData : UIGenericTransitionData<Sprite>
+    public class UISpriteTransitionData : UIGenericTransitionData<Sprite, TransitionPreset<Sprite>>
     {
         #region Apply
 
-        protected override IUIGenericTransitionPayload ApplyValue(IEnumerable<Graphic> graphics, Sprite value, float duration, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValue(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, Sprite value, float duration, IUITransitionParam param)
         {
-            return ApplyValueInstant(graphics, value, param);
+            return ApplyValueInstant(instance, graphics, value, param);
         }
 
-        protected override IUIGenericTransitionPayload ApplyValueInstant(IEnumerable<Graphic> graphics, Sprite value, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValueInstant(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, Sprite value, IUITransitionParam param)
         {
             foreach (var g in graphics)
             {
@@ -29,24 +29,12 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Payload Handling
-
-        public override void HandlePreviousPayload(IUIGenericTransitionPayload previousPayload, IUITransitionParam param)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        #endregion
-
         #region Initialization
 
-        protected override void OnInitValues()
+        protected override void GetDefaultValueAndDuration(out Sprite value, out float duration)
         {
-            m_normalState = new(null, 0.1f);
-            m_highlightedState = new(true, null, 0.1f);
-            m_pressedState = new(true, null, 0.1f);
-            m_selectedState = new(true, null, 0.1f);
-            m_disabledState = new(true, null, 0.1f);
+            value = null;
+            duration = 0.1f;
         }
 
         #endregion

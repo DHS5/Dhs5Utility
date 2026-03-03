@@ -71,6 +71,10 @@ namespace Dhs5.Utility.UI
             IsPointerInside = true;
 
             base.OnPointerEnter(eventData);
+            if (IsActive() && !IsInteractable())
+            {
+                DoStateTransition(SelectionState.Disabled, false);
+            }
 
             StateChanged?.Invoke(EUIStateChangeType.HOVER, true);
 
@@ -83,6 +87,10 @@ namespace Dhs5.Utility.UI
             IsPointerInside = false;
 
             base.OnPointerExit(eventData);
+            if (IsActive() && !IsInteractable())
+            {
+                DoStateTransition(SelectionState.Disabled, false);
+            }
 
             StateChanged?.Invoke(EUIStateChangeType.HOVER, false);
 
@@ -104,6 +112,10 @@ namespace Dhs5.Utility.UI
             }
 
             base.OnPointerDown(eventData);
+            if (IsActive() && !IsInteractable())
+            {
+                DoStateTransition(SelectionState.Disabled, false);
+            }
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
@@ -130,6 +142,10 @@ namespace Dhs5.Utility.UI
             }
 
             base.OnPointerUp(eventData);
+            if (IsActive() && !IsInteractable())
+            {
+                DoStateTransition(SelectionState.Disabled, false);
+            }
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
@@ -151,6 +167,10 @@ namespace Dhs5.Utility.UI
             HasSelection = true;
 
             base.OnSelect(eventData);
+            if (IsActive() && !IsInteractable())
+            {
+                DoStateTransition(SelectionState.Disabled, false);
+            }
 
             StateChanged?.Invoke(EUIStateChangeType.SELECTION, true);
 
@@ -163,6 +183,10 @@ namespace Dhs5.Utility.UI
             HasSelection = false;
 
             base.OnDeselect(eventData);
+            if (IsActive() && !IsInteractable())
+            {
+                DoStateTransition(SelectionState.Disabled, false);
+            }
 
             StateChanged?.Invoke(EUIStateChangeType.SELECTION, false);
 

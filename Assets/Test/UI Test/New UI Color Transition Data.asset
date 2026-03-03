@@ -12,23 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e53e24357231564fbcbb6ca4d6796ed, type: 3}
   m_Name: New UI Color Transition Data
   m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.UI.UIColorTransitionData
-  m_statesOrder: 04000000020000000100000003000000
-  m_normalState:
-    m_value: {r: 1, g: 0.759434, b: 0.759434, a: 1}
-    m_duration: 0.1
-  m_highlightedState:
-    m_value: {r: 1, g: 0, b: 0, a: 1}
-    m_duration: 0.1
-    m_enabled: 1
-  m_pressedState:
-    m_value: {r: 1, g: 0.45709425, b: 0, a: 1}
-    m_duration: 0.1
-    m_enabled: 1
-  m_selectedState:
-    m_value: {r: 1, g: 0, b: 0.6829443, a: 1}
-    m_duration: 0.1
-    m_enabled: 1
-  m_disabledState:
-    m_value: {r: 0.4811321, g: 0.4811321, b: 0.4811321, a: 1}
-    m_duration: 0.1
-    m_enabled: 1
+  m_presets:
+  - m_name: Button
+    m_stateOrder:
+      m_order: 04000000020000000100000003000000
+    m_normalState:
+      m_value: {r: 1, g: 0.7607843, b: 0.7607843, a: 1}
+      m_duration: 0.1
+    m_highlightedState:
+      m_value: {r: 1, g: 0, b: 0, a: 1}
+      m_duration: 0.1
+      m_enabled: 1
+    m_pressedState:
+      m_value: {r: 1, g: 0.45882353, b: 0, a: 1}
+      m_duration: 0.1
+      m_enabled: 1
+    m_selectedState:
+      m_value: {r: 1, g: 0, b: 0.68235296, a: 1}
+      m_duration: 0.1
+      m_enabled: 1
+    m_disabledState:
+      m_value: {r: 0.48235294, g: 0.48235294, b: 0.48235294, a: 1}
+      m_duration: 0.1
+      m_enabled: 1

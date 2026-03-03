@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Text Size")]
-    public class UITextSizeTransitionData : UIGenericTransitionData<float>
+    public class UITextSizeTransitionData : UIGenericTransitionData<float, TransitionPreset<float>>
     {
         // TODO :
         // - think about applying offsets on start value rather than hard setting values
@@ -14,15 +14,25 @@ namespace Dhs5.Utility.UI
 
         #region Apply
 
-        protected override IUIGenericTransitionPayload ApplyValue(IEnumerable<Graphic> graphics, float value, float duration, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValue(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, float value, float duration, IUITransitionParam param)
         {
+            if (instance.Payload is UITransitionTweenPayload tweenPayload)
+            {
+                StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
+            }
+
             var tweens = RunTransitionTween<TextSizeTween>(param.MonoBehaviour, graphics, duration, value);
 
             return new UITransitionTweenPayload(tweens);
         }
 
-        protected override IUIGenericTransitionPayload ApplyValueInstant(IEnumerable<Graphic> graphics, float value, IUITransitionParam param)
+        protected override IUIGenericTransitionPayload ApplyValueInstant(UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, float value, IUITransitionParam param)
         {
+            if (instance.Payload is UITransitionTweenPayload tweenPayload)
+            {
+                StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
+            }
+
             foreach (var g in graphics)
             {
                 if (g is TMP_Text text)
@@ -36,27 +46,12 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Payload Handling
-
-        public override void HandlePreviousPayload(IUIGenericTransitionPayload previousPayload, IUITransitionParam param)
-        {
-            if (previousPayload is UITransitionTweenPayload tweenPayload)
-            {
-                StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
-            }
-        }
-
-        #endregion
-
         #region Initialization
 
-        protected override void OnInitValues()
+        protected override void GetDefaultValueAndDuration(out float value, out float duration)
         {
-            m_normalState = new(22f, 0.1f);
-            m_highlightedState = new(true, 22f, 0.1f);
-            m_pressedState = new(true, 22f, 0.1f);
-            m_selectedState = new(true, 22f, 0.1f);
-            m_disabledState = new(true, 22f, 0.1f);
+            value = 36f;
+            duration = 0.1f;
         }
 
         #endregion
