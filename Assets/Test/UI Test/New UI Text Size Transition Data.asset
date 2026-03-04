@@ -12,24 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4ca7db616a2adf40b4996a3a98587da, type: 3}
   m_Name: New UI Text Size Transition Data
   m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.UI.UITextSizeTransitionData
-  m_statesOrder: 04000000020000000100000003000000
-  m_normalState:
-    m_value: 36
-    m_duration: 0.05
-  m_highlightedState:
-    m_value: 40
-    m_duration: 0.05
-    m_enabled: 1
-  m_pressedState:
-    m_value: 45
-    m_duration: 0.05
-    m_enabled: 1
-  m_selectedState:
-    m_value: 40
-    m_duration: 0.05
-    m_enabled: 1
-  m_disabledState:
-    m_value: 32
-    m_duration: 0.05
-    m_enabled: 1
-  m_presets: []
+  m_presets:
+  - m_name: ButtonText
+    m_stateOrder:
+      m_order: 04000000020000000100000003000000
+    m_normalState:
+      m_value: 0
+      m_duration: 0.1
+    m_highlightedState:
+      m_value: 2
+      m_duration: 0.1
+      m_enabled: 1
+    m_pressedState:
+      m_value: 5
+      m_duration: 0.05
+      m_enabled: 1
+    m_selectedState:
+      m_value: 0
+      m_duration: 0.1
+      m_enabled: 1
+    m_disabledState:
+      m_value: 0
+      m_duration: 0
+      m_enabled: 0

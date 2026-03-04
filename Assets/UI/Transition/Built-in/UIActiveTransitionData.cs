@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Active")]
-    public class UIActiveTransitionData : UIGenericTransitionData<bool, TransitionPreset<bool>>
+    public class UIActiveTransitionData : UIGenericTransitionData<bool, UITransitionPreset<bool>>
     {
         #region Apply
 
@@ -32,6 +33,15 @@ namespace Dhs5.Utility.UI
         {
             value = true;
             duration = 0f;
+        }
+
+        #endregion
+
+        #region Initial Value
+
+        public override object GetGraphicInitialValue(Graphic graphic)
+        {
+            return graphic.gameObject.activeSelf;
         }
 
         #endregion

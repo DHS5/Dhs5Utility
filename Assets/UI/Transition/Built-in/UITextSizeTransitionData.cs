@@ -6,11 +6,18 @@ using UnityEngine.UI;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Text Size")]
-    public class UITextSizeTransitionData : UIGenericTransitionData<float, TransitionPreset<float>>
+    public class UITextSizeTransitionData : UIGenericTransitionData<float, UITransitionPreset<float>>
     {
-        // TODO :
-        // - think about applying offsets on start value rather than hard setting values
-        // in this case, maybe hide normal state
+        #region Initial Values
+
+        protected readonly Dictionary<Graphic, float> m_initialValues = new();
+
+        public override object GetGraphicInitialValue(Graphic graphic)
+        {
+            return graphic is TMP_Text text ? text.fontSize : 0f;
+        }
+
+        #endregion
 
         #region Apply
 
@@ -21,7 +28,13 @@ namespace Dhs5.Utility.UI
                 StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
             }
 
-            var tweens = RunTransitionTween<TextSizeTween>(param.MonoBehaviour, graphics, duration, value);
+            m_initialValues.Clear();
+            foreach (var g in graphics)
+            {
+                m_initialValues[g] = instance.GetInitialValue<float>(g);
+            }
+
+            var tweens = RunTransitionTween<TextSizeTween, TMP_Text>(param.MonoBehaviour, graphics, duration, value);
 
             return new UITransitionTweenPayload(tweens);
         }
@@ -37,20 +50,20 @@ namespace Dhs5.Utility.UI
             {
                 if (g is TMP_Text text)
                 {
-                    text.fontSize = value;
+                    text.fontSize = instance.GetInitialValue<float>(g) + value;
                 }
             }
 
-            return null;
+            return new UITransitionTweenPayload(null); 
         }
 
         #endregion
 
-        #region Initialization
+        #region Preset Initialization
 
         protected override void GetDefaultValueAndDuration(out float value, out float duration)
         {
-            value = 36f;
+            value = 0f;
             duration = 0.1f;
         }
 
@@ -58,25 +71,29 @@ namespace Dhs5.Utility.UI
 
         #region Tween
 
-        public class TextSizeTween : UITransitionTween<float>
+        protected override bool OverrideTweenTargetValue<G>(G graphic, float targetValue, out float overrideValue)
+        {
+            overrideValue = Mathf.Max(0, m_initialValues[graphic] + targetValue);
+            return true;
+        }
+
+        public class TextSizeTween : UITransitionTween<float, TMP_Text>
         {
             private float m_startSize;
-            private TMP_Text m_text;
 
-            protected override void OnComplete(Graphic graphic, float targetValue)
+            protected override void OnComplete(TMP_Text graphic, float targetValue)
             {
-                if (m_text != null) m_text.fontSize = targetValue;
+                graphic.fontSize = targetValue;
             }
 
-            protected override void OnInit(Graphic graphic, float targetValue)
-            {
-                m_text = graphic as TMP_Text;
-                if (m_text != null) m_startSize = m_text.fontSize;
+            protected override void OnInit(TMP_Text graphic, float targetValue)
+            {   
+                m_startSize = graphic.fontSize;
             }
 
-            protected override void Update(Graphic graphic, float normalizedTime, float targetValue)
+            protected override void Update(TMP_Text graphic, float normalizedTime, float targetValue)
             {
-                if (m_text != null) m_text.fontSize = Mathf.Lerp(m_startSize, targetValue, normalizedTime);
+                graphic.fontSize = Mathf.Lerp(m_startSize, targetValue, normalizedTime);
             }
         }
 

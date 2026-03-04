@@ -291,6 +291,7 @@ MonoBehaviour:
   m_priority: 0
   m_graphics:
   - {fileID: 218290218}
+  - {fileID: 1419826170}
   m_transitionInstances:
   - m_data: {fileID: 11400000, guid: 16c9790aa46ebc3459a80bba619d7652, type: 2}
     m_presetIndex: 0

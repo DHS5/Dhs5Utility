@@ -6,7 +6,7 @@ using System.Collections;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Scale")]
-    public class UIScaleTransitionData : UIGenericTransitionData<Vector2, TransitionPreset<Vector2>>
+    public class UIScaleTransitionData : UIGenericTransitionData<Vector2, UITransitionPreset<Vector2>>
     {
         #region Apply
 
@@ -17,7 +17,7 @@ namespace Dhs5.Utility.UI
                 StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
             }
 
-            var tweens = RunTransitionTween<ScaleTween>(param.MonoBehaviour, graphics, duration, value);
+            var tweens = RunTransitionTween<ScaleTween, Graphic>(param.MonoBehaviour, graphics, duration, value);
 
             return new UITransitionTweenPayload(tweens);
         }
@@ -49,9 +49,18 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Initial Value
+
+        public override object GetGraphicInitialValue(Graphic graphic)
+        {
+            return graphic.transform.localScale;
+        }
+
+        #endregion
+
         #region Tween
 
-        public class ScaleTween : UITransitionTween<Vector2>
+        public class ScaleTween : UITransitionTween<Vector2, Graphic>
         {
             private Vector3 m_startScale;
 

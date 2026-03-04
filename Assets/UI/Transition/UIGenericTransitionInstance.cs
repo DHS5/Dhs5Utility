@@ -17,6 +17,7 @@ namespace Dhs5.Utility.UI
         [SerializeField] private UIGenericTransitionData m_data;
         [SerializeField] private int m_presetIndex;
 
+        private Dictionary<Graphic, object> m_initialValues = new();
         private IUIGenericTransitionPayload m_payload;
 
         #endregion
@@ -25,6 +26,10 @@ namespace Dhs5.Utility.UI
 
         public int PresetIndex => m_presetIndex;
         public IUIGenericTransitionPayload Payload => m_payload;
+        public T GetInitialValue<T>(Graphic graphic)
+        {
+            return (T)m_initialValues[graphic];
+        }
 
         #endregion
 
@@ -32,6 +37,16 @@ namespace Dhs5.Utility.UI
 
         public void UpdateState(IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param)
         {
+            if (m_data == null) return;
+
+            foreach (var g in graphics)
+            {
+                if (!m_initialValues.ContainsKey(g))
+                {
+                    m_initialValues[g] = m_data.GetGraphicInitialValue(g);
+                }
+            }
+
             m_payload = m_data.UpdateState(this, graphics, oldStates, newStates, instant, param);
         }
 
@@ -87,7 +102,13 @@ namespace Dhs5.Utility.UI
         {
             get
             {
-                foreach (var t in m_tweens) yield return t;
+                if (m_tweens != null)
+                {
+                    foreach (var t in m_tweens)
+                    {
+                        yield return t;
+                    }
+                }
             }
         }
     }

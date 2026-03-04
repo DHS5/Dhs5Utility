@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Color")]
-    public class UISpriteTransitionData : UIGenericTransitionData<Sprite, TransitionPreset<Sprite>>
+    public class UISpriteTransitionData : UIGenericTransitionData<Sprite, UITransitionPreset<Sprite>>
     {
         #region Apply
 
@@ -35,6 +35,15 @@ namespace Dhs5.Utility.UI
         {
             value = null;
             duration = 0.1f;
+        }
+
+        #endregion
+
+        #region Initial Value
+
+        public override object GetGraphicInitialValue(Graphic graphic)
+        {
+            return graphic is Image image ? image.overrideSprite : null;
         }
 
         #endregion

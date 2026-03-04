@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Color")]
-    public class UIColorTransitionData : UIGenericTransitionData<Color, TransitionPreset<Color>>
+    public class UIColorTransitionData : UIGenericTransitionData<Color, UITransitionPreset<Color>>
     {
         #region Apply
 
@@ -37,6 +37,15 @@ namespace Dhs5.Utility.UI
         {
             value = Color.white;
             duration = 0.1f;
+        }
+
+        #endregion
+
+        #region Initial Value
+
+        public override object GetGraphicInitialValue(Graphic graphic)
+        {
+            return graphic.color;
         }
 
         #endregion

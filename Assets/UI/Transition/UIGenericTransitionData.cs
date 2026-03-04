@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 
-
 #if UNITY_EDITOR
 using Dhs5.Utility.Editors;
 using UnityEditor;
@@ -15,10 +14,20 @@ namespace Dhs5.Utility.UI
 {
     public abstract class UIGenericTransitionData : ScriptableObject
     {
+        #region Process
+
         public abstract IUIGenericTransitionPayload UpdateState
             (UIGenericTransitionInstance instance, IEnumerable<Graphic> graphics, FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param);
+
+        #endregion
+
+        #region Instance Initialization
+
+        public abstract object GetGraphicInitialValue(Graphic graphic);
+
+        #endregion
     }
-    public abstract class UIGenericTransitionData<T, Preset> : UIGenericTransitionData where Preset : TransitionPreset<T>
+    public abstract class UIGenericTransitionData<T, Preset> : UIGenericTransitionData where Preset : UITransitionPreset<T>
     {
         #region Members
 
@@ -73,7 +82,7 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Editor Initialization
+        #region Preset Initialization
 
 #if UNITY_EDITOR
 
@@ -102,7 +111,7 @@ namespace Dhs5.Utility.UI
 
         #region Tween Utility
 
-        public List<UITransitionTween> RunTransitionTween<Tween>(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, T targetValue) where Tween : UITransitionTween<T>, new()
+        public virtual List<UITransitionTween> RunTransitionTween<Tween, G>(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, T targetValue) where Tween : UITransitionTween<T, G>, new() where G : Graphic
         {
             if (monoBehaviour == null)
             {
@@ -113,20 +122,59 @@ namespace Dhs5.Utility.UI
             List<UITransitionTween> tweens = new();
             foreach (var g in graphics)
             {
-                var tween = new Tween();
-                tween.Start(monoBehaviour, g, duration, targetValue);
-                tweens.Add(tween);
+                if (CanRunTween<G>(g, out var graphic))
+                {
+                    var value = targetValue;
+                    if (OverrideTweenTargetValue(graphic, targetValue, out var overrideValue))
+                    {
+                        value = overrideValue;
+                    }
+
+                    var d = duration;
+                    if (OverrideTweenDuration(graphic, duration, out var overrideDuration))
+                    {
+                        d = overrideDuration;
+                    }
+
+                    var tween = new Tween();
+                    tween.Start(monoBehaviour, graphic, d, value);
+                    tweens.Add(tween);
+                }
             }
 
             return tweens;
         }
-        protected void StopTweenCoroutines(MonoBehaviour monoBehaviour, IEnumerable<UITransitionTween> tweens)
+        protected virtual bool CanRunTween<G>(Graphic graphic, out G actualGraphic) where G : Graphic
         {
-            foreach (var tween in tweens)
+            if (graphic is G g)
             {
-                if (tween != null)
+                actualGraphic = g;
+                return true;
+            }
+            actualGraphic = null;
+            return false;
+        }
+        protected virtual bool OverrideTweenTargetValue<G>(G graphic, T targetValue, out T overrideValue) where G : Graphic
+        {
+            overrideValue = default;
+            return false;
+        }
+        protected virtual bool OverrideTweenDuration<G>(G graphic, float duration, out float overrideDuration) where G : Graphic
+        {
+            overrideDuration = 0.0f;
+            return false;
+        }
+
+        protected virtual void StopTweenCoroutines(MonoBehaviour monoBehaviour, IEnumerable<UITransitionTween> tweens)
+        {
+            if (tweens != null)
+            {
+                foreach (var tween in tweens)
                 {
-                    tween.Stop();
+                    if (tween != null)
+                    {
+                        tween.Stop();
+                    }
                 }
             }
         }
@@ -137,11 +185,11 @@ namespace Dhs5.Utility.UI
     #region TransitionValue
 
     [Serializable]
-    public class TransitionValue<T>
+    public class UITransitionValue<T>
     {
         #region Constructor
 
-        public TransitionValue(T value, float duration)
+        public UITransitionValue(T value, float duration)
         {
             m_value = value;
             m_duration = duration;
@@ -176,7 +224,7 @@ namespace Dhs5.Utility.UI
 
 #if UNITY_EDITOR
 
-    [CustomPropertyDrawer(typeof(TransitionValue<>))]
+    [CustomPropertyDrawer(typeof(UITransitionValue<>))]
     public class TransitionValueDrawer : PropertyDrawer
     {
         SerializedProperty p_value;
@@ -216,11 +264,11 @@ namespace Dhs5.Utility.UI
     #endregion
 
     [Serializable]
-    public class EnabledTransitionValue<T> : TransitionValue<T>
+    public class UIEnabledTransitionValue<T> : UITransitionValue<T>
     {
         #region Constructor
 
-        public EnabledTransitionValue(bool enabled, T value, float duration) : base(value, duration)
+        public UIEnabledTransitionValue(bool enabled, T value, float duration) : base(value, duration)
         {
             m_enabled = enabled;
         }
@@ -256,7 +304,7 @@ namespace Dhs5.Utility.UI
 
 #if UNITY_EDITOR
 
-    [CustomPropertyDrawer(typeof(EnabledTransitionValue<>))]
+    [CustomPropertyDrawer(typeof(UIEnabledTransitionValue<>))]
     public class EnabledTransitionValueDrawer : TransitionValueDrawer
     {
         SerializedProperty p_enabled;
@@ -319,14 +367,14 @@ namespace Dhs5.Utility.UI
             }
         }
     }
-    public abstract class UITransitionTween<T> : UITransitionTween
+    public abstract class UITransitionTween<T, G> : UITransitionTween where G : Graphic
     {
-        protected virtual bool IsValid(Graphic graphic) => graphic != null;
-        protected abstract void Update(Graphic graphic, float normalizedTime, T targetValue);
-        protected abstract void OnInit(Graphic graphic, T targetValue);
-        protected abstract void OnComplete(Graphic graphic, T targetValue);
+        protected virtual bool IsValid(G graphic) => graphic != null;
+        protected abstract void Update(G graphic, float normalizedTime, T targetValue);
+        protected abstract void OnInit(G graphic, T targetValue);
+        protected abstract void OnComplete(G graphic, T targetValue);
 
-        public void Start(MonoBehaviour monoBehaviour, Graphic graphic, float duration, T targetValue)
+        public void Start(MonoBehaviour monoBehaviour, G graphic, float duration, T targetValue)
         {
             m_monoBehaviour = monoBehaviour;
 
@@ -340,7 +388,7 @@ namespace Dhs5.Utility.UI
 
             Coroutine = monoBehaviour.StartCoroutine(TweenCoroutine(graphic, duration, targetValue));
         }
-        public virtual IEnumerator TweenCoroutine(Graphic graphic, float duration, T targetValue)
+        public virtual IEnumerator TweenCoroutine(G graphic, float duration, T targetValue)
         {
             if (!IsValid(graphic))
             {
@@ -373,17 +421,17 @@ namespace Dhs5.Utility.UI
     #region TransitionPreset
 
     [Serializable]
-    public class TransitionPreset<T>
+    public class UITransitionPreset<T>
     {
         #region Members
 
         [SerializeField] protected string m_name;
-        [SerializeField] protected TransitionStateOrder m_stateOrder;
-        [SerializeField] protected TransitionValue<T> m_normalState = new(default, 0.1f);
-        [SerializeField] protected EnabledTransitionValue<T> m_highlightedState = new(true, default, 0.1f);
-        [SerializeField] protected EnabledTransitionValue<T> m_pressedState = new(true, default, 0.1f);
-        [SerializeField] protected EnabledTransitionValue<T> m_selectedState = new(true, default, 0.1f);
-        [SerializeField] protected EnabledTransitionValue<T> m_disabledState= new(true, default, 0.1f);
+        [SerializeField] protected UITransitionStateOrder m_stateOrder;
+        [SerializeField] protected UITransitionValue<T> m_normalState = new(default, 0.1f);
+        [SerializeField] protected UIEnabledTransitionValue<T> m_highlightedState = new(true, default, 0.1f);
+        [SerializeField] protected UIEnabledTransitionValue<T> m_pressedState = new(true, default, 0.1f);
+        [SerializeField] protected UIEnabledTransitionValue<T> m_selectedState = new(true, default, 0.1f);
+        [SerializeField] protected UIEnabledTransitionValue<T> m_disabledState= new(true, default, 0.1f);
 
         #endregion
 
@@ -465,7 +513,7 @@ namespace Dhs5.Utility.UI
     #region TransitionStateOrder
 
     [Serializable]
-    public class TransitionStateOrder : IEnumerable<int>
+    public class UITransitionStateOrder : IEnumerable<int>
     {
         #region Members
 
@@ -517,7 +565,7 @@ namespace Dhs5.Utility.UI
 
 #if UNITY_EDITOR
 
-    [CustomPropertyDrawer(typeof(TransitionStateOrder))]
+    [CustomPropertyDrawer(typeof(UITransitionStateOrder))]
     public class TransitionStateOrderDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
