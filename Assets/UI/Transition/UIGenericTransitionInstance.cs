@@ -14,7 +14,7 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
-        [SerializeField] private UIGenericTransitionData m_data;
+        [SerializeField] private UIGenericTransitionAsset m_data;
         [SerializeField] private int m_presetIndex;
 
         private Dictionary<Graphic, object> m_initialValues = new();

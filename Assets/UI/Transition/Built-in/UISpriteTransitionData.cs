@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Color")]
-    public class UISpriteTransitionData : UIGenericTransitionData<Sprite, UITransitionPreset<Sprite>>
+    public class UISpriteTransitionData : UIGenericTransitionAsset<Sprite, UITransitionPreset<Sprite>>
     {
         #region Apply
 

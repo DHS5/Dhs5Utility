@@ -5,14 +5,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 
+
 #if UNITY_EDITOR
 using Dhs5.Utility.Editors;
 using UnityEditor;
+using UnityEditorInternal;
 #endif
 
 namespace Dhs5.Utility.UI
 {
-    public abstract class UIGenericTransitionData : ScriptableObject
+    public abstract class UIGenericTransitionAsset : ScriptableObject
     {
         #region Process
 
@@ -26,8 +28,18 @@ namespace Dhs5.Utility.UI
         public abstract object GetGraphicInitialValue(Graphic graphic);
 
         #endregion
+
+        #region Preset Initialization
+
+#if UNITY_EDITOR
+
+        public abstract void Editor_OnAddNewPreset();
+
+#endif
+
+        #endregion
     }
-    public abstract class UIGenericTransitionData<T, Preset> : UIGenericTransitionData where Preset : UITransitionPreset<T>
+    public abstract class UIGenericTransitionAsset<T, Preset> : UIGenericTransitionAsset where Preset : UITransitionPreset<T>
     {
         #region Members
 
@@ -86,13 +98,18 @@ namespace Dhs5.Utility.UI
 
 #if UNITY_EDITOR
 
-        protected virtual void Reset()
+        public sealed override void Editor_OnAddNewPreset()
         {
-            
+            if (m_presets.IsValid())
+            {
+                var preset = m_presets[^1];
+                Editor_OnAddNewPreset(preset);
+            }
         }
-
         protected virtual void Editor_OnAddNewPreset(Preset preset)
         {
+            preset.SetName("New preset");
+
             GetDefaultValueAndDuration(out var value, out var duration);
 
             preset.SetState(EUIState.NORMAL, true, value, duration);
@@ -181,6 +198,104 @@ namespace Dhs5.Utility.UI
 
         #endregion
     }
+
+    #region Editor
+
+#if UNITY_EDITOR
+
+    [CustomEditor(typeof(UIGenericTransitionAsset<,>), editorForChildClasses: true)]
+    public class UIGenericTransitionDataEditor : Editor
+    {
+        #region Members
+
+        protected UIGenericTransitionAsset m_asset;
+
+        protected ReorderableList m_list;
+        protected List<string> m_excludedProperties = new();
+
+        protected SerializedProperty p_script;
+        protected SerializedProperty p_presets;
+
+        #endregion
+
+        #region Core Behaviour
+
+        protected virtual void OnEnable()
+        {
+            m_asset = target as UIGenericTransitionAsset;
+
+            p_script = serializedObject.FindProperty("m_Script");
+            p_presets = serializedObject.FindProperty("m_presets");
+
+            m_excludedProperties.Add(p_script.propertyPath);
+            m_excludedProperties.Add(p_presets.propertyPath);
+
+            if (p_presets != null)
+            {
+                m_list = InitializeList();
+            }
+        }
+
+        #endregion
+
+
+        #region Core GUI
+
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            using (new EditorGUI.DisabledGroupScope(true))
+            {
+                EditorGUILayout.PropertyField(p_script);
+            }
+            if (m_list != null)
+            {
+                m_list.DoLayoutList();
+            }
+            DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        #endregion
+
+        #region List GUI
+
+        protected virtual ReorderableList InitializeList()
+        {
+            return new ReorderableList(serializedObject, p_presets, true, false, true, true)
+            {
+                drawElementCallback = OnDrawElement,
+                elementHeightCallback = OnElementHeight,
+
+                onAddCallback = OnAddToList,
+            };
+        }
+
+        protected virtual float OnElementHeight(int index) => EditorGUI.GetPropertyHeight(p_presets.GetArrayElementAtIndex(index));
+        protected virtual void OnDrawElement(Rect rect, int index, bool selected, bool focused)
+        {
+            EditorGUI.PropertyField(new Rect(rect.x + 8f, rect.y, rect.width - 8f, rect.height), p_presets.GetArrayElementAtIndex(index), true);
+        }
+
+        protected virtual void OnAddToList(ReorderableList list)
+        {
+            if (p_presets != null)
+            {
+                p_presets.InsertArrayElementAtIndex(p_presets.arraySize);
+                serializedObject.ApplyModifiedProperties();
+                m_asset.Editor_OnAddNewPreset();
+            }
+        }
+
+        #endregion
+    }
+
+#endif
+
+    #endregion
+
 
     #region TransitionValue
 

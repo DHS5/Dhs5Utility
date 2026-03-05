@@ -6,7 +6,7 @@ using System.Collections;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Scale")]
-    public class UIScaleTransitionData : UIGenericTransitionData<Vector2, UITransitionPreset<Vector2>>
+    public class UIScaleTransitionData : UIGenericTransitionAsset<Vector2, UITransitionPreset<Vector2>>
     {
         #region Apply
 

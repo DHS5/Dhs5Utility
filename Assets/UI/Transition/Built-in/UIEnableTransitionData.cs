@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Dhs5.Utility.UI
 {
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Enable")]
-    public class UIEnableTransitionData : UIGenericTransitionData<bool, UITransitionPreset<bool>>
+    public class UIEnableTransitionData : UIGenericTransitionAsset<bool, UITransitionPreset<bool>>
     {
         #region Apply
 
