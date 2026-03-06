@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
 {
-    [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Active")]
-    public class UIActiveTransitionData : UIGenericTransitionAsset<bool, UITransitionPreset<bool>>
+    [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Asset/Enable")]
+    public class UIEnableTransitionAsset : UIGenericTransitionAsset<bool, UITransitionPreset<bool>>
     {
         #region Apply
 
@@ -19,7 +19,7 @@ namespace Dhs5.Utility.UI
         {
             foreach (var g in graphics)
             {
-                g.gameObject.SetActive(value);
+                g.enabled = value;
             }
 
             return null;
@@ -41,7 +41,7 @@ namespace Dhs5.Utility.UI
 
         public override object GetGraphicInitialValue(Graphic graphic)
         {
-            return graphic.gameObject.activeSelf;
+            return graphic.enabled;
         }
 
         #endregion

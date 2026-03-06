@@ -4,8 +4,8 @@ using System.Collections.Generic;
 
 namespace Dhs5.Utility.UI
 {
-    [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Color")]
-    public class UIColorTransitionData : UIGenericTransitionAsset<Color, UITransitionPreset<Color>>
+    [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Asset/Color")]
+    public class UIColorTransitionAsset : UIGenericTransitionAsset<Color, UITransitionPreset<Color>>
     {
         #region Apply
 

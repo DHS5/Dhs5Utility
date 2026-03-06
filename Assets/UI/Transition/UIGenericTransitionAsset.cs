@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 
-
 #if UNITY_EDITOR
 using Dhs5.Utility.Editors;
 using UnityEditor;
@@ -94,38 +93,6 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Preset Initialization
-
-#if UNITY_EDITOR
-
-        public sealed override void Editor_OnAddNewPreset()
-        {
-            if (m_presets.IsValid())
-            {
-                var preset = m_presets[^1];
-                Editor_OnAddNewPreset(preset);
-            }
-        }
-        protected virtual void Editor_OnAddNewPreset(Preset preset)
-        {
-            preset.SetName("New preset");
-
-            GetDefaultValueAndDuration(out var value, out var duration);
-
-            preset.SetState(EUIState.NORMAL, true, value, duration);
-            preset.SetState(EUIState.HIGHLIGHTED, true, value, duration);
-            preset.SetState(EUIState.PRESSED, true, value, duration);
-            preset.SetState(EUIState.SELECTED, true, value, duration);
-            preset.SetState(EUIState.DISABLED, true, value, duration);
-        }
-
-#endif
-
-        protected abstract void GetDefaultValueAndDuration(out T value, out float duration);
-
-
-        #endregion
-
         #region Tween Utility
 
         public virtual List<UITransitionTween> RunTransitionTween<Tween, G>(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, T targetValue) where Tween : UITransitionTween<T, G>, new() where G : Graphic
@@ -195,6 +162,38 @@ namespace Dhs5.Utility.UI
                 }
             }
         }
+
+        #endregion
+
+        #region Preset Initialization
+
+#if UNITY_EDITOR
+
+        public sealed override void Editor_OnAddNewPreset()
+        {
+            if (m_presets.IsValid())
+            {
+                var preset = m_presets[^1];
+                Editor_OnAddNewPreset(preset);
+            }
+        }
+        protected virtual void Editor_OnAddNewPreset(Preset preset)
+        {
+            preset.SetName("New preset");
+
+            GetDefaultValueAndDuration(out var value, out var duration);
+
+            preset.SetState(EUIState.NORMAL, true, value, duration);
+            preset.SetState(EUIState.HIGHLIGHTED, true, value, duration);
+            preset.SetState(EUIState.PRESSED, true, value, duration);
+            preset.SetState(EUIState.SELECTED, true, value, duration);
+            preset.SetState(EUIState.DISABLED, true, value, duration);
+        }
+
+#endif
+
+        protected abstract void GetDefaultValueAndDuration(out T value, out float duration);
+
 
         #endregion
     }

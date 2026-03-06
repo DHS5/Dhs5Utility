@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
 {
-    [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Data/Text Size")]
-    public class UITextSizeTransitionData : UIGenericTransitionAsset<float, UITransitionPreset<float>>
+    [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Asset/Text Size")]
+    public class UITextSizeTransitionAsset : UIGenericTransitionAsset<float, UITransitionPreset<float>>
     {
         #region Initial Values
 

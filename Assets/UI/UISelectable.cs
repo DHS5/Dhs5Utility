@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
@@ -47,10 +48,10 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        public virtual bool IsPointerInside { get; private set; }
-        public virtual bool IsLeftPointerDown { get; private set; }
-        public virtual bool IsRightPointerDown { get; private set; }
-        public virtual bool HasSelection { get; private set; }
+        public virtual bool IsPointerInside { get; protected set; }
+        public virtual bool IsLeftPointerDown { get; protected set; }
+        public virtual bool IsRightPointerDown { get; protected set; }
+        public virtual bool HasSelection { get; protected set; }
 
         #endregion
 
@@ -115,6 +116,11 @@ namespace Dhs5.Utility.UI
             if (IsActive() && !IsInteractable())
             {
                 DoStateTransition(SelectionState.Disabled, false);
+            }
+            else if (eventData.button == PointerEventData.InputButton.Right
+                && ConsiderRightPressAsTransitionPressed())
+            {
+                DoStateTransition(SelectionState.Pressed, false);
             }
 
             if (eventData.button == PointerEventData.InputButton.Left)
@@ -225,13 +231,14 @@ namespace Dhs5.Utility.UI
             FUIState state = 0;
 
             if (IsPointerInside) state |= FUIState.HIGHLIGHTED;
-            if (IsLeftPointerDown) state |= FUIState.PRESSED;
+            if (IsLeftPointerDown || (IsRightPointerDown && ConsiderRightPressAsTransitionPressed())) state |= FUIState.PRESSED;
             if (HasSelection) state |= FUIState.SELECTED;
             if (!IsInteractable()) state |= FUIState.DISABLED;
 
             if (state == 0) return FUIState.NORMAL;
             return state;
         }
+        protected virtual bool ConsiderRightPressAsTransitionPressed() => false;
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
             if (!gameObject.activeInHierarchy)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -6,7 +7,7 @@ using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
 {
-    public class UIListNavBox : UINavBox
+    public class UIListNavBox : UINavBox, IList<Selectable>
     {
         #region ENUM Axis
 
@@ -56,6 +57,65 @@ namespace Dhs5.Utility.UI
                     SetupChildren();
                 }
             }
+        }
+
+        #endregion
+
+
+        #region IList<Selectable>
+
+        public Selectable this[int index] 
+        { 
+            get => m_selectables[index]; 
+            set
+            {
+                m_selectables[index] = value;
+                SetupChildren();
+            } 
+        }
+
+        public bool IsReadOnly => false;
+
+        public void Add(Selectable item)
+        {
+            m_selectables.Add(item);
+            SetupChildren();
+        }
+
+        public void Clear() => m_selectables.Clear();
+
+        public bool Contains(Selectable item) => m_selectables.Contains(item);
+
+        public void CopyTo(Selectable[] array, int arrayIndex) => m_selectables.CopyTo(array, arrayIndex);
+
+        public int IndexOf(Selectable item) => m_selectables.IndexOf(item);
+
+        public void Insert(int index, Selectable item)
+        {
+            m_selectables.Insert(index, item);
+            SetupChildren();
+        }
+
+        public bool Remove(Selectable item)
+        {
+            if (m_selectables.Remove(item))
+            {
+                SetupChildren();
+                return true;
+            }
+            return false;
+        }
+
+        public void RemoveAt(int index) => m_selectables.RemoveAt(index);
+        
+        public IEnumerator<Selectable> GetEnumerator()
+        {
+            return m_selectables.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
 
         #endregion

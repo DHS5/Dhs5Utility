@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4675c2c23a8987042b02674a1b5109f8, type: 3}
+  m_Name: New UI Text Style Transition Asset
+  m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.UI.UITextStyleTransitionAsset
+  m_presets:
+  - m_name: Button
+    m_stateOrder:
+      m_order: 04000000020000000100000003000000
+    m_normalState:
+      m_value: 0
+      m_duration: 0.1
+    m_highlightedState:
+      m_value: 1
+      m_duration: 0.1
+      m_enabled: 1
+    m_pressedState:
+      m_value: 5
+      m_duration: 0.1
+      m_enabled: 1
+    m_selectedState:
+      m_value: 1
+      m_duration: 0.1
+      m_enabled: 1
+    m_disabledState:
+      m_value: 0
+      m_duration: 0.1
+      m_enabled: 1
