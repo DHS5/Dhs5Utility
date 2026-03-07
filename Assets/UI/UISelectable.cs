@@ -17,6 +17,7 @@ namespace Dhs5.Utility.UI
         LEFT_PRESS = 2,
         RIGHT_PRESS = 3,
         SELECTION = 4,
+        INTERACTABLE = 5,
     }
 
     public class UISelectable : Selectable, IUIBoxable
@@ -27,6 +28,7 @@ namespace Dhs5.Utility.UI
         [SerializeField] protected bool m_useDefaultTransitions;
 
         private UINavBox m_box;
+        private bool m_interactable;
 
         private bool m_transitionInitialized;
         protected FUIState m_lastState;
@@ -61,6 +63,17 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Core Behaviour
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            m_interactable = interactable;
+        }
+
+        #endregion
+
 
         #region Overrides
 
@@ -77,6 +90,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
+            EventContext = this;
             StateChanged?.Invoke(EUIStateChangeType.HOVER, true);
 
             OnAfterPointerEnter(eventData);
@@ -93,6 +107,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
+            EventContext = this;
             StateChanged?.Invoke(EUIStateChangeType.HOVER, false);
 
             OnAfterPointerExit(eventData);
@@ -125,10 +140,12 @@ namespace Dhs5.Utility.UI
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
+                EventContext = this;
                 StateChanged?.Invoke(EUIStateChangeType.LEFT_PRESS, true);
             }
             else if (eventData.button == PointerEventData.InputButton.Right)
             {
+                EventContext = this;
                 StateChanged?.Invoke(EUIStateChangeType.RIGHT_PRESS, true);
             }
 
@@ -155,10 +172,12 @@ namespace Dhs5.Utility.UI
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
+                EventContext = this;
                 StateChanged?.Invoke(EUIStateChangeType.LEFT_PRESS, false);
             }
             else if (eventData.button == PointerEventData.InputButton.Right)
             {
+                EventContext = this;
                 StateChanged?.Invoke(EUIStateChangeType.RIGHT_PRESS, false);
             }
 
@@ -178,12 +197,15 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
+            EventContext = this;
             StateChanged?.Invoke(EUIStateChangeType.SELECTION, true);
 
             OnAfterSelect(eventData);
         }
         public override sealed void OnDeselect(BaseEventData eventData)
         {
+            CheckInteractabilityChange();
+
             OnBeforeDeselect(eventData);
 
             HasSelection = false;
@@ -194,6 +216,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
+            EventContext = this;
             StateChanged?.Invoke(EUIStateChangeType.SELECTION, false);
 
             OnAfterDeselect(eventData);
@@ -221,8 +244,30 @@ namespace Dhs5.Utility.UI
         protected virtual void OnBeforeDeselect(BaseEventData eventData) { }
         protected virtual void OnAfterDeselect(BaseEventData eventData) { }
 
+        // INTERACTABLE
+        protected virtual void OnBecameInteractable() { }
+        protected virtual void OnBecameUninteractable() { }
+
         #endregion
 
+
+        #region Interactability Tracking
+
+        protected void CheckInteractabilityChange()
+        {
+            if (m_interactable != IsInteractable())
+            {
+                m_interactable = !m_interactable;
+
+                if (m_interactable) OnBecameInteractable();
+                else OnBecameUninteractable();
+
+                EventContext = this;
+                StateChanged?.Invoke(EUIStateChangeType.INTERACTABLE, m_interactable);
+            }
+        }
+
+        #endregion
 
         #region Transitions
 
@@ -241,6 +286,8 @@ namespace Dhs5.Utility.UI
         protected virtual bool ConsiderRightPressAsTransitionPressed() => false;
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
+            CheckInteractabilityChange();
+
             if (!gameObject.activeInHierarchy)
                 return;
 
@@ -349,6 +396,15 @@ namespace Dhs5.Utility.UI
         #region Box
 
         protected virtual void OnSetParentBox(UINavBox box) { }
+
+        #endregion
+
+
+        // --- STATIC ---
+
+        #region Event Context
+
+        public static UISelectable EventContext { get; protected set; }
 
         #endregion
     }

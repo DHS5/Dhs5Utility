@@ -82,6 +82,12 @@ namespace Dhs5.Utility.UI
             SetupChildren();
         }
 
+        public void AddRange(IEnumerable<Selectable> selectables)
+        {
+            m_selectables.AddRange(selectables);
+            SetupChildren();
+        }
+
         public void Clear() => m_selectables.Clear();
 
         public bool Contains(Selectable item) => m_selectables.Contains(item);
