@@ -199,7 +199,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 60410877}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &60410877
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -477,7 +476,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 319301706}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &319301706
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -596,7 +594,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 350001419}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &350001419
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1004,7 +1001,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1015620432}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1015620432
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1210,7 +1206,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1235651138}
   m_transitioners: []
-  m_useDefaultTransitions: 1
 --- !u!114 &1235651138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1420,7 +1415,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1283196598}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1283196598
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1539,7 +1533,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1317118671}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1317118671
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1658,7 +1651,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1355737679}
   m_transitioners: []
-  m_useDefaultTransitions: 1
 --- !u!114 &1355737679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1782,7 +1774,6 @@ MonoBehaviour:
   m_transitioners:
   - {fileID: 1419826172}
   - {fileID: 218290217}
-  m_useDefaultTransitions: 0
 --- !u!114 &1419826170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1934,7 +1925,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1487724665}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1487724665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2053,7 +2043,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1510628159}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1510628159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2172,7 +2161,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1543346731}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1543346731
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2291,7 +2279,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1671693245}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1671693245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2588,7 +2575,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1779241120}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1779241120
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2986,7 +2972,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1798457797}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1798457797
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3105,7 +3090,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1863980816}
   m_transitioners: []
-  m_useDefaultTransitions: 1
 --- !u!114 &1863980816
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3224,7 +3208,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1870832134}
   m_transitioners: []
-  m_useDefaultTransitions: 1
 --- !u!114 &1870832134
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3343,7 +3326,6 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 1874266997}
   m_transitioners: []
-  m_useDefaultTransitions: 0
 --- !u!114 &1874266997
 MonoBehaviour:
   m_ObjectHideFlags: 0

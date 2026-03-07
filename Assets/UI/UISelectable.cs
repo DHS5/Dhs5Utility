@@ -25,7 +25,6 @@ namespace Dhs5.Utility.UI
         #region Members
 
         [SerializeField] protected List<UITransitioner> m_transitioners;
-        [SerializeField] protected bool m_useDefaultTransitions;
 
         private UINavBox m_box;
         private bool m_interactable;
@@ -291,7 +290,7 @@ namespace Dhs5.Utility.UI
             if (!gameObject.activeInHierarchy)
                 return;
 
-            if (m_useDefaultTransitions)
+            if (transition != Transition.None)
             {
                 base.DoStateTransition(state, instant);
             }
