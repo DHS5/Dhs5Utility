@@ -4,16 +4,17 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static UnityEngine.EventSystems.EventTrigger;
+using System.Collections.Generic;
 
 namespace Dhs5.Utility.UI
 {
-    public class UIToggle : UISelectable
+    public class UIToggle : UISelectable, 
+        IPointerClickHandler, ISubmitHandler
     {
         #region Members
 
         [Header("Toggle")]
-        [SerializeField] protected Graphic[] m_checkmarks;
+        [SerializeField] protected List<Graphic> m_checkmarks;
         [SerializeField] protected UIToggleGroup m_group;
         [Tooltip("Whether the toggle is ON or OFF")]
         [SerializeField] protected bool m_isOn = true;
@@ -56,15 +57,24 @@ namespace Dhs5.Utility.UI
 
         public event Action<bool> ValueChanged;
 
+        protected virtual void TriggerValueChanged()
+        {
+            UISystemProfilerApi.AddMarker("Toggle.value", this);
+            EventContext = this;
+            ValueChanged?.Invoke(m_isOn);
+        }
+
         #endregion
 
         #region Core Behaviour
 
         /// <summary>
-        /// Assume the correct visual state.
+        /// Assume the correct visual state
         /// </summary>
         protected override void Start()
         {
+            base.Start();
+
             PlayCheckmarkEffect(0f);
         }
 
@@ -87,6 +97,7 @@ namespace Dhs5.Utility.UI
         {
             if (m_group != null)
                 m_group.EnsureValidState();
+
             base.OnDestroy();
         }
 
@@ -107,12 +118,12 @@ namespace Dhs5.Utility.UI
             if (setMemberValue)
                 m_group = newGroup;
 
+            // Note: Don't refer to m_Group here as it's not guaranteed to have been set.
             // Only register to the new group if this Toggle is active.
             if (newGroup != null && IsActive())
                 newGroup.RegisterToggle(this);
 
             // If we are in a new group, and this toggle is on, notify group.
-            // Note: Don't refer to m_Group here as it's not guaranteed to have been set.
             if (newGroup != null && IsOn && IsActive())
                 newGroup.NotifyToggleOn(this);
         }
@@ -120,10 +131,17 @@ namespace Dhs5.Utility.UI
         {
             if (m_group != null && m_group.isActiveAndEnabled && IsActive())
             {
-                if (m_isOn || (!m_group.AnyTogglesOn() && !m_group.allowSwitchOff))
+                if (m_isOn)
+                {
+                    m_group.NotifyToggleOn(this, triggerEvent);
+                }
+                else if (!m_group.AnyTogglesOn() && !m_group.AllowSwitchOff)
                 {
                     m_isOn = true;
-                    m_group.NotifyToggleOn(this, triggerEvent);
+                }
+                else
+                {
+                    m_group.NotifyToggleOff(this, triggerEvent);
                 }
             }
         }
@@ -146,7 +164,7 @@ namespace Dhs5.Utility.UI
         /// Set IsOn without invoking ValueChanged callback
         /// </summary>
         /// <param name="value">New Value for IsOn</param>
-        public void SetIsOnWithoutNotify(bool value)
+        public virtual void SetIsOnWithoutNotify(bool value)
         {
             Set(value, false);
         }
@@ -168,8 +186,7 @@ namespace Dhs5.Utility.UI
             PlayCheckmarkEffect(CheckmarkFadeDuration);
             if (triggerEvent)
             {
-                UISystemProfilerApi.AddMarker("Toggle.value", this);
-                ValueChanged?.Invoke(m_isOn);
+                TriggerValueChanged();
             }
 
             return m_isOn == value;
@@ -177,7 +194,7 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Simulation
+        #region Checkmark
 
         protected virtual void PlayCheckmarkEffect(float duration)
         {
@@ -193,33 +210,32 @@ namespace Dhs5.Utility.UI
                 }
             }
             else
+#endif
             {
                 foreach (var checkmark in m_checkmarks.Where(c => c != null))
                 {
                     checkmark.CrossFadeAlpha(m_isOn ? 1f : 0f, duration, true);
                 }
             }
-#endif
         }        
 
         #endregion
 
-        #region IPointerHandlers
+        #region IEventHandlers
 
-        /// <summary>
-        /// React to clicks.
-        /// </summary>
         public virtual void OnPointerClick(PointerEventData eventData)
         {
-            if (eventData.button != PointerEventData.InputButton.Left)
-                return;
-
-            TryToggle(true);
+            if (eventData.button == PointerEventData.InputButton.Left
+                || (UseRightClick() && eventData.button == PointerEventData.InputButton.Right))
+            {
+                TryToggle(true);
+            }
         }
 
         public virtual void OnSubmit(BaseEventData eventData)
         {
             TryToggle(true);
+            SimulatePress(0.1f);
         }
 
         #endregion

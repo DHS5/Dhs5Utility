@@ -1,9 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
@@ -54,11 +54,20 @@ namespace Dhs5.Utility.UI
         public virtual bool IsRightPointerDown { get; protected set; }
         public virtual bool HasSelection { get; protected set; }
 
+        public virtual bool IsSimulatingClick { get; protected set; }
+
         #endregion
 
         #region Events
 
         public event UIStateChangeEvent StateChanged;
+
+        protected virtual void TriggerStateChanged(EUIStateChangeType type, bool value)
+        {
+            UISystemProfilerApi.AddMarker("Selectable.StateChanged", this);
+            EventContext = this;
+            StateChanged?.Invoke(type, value);
+        }
 
         #endregion
 
@@ -89,8 +98,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            EventContext = this;
-            StateChanged?.Invoke(EUIStateChangeType.HOVER, true);
+            TriggerStateChanged(EUIStateChangeType.HOVER, true);
 
             OnAfterPointerEnter(eventData);
         }
@@ -106,8 +114,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            EventContext = this;
-            StateChanged?.Invoke(EUIStateChangeType.HOVER, false);
+            TriggerStateChanged(EUIStateChangeType.HOVER, false);
 
             OnAfterPointerExit(eventData);
         }
@@ -132,20 +139,18 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
             else if (eventData.button == PointerEventData.InputButton.Right
-                && ConsiderRightPressAsTransitionPressed())
+                && UseRightClick())
             {
                 DoStateTransition(SelectionState.Pressed, false);
             }
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
-                EventContext = this;
-                StateChanged?.Invoke(EUIStateChangeType.LEFT_PRESS, true);
+                TriggerStateChanged(EUIStateChangeType.LEFT_PRESS, true);
             }
             else if (eventData.button == PointerEventData.InputButton.Right)
             {
-                EventContext = this;
-                StateChanged?.Invoke(EUIStateChangeType.RIGHT_PRESS, true);
+                TriggerStateChanged(EUIStateChangeType.RIGHT_PRESS, true);
             }
 
             OnAfterPointerDown(eventData);
@@ -171,13 +176,11 @@ namespace Dhs5.Utility.UI
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
-                EventContext = this;
-                StateChanged?.Invoke(EUIStateChangeType.LEFT_PRESS, false);
+                TriggerStateChanged(EUIStateChangeType.LEFT_PRESS, false);
             }
             else if (eventData.button == PointerEventData.InputButton.Right)
             {
-                EventContext = this;
-                StateChanged?.Invoke(EUIStateChangeType.RIGHT_PRESS, false);
+                TriggerStateChanged(EUIStateChangeType.RIGHT_PRESS, false);
             }
 
             OnAfterPointerUp(eventData);
@@ -196,8 +199,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            EventContext = this;
-            StateChanged?.Invoke(EUIStateChangeType.SELECTION, true);
+            TriggerStateChanged(EUIStateChangeType.SELECTION, true);
 
             OnAfterSelect(eventData);
         }
@@ -215,8 +217,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            EventContext = this;
-            StateChanged?.Invoke(EUIStateChangeType.SELECTION, false);
+            TriggerStateChanged(EUIStateChangeType.SELECTION, false);
 
             OnAfterDeselect(eventData);
         }
@@ -261,8 +262,7 @@ namespace Dhs5.Utility.UI
                 if (m_interactable) OnBecameInteractable();
                 else OnBecameUninteractable();
 
-                EventContext = this;
-                StateChanged?.Invoke(EUIStateChangeType.INTERACTABLE, m_interactable);
+                TriggerStateChanged(EUIStateChangeType.INTERACTABLE, m_interactable);
             }
         }
 
@@ -275,14 +275,13 @@ namespace Dhs5.Utility.UI
             FUIState state = 0;
 
             if (IsPointerInside) state |= FUIState.HIGHLIGHTED;
-            if (IsLeftPointerDown || (IsRightPointerDown && ConsiderRightPressAsTransitionPressed())) state |= FUIState.PRESSED;
+            if (IsLeftPointerDown || IsSimulatingClick || (IsRightPointerDown && UseRightClick())) state |= FUIState.PRESSED;
             if (HasSelection) state |= FUIState.SELECTED;
             if (!IsInteractable()) state |= FUIState.DISABLED;
 
             if (state == 0) return FUIState.NORMAL;
             return state;
         }
-        protected virtual bool ConsiderRightPressAsTransitionPressed() => false;
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
             CheckInteractabilityChange();
@@ -337,6 +336,7 @@ namespace Dhs5.Utility.UI
             IsLeftPointerDown = false;
             IsRightPointerDown = false;
             HasSelection = false;
+            IsSimulatingClick = false;
 
             if (m_transitioners.IsValid())
             {
@@ -391,6 +391,54 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Press Simulation
+
+        protected Coroutine m_simulationCoroutine;
+
+        protected virtual void SimulatePress(float duration)
+        {
+            if (!IsActive()) return;
+
+            StopSimulationCoroutine();
+
+            IsSimulatingClick = true;
+            DoStateTransition(SelectionState.Pressed, instant: false);
+            StartSimulationCoroutine(duration);
+        }
+
+        protected virtual void StartSimulationCoroutine(float duration)
+        {
+            m_simulationCoroutine = StartCoroutine(SimulationCoroutine(duration));
+        }
+        protected virtual IEnumerator SimulationCoroutine(float duration)
+        {
+            float elapsedTime = 0f;
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            IsSimulatingClick = false;
+            DoStateTransition(base.currentSelectionState, instant: false);
+        }
+        protected void StopSimulationCoroutine()
+        {
+            if (m_simulationCoroutine != null)
+            {
+                StopCoroutine(m_simulationCoroutine);
+                m_simulationCoroutine = null;
+            }
+        }
+
+        #endregion
+
+        #region Settings
+
+        protected virtual bool UseRightClick() => GlobalUseRightClick;
+
+        #endregion
+
 
         #region Box
 
@@ -400,6 +448,12 @@ namespace Dhs5.Utility.UI
 
 
         // --- STATIC ---
+
+        #region Settings
+
+        public static bool GlobalUseRightClick { get; set; } = false;
+
+        #endregion
 
         #region Event Context
 
