@@ -12,7 +12,7 @@ namespace Dhs5.Utility.UI
 
         public event Action Clicked;
 
-        protected virtual void TriggerClicked()
+        protected void TriggerClicked()
         {
             UISystemProfilerApi.AddMarker("Button.onClick", this);
             EventContext = this;

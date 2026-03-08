@@ -1972,7 +1972,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1262598688}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: adc1c71850a50374884506c3f57c5d4a, type: 3}
   m_Name: 
@@ -4415,7 +4415,7 @@ MonoBehaviour:
   m_checkmarks:
   - {fileID: 345031166}
   m_group: {fileID: 1262598692}
-  m_isOn: 0
+  m_isOn: 1
   m_checkmarkFadeDuration: 0.1
 --- !u!114 &2124388766
 MonoBehaviour:

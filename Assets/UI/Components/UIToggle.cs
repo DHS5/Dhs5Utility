@@ -57,7 +57,7 @@ namespace Dhs5.Utility.UI
 
         public event Action<bool> ValueChanged;
 
-        protected virtual void TriggerValueChanged()
+        protected void TriggerValueChanged()
         {
             UISystemProfilerApi.AddMarker("Toggle.value", this);
             EventContext = this;
@@ -237,6 +237,25 @@ namespace Dhs5.Utility.UI
             TryToggle(true);
             SimulatePress(0.1f);
         }
+
+        #endregion
+
+
+        #region Editor
+
+#if UNITY_EDITOR
+
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+
+            if (!Application.isPlaying)
+            {
+                PlayCheckmarkEffect(0f);
+            }
+        }
+
+#endif
 
         #endregion
     }

@@ -6,6 +6,10 @@ using UnityEngine.EventSystems;
 using System.Linq;
 using System.Collections;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace Dhs5.Utility.UI
 {
     public class UIToggleGroup : UIBehaviour
@@ -70,16 +74,15 @@ namespace Dhs5.Utility.UI
         public event Action<UIToggleGroup> ContentChanged;
         public event Action<UIToggleGroup> StateChanged;
 
-        protected virtual void TriggerContentChanged()
+        protected void TriggerContentChanged()
         {
             UISystemProfilerApi.AddMarker("ToggleGroup.content", this);
             ContentChanged?.Invoke(this);
         }
-        protected virtual void TriggerStateChanged()
+        protected void TriggerStateChanged()
         {
             UISystemProfilerApi.AddMarker("ToggleGroup.state", this);
             StateChanged?.Invoke(this);
-            Debug.Log("TRIGGER");
         }
 
         #endregion
@@ -102,7 +105,7 @@ namespace Dhs5.Utility.UI
         {
             if (m_toggles.IsValid())
             {
-                TriggerContentChanged();
+                OnContentChanged();
             }
 
             EnsureValidState();
@@ -112,6 +115,44 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+
+        #region Registration
+
+        /// <summary>
+        /// Register a toggle with the toggle group so it is watched for changes and notified if another toggle in the group changes
+        /// </summary>
+        /// <param name="toggle">The toggle to register with the group</param>
+        public virtual void RegisterToggle(UIToggle toggle)
+        {
+            if (toggle != null && !m_toggles.Contains(toggle))
+            {
+                if (toggle == m_defaultFirstToggle) 
+                    m_toggles.Insert(0, toggle);
+                else 
+                    m_toggles.Add(toggle);
+
+                if (didStart)
+                    OnContentChanged();
+            }
+        }
+
+        /// <summary>
+        /// Unregister a toggle from the group
+        /// </summary>
+        /// <param name="toggle">The toggle to remove</param>
+        public virtual void UnregisterToggle(UIToggle toggle)
+        {
+            if (m_toggles.Remove(toggle))
+            {
+                if (didStart)
+                    OnContentChanged();
+
+                if (toggle.IsOn)
+                    EnsureValidState();
+            }
+        }
+
+        #endregion
 
         #region Behaviour
 
@@ -141,12 +182,7 @@ namespace Dhs5.Utility.UI
 
                 if (m_waitingToTriggerStateChange)
                 {
-#if UNITY_EDITOR
-                    if (Application.isPlaying)
-#endif
-                    {
-                        TriggerStateChanged();
-                    }
+                    OnStateChanged();
                 }
                 m_waitingToTriggerStateChange = wasWaitingToTriggerStateChange;
             }
@@ -157,12 +193,7 @@ namespace Dhs5.Utility.UI
             {
                 if (!m_waitingToTriggerStateChange && triggerEvent)
                 {
-#if UNITY_EDITOR
-                    if (Application.isPlaying)
-#endif
-                    {
-                        TriggerStateChanged();
-                    }
+                    OnStateChanged();
                 }
             }
         }
@@ -201,12 +232,7 @@ namespace Dhs5.Utility.UI
 
             if (m_waitingToTriggerStateChange)
             {
-#if UNITY_EDITOR
-                if (Application.isPlaying)
-#endif
-                {
-                    TriggerStateChanged();
-                }
+                OnStateChanged();
             }
             m_waitingToTriggerStateChange = wasWaitingToTriggerStateChange;
         }
@@ -242,51 +268,31 @@ namespace Dhs5.Utility.UI
 
             if (m_waitingToTriggerStateChange)
             {
-#if UNITY_EDITOR
-                if (Application.isPlaying)
-#endif
-                {
-                    TriggerStateChanged();
-                }
+                OnStateChanged();
             }
             m_waitingToTriggerStateChange = wasWaitingToTriggerStateChange;
         }
 
-#endregion
+        #endregion
 
-        #region Registration
+        #region Callbacks
 
-        /// <summary>
-        /// Register a toggle with the toggle group so it is watched for changes and notified if another toggle in the group changes
-        /// </summary>
-        /// <param name="toggle">The toggle to register with the group</param>
-        public virtual void RegisterToggle(UIToggle toggle)
+        protected virtual void OnContentChanged()
         {
-            if (toggle != null && !m_toggles.Contains(toggle))
+#if UNITY_EDITOR
+            if (Application.isPlaying)
+#endif
             {
-                if (toggle == m_defaultFirstToggle) 
-                    m_toggles.Insert(0, toggle);
-                else 
-                    m_toggles.Add(toggle);
-
-                if (didStart)
-                    TriggerContentChanged();
+                TriggerContentChanged();
             }
         }
-
-        /// <summary>
-        /// Unregister a toggle from the group
-        /// </summary>
-        /// <param name="toggle">The toggle to remove</param>
-        public virtual void UnregisterToggle(UIToggle toggle)
+        protected virtual void OnStateChanged()
         {
-            if (m_toggles.Remove(toggle))
+#if UNITY_EDITOR
+            if (Application.isPlaying)
+#endif
             {
-                if (didStart)
-                    TriggerContentChanged();
-
-                if (toggle.IsOn)
-                    EnsureValidState();
+                TriggerStateChanged();
             }
         }
 
@@ -349,4 +355,47 @@ namespace Dhs5.Utility.UI
 
         #endregion
     }
+
+    #region Editor
+
+#if UNITY_EDITOR
+
+    [CustomEditor(typeof(UIToggleGroup), editorForChildClasses:true)]
+    public class UIToggleGroupEditor : Editor
+    {
+        #region Members
+
+        protected UIToggleGroup m_group;
+
+        #endregion
+
+        #region Core Behaviour
+
+        protected virtual void OnEnable()
+        {
+            m_group = (UIToggleGroup)target;
+        }
+
+        #endregion
+
+        #region Core GUI
+
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+
+            EditorGUILayout.Space(10f);
+
+            if (GUILayout.Button("Ensure Valid State"))
+            {
+                m_group.EnsureValidState();
+            }
+        }
+
+        #endregion
+    }
+
+#endif
+
+    #endregion
 }

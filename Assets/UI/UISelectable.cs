@@ -62,7 +62,7 @@ namespace Dhs5.Utility.UI
 
         public event UIStateChangeEvent StateChanged;
 
-        protected virtual void TriggerStateChanged(EUIStateChangeType type, bool value)
+        protected void TriggerStateChanged(EUIStateChangeType type, bool value)
         {
             UISystemProfilerApi.AddMarker("Selectable.StateChanged", this);
             EventContext = this;
@@ -98,7 +98,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            TriggerStateChanged(EUIStateChangeType.HOVER, true);
+            OnStateChanged(EUIStateChangeType.HOVER, true);
 
             OnAfterPointerEnter(eventData);
         }
@@ -114,7 +114,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            TriggerStateChanged(EUIStateChangeType.HOVER, false);
+            OnStateChanged(EUIStateChangeType.HOVER, false);
 
             OnAfterPointerExit(eventData);
         }
@@ -146,11 +146,11 @@ namespace Dhs5.Utility.UI
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
-                TriggerStateChanged(EUIStateChangeType.LEFT_PRESS, true);
+                OnStateChanged(EUIStateChangeType.LEFT_PRESS, true);
             }
             else if (eventData.button == PointerEventData.InputButton.Right)
             {
-                TriggerStateChanged(EUIStateChangeType.RIGHT_PRESS, true);
+                OnStateChanged(EUIStateChangeType.RIGHT_PRESS, true);
             }
 
             OnAfterPointerDown(eventData);
@@ -176,11 +176,11 @@ namespace Dhs5.Utility.UI
 
             if (eventData.button == PointerEventData.InputButton.Left)
             {
-                TriggerStateChanged(EUIStateChangeType.LEFT_PRESS, false);
+                OnStateChanged(EUIStateChangeType.LEFT_PRESS, false);
             }
             else if (eventData.button == PointerEventData.InputButton.Right)
             {
-                TriggerStateChanged(EUIStateChangeType.RIGHT_PRESS, false);
+                OnStateChanged(EUIStateChangeType.RIGHT_PRESS, false);
             }
 
             OnAfterPointerUp(eventData);
@@ -199,7 +199,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            TriggerStateChanged(EUIStateChangeType.SELECTION, true);
+            OnStateChanged(EUIStateChangeType.SELECTION, true);
 
             OnAfterSelect(eventData);
         }
@@ -217,7 +217,7 @@ namespace Dhs5.Utility.UI
                 DoStateTransition(SelectionState.Disabled, false);
             }
 
-            TriggerStateChanged(EUIStateChangeType.SELECTION, false);
+            OnStateChanged(EUIStateChangeType.SELECTION, false);
 
             OnAfterDeselect(eventData);
         }
@@ -250,23 +250,6 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-
-        #region Interactability Tracking
-
-        protected void CheckInteractabilityChange()
-        {
-            if (m_interactable != IsInteractable())
-            {
-                m_interactable = !m_interactable;
-
-                if (m_interactable) OnBecameInteractable();
-                else OnBecameUninteractable();
-
-                TriggerStateChanged(EUIStateChangeType.INTERACTABLE, m_interactable);
-            }
-        }
-
-        #endregion
 
         #region Transitions
 
@@ -391,6 +374,24 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+
+        #region Interactability Tracking
+
+        protected void CheckInteractabilityChange()
+        {
+            if (m_interactable != IsInteractable())
+            {
+                m_interactable = !m_interactable;
+
+                if (m_interactable) OnBecameInteractable();
+                else OnBecameUninteractable();
+
+                OnStateChanged(EUIStateChangeType.INTERACTABLE, m_interactable);
+            }
+        }
+
+        #endregion
+
         #region Press Simulation
 
         protected Coroutine m_simulationCoroutine;
@@ -436,6 +437,20 @@ namespace Dhs5.Utility.UI
         #region Settings
 
         protected virtual bool UseRightClick() => GlobalUseRightClick;
+
+        #endregion
+
+        #region Callbacks
+
+        protected virtual void OnStateChanged(EUIStateChangeType type, bool value)
+        {
+#if UNITY_EDITOR
+            if (Application.isPlaying)
+#endif
+            {
+                TriggerStateChanged(type, value);
+            }
+        }
 
         #endregion
 
