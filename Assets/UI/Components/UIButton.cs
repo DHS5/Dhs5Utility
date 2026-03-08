@@ -10,7 +10,7 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
-        [Header("Parameters")]
+        [Header("Button")]
         [Tooltip("Whether right click is considered as a click by this button")]
         [SerializeField] protected bool m_acceptRightClick = false;
         [Tooltip("Duration of a simulated press")]

@@ -14,6 +14,46 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Properties
+
+        public int GraphicsCount => m_graphics.Count;
+        public IEnumerable<Graphic> Graphics => m_graphics;
+
+        #endregion
+
+        #region Setters
+
+        public virtual bool TryGetGraphicAtIndex(int index, out Graphic graphic)
+        {
+            return m_graphics.IsIndexValid(index, out graphic);
+        }
+        public virtual void AddGraphic(Graphic graphic)
+        {
+            m_graphics ??= new();
+            if (!m_graphics.Contains(graphic))
+            {
+                m_graphics.Add(graphic);
+            }
+        }
+        public virtual void InsertGraphic(int index, Graphic graphic)
+        {
+            m_graphics ??= new();
+            if (!m_graphics.Contains(graphic))
+            {
+                m_graphics.Insert(index, graphic);
+            }
+        }
+        public virtual bool RemoveGraphic(Graphic graphic)
+        {
+            return m_graphics != null && m_graphics.Remove(graphic);
+        }
+        public virtual void RemoveGraphicAt(int index)
+        {
+            m_graphics?.RemoveAt(index);
+        }
+
+        #endregion
+
         #region Process
 
         public override void UpdateState(FUIState oldStates, FUIState newStates, bool instant, IUITransitionParam param)
