@@ -461,6 +461,38 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Transitioners
+
+        public virtual int TransitionersCount => m_transitioners.Count;
+
+        public virtual bool TryGetTransitionerAtIndex(int index, out UITransitioner transitioner)
+        {
+            return m_transitioners.IsIndexValid(index, out transitioner);
+        }
+
+        public virtual void AddTransitioner(UITransitioner transitioner)
+        {
+            m_transitioners ??= new();
+            if (!m_transitioners.Contains(transitioner))
+            {
+                m_transitioners.Add(transitioner);
+            }
+        }
+        public virtual bool RemoveTransitioner(UITransitioner transitioner)
+        {
+            return m_transitioners != null && m_transitioners.Remove(transitioner);
+        }
+        public virtual void RemoveTransitionerAt(int index)
+        {
+            m_transitioners?.RemoveAt(index);
+        }
+        public virtual void ClearTransitioners()
+        {
+            m_transitioners?.Clear();
+        }
+
+        #endregion
+
 
         // --- STATIC ---
 

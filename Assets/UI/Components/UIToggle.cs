@@ -148,7 +148,7 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Setters
+        #region Actions
 
         protected virtual bool TryToggle(bool triggerEvent)
         {
@@ -194,7 +194,7 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Checkmark
+        #region Checkmark Effect
 
         protected virtual void PlayCheckmarkEffect(float duration)
         {
@@ -236,6 +236,39 @@ namespace Dhs5.Utility.UI
         {
             TryToggle(true);
             SimulatePress(0.1f);
+        }
+
+        #endregion
+
+
+        #region Checkmarks
+
+        public virtual int CheckmarksCount => m_checkmarks.Count;
+
+        public virtual bool TryGetCheckmarkAtIndex(int index, out Graphic checkmark)
+        {
+            return m_checkmarks.IsIndexValid(index, out checkmark);
+        }
+
+        public virtual void AddCheckmark(Graphic checkmark)
+        {
+            m_checkmarks ??= new();
+            if (!m_checkmarks.Contains(checkmark))
+            {
+                m_checkmarks.Add(checkmark);
+            }
+        }
+        public virtual bool RemoveCheckmark(Graphic checkmark)
+        {
+            return m_checkmarks != null && m_checkmarks.Remove(checkmark);
+        }
+        public virtual void RemoveCheckmarkAt(int index)
+        {
+            m_checkmarks?.RemoveAt(index);
+        }
+        public virtual void ClearCheckmarks()
+        {
+            m_checkmarks?.Clear();
         }
 
         #endregion

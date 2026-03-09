@@ -51,6 +51,10 @@ namespace Dhs5.Utility.UI
         {
             m_graphics?.RemoveAt(index);
         }
+        public virtual void ClearGraphics()
+        {
+            m_graphics?.Clear();
+        }
 
         #endregion
 
@@ -60,9 +64,12 @@ namespace Dhs5.Utility.UI
         {
             var graphics = m_graphics.Where(g => g != null);
 
-            foreach (var instance in m_transitionInstances)
+            if (m_transitionInstances.IsValid())
             {
-                instance.UpdateState(graphics, oldStates, newStates, instant, param);
+                foreach (var instance in m_transitionInstances)
+                {
+                    instance.UpdateState(graphics, oldStates, newStates, instant, param);
+                }
             }
         }
 
