@@ -29,7 +29,7 @@ namespace Dhs5.Utility.UI
     #endregion
 
     [CreateAssetMenu(menuName = "Dhs5 Utility/UI/Transition Asset/Rect Anchors")]
-    public class UIRectAnchorTransition : UIGenericTransitionAsset<RectAnchors, UITransitionPreset<RectAnchors>>
+    public class UIRectAnchorTransitionAsset : UIGenericTransitionAsset<RectAnchors, UITransitionPreset<RectAnchors>>
     {
         #region Initial Values
 

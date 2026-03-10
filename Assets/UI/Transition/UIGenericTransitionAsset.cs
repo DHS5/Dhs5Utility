@@ -422,7 +422,7 @@ namespace Dhs5.Utility.UI
     public class EnabledTransitionValueDrawer : TransitionValueDrawer
     {
         SerializedProperty p_enabled;
-        float toggleWidth = 17f;
+        float toggleWidth = 28f;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
