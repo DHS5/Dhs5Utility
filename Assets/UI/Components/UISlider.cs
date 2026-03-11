@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.UI;
 #endif
 
 namespace Dhs5.Utility.UI
@@ -190,6 +191,13 @@ namespace Dhs5.Utility.UI
 
         public event Action<float> ValueChanged;
 
+        protected void TriggerValueChanged()
+        {
+            UISystemProfilerApi.AddMarker("Slider.value", this);
+            EventContext = this;
+            ValueChanged?.Invoke(m_value);
+        }
+
         #endregion
 
 
@@ -239,11 +247,11 @@ namespace Dhs5.Utility.UI
         /// Set the value of the slider.
         /// </summary>
         /// <param name="input">The new value for the slider.</param>
-        /// <param name="sendCallback">If the OnValueChanged callback should be invoked.</param>
+        /// <param name="triggerEvent">If the OnValueChanged callback should be invoked.</param>
         /// <remarks>
         /// Process the input to ensure the value is between min and max value. If the input is different set the value and send the callback is required.
         /// </remarks>
-        protected virtual void Set(float input, bool sendCallback = true)
+        protected virtual void Set(float input, bool triggerEvent = true)
         {
             // Clamp the input
             float newValue = ClampValue(input);
@@ -257,10 +265,9 @@ namespace Dhs5.Utility.UI
             EditorUtility.SetDirty(this);
 #endif
             UpdateVisuals();
-            if (sendCallback)
+            if (triggerEvent)
             {
-                UISystemProfilerApi.AddMarker("Slider.value", this);
-                ValueChanged?.Invoke(newValue);
+                TriggerValueChanged();
             }
         }
 
@@ -562,4 +569,137 @@ namespace Dhs5.Utility.UI
 
         #endregion
     }
+
+    #region Editor
+
+#if UNITY_EDITOR
+
+    [CustomEditor(typeof(UISlider), true)]
+    [CanEditMultipleObjects]
+    /// <summary>
+    /// Custom Editor for the Slider Component.
+    /// Extend this class to write a custom editor for a component derived from Slider.
+    /// </summary>
+    public class UISliderEditor : SelectableEditor
+    {
+        SerializedProperty p_direction;
+        SerializedProperty p_fillRect;
+        SerializedProperty p_handleRect;
+        SerializedProperty p_minValue;
+        SerializedProperty p_maxValue;
+        SerializedProperty p_wholeNumbers;
+        SerializedProperty p_value;
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            p_fillRect = serializedObject.FindProperty("m_fillRect");
+            p_handleRect = serializedObject.FindProperty("m_handleRect");
+            p_direction = serializedObject.FindProperty("m_direction");
+            p_minValue = serializedObject.FindProperty("m_minValue");
+            p_maxValue = serializedObject.FindProperty("m_maxValue");
+            p_wholeNumbers = serializedObject.FindProperty("m_wholeNumbers");
+            p_value = serializedObject.FindProperty("m_value");
+        }
+
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+
+            EditorGUILayout.Space();
+
+            serializedObject.Update();
+
+            EditorGUILayout.PropertyField(p_fillRect);
+            EditorGUILayout.PropertyField(p_handleRect);
+
+            if (p_fillRect.objectReferenceValue != null || p_handleRect.objectReferenceValue != null)
+            {
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(p_direction);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObjects(serializedObject.targetObjects, "Change Slider Direction");
+
+                    UISlider.EDirection direction = (UISlider.EDirection)p_direction.enumValueIndex;
+                    foreach (var obj in serializedObject.targetObjects)
+                    {
+                        if (obj is UISlider slider)
+                            slider.SetDirection(direction, true);
+                    }
+                }
+
+                EditorGUI.BeginChangeCheck();
+                float newMin = EditorGUILayout.FloatField("Min Value", p_minValue.floatValue);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    if (p_wholeNumbers.boolValue ? Mathf.Round(newMin) < p_maxValue.floatValue : newMin < p_maxValue.floatValue)
+                    {
+                        p_minValue.floatValue = newMin;
+                        if (p_value.floatValue < newMin)
+                            p_value.floatValue = newMin;
+                    }
+                }
+
+                EditorGUI.BeginChangeCheck();
+                float newMax = EditorGUILayout.FloatField("Max Value", p_maxValue.floatValue);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    if (p_wholeNumbers.boolValue ? Mathf.Round(newMax) > p_minValue.floatValue : newMax > p_minValue.floatValue)
+                    {
+                        p_maxValue.floatValue = newMax;
+                        if (p_value.floatValue > newMax)
+                            p_value.floatValue = newMax;
+                    }
+                }
+
+                EditorGUILayout.PropertyField(p_wholeNumbers);
+
+                bool areMinMaxEqual = (p_minValue.floatValue == p_maxValue.floatValue);
+
+                if (areMinMaxEqual)
+                    EditorGUILayout.HelpBox("Min Value and Max Value cannot be equal.", MessageType.Warning);
+
+                if (p_wholeNumbers.boolValue)
+                    p_value.floatValue = Mathf.Round(p_value.floatValue);
+
+                EditorGUI.BeginDisabledGroup(areMinMaxEqual);
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.Slider(p_value, p_minValue.floatValue, p_maxValue.floatValue);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    // Apply the change before sending the event
+                    serializedObject.ApplyModifiedProperties();
+                }
+                EditorGUI.EndDisabledGroup();
+
+                bool warning = false;
+                foreach (var obj in serializedObject.targetObjects)
+                {
+                    if (obj is UISlider slider)
+                    {
+                        UISlider.EDirection dir = slider.Direction;
+                        if (dir == UISlider.EDirection.LeftToRight || dir == UISlider.EDirection.RightToLeft)
+                            warning = (slider.navigation.mode != Navigation.Mode.Automatic && (slider.FindSelectableOnLeft() != null || slider.FindSelectableOnRight() != null));
+                        else
+                            warning = (slider.navigation.mode != Navigation.Mode.Automatic && (slider.FindSelectableOnDown() != null || slider.FindSelectableOnUp() != null));
+                    }
+                }
+
+                if (warning)
+                    EditorGUILayout.HelpBox("The selected slider direction conflicts with navigation. Not all navigation options may work.", MessageType.Warning);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Specify a RectTransform for the slider fill or the slider handle or both. Each must have a parent RectTransform that it can slide within.", MessageType.Info);
+            }
+
+            serializedObject.ApplyModifiedProperties();
+        }
+    }
+
+#endif
+
+    #endregion
 }

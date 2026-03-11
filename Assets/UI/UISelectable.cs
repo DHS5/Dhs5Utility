@@ -6,8 +6,17 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.UI;
+using System.Reflection;
+using UnityEditor.AnimatedValues;
+#endif
+
 namespace Dhs5.Utility.UI
 {
+    #region State Change
+
     public delegate void UIStateChangeEvent(EUIStateChangeType type, bool value);
 
     public enum EUIStateChangeType
@@ -19,6 +28,8 @@ namespace Dhs5.Utility.UI
         SELECTION = 4,
         INTERACTABLE = 5,
     }
+
+    #endregion
 
     public class UISelectable : Selectable, IUIBoxable
     {
@@ -508,4 +519,173 @@ namespace Dhs5.Utility.UI
 
         #endregion
     }
+
+    #region Editor
+
+#if UNITY_EDITOR
+
+    //[CustomEditor(typeof(UISelectable), editorForChildClasses:true)]
+    [CanEditMultipleObjects]
+    public class UISelectableEditor : SelectableEditor
+    {
+        #region Members
+
+        protected const string ShowNavigationKey = "SelectableEditor.ShowNavigation";
+
+        protected SerializedProperty p_script;
+        protected SerializedProperty p_interactableProperty;
+        protected SerializedProperty p_targetGraphicProperty;
+        protected SerializedProperty p_transitionProperty;
+        protected SerializedProperty p_colorBlockProperty;
+        protected SerializedProperty p_spriteStateProperty;
+        protected SerializedProperty p_navigationProperty;
+        
+        protected GUIContent g_visualizeNavigation = EditorGUIUtility.TrTextContent("Visualize", "Show navigation flows between selectable UI elements.");
+        
+        protected AnimBool m_showColorTint = new AnimBool();
+        protected AnimBool m_showSpriteTrasition = new AnimBool();
+
+        // Whenever adding new SerializedProperties to the Selectable and SelectableEditor
+        // Also update this guy in OnEnable. This makes the inherited classes from Selectable not require a CustomEditor.
+        protected List<string> m_propertiesToExclude;
+
+        #endregion
+
+        #region Core Behaviour
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            p_script = serializedObject.FindProperty("m_Script");
+            p_interactableProperty = serializedObject.FindProperty("m_Interactable");
+            p_targetGraphicProperty = serializedObject.FindProperty("m_TargetGraphic");
+            p_transitionProperty = serializedObject.FindProperty("m_Transition");
+            p_colorBlockProperty = serializedObject.FindProperty("m_Colors");
+            p_spriteStateProperty = serializedObject.FindProperty("m_SpriteState");
+            p_navigationProperty = serializedObject.FindProperty("m_Navigation");
+
+            m_propertiesToExclude = new()
+            {
+                p_script.propertyPath,
+                p_navigationProperty.propertyPath,
+                p_transitionProperty.propertyPath,
+                p_colorBlockProperty.propertyPath,
+                p_spriteStateProperty.propertyPath,
+                p_interactableProperty.propertyPath,
+                p_targetGraphicProperty.propertyPath,
+            };
+
+            var trans = GetTransition(p_transitionProperty);
+            m_showColorTint.value = (trans == Selectable.Transition.ColorTint);
+            m_showSpriteTrasition.value = (trans == Selectable.Transition.SpriteSwap);
+
+            m_showColorTint.valueChanged.AddListener(Repaint);
+            m_showSpriteTrasition.valueChanged.AddListener(Repaint);
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+
+            m_showColorTint.valueChanged.RemoveListener(Repaint);
+            m_showSpriteTrasition.valueChanged.RemoveListener(Repaint);
+        }
+
+        #endregion
+
+        protected virtual Selectable.Transition GetTransition(SerializedProperty transition)
+        {
+            var result = (Selectable.Transition)transition.enumValueIndex;
+            if (result == Selectable.Transition.Animation) return Selectable.Transition.None;
+            return result;
+        }
+
+        #region Core GUI
+
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            EditorGUILayout.PropertyField(p_interactableProperty);
+
+            var trans = GetTransition(p_transitionProperty);
+
+            var graphic = p_targetGraphicProperty.objectReferenceValue as Graphic;
+            if (graphic == null)
+                graphic = (target as Selectable).GetComponent<Graphic>();
+
+            var animator = (target as Selectable).GetComponent<Animator>();
+            m_showColorTint.target = (!p_transitionProperty.hasMultipleDifferentValues && trans == Button.Transition.ColorTint);
+            m_showSpriteTrasition.target = (!p_transitionProperty.hasMultipleDifferentValues && trans == Button.Transition.SpriteSwap);
+
+            EditorGUILayout.PropertyField(p_transitionProperty);
+
+            ++EditorGUI.indentLevel;
+            {
+                if (trans == Selectable.Transition.ColorTint || trans == Selectable.Transition.SpriteSwap)
+                {
+                    EditorGUILayout.PropertyField(p_targetGraphicProperty);
+                }
+
+                switch (trans)
+                {
+                    case Selectable.Transition.ColorTint:
+                        if (graphic == null)
+                            EditorGUILayout.HelpBox("You must have a Graphic target in order to use a color transition.", MessageType.Warning);
+                        break;
+
+                    case Selectable.Transition.SpriteSwap:
+                        if (graphic as Image == null)
+                            EditorGUILayout.HelpBox("You must have a Image target in order to use a sprite swap transition.", MessageType.Warning);
+                        break;
+                }
+
+                if (EditorGUILayout.BeginFadeGroup(m_showColorTint.faded))
+                {
+                    EditorGUILayout.PropertyField(p_colorBlockProperty);
+                }
+                EditorGUILayout.EndFadeGroup();
+
+                if (EditorGUILayout.BeginFadeGroup(m_showSpriteTrasition.faded))
+                {
+                    EditorGUILayout.PropertyField(p_spriteStateProperty);
+                }
+                EditorGUILayout.EndFadeGroup();
+            }
+            --EditorGUI.indentLevel;
+
+            EditorGUILayout.Space();
+
+            EditorGUILayout.PropertyField(p_navigationProperty);
+
+            Rect toggleRect = EditorGUILayout.GetControlRect();
+            toggleRect.xMin += EditorGUIUtility.labelWidth;
+            var showNavigationMembers = typeof(SelectableEditor).GetMember("s_ShowNavigation", BindingFlags.Static | BindingFlags.NonPublic);
+            FieldInfo showNavigationMember = showNavigationMembers.IsValid() ? showNavigationMembers[0] as FieldInfo : null;
+            if (showNavigationMember != null) 
+            {
+                var currentValue = (bool)showNavigationMember.GetValue(null);
+                var newValue = GUI.Toggle(toggleRect, currentValue, g_visualizeNavigation, EditorStyles.miniButton);
+                if (currentValue != newValue)
+                {
+                    EditorPrefs.SetBool(ShowNavigationKey, newValue);
+                    showNavigationMember.SetValue(null, newValue);
+                    SceneView.RepaintAll();
+                }
+            }
+
+            // We do this here to avoid requiring the user to also write a Editor for their Selectable-derived classes.
+            // This way if we are on a derived class we dont draw anything else, otherwise draw the remaining properties.
+            //ChildClassPropertiesGUI();
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        #endregion
+    }
+
+#endif
+
+    #endregion
 }

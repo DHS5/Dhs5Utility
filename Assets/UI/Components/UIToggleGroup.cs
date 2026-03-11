@@ -361,6 +361,7 @@ namespace Dhs5.Utility.UI
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(UIToggleGroup), editorForChildClasses:true)]
+    [CanEditMultipleObjects]
     public class UIToggleGroupEditor : Editor
     {
         #region Members
