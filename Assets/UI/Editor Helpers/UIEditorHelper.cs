@@ -168,6 +168,99 @@ namespace Dhs5.Utility.UI
             }
         }
 
+        [MenuItem("GameObject/UI/UI Slider")]
+        private static void CreateUISlider(MenuCommand menuCommand)
+        {
+            using (var scope = new InstantiationScope("Slider", menuCommand?.context as GameObject,
+                typeof(UISlider), typeof(UIGenericTransitioner), typeof(RectTransform)))
+            {
+                var slider = scope.go.GetComponent<UISlider>();
+                Undo.RecordObject(slider, "Setup UI Slider");
+                slider.transition = Selectable.Transition.None;
+                slider.navigation = new Navigation() { mode = Navigation.Mode.None };
+                if (slider.TryGetComponent(out RectTransform rectTransform))
+                {
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 25f);
+                }
+
+                // Background
+                var backgroundGO = new GameObject("Background", typeof(Image));
+                GameObjectUtility.SetParentAndAlign(backgroundGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(backgroundGO, backgroundGO.name);
+                var backgroundImage = backgroundGO.GetComponent<Image>();
+                backgroundImage.type = Image.Type.Sliced;
+                backgroundImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+                if (backgroundGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = new Vector2(0f, 0.25f);
+                    rectTransform.anchorMax = new Vector2(1f, 0.75f);
+                    rectTransform.offsetMin = new Vector2(2f, 0f);
+                    rectTransform.offsetMax = Vector2.zero;
+                }
+
+                // Fill Container
+                var fillContainerGO = new GameObject("Fill Container", typeof(RectTransform));
+                GameObjectUtility.SetParentAndAlign(fillContainerGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(fillContainerGO, fillContainerGO.name);
+                if (fillContainerGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = new Vector2(0f, 0.25f);
+                    rectTransform.anchorMax = new Vector2(1f, 0.75f);
+                    rectTransform.offsetMin = new Vector2(7f, 0f);
+                    rectTransform.offsetMax = new Vector2(-15f, 0f);
+                }
+                
+                // Fill
+                var fillGO = new GameObject("Fill", typeof(Image));
+                GameObjectUtility.SetParentAndAlign(fillGO, fillContainerGO);
+                Undo.RegisterCreatedObjectUndo(fillGO, fillGO.name);
+                var fillImage = fillGO.GetComponent<Image>();
+                fillImage.type = Image.Type.Sliced;
+                fillImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+                if (fillGO.TryGetComponent(out RectTransform fillRectTransform))
+                {
+                    fillRectTransform.anchorMin = new Vector2(0f, 0f);
+                    fillRectTransform.anchorMax = new Vector2(0f, 1f);
+                    fillRectTransform.sizeDelta = new Vector2(10f, 0f);
+                }
+
+                // Handle Container
+                var handleContainerGO = new GameObject("Handle Container", typeof(RectTransform));
+                GameObjectUtility.SetParentAndAlign(handleContainerGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(handleContainerGO, handleContainerGO.name);
+                if (handleContainerGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.offsetMin = new Vector2(12f, 0f);
+                    rectTransform.offsetMax = new Vector2(-10f, 0f);
+                }
+
+                // Handle
+                var handleGO = new GameObject("Handle", typeof(Image));
+                GameObjectUtility.SetParentAndAlign(handleGO, handleContainerGO);
+                Undo.RegisterCreatedObjectUndo(handleGO, handleGO.name);
+                var handleImage = handleGO.GetComponent<Image>();
+                handleImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+                if (handleGO.TryGetComponent(out RectTransform handleRectTransform))
+                {
+                    handleRectTransform.anchorMin = new Vector2(0f, 0f);
+                    handleRectTransform.anchorMax = new Vector2(0f, 1f);
+                    handleRectTransform.sizeDelta = new Vector2(25f, 0f);
+                }
+
+                var transitioner = scope.go.GetComponent<UIGenericTransitioner>();
+                transitioner.AddGraphic(backgroundImage);
+                transitioner.AddGraphic(fillImage);
+                transitioner.AddGraphic(handleImage);
+
+                slider.AddTransitioner(transitioner);
+                slider.FillRect = fillRectTransform;
+                slider.HandleRect = handleRectTransform;
+            }
+        }
+
         #endregion
     }
 }

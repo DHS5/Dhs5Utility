@@ -6,7 +6,6 @@ using UnityEngine.UI;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using UnityEditor.UI;
 #endif
 
 namespace Dhs5.Utility.UI
@@ -52,6 +51,7 @@ namespace Dhs5.Utility.UI
 
         #region Members
 
+        [Header("Slider")]
         [SerializeField] protected RectTransform m_fillRect;
         [SerializeField] protected RectTransform m_handleRect;
         [SerializeField] protected EDirection m_direction = EDirection.LeftToRight;
@@ -580,7 +580,7 @@ namespace Dhs5.Utility.UI
     /// Custom Editor for the Slider Component.
     /// Extend this class to write a custom editor for a component derived from Slider.
     /// </summary>
-    public class UISliderEditor : SelectableEditor
+    public class UISliderEditor : UISelectableEditor
     {
         SerializedProperty p_direction;
         SerializedProperty p_fillRect;
@@ -601,18 +601,19 @@ namespace Dhs5.Utility.UI
             p_maxValue = serializedObject.FindProperty("m_maxValue");
             p_wholeNumbers = serializedObject.FindProperty("m_wholeNumbers");
             p_value = serializedObject.FindProperty("m_value");
+
+            m_propertiesToExclude.Add(p_direction.propertyPath);
+            m_propertiesToExclude.Add(p_minValue.propertyPath);
+            m_propertiesToExclude.Add(p_maxValue.propertyPath);
+            m_propertiesToExclude.Add(p_wholeNumbers.propertyPath);
+            m_propertiesToExclude.Add(p_value.propertyPath);
         }
 
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
 
-            EditorGUILayout.Space();
-
             serializedObject.Update();
-
-            EditorGUILayout.PropertyField(p_fillRect);
-            EditorGUILayout.PropertyField(p_handleRect);
 
             if (p_fillRect.objectReferenceValue != null || p_handleRect.objectReferenceValue != null)
             {

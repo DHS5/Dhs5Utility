@@ -14,12 +14,12 @@ namespace Dhs5.Utility.UI
         #region Members
 
         [Header("Toggle")]
-        [SerializeField] protected List<Graphic> m_checkmarks;
-        [SerializeField] protected UIToggleGroup m_group;
         [Tooltip("Whether the toggle is ON or OFF")]
         [SerializeField] protected bool m_isOn = true;
+        [SerializeField] protected List<Graphic> m_checkmarks;
         [Tooltip("Duration of the fade of checkmark graphics")]
         [SerializeField] protected float m_checkmarkFadeDuration = 0.1f;
+        [SerializeField] protected UIToggleGroup m_group;
 
         #endregion
 
