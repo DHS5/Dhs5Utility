@@ -200,7 +200,6 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-
         #region Core Behaviour
 
         protected override void OnEnable()
@@ -428,6 +427,7 @@ namespace Dhs5.Utility.UI
         {
             if (!MayDrag(eventData))
                 return;
+
             UpdateDrag(eventData, eventData.pressEventCamera);
         }
 
@@ -574,7 +574,7 @@ namespace Dhs5.Utility.UI
 
 #if UNITY_EDITOR
 
-    [CustomEditor(typeof(UISlider), true)]
+    [CustomEditor(typeof(UISlider), editorForChildClasses:true)]
     [CanEditMultipleObjects]
     /// <summary>
     /// Custom Editor for the Slider Component.
