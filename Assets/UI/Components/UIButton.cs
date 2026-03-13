@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 
 namespace Dhs5.Utility.UI
 {
+    [RequireComponent(typeof(RectTransform))]
     public class UIButton : UISelectable, 
         IPointerClickHandler, ISubmitHandler, IEventSystemHandler
     {

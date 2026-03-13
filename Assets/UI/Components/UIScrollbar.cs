@@ -11,6 +11,7 @@ using UnityEditor;
 
 namespace Dhs5.Utility.UI
 {
+    [RequireComponent(typeof(RectTransform))]
     public class UIScrollbar : UISelectable, IBeginDragHandler, IDragHandler, IInitializePotentialDragHandler
     {
         #region ENUM Direction

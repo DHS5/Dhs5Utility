@@ -8,6 +8,7 @@ using System.Collections.Generic;
 
 namespace Dhs5.Utility.UI
 {
+    [RequireComponent(typeof(RectTransform))]
     public class UIToggle : UISelectable, 
         IPointerClickHandler, ISubmitHandler
     {

@@ -10,6 +10,7 @@ using UnityEditor;
 
 namespace Dhs5.Utility.UI
 {
+    [RequireComponent(typeof(RectTransform))]
     public class UISlider : UISelectable, IDragHandler, IInitializePotentialDragHandler
     {
         #region ENUM Direction

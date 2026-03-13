@@ -35,9 +35,10 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        [MenuItem("GameObject/UI/UI Button")]
+
+        [MenuItem("GameObject/UI/UI Button", secondaryPriority = 0)]
         private static void CreateUIButton(MenuCommand menuCommand) => CreateUIButton(menuCommand, false);
-        [MenuItem("GameObject/UI/UI Button + Text")]
+        [MenuItem("GameObject/UI/UI Button + Text", secondaryPriority = 1)]
         private static void CreateUITextButton(MenuCommand menuCommand) => CreateUIButton(menuCommand, true);
         private static void CreateUIButton(MenuCommand menuCommand, bool withText)
         {
@@ -88,9 +89,9 @@ namespace Dhs5.Utility.UI
             }
         }
         
-        [MenuItem("GameObject/UI/UI Toggle")]
+        [MenuItem("GameObject/UI/UI Toggle", secondaryPriority = 2)]
         private static void CreateUIToggle(MenuCommand menuCommand) => CreateUIToggle(menuCommand, false);
-        [MenuItem("GameObject/UI/UI Toggle + Text")]
+        [MenuItem("GameObject/UI/UI Toggle + Text", secondaryPriority = 3)]
         private static void CreateUITextToggle(MenuCommand menuCommand) => CreateUIToggle(menuCommand, true);
         private static void CreateUIToggle(MenuCommand menuCommand, bool withText)
         {
@@ -168,7 +169,7 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        [MenuItem("GameObject/UI/UI Slider")]
+        [MenuItem("GameObject/UI/UI Slider", secondaryPriority = 4)]
         private static void CreateUISlider(MenuCommand menuCommand)
         {
             using (var scope = new InstantiationScope("Slider", menuCommand?.context as GameObject,
@@ -258,6 +259,60 @@ namespace Dhs5.Utility.UI
                 slider.AddTransitioner(transitioner);
                 slider.FillRect = fillRectTransform;
                 slider.HandleRect = handleRectTransform;
+            }
+        }
+
+        [MenuItem("GameObject/UI/UI Scrollbar", secondaryPriority = 5)]
+        private static void CreateUIScrollbar(MenuCommand menuCommand)
+        {
+            using (var scope = new InstantiationScope("Scrollbar", menuCommand?.context as GameObject,
+                typeof(Image), typeof(UIScrollbar), typeof(UIGenericTransitioner)))
+            {
+                var scrollbar = scope.go.GetComponent<UIScrollbar>();
+                Undo.RecordObject(scrollbar, "Setup UI Scrollbar");
+                scrollbar.transition = Selectable.Transition.None;
+                scrollbar.navigation = new Navigation() { mode = Navigation.Mode.None };
+                if (scrollbar.TryGetComponent(out RectTransform rectTransform))
+                {
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 25f);
+                }
+
+                var backgroundImage = scope.go.GetComponent<Image>();
+                backgroundImage.type = Image.Type.Sliced;
+                backgroundImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+
+                // Handle Container
+                var handleContainerGO = new GameObject("Handle Container", typeof(RectTransform));
+                GameObjectUtility.SetParentAndAlign(handleContainerGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(handleContainerGO, handleContainerGO.name);
+                if (handleContainerGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.sizeDelta = new Vector2(-20f, -20f);
+                }
+
+                // Handle
+                var handleGO = new GameObject("Handle", typeof(Image));
+                GameObjectUtility.SetParentAndAlign(handleGO, handleContainerGO);
+                Undo.RegisterCreatedObjectUndo(handleGO, handleGO.name);
+                var handleImage = handleGO.GetComponent<Image>();
+                handleImage.type = Image.Type.Sliced;
+                handleImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+                if (handleGO.TryGetComponent(out RectTransform handleRectTransform))
+                {
+                    handleRectTransform.anchorMin = new Vector2(0f, 0f);
+                    handleRectTransform.anchorMax = new Vector2(0.2f, 1f);
+                    handleRectTransform.sizeDelta = new Vector2(20f, 20f);
+                }
+
+                var transitioner = scope.go.GetComponent<UIGenericTransitioner>();
+                transitioner.AddGraphic(backgroundImage);
+                transitioner.AddGraphic(handleImage);
+
+                scrollbar.AddTransitioner(transitioner);
+                scrollbar.HandleRect = handleRectTransform;
             }
         }
 
