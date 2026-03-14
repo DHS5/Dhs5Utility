@@ -265,17 +265,28 @@ namespace Dhs5.Utility.UI
         [MenuItem("GameObject/UI/UI Scrollbar", secondaryPriority = 5)]
         private static void CreateUIScrollbar(MenuCommand menuCommand)
         {
-            using (var scope = new InstantiationScope("Scrollbar", menuCommand?.context as GameObject,
+            CreateUIScrollbar("Scrollbar", menuCommand?.context as GameObject);
+        }
+        public static GameObject CreateUIScrollbar(string name, GameObject parent, Action<RectTransform> rectTransformSetup = null)
+        {
+            GameObject result = null;
+
+            using (var scope = new InstantiationScope(name, parent,
                 typeof(Image), typeof(UIScrollbar), typeof(UIGenericTransitioner)))
             {
+                result = scope.go;
                 var scrollbar = scope.go.GetComponent<UIScrollbar>();
                 Undo.RecordObject(scrollbar, "Setup UI Scrollbar");
                 scrollbar.transition = Selectable.Transition.None;
                 scrollbar.navigation = new Navigation() { mode = Navigation.Mode.None };
                 if (scrollbar.TryGetComponent(out RectTransform rectTransform))
                 {
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 25f);
+                    if (rectTransformSetup != null) rectTransformSetup.Invoke(rectTransform);
+                    else
+                    {
+                        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 25f);
+                    }
                 }
 
                 var backgroundImage = scope.go.GetComponent<Image>();
@@ -313,6 +324,86 @@ namespace Dhs5.Utility.UI
 
                 scrollbar.AddTransitioner(transitioner);
                 scrollbar.HandleRect = handleRectTransform;
+            }
+
+            return result;
+        }
+
+        [MenuItem("GameObject/UI/UI ScrollRect Vertical", secondaryPriority = 6)]
+        private static void CreateUIVerticalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, true, false);
+        [MenuItem("GameObject/UI/UI ScrollRect Horizontal", secondaryPriority = 6)]
+        private static void CreateUIHorizontalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, false, true);
+        [MenuItem("GameObject/UI/UI ScrollRect Both", secondaryPriority = 6)]
+        private static void CreateUIBothScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, true, true);
+        private static void CreateUIScrollView(MenuCommand menuCommand, bool vertical, bool horizontal)
+        {
+            using (var scope = new InstantiationScope("ScrollView", menuCommand?.context as GameObject,
+                typeof(UIScrollRect), typeof(RectTransform)))
+            {
+                var scrollRect = scope.go.GetComponent<UIScrollRect>();
+                Undo.RecordObject(scrollRect, "Setup UI ScrollRect");
+                scrollRect.Vertical = vertical;
+                scrollRect.Horizontal = horizontal;
+                if (scrollRect.TryGetComponent(out RectTransform rectTransform))
+                {
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 500f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 500f);
+                }
+
+                // Viewport
+                var viewportGO = new GameObject("Viewport", typeof(RectTransform), typeof(Mask));
+                GameObjectUtility.SetParentAndAlign(viewportGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(viewportGO, viewportGO.name);
+                if (viewportGO.TryGetComponent(out rectTransform))
+                {
+                    scrollRect.ViewportRect = rectTransform;
+
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.sizeDelta = Vector2.zero;
+                }
+                
+                // Content
+                var contentGO = new GameObject("Content", typeof(RectTransform));
+                GameObjectUtility.SetParentAndAlign(contentGO, viewportGO);
+                Undo.RegisterCreatedObjectUndo(contentGO, contentGO.name);
+                if (contentGO.TryGetComponent(out rectTransform))
+                {
+                    scrollRect.ContentRect = rectTransform;
+
+                    rectTransform.pivot = Vector2.up;
+                    rectTransform.anchorMin = Vector2.up;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.sizeDelta = new Vector2(0f, 500f);
+                }
+
+                // Vertical Scrollbar
+                if (vertical)
+                {
+                    var verticalScrollbar = CreateUIScrollbar("Vertical Scrollbar", scope.go, (rectTransform) =>
+                    {
+                        rectTransform.pivot = new Vector2(1f, 1f);
+                        rectTransform.anchorMin = Vector2.right;
+                        rectTransform.anchorMax = Vector2.one;
+                        rectTransform.sizeDelta = new Vector2(15f, horizontal ? -15f : 0f);
+                    });
+
+                    scrollRect.VerticalScrollbar = verticalScrollbar.GetComponent<UIScrollbar>();
+                }
+                
+                // Horizontal Scrollbar
+                if (horizontal)
+                {
+                    var horizontalScrollbar = CreateUIScrollbar("Horizontal Scrollbar", scope.go, (rectTransform) =>
+                    {
+                        rectTransform.pivot = new Vector2(0f, 0f);
+                        rectTransform.anchorMin = Vector2.zero;
+                        rectTransform.anchorMax = Vector2.right;
+                        rectTransform.sizeDelta = new Vector2(vertical ? -15f : 0f, 15f);
+                    });
+
+                    scrollRect.HorizontalScrollbar = horizontalScrollbar.GetComponent<UIScrollbar>();
+                }
             }
         }
 

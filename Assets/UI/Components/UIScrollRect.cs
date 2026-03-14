@@ -4,6 +4,11 @@ using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
+#if UNITY_EDITOR
+using UnityEditor.AnimatedValues;
+using UnityEditor;
+#endif
+
 namespace Dhs5.Utility.UI
 {
     [SelectionBase]
@@ -78,7 +83,7 @@ namespace Dhs5.Utility.UI
         [SerializeField] protected bool m_inertia = true;
         [SerializeField] protected float m_decelerationRate = 0.135f; // Only used when inertia is enabled
         [SerializeField] protected float m_scrollSensitivity = 1.0f;
-        [SerializeField] protected RectTransform m_viewport;
+        [SerializeField] protected RectTransform m_viewportRect;
         [SerializeField] protected UIScrollbar m_horizontalScrollbar;
         [SerializeField] protected UIScrollbar m_verticalScrollbar;
         [SerializeField] protected EScrollbarVisibility m_horizontalScrollbarVisibility;
@@ -174,14 +179,14 @@ namespace Dhs5.Utility.UI
         /// <summary>
         /// Reference to the viewport RectTransform that is the parent of the content RectTransform.
         /// </summary>
-        public virtual RectTransform Viewport 
+        public virtual RectTransform ViewportRect 
         { 
-            get => m_viewport; 
+            get => m_viewportRect; 
             set 
             {
-                if (m_viewport != value)
+                if (m_viewportRect != value)
                 {
-                    m_viewport = value;
+                    m_viewportRect = value;
                     SetDirtyCaching();
                 }
             } 
@@ -307,7 +312,7 @@ namespace Dhs5.Utility.UI
             get
             {
                 if (m_viewRect == null)
-                    m_viewRect = m_viewport;
+                    m_viewRect = m_viewportRect;
                 if (m_viewRect == null)
                     m_viewRect = (RectTransform)transform;
                 return m_viewRect;
@@ -913,37 +918,7 @@ namespace Dhs5.Utility.UI
             UpdateOneScrollbarVisibility(VScrollingNeeded, m_vertical, m_verticalScrollbarVisibility, m_verticalScrollbar);
             UpdateOneScrollbarVisibility(HScrollingNeeded, m_horizontal, m_horizontalScrollbarVisibility, m_horizontalScrollbar);
         }
-
-        #endregion
-
-        #region Utility
-
-        /// <summary>
-        /// Sets the velocity to zero on both axes so the content stops moving.
-        /// </summary>
-        public virtual void StopMovement()
-        {
-            m_velocity = Vector2.zero;
-        }
-
-        #endregion
-
-
-        // --- STATIC ---
-
-        #region Utility
-
-        private static float RubberDelta(float overStretching, float viewSize)
-        {
-            return (1 - (1 / ((Mathf.Abs(overStretching) * 0.55f / viewSize) + 1))) * viewSize * Mathf.Sign(overStretching);
-        }
-
-        #endregion
-
-
-        
-
-        private static void UpdateOneScrollbarVisibility(bool xScrollingNeeded, bool xAxisEnabled, EScrollbarVisibility scrollbarVisibility, UIScrollbar scrollbar)
+        protected virtual void UpdateOneScrollbarVisibility(bool xScrollingNeeded, bool xAxisEnabled, EScrollbarVisibility scrollbarVisibility, UIScrollbar scrollbar)
         {
             if (scrollbar)
             {
@@ -960,7 +935,7 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        void UpdateScrollbarLayout()
+        protected virtual void UpdateScrollbarLayout()
         {
             if (m_vSliderExpand && m_horizontalScrollbar)
             {
@@ -995,10 +970,16 @@ namespace Dhs5.Utility.UI
             }
         }
 
+        #endregion
+
+        #region Bounds
+
+        protected readonly Vector3[] m_Corners = new Vector3[4];
+
         /// <summary>
         /// Calculate the bounds the ScrollRect should be using.
         /// </summary>
-        protected void UpdateBounds()
+        protected virtual void UpdateBounds()
         {
             m_viewBounds = new Bounds(ViewRect.rect.center, ViewRect.rect.size);
             m_contentBounds = GetBounds();
@@ -1049,7 +1030,7 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        internal static void AdjustBounds(ref Bounds viewBounds, ref Vector2 contentPivot, ref Vector3 contentSize, ref Vector3 contentPos)
+        protected virtual void AdjustBounds(ref Bounds viewBounds, ref Vector2 contentPivot, ref Vector3 contentSize, ref Vector3 contentPos)
         {
             // Make sure content bounds are at least as large as view by adding padding if not.
             // One might think at first that if the content is smaller than the view, scrolling should be allowed.
@@ -1071,8 +1052,7 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        private readonly Vector3[] m_Corners = new Vector3[4];
-        private Bounds GetBounds()
+        protected virtual Bounds GetBounds()
         {
             if (m_contentRect == null)
                 return new Bounds();
@@ -1081,7 +1061,7 @@ namespace Dhs5.Utility.UI
             return InternalGetBounds(m_Corners, ref viewWorldToLocalMatrix);
         }
 
-        internal static Bounds InternalGetBounds(Vector3[] corners, ref Matrix4x4 viewWorldToLocalMatrix)
+        protected virtual Bounds InternalGetBounds(Vector3[] corners, ref Matrix4x4 viewWorldToLocalMatrix)
         {
             var vMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
             var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
@@ -1098,12 +1078,16 @@ namespace Dhs5.Utility.UI
             return bounds;
         }
 
-        private Vector2 CalculateOffset(Vector2 delta)
+        #endregion
+
+        #region Offset
+
+        protected virtual Vector2 CalculateOffset(Vector2 delta)
         {
             return InternalCalculateOffset(ref m_viewBounds, ref m_contentBounds, m_horizontal, m_vertical, m_movementType, ref delta);
         }
 
-        internal static Vector2 InternalCalculateOffset(ref Bounds viewBounds, ref Bounds contentBounds, bool horizontal, bool vertical, EMovementType movementType, ref Vector2 delta)
+        protected virtual Vector2 InternalCalculateOffset(ref Bounds viewBounds, ref Bounds contentBounds, bool horizontal, bool vertical, EMovementType movementType, ref Vector2 delta)
         {
             Vector2 offset = Vector2.zero;
             if (movementType == EMovementType.Unrestricted)
@@ -1145,10 +1129,27 @@ namespace Dhs5.Utility.UI
             return offset;
         }
 
+        #endregion
+
+        #region Utility
+
+        /// <summary>
+        /// Sets the velocity to zero on both axes so the content stops moving.
+        /// </summary>
+        public virtual void StopMovement()
+        {
+            m_velocity = Vector2.zero;
+        }
+
+        protected virtual float RubberDelta(float overStretching, float viewSize)
+        {
+            return (1 - (1 / ((Mathf.Abs(overStretching) * 0.55f / viewSize) + 1))) * viewSize * Mathf.Sign(overStretching);
+        }
+
         /// <summary>
         /// Override to alter or add to the code that keeps the appearance of the scroll rect synced with its data.
         /// </summary>
-        protected void SetDirty()
+        protected virtual void SetDirty()
         {
             if (!IsActive())
                 return;
@@ -1159,7 +1160,7 @@ namespace Dhs5.Utility.UI
         /// <summary>
         /// Override to alter or add to the code that caches data to avoid repeated heavy operations.
         /// </summary>
-        protected void SetDirtyCaching()
+        protected virtual void SetDirtyCaching()
         {
             if (!IsActive())
                 return;
@@ -1170,12 +1171,220 @@ namespace Dhs5.Utility.UI
             m_viewRect = null;
         }
 
+        #endregion
+
+        #region Editor 
+
 #if UNITY_EDITOR
+
         protected override void OnValidate()
         {
             SetDirtyCaching();
         }
 
 #endif
+
+        #endregion
     }
+
+    #region Editor
+
+#if UNITY_EDITOR
+
+    [CustomEditor(typeof(UIScrollRect), editorForChildClasses:true)]
+    [CanEditMultipleObjects]
+    public class UIScrollRectEditor : Editor
+    {
+        #region Members
+
+        protected UIScrollRect m_scrollRect;
+
+        protected SerializedProperty p_contentRect;
+        protected SerializedProperty p_horizontal;
+        protected SerializedProperty p_vertical;
+        protected SerializedProperty p_movementType;
+        protected SerializedProperty p_elasticity;
+        protected SerializedProperty p_inertia;
+        protected SerializedProperty p_decelerationRate;
+        protected SerializedProperty p_scrollSensitivity;
+        protected SerializedProperty p_viewportRect;
+        protected SerializedProperty p_horizontalScrollbar;
+        protected SerializedProperty p_verticalScrollbar;
+        protected SerializedProperty p_horizontalScrollbarVisibility;
+        protected SerializedProperty p_verticalScrollbarVisibility;
+        protected SerializedProperty p_horizontalScrollbarSpacing;
+        protected SerializedProperty p_verticalScrollbarSpacing;
+          
+        protected AnimBool m_showElasticity;
+        protected AnimBool m_showDecelerationRate;
+          
+        protected bool m_viewportIsNotChild;
+        protected bool m_hScrollbarIsNotChild;
+        protected bool m_vScrollbarIsNotChild;
+          
+        protected static string _hError = "For this visibility mode, the Viewport property and the Horizontal Scrollbar property both needs to be set to a Rect Transform that is a child to the Scroll Rect.";
+        protected static string _vError = "For this visibility mode, the Viewport property and the Vertical Scrollbar property both needs to be set to a Rect Transform that is a child to the Scroll Rect.";
+
+        #endregion
+
+        #region Core Behaviour
+
+        protected virtual void OnEnable()
+        {
+            m_scrollRect = target as UIScrollRect;
+
+            p_contentRect = base.serializedObject.FindProperty("m_contentRect");
+            p_horizontal = base.serializedObject.FindProperty("m_horizontal");
+            p_vertical = base.serializedObject.FindProperty("m_vertical");
+            p_movementType = base.serializedObject.FindProperty("m_movementType");
+            p_elasticity = base.serializedObject.FindProperty("m_elasticity");
+            p_inertia = base.serializedObject.FindProperty("m_inertia");
+            p_decelerationRate = base.serializedObject.FindProperty("m_decelerationRate");
+            p_scrollSensitivity = base.serializedObject.FindProperty("m_scrollSensitivity");
+            p_viewportRect = base.serializedObject.FindProperty("m_viewportRect");
+            p_horizontalScrollbar = base.serializedObject.FindProperty("m_horizontalScrollbar");
+            p_verticalScrollbar = base.serializedObject.FindProperty("m_verticalScrollbar");
+            p_horizontalScrollbarVisibility = base.serializedObject.FindProperty("m_horizontalScrollbarVisibility");
+            p_verticalScrollbarVisibility = base.serializedObject.FindProperty("m_verticalScrollbarVisibility");
+            p_horizontalScrollbarSpacing = base.serializedObject.FindProperty("m_horizontalScrollbarSpacing");
+            p_verticalScrollbarSpacing = base.serializedObject.FindProperty("m_verticalScrollbarSpacing");
+
+            m_showElasticity = new AnimBool(Repaint);
+            m_showDecelerationRate = new AnimBool(Repaint);
+            SetAnimBools(instant: true);
+        }
+
+        protected virtual void OnDisable()
+        {
+            m_showElasticity.valueChanged.RemoveListener(Repaint);
+            m_showDecelerationRate.valueChanged.RemoveListener(Repaint);
+        }
+
+        #endregion
+
+        #region Utility
+
+        private void SetAnimBools(bool instant)
+        {
+            SetAnimBool(m_showElasticity, !p_movementType.hasMultipleDifferentValues && p_movementType.enumValueIndex == 1, instant);
+            SetAnimBool(m_showDecelerationRate, !p_inertia.hasMultipleDifferentValues && p_inertia.boolValue, instant);
+        }
+
+        private void SetAnimBool(AnimBool a, bool value, bool instant)
+        {
+            if (instant)
+            {
+                a.value = value;
+            }
+            else
+            {
+                a.target = value;
+            }
+        }
+
+        protected virtual void CalculateCachedValues()
+        {
+            m_viewportIsNotChild = false;
+            m_hScrollbarIsNotChild = false;
+            m_vScrollbarIsNotChild = false;
+            if (base.targets.Length == 1)
+            {
+                Transform transform = m_scrollRect.transform;
+                if (p_viewportRect.objectReferenceValue == null || ((RectTransform)p_viewportRect.objectReferenceValue).transform.parent != transform)
+                {
+                    m_viewportIsNotChild = true;
+                }
+
+                if (p_horizontalScrollbar.objectReferenceValue == null || ((UIScrollbar)p_horizontalScrollbar.objectReferenceValue).transform.parent != transform)
+                {
+                    m_hScrollbarIsNotChild = true;
+                }
+
+                if (p_verticalScrollbar.objectReferenceValue == null || ((UIScrollbar)p_verticalScrollbar.objectReferenceValue).transform.parent != transform)
+                {
+                    m_vScrollbarIsNotChild = true;
+                }
+            }
+        }
+
+        #endregion
+
+        #region Core GUI
+
+        public override void OnInspectorGUI()
+        {
+            SetAnimBools(instant: false);
+
+            serializedObject.Update();
+
+            CalculateCachedValues();
+            EditorGUILayout.PropertyField(p_contentRect);
+            EditorGUILayout.PropertyField(p_horizontal);
+            EditorGUILayout.PropertyField(p_vertical);
+            EditorGUILayout.PropertyField(p_movementType);
+            if (EditorGUILayout.BeginFadeGroup(m_showElasticity.faded))
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(p_elasticity);
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.EndFadeGroup();
+            EditorGUILayout.PropertyField(p_inertia);
+            if (EditorGUILayout.BeginFadeGroup(m_showDecelerationRate.faded))
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(p_decelerationRate);
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.EndFadeGroup();
+            EditorGUILayout.PropertyField(p_scrollSensitivity);
+            EditorGUILayout.Space();
+            EditorGUILayout.PropertyField(p_viewportRect);
+            EditorGUILayout.PropertyField(p_horizontalScrollbar);
+            if ((bool)p_horizontalScrollbar.objectReferenceValue && !p_horizontalScrollbar.hasMultipleDifferentValues)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(p_horizontalScrollbarVisibility, EditorGUIUtility.TrTextContent("Visibility"));
+                if (p_horizontalScrollbarVisibility.enumValueIndex == 2 && !p_horizontalScrollbarVisibility.hasMultipleDifferentValues)
+                {
+                    if (m_viewportIsNotChild || m_hScrollbarIsNotChild)
+                    {
+                        EditorGUILayout.HelpBox(_hError, MessageType.Error);
+                    }
+
+                    EditorGUILayout.PropertyField(p_horizontalScrollbarSpacing, EditorGUIUtility.TrTextContent("Spacing"));
+                }
+
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.PropertyField(p_verticalScrollbar);
+            if ((bool)p_verticalScrollbar.objectReferenceValue && !p_verticalScrollbar.hasMultipleDifferentValues)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(p_verticalScrollbarVisibility, EditorGUIUtility.TrTextContent("Visibility"));
+                if (p_verticalScrollbarVisibility.enumValueIndex == 2 && !p_verticalScrollbarVisibility.hasMultipleDifferentValues)
+                {
+                    if (m_viewportIsNotChild || m_vScrollbarIsNotChild)
+                    {
+                        EditorGUILayout.HelpBox(_vError, MessageType.Error);
+                    }
+
+                    EditorGUILayout.PropertyField(p_verticalScrollbarSpacing, EditorGUIUtility.TrTextContent("Spacing"));
+                }
+
+                EditorGUI.indentLevel--;
+            }
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        #endregion
+    }
+
+#endif
+
+    #endregion
 }
