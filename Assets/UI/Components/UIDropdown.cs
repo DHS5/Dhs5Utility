@@ -1,0 +1,1161 @@
+using System.Collections.Generic;
+using System;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using System.Collections;
+
+namespace Dhs5.Utility.UI
+{
+    [RequireComponent(typeof(RectTransform))]
+    public class UIDropdown : UISelectable, IPointerClickHandler, ISubmitHandler, ICancelHandler
+    {
+        #region Option CLASSES
+
+        [Serializable]
+        /// <summary>
+        /// Class to store the text and/or image of a single option in the dropdown list
+        /// </summary>
+        public class OptionData
+        {
+            #region Members
+
+            [SerializeField] protected string m_text;
+            [SerializeField] protected OptionAsset m_asset;
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// The text associated with the option
+            /// </summary>
+            public virtual string Text 
+            { 
+                get => m_text; 
+                set => m_text = value; 
+            }
+
+            /// <summary>
+            /// Asset containing the option's extra datas
+            /// </summary>
+            public virtual OptionAsset Asset
+            {
+                get => m_asset;
+                set => m_asset = value;
+            }
+
+            #endregion
+
+            #region Constructors
+
+            public OptionData() { }
+
+            public OptionData(string text)
+            {
+                this.Text = text;
+            }
+
+            public OptionData(OptionAsset asset)
+            {
+                this.Asset = asset;
+            }
+
+            public OptionData(string text, OptionAsset asset)
+            {
+                this.Text = text;
+                this.Asset = asset;
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Class to store extra data of a single option in the dropdown list
+        /// </summary>
+        public abstract class OptionAsset : ScriptableObject { }
+
+        #endregion
+
+
+        #region Members
+
+        static readonly OptionData k_NothingOption = new OptionData { Text = "Nothing" };
+        static readonly OptionData k_EverythingOption = new OptionData { Text = "Everything" };
+        static readonly OptionData k_MixedOption = new OptionData { Text = "Mixed..." };
+        private static OptionData s_NoOptionData = new OptionData();
+
+        [SerializeField] private RectTransform m_template;
+        [SerializeField] private TMP_Text m_captionText;
+        [SerializeField] private Image m_captionImage;
+        [SerializeField] private Graphic m_placeholder;
+        [Space]
+        [SerializeField] private TMP_Text m_itemText;
+        [SerializeField] private Image m_itemImage;
+        [Space]
+        [SerializeField] private int m_value;
+        [SerializeField] private bool m_multiSelect;
+        [Space]
+        [SerializeField] private List<OptionData> m_options = new();
+        [SerializeField] private float m_alphaFadeSpeed = 0.15f;
+
+        private GameObject m_dropdown;
+        private GameObject m_blocker;
+        private List<UIDropdownItem> m_items = new List<UIDropdownItem>();
+        private TweenRunner<FloatTween> m_alphaTweenRunner;
+        private bool m_validTemplate = false;
+        private Coroutine m_coroutine = null;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The Rect Transform of the template for the dropdown list.
+        /// </summary>
+        public virtual RectTransform Template 
+        { 
+            get => m_template; 
+            set 
+            {
+                if (m_template != value)
+                {
+                    m_template = value;
+                    RefreshShownValue();
+                }
+            } 
+        }
+
+        /// <summary>
+        /// The Text component to hold the text of the currently selected option.
+        /// </summary>
+        public virtual TMP_Text CaptionText 
+        { 
+            get => m_captionText;
+            set 
+            {
+                if (m_captionText != value)
+                {
+                    m_captionText = value;
+                    RefreshShownValue();
+                }
+            } 
+        }
+
+        /// <summary>
+        /// The Image component to hold the image of the currently selected option.
+        /// </summary>
+        public virtual Image CaptionImage 
+        { 
+            get => m_captionImage; 
+            set 
+            {
+                if (m_captionImage != value)
+                {
+                    m_captionImage = value;
+                    RefreshShownValue();
+                }
+            } 
+        }
+
+        /// <summary>
+        /// The placeholder Graphic component. Shown when no option is selected.
+        /// </summary>
+        public virtual Graphic Placeholder 
+        { 
+            get => m_placeholder; 
+            set 
+            {
+                if (m_placeholder != value)
+                {
+                    m_placeholder = value;
+                    RefreshShownValue();
+                }
+            } 
+        }
+
+        /// <summary>
+        /// The Text component to hold the text of the item.
+        /// </summary>
+        public virtual TMP_Text ItemText 
+        { 
+            get => m_itemText; 
+            set 
+            {
+                if (m_itemText != value)
+                {
+                    m_itemText = value;
+                    RefreshShownValue();
+                }
+            } 
+        }
+
+        /// <summary>
+        /// The Image component to hold the image of the item
+        /// </summary>
+        public virtual Image ItemImage 
+        { 
+            get => m_itemImage;
+            set 
+            { 
+                m_itemImage = value; 
+                RefreshShownValue(); 
+            } 
+        }
+
+        /// <summary>
+        /// The list of possible options. A text string and an image can be specified for each option.
+        /// </summary>
+        /// <remarks>
+        /// This is the list of options within the Dropdown. Each option contains Text and/or image data that you can specify using UI.Dropdown.OptionData before adding to the Dropdown list.
+        /// This also unlocks the ability to edit the Dropdown, including the insertion, removal, and finding of options, as well as other useful tools
+        /// </remarks>
+        public virtual IEnumerable<OptionData> Options => m_options;
+
+        /// <summary>
+        /// The time interval at which a drop down will appear and disappear
+        /// </summary>
+        public virtual float AlphaFadeSpeed 
+        { 
+            get => m_alphaFadeSpeed;
+            set => m_alphaFadeSpeed = value; 
+        }
+
+        /// <summary>
+        /// The Value is the index number of the current selection in the Dropdown. 0 is the first option in the Dropdown, 1 is the second, and so on.
+        /// </summary>
+        public virtual int Value
+        {
+            get => m_value;
+            set => SetValue(value);
+        }
+
+        public bool MultiSelect 
+        { 
+            get => m_multiSelect; 
+            set => m_multiSelect = value; 
+        }
+
+        public bool IsExpanded => m_dropdown != null;
+
+        #endregion
+
+        #region Events
+
+        public event Action<int> ValueChanged;
+
+        protected void TriggerValueChanged()
+        {
+            UISystemProfilerApi.AddMarker("Dropdown.value", this);
+            EventContext = this;
+            ValueChanged?.Invoke(m_value);
+        }
+
+        #endregion
+
+        #region Core Behaviour
+
+        protected override void Awake()
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                return;
+#endif
+
+            if (m_captionImage)
+                m_captionImage.enabled = (m_captionImage.sprite != null && m_captionImage.color.a > 0);
+
+            if (m_template)
+                m_template.gameObject.SetActive(false);
+        }
+
+        protected override void Start()
+        {
+            m_alphaTweenRunner = new TweenRunner<FloatTween>();
+            m_alphaTweenRunner.Init(this);
+            base.Start();
+
+            RefreshShownValue();
+        }
+
+        protected override void OnDisable()
+        {
+            //Destroy dropdown and blocker in case user deactivates the dropdown when they click an option (case 935649)
+            ImmediateDestroyDropdownList();
+
+            if (m_blocker != null)
+                DestroyBlocker(m_blocker);
+
+            m_blocker = null;
+
+            base.OnDisable();
+        }
+
+        #endregion
+
+
+        #region Set Process
+
+        /// <summary>
+        /// Set index number of the current selection in the Dropdown without invoking onValueChanged callback.
+        /// </summary>
+        /// <param name="input">The new index for the current selection.</param>
+        public virtual void SetValueWithoutNotify(int input)
+        {
+            SetValue(input, false);
+        }
+
+        protected virtual void SetValue(int value, bool triggerEvent = true)
+        {
+            if (Application.isPlaying && (value == m_value || m_options.Count == 0))
+                return;
+
+            if (m_multiSelect)
+                m_value = value;
+            else
+                m_value = Mathf.Clamp(value, m_placeholder ? -1 : 0, m_options.Count - 1);
+
+            RefreshShownValue();
+
+            if (triggerEvent)
+            {
+                // Notify all listeners
+                TriggerValueChanged();
+            }
+        }
+
+        #endregion
+
+        #region Editor
+
+#if UNITY_EDITOR
+
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+
+            if (!IsActive())
+                return;
+
+            RefreshShownValue();
+        }
+
+#endif
+
+        #endregion
+
+        #region Update Visuals
+
+        /// <summary>
+        /// Refreshes the text and image (if available) of the currently selected option.
+        /// </summary>
+        /// <remarks>
+        /// If you have modified the list of options, you should call this method afterwards to ensure that the visual state of the dropdown corresponds to the updated options.
+        /// </remarks>
+        public virtual void RefreshShownValue()
+        {
+            OptionData data = s_NoOptionData;
+
+            if (m_options.Count > 0)
+            {
+                if (m_multiSelect)
+                {
+                    int firstActiveFlag = FirstActiveFlagIndex(m_value);
+                    if (m_value == 0 || firstActiveFlag >= m_options.Count)
+                        data = k_NothingOption;
+                    else if (IsEverythingValue(m_options.Count, m_value))
+                        data = k_EverythingOption;
+                    else if (Mathf.IsPowerOfTwo(m_value) && m_value > 0)
+                        data = m_options[firstActiveFlag];
+                    else
+                        data = k_MixedOption;
+                }
+                else if (m_value >= 0)
+                {
+                    data = m_options[Mathf.Clamp(m_value, 0, m_options.Count - 1)];
+                }
+            }
+
+            if (m_captionText)
+            {
+                if (data != null && data.Text != null)
+                    m_captionText.text = data.Text;
+                else
+                    m_captionText.text = "";
+            }
+
+            if (m_captionImage)
+            {
+                m_captionImage.sprite = data.image;
+                m_captionImage.color = data.color;
+                m_captionImage.enabled = (m_captionImage.sprite != null && m_captionImage.color.a > 0);
+            }
+
+            if (m_placeholder)
+            {
+                m_placeholder.enabled = m_options.Count == 0 || m_value == -1;
+            }
+        }
+
+        #endregion
+
+        #region Options
+
+        /// <summary>
+        /// Add multiple options to the options of the Dropdown based on a list of OptionData objects.
+        /// </summary>
+        /// <param name="options">The list of OptionData to add.</param>
+        /// /// <remarks>
+        /// See AddOptions(List<string> options) for code example of usages.
+        /// </remarks>
+        public virtual void AddOptions(List<OptionData> options)
+        {
+            m_options.AddRange(options);
+            RefreshShownValue();
+        }
+
+        /// <summary>
+        /// Add multiple text-only options to the options of the Dropdown based on a list of strings.
+        /// </summary>
+        /// <remarks>
+        /// Add a List of string messages to the Dropdown. The Dropdown shows each member of the list as a separate option.
+        /// </remarks>
+        /// <param name="options">The list of text strings to add.</param>
+        public virtual void AddOptions(List<string> options)
+        {
+            for (int i = 0; i < options.Count; i++)
+                m_options.Add(new OptionData(options[i]));
+
+            RefreshShownValue();
+        }
+
+        /// <summary>
+        /// Clear the list of options in the Dropdown.
+        /// </summary>
+        public virtual void ClearOptions()
+        {
+            m_options.Clear();
+            m_value = m_placeholder ? -1 : 0;
+            RefreshShownValue();
+        }
+
+        #endregion
+
+        #region Template
+
+        protected virtual void SetupTemplate()
+        {
+            m_validTemplate = false;
+
+            if (!m_template)
+            {
+                Debug.LogError("The dropdown template is not assigned. The template needs to be assigned and must have a child GameObject with a Toggle component serving as the item.", this);
+                return;
+            }
+
+            GameObject templateGo = m_template.gameObject;
+            templateGo.SetActive(true);
+            Toggle itemToggle = m_template.GetComponentInChildren<Toggle>();
+
+            m_validTemplate = true;
+            if (!itemToggle || itemToggle.transform == Template)
+            {
+                m_validTemplate = false;
+                Debug.LogError("The dropdown template is not valid. The template must have a child GameObject with a Toggle component serving as the item.", Template);
+            }
+            else if (!(itemToggle.transform.parent is RectTransform))
+            {
+                m_validTemplate = false;
+                Debug.LogError("The dropdown template is not valid. The child GameObject with a Toggle component (the item) must have a RectTransform on its parent.", Template);
+            }
+            else if (ItemText != null && !ItemText.transform.IsChildOf(itemToggle.transform))
+            {
+                m_validTemplate = false;
+                Debug.LogError("The dropdown template is not valid. The Item Text must be on the item GameObject or children of it.", Template);
+            }
+            else if (ItemImage != null && !ItemImage.transform.IsChildOf(itemToggle.transform))
+            {
+                m_validTemplate = false;
+                Debug.LogError("The dropdown template is not valid. The Item Image must be on the item GameObject or children of it.", Template);
+            }
+
+            if (!m_validTemplate)
+            {
+                templateGo.SetActive(false);
+                return;
+            }
+
+            UIDropdownItem item = itemToggle.gameObject.AddComponent<UIDropdownItem>();
+            item.text = m_itemText;
+            item.image = m_itemImage;
+            item.toggle = itemToggle;
+            item.rectTransform = (RectTransform)itemToggle.transform;
+
+            // Find the Canvas that this dropdown is a part of
+            Canvas parentCanvas = null;
+            Transform parentTransform = m_template.parent;
+            while (parentTransform != null)
+            {
+                parentCanvas = parentTransform.GetComponent<Canvas>();
+                if (parentCanvas != null)
+                    break;
+
+                parentTransform = parentTransform.parent;
+            }
+
+            Canvas popupCanvas = GetOrAddComponent<Canvas>(templateGo);
+            popupCanvas.overrideSorting = true;
+            popupCanvas.sortingOrder = 30000;
+
+            // If we have a parent canvas, apply the same raycasters as the parent for consistency.
+            if (parentCanvas != null)
+            {
+                Component[] components = parentCanvas.GetComponents<BaseRaycaster>();
+                for (int i = 0; i < components.Length; i++)
+                {
+                    Type raycasterType = components[i].GetType();
+                    if (templateGo.GetComponent(raycasterType) == null)
+                    {
+                        templateGo.AddComponent(raycasterType);
+                    }
+                }
+            }
+            else
+            {
+                GetOrAddComponent<GraphicRaycaster>(templateGo);
+            }
+
+            GetOrAddComponent<CanvasGroup>(templateGo);
+            templateGo.SetActive(false);
+
+            m_validTemplate = true;
+        }
+
+        #endregion
+
+
+        #region IEventHandlers
+
+        /// <summary>
+        /// Handling for when the dropdown is initially 'clicked'. Typically shows the dropdown
+        /// </summary>
+        /// <param name="eventData">The associated event data.</param>
+        public virtual void OnPointerClick(PointerEventData eventData)
+        {
+            Show();
+        }
+
+        /// <summary>
+        /// Handling for when the dropdown is selected and a submit event is processed. Typically shows the dropdown
+        /// </summary>
+        /// <param name="eventData">The associated event data.</param>
+        public virtual void OnSubmit(BaseEventData eventData)
+        {
+            Show();
+        }
+
+        /// <summary>
+        /// This will hide the dropdown list.
+        /// </summary>
+        /// <remarks>
+        /// Called by a BaseInputModule when a Cancel event occurs.
+        /// </remarks>
+        /// <param name="eventData">The associated event data.</param>
+        public virtual void OnCancel(BaseEventData eventData)
+        {
+            Hide();
+        }
+
+        #endregion
+
+        #region Actions
+
+        /// <summary>
+        /// Show the dropdown.
+        ///
+        /// Plan for dropdown scrolling to ensure dropdown is contained within screen.
+        ///
+        /// We assume the Canvas is the screen that the dropdown must be kept inside.
+        /// This is always valid for screen space canvas modes.
+        /// For world space canvases we don't know how it's used, but it could be e.g. for an in-game monitor.
+        /// We consider it a fair constraint that the canvas must be big enough to contain dropdowns.
+        /// </summary>
+        public virtual void Show()
+        {
+            if (m_coroutine != null)
+            {
+                StopCoroutine(m_coroutine);
+                ImmediateDestroyDropdownList();
+            }
+
+            if (!IsActive() || !IsInteractable() || m_dropdown != null)
+                return;
+
+            // Get root Canvas.
+            var list = TMP_ListPool<Canvas>.Get();
+            gameObject.GetComponentsInParent(false, list);
+            if (list.Count == 0)
+                return;
+
+            Canvas rootCanvas = list[list.Count - 1];
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].isRootCanvas)
+                {
+                    rootCanvas = list[i];
+                    break;
+                }
+            }
+
+            TMP_ListPool<Canvas>.Release(list);
+
+            if (!m_validTemplate)
+            {
+                SetupTemplate();
+                if (!m_validTemplate)
+                    return;
+            }
+
+            m_template.gameObject.SetActive(true);
+
+            // popupCanvas used to assume the root canvas had the default sorting Layer, next line fixes (case 958281 - [UI] Dropdown list does not copy the parent canvas layer when the panel is opened)
+            m_template.GetComponent<Canvas>().sortingLayerID = rootCanvas.sortingLayerID;
+
+            // Instantiate the drop-down template
+            m_dropdown = CreateDropdownList(m_template.gameObject);
+            m_dropdown.name = "Dropdown List";
+            m_dropdown.SetActive(true);
+
+            // Make drop-down RectTransform have same values as original.
+            RectTransform dropdownRectTransform = m_dropdown.transform as RectTransform;
+            dropdownRectTransform.SetParent(m_template.transform.parent, false);
+
+            // Instantiate the drop-down list items
+
+            // Find the dropdown item and disable it.
+            UIDropdownItem itemTemplate = m_dropdown.GetComponentInChildren<UIDropdownItem>();
+
+            GameObject content = itemTemplate.rectTransform.parent.gameObject;
+            RectTransform contentRectTransform = content.transform as RectTransform;
+            itemTemplate.rectTransform.gameObject.SetActive(true);
+
+            // Get the rects of the dropdown and item
+            Rect dropdownContentRect = contentRectTransform.rect;
+            Rect itemTemplateRect = itemTemplate.rectTransform.rect;
+
+            // Calculate the visual offset between the item's edges and the background's edges
+            Vector2 offsetMin = itemTemplateRect.min - dropdownContentRect.min + (Vector2)itemTemplate.rectTransform.localPosition;
+            Vector2 offsetMax = itemTemplateRect.max - dropdownContentRect.max + (Vector2)itemTemplate.rectTransform.localPosition;
+            Vector2 itemSize = itemTemplateRect.size;
+
+            m_items.Clear();
+
+            Toggle prev = null;
+            if (m_multiSelect && m_options.Count > 0)
+            {
+                UIDropdownItem item = AddItem(k_NothingOption, Value == 0, itemTemplate, m_items);
+                if (item.image != null)
+                    item.image.gameObject.SetActive(false);
+
+                Toggle nothingToggle = item.toggle;
+                nothingToggle.isOn = Value == 0;
+                nothingToggle.onValueChanged.AddListener(x => OnSelectItem(nothingToggle));
+                prev = nothingToggle;
+
+                bool isEverythingValue = IsEverythingValue(m_options.Count, Value);
+                item = AddItem(k_EverythingOption, isEverythingValue, itemTemplate, m_items);
+                if (item.image != null)
+                    item.image.gameObject.SetActive(false);
+
+                Toggle everythingToggle = item.toggle;
+                everythingToggle.isOn = isEverythingValue;
+                everythingToggle.onValueChanged.AddListener(x => OnSelectItem(everythingToggle));
+
+                // Automatically set up explicit navigation
+                if (prev != null)
+                {
+                    Navigation prevNav = prev.navigation;
+                    Navigation toggleNav = item.toggle.navigation;
+                    prevNav.mode = Navigation.Mode.Explicit;
+                    toggleNav.mode = Navigation.Mode.Explicit;
+
+                    prevNav.selectOnDown = item.toggle;
+                    prevNav.selectOnRight = item.toggle;
+                    toggleNav.selectOnLeft = prev;
+                    toggleNav.selectOnUp = prev;
+
+                    prev.navigation = prevNav;
+                    item.toggle.navigation = toggleNav;
+                }
+            }
+
+            for (int i = 0; i < m_options.Count; ++i)
+            {
+                OptionData data = m_options[i];
+                UIDropdownItem item = AddItem(data, Value == i, itemTemplate, m_items);
+                if (item == null)
+                    continue;
+
+                // Automatically set up a toggle state change listener
+                if (m_multiSelect)
+                    item.toggle.isOn = (Value & (1 << i)) != 0;
+                else
+                    item.toggle.isOn = Value == i;
+
+                item.toggle.onValueChanged.AddListener(x => OnSelectItem(item.toggle));
+
+                // Select current option
+                if (item.toggle.isOn)
+                    item.toggle.Select();
+
+                // Automatically set up explicit navigation
+                if (prev != null)
+                {
+                    Navigation prevNav = prev.navigation;
+                    Navigation toggleNav = item.toggle.navigation;
+                    prevNav.mode = Navigation.Mode.Explicit;
+                    toggleNav.mode = Navigation.Mode.Explicit;
+
+                    prevNav.selectOnDown = item.toggle;
+                    prevNav.selectOnRight = item.toggle;
+                    toggleNav.selectOnLeft = prev;
+                    toggleNav.selectOnUp = prev;
+
+                    prev.navigation = prevNav;
+                    item.toggle.navigation = toggleNav;
+                }
+                prev = item.toggle;
+            }
+
+            // Reposition all items now that all of them have been added
+            Vector2 sizeDelta = contentRectTransform.sizeDelta;
+            sizeDelta.y = itemSize.y * m_items.Count + offsetMin.y - offsetMax.y;
+            contentRectTransform.sizeDelta = sizeDelta;
+
+            float extraSpace = dropdownRectTransform.rect.height - contentRectTransform.rect.height;
+            if (extraSpace > 0)
+                dropdownRectTransform.sizeDelta = new Vector2(dropdownRectTransform.sizeDelta.x, dropdownRectTransform.sizeDelta.y - extraSpace);
+
+            // Invert anchoring and position if dropdown is partially or fully outside of canvas rect.
+            // Typically this will have the effect of placing the dropdown above the button instead of below,
+            // but it works as inversion regardless of initial setup.
+            Vector3[] corners = new Vector3[4];
+            dropdownRectTransform.GetWorldCorners(corners);
+
+            RectTransform rootCanvasRectTransform = rootCanvas.transform as RectTransform;
+            Rect rootCanvasRect = rootCanvasRectTransform.rect;
+            for (int axis = 0; axis < 2; axis++)
+            {
+                bool outside = false;
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector3 corner = rootCanvasRectTransform.InverseTransformPoint(corners[i]);
+                    if ((corner[axis] < rootCanvasRect.min[axis] && !Mathf.Approximately(corner[axis], rootCanvasRect.min[axis])) ||
+                        (corner[axis] > rootCanvasRect.max[axis] && !Mathf.Approximately(corner[axis], rootCanvasRect.max[axis])))
+                    {
+                        outside = true;
+                        break;
+                    }
+                }
+                if (outside)
+                    RectTransformUtility.FlipLayoutOnAxis(dropdownRectTransform, axis, false, false);
+            }
+
+            for (int i = 0; i < m_items.Count; i++)
+            {
+                RectTransform itemRect = m_items[i].rectTransform;
+                itemRect.anchorMin = new Vector2(itemRect.anchorMin.x, 0);
+                itemRect.anchorMax = new Vector2(itemRect.anchorMax.x, 0);
+                itemRect.anchoredPosition = new Vector2(itemRect.anchoredPosition.x, offsetMin.y + itemSize.y * (m_items.Count - 1 - i) + itemSize.y * itemRect.pivot.y);
+                itemRect.sizeDelta = new Vector2(itemRect.sizeDelta.x, itemSize.y);
+            }
+
+            // Fade in the popup
+            AlphaFadeList(m_alphaFadeSpeed, 0f, 1f);
+
+            // Make drop-down template and item template inactive
+            m_template.gameObject.SetActive(false);
+            itemTemplate.gameObject.SetActive(false);
+
+            m_blocker = CreateBlocker(rootCanvas);
+        }
+
+        /// <summary>
+        /// Hide the dropdown list. I.e. close it.
+        /// </summary>
+        public virtual void Hide()
+        {
+            if (m_coroutine == null)
+            {
+                if (m_dropdown != null)
+                {
+                    AlphaFadeList(m_alphaFadeSpeed, 0f);
+
+                    // User could have disabled the dropdown during the OnValueChanged call.
+                    if (IsActive())
+                        m_coroutine = StartCoroutine(DelayedDestroyDropdownList(m_alphaFadeSpeed));
+                }
+
+                if (m_blocker != null)
+                    DestroyBlocker(m_blocker);
+
+                m_blocker = null;
+                Select();
+            }
+        }
+
+        protected virtual IEnumerator DelayedDestroyDropdownList(float delay)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            ImmediateDestroyDropdownList();
+        }
+
+        protected virtual void ImmediateDestroyDropdownList()
+        {
+            for (int i = 0; i < m_items.Count; i++)
+            {
+                if (m_items[i] != null)
+                    DestroyItem(m_items[i]);
+            }
+
+            m_items.Clear();
+
+            if (m_dropdown != null)
+                DestroyDropdownList(m_dropdown);
+
+            if (m_alphaTweenRunner != null)
+                m_alphaTweenRunner.StopTween();
+
+            m_dropdown = null;
+            m_coroutine = null;
+        }
+
+        #endregion
+
+        #region Blocker
+
+        /// <summary>
+        /// Create a blocker that blocks clicks to other controls while the dropdown list is open.
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to obtain a blocker GameObject.
+        /// </remarks>
+        /// <param name="rootCanvas">The root canvas the dropdown is under.</param>
+        /// <returns>The created blocker object</returns>
+        protected virtual GameObject CreateBlocker(Canvas rootCanvas)
+        {
+            // Create blocker GameObject.
+            GameObject blocker = new GameObject("Blocker");
+
+            // Set the game object layer to match the Canvas' game object layer, as not doing this can lead to issues
+            // especially in XR applications like PolySpatial on VisionOS (UUM-62470).
+            blocker.layer = rootCanvas.gameObject.layer;
+
+            // Setup blocker RectTransform to cover entire root canvas area.
+            RectTransform blockerRect = blocker.AddComponent<RectTransform>();
+            blockerRect.SetParent(rootCanvas.transform, false);
+            blockerRect.anchorMin = Vector3.zero;
+            blockerRect.anchorMax = Vector3.one;
+            blockerRect.sizeDelta = Vector2.zero;
+
+            // Make blocker be in separate canvas in same layer as dropdown and in layer just below it.
+            Canvas blockerCanvas = blocker.AddComponent<Canvas>();
+            blockerCanvas.overrideSorting = true;
+            Canvas dropdownCanvas = m_dropdown.GetComponent<Canvas>();
+            blockerCanvas.sortingLayerID = dropdownCanvas.sortingLayerID;
+            blockerCanvas.sortingOrder = dropdownCanvas.sortingOrder - 1;
+
+            // Find the Canvas that this dropdown is a part of
+            Canvas parentCanvas = null;
+            Transform parentTransform = m_template.parent;
+            while (parentTransform != null)
+            {
+                parentCanvas = parentTransform.GetComponent<Canvas>();
+                if (parentCanvas != null)
+                    break;
+
+                parentTransform = parentTransform.parent;
+            }
+
+            // If we have a parent canvas, apply the same raycasters as the parent for consistency.
+            if (parentCanvas != null)
+            {
+                Component[] components = parentCanvas.GetComponents<BaseRaycaster>();
+                for (int i = 0; i < components.Length; i++)
+                {
+                    Type raycasterType = components[i].GetType();
+                    if (blocker.GetComponent(raycasterType) == null)
+                    {
+                        blocker.AddComponent(raycasterType);
+                    }
+                }
+            }
+            else
+            {
+                // Add raycaster since it's needed to block.
+                GetOrAddComponent<GraphicRaycaster>(blocker);
+            }
+
+
+            // Add image since it's needed to block, but make it clear.
+            Image blockerImage = blocker.AddComponent<Image>();
+            blockerImage.color = Color.clear;
+
+            // Add button since it's needed to block, and to close the dropdown when blocking area is clicked.
+            Button blockerButton = blocker.AddComponent<Button>();
+            blockerButton.onClick.AddListener(Hide);
+
+            //add canvas group to ensure clicking outside the dropdown will hide it (UUM-33691)
+            CanvasGroup blockerCanvasGroup = blocker.AddComponent<CanvasGroup>();
+            blockerCanvasGroup.ignoreParentGroups = true;
+
+            return blocker;
+        }
+
+        /// <summary>
+        /// Convenience method to explicitly destroy the previously generated blocker object
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to dispose of a blocker GameObject that blocks clicks to other controls while the dropdown list is open.
+        /// </remarks>
+        /// <param name="blocker">The blocker object to destroy.</param>
+        protected virtual void DestroyBlocker(GameObject blocker)
+        {
+            Destroy(blocker);
+        }
+
+        #endregion
+
+        #region Visual List
+
+        /// <summary>
+        /// Create the dropdown list to be shown when the dropdown is clicked. The dropdown list should correspond to the provided template GameObject, equivalent to instantiating a copy of it.
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to obtain a dropdown list GameObject.
+        /// </remarks>
+        /// <param name="template">The template to create the dropdown list from.</param>
+        /// <returns>The created drop down list gameobject.</returns>
+        protected virtual GameObject CreateDropdownList(GameObject template)
+        {
+            return (GameObject)Instantiate(template);
+        }
+
+        /// <summary>
+        /// Convenience method to explicitly destroy the previously generated dropdown list
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to dispose of a dropdown list GameObject.
+        /// </remarks>
+        /// <param name="dropdownList">The dropdown list GameObject to destroy</param>
+        protected virtual void DestroyDropdownList(GameObject dropdownList)
+        {
+            Destroy(dropdownList);
+        }
+
+        #endregion
+
+        #region Items
+
+        /// <summary>
+        /// Create a dropdown item based upon the item template.
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to obtain an option item.
+        /// The option item should correspond to the provided template DropdownItem and its GameObject, equivalent to instantiating a copy of it.
+        /// </remarks>
+        /// <param name="itemTemplate">e template to create the option item from.</param>
+        /// <returns>The created dropdown item component</returns>
+        protected virtual UIDropdownItem CreateItem(UIDropdownItem itemTemplate)
+        {
+            return (UIDropdownItem)Instantiate(itemTemplate);
+        }
+
+        /// <summary>
+        ///  Convenience method to explicitly destroy the previously generated Items.
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to dispose of an option item.
+        /// Likely no action needed since destroying the dropdown list destroys all contained items as well.
+        /// </remarks>
+        /// <param name="item">The Item to destroy.</param>
+        protected virtual void DestroyItem(UIDropdownItem item) { }
+
+        // Add a new drop-down list item with the specified values.
+        protected virtual UIDropdownItem AddItem(OptionData data, bool selected, UIDropdownItem itemTemplate, List<UIDropdownItem> items)
+        {
+            // Add a new item to the dropdown.
+            UIDropdownItem item = CreateItem(itemTemplate);
+            item.RectTransform.SetParent(itemTemplate.RectTransform.parent, false);
+
+            item.gameObject.SetActive(true);
+            item.gameObject.name = "Item " + items.Count + (data.Text != null ? ": " + data.Text : "");
+
+            item.ApplyData(data);
+
+            //if (item.toggle != null)
+            //{
+            //    item.toggle.isOn = false;
+            //}
+
+            items.Add(item);
+            return item;
+        }
+
+        #endregion
+
+        #region Fading & Alpha
+
+        private void AlphaFadeList(float duration, float alpha)
+        {
+            CanvasGroup group = m_dropdown.GetComponent<CanvasGroup>();
+            AlphaFadeList(duration, group.alpha, alpha);
+        }
+
+        private void AlphaFadeList(float duration, float start, float end)
+        {
+            if (end.Equals(start))
+                return;
+
+            FloatTween tween = new FloatTween { duration = duration, startValue = start, targetValue = end };
+            tween.AddOnChangedCallback(SetAlpha);
+            tween.ignoreTimeScale = true;
+            m_alphaTweenRunner.StartTween(tween);
+        }
+
+        private void SetAlpha(float alpha)
+        {
+            if (!m_dropdown)
+                return;
+
+            CanvasGroup group = m_dropdown.GetComponent<CanvasGroup>();
+            group.alpha = alpha;
+        }
+
+        #endregion
+
+        #region Callbacks
+
+        // Change the value and hide the dropdown.
+        protected virtual void OnSelectItem(Toggle toggle)
+        {
+            int selectedIndex = -1;
+            Transform tr = toggle.transform;
+            Transform parent = tr.parent;
+            for (int i = 1; i < parent.childCount; i++)
+            {
+                if (parent.GetChild(i) == tr)
+                {
+                    // Subtract one to account for template child.
+                    selectedIndex = i - 1;
+                    break;
+                }
+            }
+
+            if (selectedIndex < 0)
+                return;
+
+            if (m_multiSelect)
+            {
+                switch (selectedIndex)
+                {
+                    case 0: // Nothing
+                        Value = 0;
+                        for (var i = 3; i < parent.childCount; i++)
+                        {
+                            var toggleComponent = parent.GetChild(i).GetComponentInChildren<Toggle>();
+                            if (toggleComponent)
+                                toggleComponent.SetIsOnWithoutNotify(false);
+                        }
+
+                        toggle.isOn = true;
+                        break;
+                    case 1: // Everything
+                        Value = EverythingValue(m_options.Count);
+                        for (var i = 3; i < parent.childCount; i++)
+                        {
+                            var toggleComponent = parent.GetChild(i).GetComponentInChildren<Toggle>();
+                            if (toggleComponent)
+                                toggleComponent.SetIsOnWithoutNotify(i > 2);
+                        }
+                        break;
+                    default:
+                        var flagValue = 1 << (selectedIndex - 2);
+                        var wasSelected = (Value & flagValue) != 0;
+                        toggle.SetIsOnWithoutNotify(!wasSelected);
+
+                        if (wasSelected)
+                            Value &= ~flagValue;
+                        else
+                            Value |= flagValue;
+
+                        break;
+                }
+            }
+            else
+            {
+                if (!toggle.isOn)
+                    toggle.SetIsOnWithoutNotify(true);
+
+                Value = selectedIndex;
+            }
+
+            Hide();
+        }
+
+        #endregion
+
+
+        // --- STATIC ---
+
+        #region Utility
+
+        protected static T GetOrAddComponent<T>(GameObject go) where T : Component
+        {
+            T comp = go.GetComponent<T>();
+            if (!comp)
+                comp = go.AddComponent<T>();
+            return comp;
+        }
+
+        protected static bool IsEverythingValue(int count, int value)
+        {
+            var result = true;
+            for (var i = 0; i < count; i++)
+            {
+                if ((value & 1 << i) == 0)
+                    result = false;
+            }
+
+            return result;
+        }
+
+        protected static int EverythingValue(int count)
+        {
+            int result = 0;
+            for (var i = 0; i < count; i++)
+            {
+                result |= 1 << i;
+            }
+
+            return result;
+        }
+
+        protected static int FirstActiveFlagIndex(int value)
+        {
+            if (value == 0)
+                return 0;
+
+            const int bits = sizeof(int) * 8;
+            for (var i = 0; i < bits; i++)
+                if ((value & 1 << i) != 0)
+                    return i;
+
+            return 0;
+        }
+
+        #endregion
+    }
+}

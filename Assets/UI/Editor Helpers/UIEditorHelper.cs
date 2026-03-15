@@ -3,7 +3,6 @@ using UnityEngine.UI;
 using System;
 using TMPro;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 
@@ -173,7 +172,7 @@ namespace Dhs5.Utility.UI
         private static void CreateUISlider(MenuCommand menuCommand)
         {
             using (var scope = new InstantiationScope("Slider", menuCommand?.context as GameObject,
-                typeof(UISlider), typeof(UIGenericTransitioner), typeof(RectTransform)))
+                typeof(UISlider), typeof(UIGenericTransitioner)))
             {
                 var slider = scope.go.GetComponent<UISlider>();
                 Undo.RecordObject(slider, "Setup UI Slider");
@@ -348,7 +347,7 @@ namespace Dhs5.Utility.UI
                 image.type = Image.Type.Sliced;
                 image.color = new Color(1f, 1f, 1f, 0.2f);
                 image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
-                float contentSize = 500f;
+                Vector2 contentSize = new Vector2(500f, 500f);
                 if (scrollRect.TryGetComponent(out RectTransform rectTransform))
                 {
                     if (rectTransform.parent is RectTransform parent)
@@ -356,7 +355,7 @@ namespace Dhs5.Utility.UI
                         rectTransform.anchorMin = Vector2.zero;
                         rectTransform.anchorMax = Vector2.one;
                         rectTransform.sizeDelta = Vector2.zero;
-                        contentSize = parent.rect.size.y;
+                        contentSize = parent.rect.size;
                     }
                     else
                     {
@@ -376,6 +375,7 @@ namespace Dhs5.Utility.UI
                 {
                     scrollRect.ViewportRect = rectTransform;
 
+                    rectTransform.pivot = Vector2.up;
                     rectTransform.anchorMin = Vector2.zero;
                     rectTransform.anchorMax = Vector2.one;
                     rectTransform.sizeDelta = Vector2.zero;
@@ -389,38 +389,60 @@ namespace Dhs5.Utility.UI
                 {
                     scrollRect.ContentRect = rectTransform;
 
-                    rectTransform.pivot = Vector2.up;
-                    rectTransform.anchorMin = Vector2.up;
-                    rectTransform.anchorMax = Vector2.one;
-                    rectTransform.sizeDelta = new Vector2(0f, contentSize);
+                    if (vertical && horizontal)
+                    {
+                        rectTransform.pivot = Vector2.up;
+                        rectTransform.anchorMin = Vector2.up;
+                        rectTransform.anchorMax = Vector2.up;
+                        rectTransform.sizeDelta = contentSize;
+                    }
+                    else if (vertical)
+                    {
+                        rectTransform.pivot = new Vector2(0.5f, 1f);
+                        rectTransform.anchorMin = Vector2.up;
+                        rectTransform.anchorMax = Vector2.one;
+                        rectTransform.sizeDelta = new Vector2(0f, contentSize.y);
+                    }
+                    else if (horizontal)
+                    {
+                        rectTransform.pivot = new Vector2(0f, 0.5f);
+                        rectTransform.anchorMin = Vector2.zero;
+                        rectTransform.anchorMax = Vector2.up;
+                        rectTransform.sizeDelta = new Vector2(contentSize.x, 0f);
+                    }
                 }
 
                 // Vertical Scrollbar
                 if (vertical)
                 {
-                    var verticalScrollbar = CreateUIScrollbar("Vertical Scrollbar", scope.go, (rectTransform) =>
+                    var verticalScrollbarGO = CreateUIScrollbar("Vertical Scrollbar", scope.go, (rectTransform) =>
                     {
                         rectTransform.pivot = new Vector2(1f, 1f);
                         rectTransform.anchorMin = Vector2.right;
                         rectTransform.anchorMax = Vector2.one;
-                        rectTransform.sizeDelta = new Vector2(15f, horizontal ? -15f : 0f);
+                        rectTransform.sizeDelta = new Vector2(20f, horizontal ? -20f : 0f);
                     });
 
-                    scrollRect.VerticalScrollbar = verticalScrollbar.GetComponent<UIScrollbar>();
+                    var verticalScrollbar = verticalScrollbarGO.GetComponent<UIScrollbar>();
+                    verticalScrollbar.Direction = UIScrollbar.EDirection.BottomToTop;
+                    scrollRect.VerticalScrollbar = verticalScrollbar;
+                    scrollRect.VerticalScrollbarVisibility = UIScrollRect.EScrollbarVisibility.AutoHideAndExpandViewport;
                 }
                 
                 // Horizontal Scrollbar
                 if (horizontal)
                 {
-                    var horizontalScrollbar = CreateUIScrollbar("Horizontal Scrollbar", scope.go, (rectTransform) =>
+                    var horizontalScrollbarGO = CreateUIScrollbar("Horizontal Scrollbar", scope.go, (rectTransform) =>
                     {
                         rectTransform.pivot = new Vector2(0f, 0f);
                         rectTransform.anchorMin = Vector2.zero;
                         rectTransform.anchorMax = Vector2.right;
-                        rectTransform.sizeDelta = new Vector2(vertical ? -15f : 0f, 15f);
+                        rectTransform.sizeDelta = new Vector2(vertical ? -20f : 0f, 20f);
                     });
 
-                    scrollRect.HorizontalScrollbar = horizontalScrollbar.GetComponent<UIScrollbar>();
+                    var horizontalScrollbar = horizontalScrollbarGO.GetComponent<UIScrollbar>();
+                    scrollRect.HorizontalScrollbar = horizontalScrollbar;
+                    scrollRect.HorizontalScrollbarVisibility = UIScrollRect.EScrollbarVisibility.AutoHideAndExpandViewport;
                 }
 
                 Selection.activeGameObject = scope.go;

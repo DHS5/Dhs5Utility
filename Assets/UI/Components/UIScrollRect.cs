@@ -82,7 +82,7 @@ namespace Dhs5.Utility.UI
         [SerializeField] protected float m_elasticity = 0.1f;
         [SerializeField] protected bool m_inertia = true;
         [SerializeField] protected float m_decelerationRate = 0.135f; // Only used when inertia is enabled
-        [SerializeField] protected float m_scrollSensitivity = 1.0f;
+        [SerializeField] protected float m_scrollSensitivity = 20.0f;
         [SerializeField] protected RectTransform m_viewportRect;
         [SerializeField] protected UIScrollbar m_horizontalScrollbar;
         [SerializeField] protected UIScrollbar m_verticalScrollbar;
@@ -1318,7 +1318,6 @@ namespace Dhs5.Utility.UI
             serializedObject.Update();
 
             CalculateCachedValues();
-            EditorGUILayout.PropertyField(p_contentRect);
             EditorGUILayout.PropertyField(p_horizontal);
             EditorGUILayout.PropertyField(p_vertical);
             EditorGUILayout.PropertyField(p_movementType);
@@ -1342,6 +1341,8 @@ namespace Dhs5.Utility.UI
             EditorGUILayout.PropertyField(p_scrollSensitivity);
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(p_viewportRect);
+            EditorGUILayout.PropertyField(p_contentRect);
+            EditorGUILayout.Space();
             EditorGUILayout.PropertyField(p_horizontalScrollbar);
             if ((bool)p_horizontalScrollbar.objectReferenceValue && !p_horizontalScrollbar.hasMultipleDifferentValues)
             {
