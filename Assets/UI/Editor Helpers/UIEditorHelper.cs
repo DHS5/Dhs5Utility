@@ -329,31 +329,49 @@ namespace Dhs5.Utility.UI
             return result;
         }
 
-        [MenuItem("GameObject/UI/UI ScrollRect Vertical", secondaryPriority = 6)]
+        [MenuItem("GameObject/UI/UI ScrollView/Vertical", secondaryPriority = 6)]
         private static void CreateUIVerticalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, true, false);
-        [MenuItem("GameObject/UI/UI ScrollRect Horizontal", secondaryPriority = 6)]
+        [MenuItem("GameObject/UI/UI ScrollView/Horizontal", secondaryPriority = 7)]
         private static void CreateUIHorizontalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, false, true);
-        [MenuItem("GameObject/UI/UI ScrollRect Both", secondaryPriority = 6)]
+        [MenuItem("GameObject/UI/UI ScrollView/Both", secondaryPriority = 8)]
         private static void CreateUIBothScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, true, true);
         private static void CreateUIScrollView(MenuCommand menuCommand, bool vertical, bool horizontal)
         {
             using (var scope = new InstantiationScope("ScrollView", menuCommand?.context as GameObject,
-                typeof(UIScrollRect), typeof(RectTransform)))
+                typeof(UIScrollRect), typeof(Image)))
             {
                 var scrollRect = scope.go.GetComponent<UIScrollRect>();
                 Undo.RecordObject(scrollRect, "Setup UI ScrollRect");
                 scrollRect.Vertical = vertical;
                 scrollRect.Horizontal = horizontal;
+                var image = scope.go.GetComponent<Image>();
+                image.type = Image.Type.Sliced;
+                image.color = new Color(1f, 1f, 1f, 0.2f);
+                image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+                float contentSize = 500f;
                 if (scrollRect.TryGetComponent(out RectTransform rectTransform))
                 {
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 500f);
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 500f);
+                    if (rectTransform.parent is RectTransform parent)
+                    {
+                        rectTransform.anchorMin = Vector2.zero;
+                        rectTransform.anchorMax = Vector2.one;
+                        rectTransform.sizeDelta = Vector2.zero;
+                        contentSize = parent.rect.size.y;
+                    }
+                    else
+                    {
+                        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 500f);
+                        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 500f);
+                    }
                 }
 
                 // Viewport
-                var viewportGO = new GameObject("Viewport", typeof(RectTransform), typeof(Mask));
+                var viewportGO = new GameObject("Viewport", typeof(Image), typeof(Mask));
                 GameObjectUtility.SetParentAndAlign(viewportGO, scope.go);
                 Undo.RegisterCreatedObjectUndo(viewportGO, viewportGO.name);
+                var viewportImage = viewportGO.GetComponent<Image>();
+                viewportImage.type = Image.Type.Sliced;
+                viewportImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UIMask.psd");
                 if (viewportGO.TryGetComponent(out rectTransform))
                 {
                     scrollRect.ViewportRect = rectTransform;
@@ -374,7 +392,7 @@ namespace Dhs5.Utility.UI
                     rectTransform.pivot = Vector2.up;
                     rectTransform.anchorMin = Vector2.up;
                     rectTransform.anchorMax = Vector2.one;
-                    rectTransform.sizeDelta = new Vector2(0f, 500f);
+                    rectTransform.sizeDelta = new Vector2(0f, contentSize);
                 }
 
                 // Vertical Scrollbar
@@ -404,6 +422,8 @@ namespace Dhs5.Utility.UI
 
                     scrollRect.HorizontalScrollbar = horizontalScrollbar.GetComponent<UIScrollbar>();
                 }
+
+                Selection.activeGameObject = scope.go;
             }
         }
 
