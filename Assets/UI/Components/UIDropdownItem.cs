@@ -10,13 +10,14 @@ namespace Dhs5.Utility.UI
         #region Members
 
         [SerializeField] protected RectTransform m_rectTransform;
-        //[SerializeField] protected TMP_Text m_text;
+        [SerializeField] protected UIToggle m_toggle;
 
         #endregion
 
         #region Properties
 
         public RectTransform RectTransform => m_rectTransform;
+        public UIToggle Toggle => m_toggle;
 
         #endregion
 
@@ -34,6 +35,7 @@ namespace Dhs5.Utility.UI
 
         #region Methods
 
+        public abstract void Setup();
         public abstract void ApplyData(UIDropdown.OptionData optionData);
 
         #endregion

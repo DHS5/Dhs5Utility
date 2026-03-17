@@ -79,6 +79,29 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Fade Tween
+
+        protected class FadeTween : UITransitionTween<float, CanvasGroup>
+        {
+            public void SetStartAlpha(float startAlpha) => m_startAlpha = startAlpha;
+
+            private float m_startAlpha;
+
+            protected override void OnInit(CanvasGroup graphic, float targetValue) { }
+
+            protected override void Update(CanvasGroup graphic, float normalizedTime, float targetValue)
+            {
+                graphic.alpha = Mathf.Lerp(m_startAlpha, targetValue, normalizedTime);
+            }
+
+            protected override void OnComplete(CanvasGroup graphic, float targetValue)
+            {
+                graphic.alpha = targetValue;
+            }
+        }
+
+        #endregion
+
 
         #region Members
 
@@ -89,7 +112,6 @@ namespace Dhs5.Utility.UI
 
         [SerializeField] private RectTransform m_template;
         [SerializeField] private TMP_Text m_captionText;
-        [SerializeField] private Image m_captionImage;
         [SerializeField] private Graphic m_placeholder;
         [Space]
         [SerializeField] private TMP_Text m_itemText;
@@ -104,7 +126,7 @@ namespace Dhs5.Utility.UI
         private GameObject m_dropdown;
         private GameObject m_blocker;
         private List<UIDropdownItem> m_items = new List<UIDropdownItem>();
-        private TweenRunner<FloatTween> m_alphaTweenRunner;
+        private FadeTween m_fadeTween = new();
         private bool m_validTemplate = false;
         private Coroutine m_coroutine = null;
 
@@ -139,22 +161,6 @@ namespace Dhs5.Utility.UI
                 if (m_captionText != value)
                 {
                     m_captionText = value;
-                    RefreshShownValue();
-                }
-            } 
-        }
-
-        /// <summary>
-        /// The Image component to hold the image of the currently selected option.
-        /// </summary>
-        public virtual Image CaptionImage 
-        { 
-            get => m_captionImage; 
-            set 
-            {
-                if (m_captionImage != value)
-                {
-                    m_captionImage = value;
                     RefreshShownValue();
                 }
             } 
@@ -264,17 +270,12 @@ namespace Dhs5.Utility.UI
                 return;
 #endif
 
-            if (m_captionImage)
-                m_captionImage.enabled = (m_captionImage.sprite != null && m_captionImage.color.a > 0);
-
             if (m_template)
                 m_template.gameObject.SetActive(false);
         }
 
         protected override void Start()
         {
-            m_alphaTweenRunner = new TweenRunner<FloatTween>();
-            m_alphaTweenRunner.Init(this);
             base.Start();
 
             RefreshShownValue();
@@ -386,13 +387,6 @@ namespace Dhs5.Utility.UI
                     m_captionText.text = "";
             }
 
-            if (m_captionImage)
-            {
-                m_captionImage.sprite = data.image;
-                m_captionImage.color = data.color;
-                m_captionImage.enabled = (m_captionImage.sprite != null && m_captionImage.color.a > 0);
-            }
-
             if (m_placeholder)
             {
                 m_placeholder.enabled = m_options.Count == 0 || m_value == -1;
@@ -488,10 +482,11 @@ namespace Dhs5.Utility.UI
             }
 
             UIDropdownItem item = itemToggle.gameObject.AddComponent<UIDropdownItem>();
-            item.text = m_itemText;
-            item.image = m_itemImage;
-            item.toggle = itemToggle;
-            item.rectTransform = (RectTransform)itemToggle.transform;
+            item.Setup();
+            //item.text = m_itemText;
+            //item.image = m_itemImage;
+            //item.toggle = itemToggle;
+            //item.RectTransform = (RectTransform)itemToggle.transform;
 
             // Find the Canvas that this dropdown is a part of
             Canvas parentCanvas = null;
@@ -594,7 +589,7 @@ namespace Dhs5.Utility.UI
                 return;
 
             // Get root Canvas.
-            var list = TMP_ListPool<Canvas>.Get();
+            List<Canvas> list = UIListPool<Canvas>.Get();
             gameObject.GetComponentsInParent(false, list);
             if (list.Count == 0)
                 return;
@@ -609,7 +604,7 @@ namespace Dhs5.Utility.UI
                 }
             }
 
-            TMP_ListPool<Canvas>.Release(list);
+            UIListPool<Canvas>.Release(list);
 
             if (!m_validTemplate)
             {
@@ -637,57 +632,53 @@ namespace Dhs5.Utility.UI
             // Find the dropdown item and disable it.
             UIDropdownItem itemTemplate = m_dropdown.GetComponentInChildren<UIDropdownItem>();
 
-            GameObject content = itemTemplate.rectTransform.parent.gameObject;
+            GameObject content = itemTemplate.RectTransform.parent.gameObject;
             RectTransform contentRectTransform = content.transform as RectTransform;
-            itemTemplate.rectTransform.gameObject.SetActive(true);
+            itemTemplate.RectTransform.gameObject.SetActive(true);
 
             // Get the rects of the dropdown and item
             Rect dropdownContentRect = contentRectTransform.rect;
-            Rect itemTemplateRect = itemTemplate.rectTransform.rect;
+            Rect itemTemplateRect = itemTemplate.RectTransform.rect;
 
             // Calculate the visual offset between the item's edges and the background's edges
-            Vector2 offsetMin = itemTemplateRect.min - dropdownContentRect.min + (Vector2)itemTemplate.rectTransform.localPosition;
-            Vector2 offsetMax = itemTemplateRect.max - dropdownContentRect.max + (Vector2)itemTemplate.rectTransform.localPosition;
+            Vector2 offsetMin = itemTemplateRect.min - dropdownContentRect.min + (Vector2)itemTemplate.RectTransform.localPosition;
+            Vector2 offsetMax = itemTemplateRect.max - dropdownContentRect.max + (Vector2)itemTemplate.RectTransform.localPosition;
             Vector2 itemSize = itemTemplateRect.size;
 
             m_items.Clear();
 
-            Toggle prev = null;
+            UIToggle prev = null;
             if (m_multiSelect && m_options.Count > 0)
             {
                 UIDropdownItem item = AddItem(k_NothingOption, Value == 0, itemTemplate, m_items);
-                if (item.image != null)
-                    item.image.gameObject.SetActive(false);
 
-                Toggle nothingToggle = item.toggle;
-                nothingToggle.isOn = Value == 0;
-                nothingToggle.onValueChanged.AddListener(x => OnSelectItem(nothingToggle));
+                UIToggle nothingToggle = item.Toggle;
+                nothingToggle.IsOn = Value == 0;
+                nothingToggle.ValueChanged += (x) => { OnSelectItem(nothingToggle); };
                 prev = nothingToggle;
 
                 bool isEverythingValue = IsEverythingValue(m_options.Count, Value);
                 item = AddItem(k_EverythingOption, isEverythingValue, itemTemplate, m_items);
-                if (item.image != null)
-                    item.image.gameObject.SetActive(false);
 
-                Toggle everythingToggle = item.toggle;
-                everythingToggle.isOn = isEverythingValue;
-                everythingToggle.onValueChanged.AddListener(x => OnSelectItem(everythingToggle));
+                UIToggle everythingToggle = item.Toggle;
+                everythingToggle.IsOn = isEverythingValue;
+                everythingToggle.ValueChanged += (x) => { OnSelectItem(everythingToggle); };
 
                 // Automatically set up explicit navigation
                 if (prev != null)
                 {
                     Navigation prevNav = prev.navigation;
-                    Navigation toggleNav = item.toggle.navigation;
+                    Navigation toggleNav = item.Toggle.navigation;
                     prevNav.mode = Navigation.Mode.Explicit;
                     toggleNav.mode = Navigation.Mode.Explicit;
 
-                    prevNav.selectOnDown = item.toggle;
-                    prevNav.selectOnRight = item.toggle;
+                    prevNav.selectOnDown = item.Toggle;
+                    prevNav.selectOnRight = item.Toggle;
                     toggleNav.selectOnLeft = prev;
                     toggleNav.selectOnUp = prev;
 
                     prev.navigation = prevNav;
-                    item.toggle.navigation = toggleNav;
+                    item.Toggle.navigation = toggleNav;
                 }
             }
 
@@ -700,33 +691,33 @@ namespace Dhs5.Utility.UI
 
                 // Automatically set up a toggle state change listener
                 if (m_multiSelect)
-                    item.toggle.isOn = (Value & (1 << i)) != 0;
+                    item.Toggle.IsOn = (Value & (1 << i)) != 0;
                 else
-                    item.toggle.isOn = Value == i;
+                    item.Toggle.IsOn = Value == i;
 
-                item.toggle.onValueChanged.AddListener(x => OnSelectItem(item.toggle));
+                item.Toggle.ValueChanged += (x) => { OnSelectItem(item.Toggle); };
 
                 // Select current option
-                if (item.toggle.isOn)
-                    item.toggle.Select();
+                if (item.Toggle.IsOn)
+                    item.Toggle.Select();
 
                 // Automatically set up explicit navigation
                 if (prev != null)
                 {
                     Navigation prevNav = prev.navigation;
-                    Navigation toggleNav = item.toggle.navigation;
+                    Navigation toggleNav = item.Toggle.navigation;
                     prevNav.mode = Navigation.Mode.Explicit;
                     toggleNav.mode = Navigation.Mode.Explicit;
 
-                    prevNav.selectOnDown = item.toggle;
-                    prevNav.selectOnRight = item.toggle;
+                    prevNav.selectOnDown = item.Toggle;
+                    prevNav.selectOnRight = item.Toggle;
                     toggleNav.selectOnLeft = prev;
                     toggleNav.selectOnUp = prev;
 
                     prev.navigation = prevNav;
-                    item.toggle.navigation = toggleNav;
+                    item.Toggle.navigation = toggleNav;
                 }
-                prev = item.toggle;
+                prev = item.Toggle;
             }
 
             // Reposition all items now that all of them have been added
@@ -765,7 +756,7 @@ namespace Dhs5.Utility.UI
 
             for (int i = 0; i < m_items.Count; i++)
             {
-                RectTransform itemRect = m_items[i].rectTransform;
+                RectTransform itemRect = m_items[i].RectTransform;
                 itemRect.anchorMin = new Vector2(itemRect.anchorMin.x, 0);
                 itemRect.anchorMax = new Vector2(itemRect.anchorMax.x, 0);
                 itemRect.anchoredPosition = new Vector2(itemRect.anchoredPosition.x, offsetMin.y + itemSize.y * (m_items.Count - 1 - i) + itemSize.y * itemRect.pivot.y);
@@ -825,8 +816,8 @@ namespace Dhs5.Utility.UI
             if (m_dropdown != null)
                 DestroyDropdownList(m_dropdown);
 
-            if (m_alphaTweenRunner != null)
-                m_alphaTweenRunner.StopTween();
+            if (m_fadeTween != null)
+                m_fadeTween.Stop();
 
             m_dropdown = null;
             m_coroutine = null;
@@ -1019,19 +1010,8 @@ namespace Dhs5.Utility.UI
             if (end.Equals(start))
                 return;
 
-            FloatTween tween = new FloatTween { duration = duration, startValue = start, targetValue = end };
-            tween.AddOnChangedCallback(SetAlpha);
-            tween.ignoreTimeScale = true;
-            m_alphaTweenRunner.StartTween(tween);
-        }
-
-        private void SetAlpha(float alpha)
-        {
-            if (!m_dropdown)
-                return;
-
-            CanvasGroup group = m_dropdown.GetComponent<CanvasGroup>();
-            group.alpha = alpha;
+            m_fadeTween.SetStartAlpha(start);
+            m_fadeTween.Start(this, m_dropdown.GetComponent<CanvasGroup>(), duration, end);
         }
 
         #endregion
@@ -1039,7 +1019,7 @@ namespace Dhs5.Utility.UI
         #region Callbacks
 
         // Change the value and hide the dropdown.
-        protected virtual void OnSelectItem(Toggle toggle)
+        protected virtual void OnSelectItem(UIToggle toggle)
         {
             int selectedIndex = -1;
             Transform tr = toggle.transform;
@@ -1070,7 +1050,7 @@ namespace Dhs5.Utility.UI
                                 toggleComponent.SetIsOnWithoutNotify(false);
                         }
 
-                        toggle.isOn = true;
+                        toggle.IsOn = true;
                         break;
                     case 1: // Everything
                         Value = EverythingValue(m_options.Count);
@@ -1096,7 +1076,7 @@ namespace Dhs5.Utility.UI
             }
             else
             {
-                if (!toggle.isOn)
+                if (!toggle.IsOn)
                     toggle.SetIsOnWithoutNotify(true);
 
                 Value = selectedIndex;
