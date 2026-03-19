@@ -105,30 +105,29 @@ namespace Dhs5.Utility.UI
 
         #region Members
 
-        static readonly OptionData k_NothingOption = new OptionData { Text = "Nothing" };
-        static readonly OptionData k_EverythingOption = new OptionData { Text = "Everything" };
-        static readonly OptionData k_MixedOption = new OptionData { Text = "Mixed..." };
-        private static OptionData s_NoOptionData = new OptionData();
+        protected static readonly OptionData _nothingOption = new OptionData { Text = "Nothing" };
+        protected static readonly OptionData _everythingOption = new OptionData { Text = "Everything" };
+        protected static readonly OptionData _mixedOption = new OptionData { Text = "Mixed..." };
+        protected static readonly OptionData _noOptionData = new OptionData();
 
-        [SerializeField] private RectTransform m_template;
-        [SerializeField] private TMP_Text m_captionText;
-        [SerializeField] private Graphic m_placeholder;
+        [SerializeField] protected RectTransform m_template;
+        [SerializeField] protected TMP_Text m_captionText;
+        [SerializeField] protected Graphic m_placeholder;
         [Space]
-        [SerializeField] private TMP_Text m_itemText;
-        [SerializeField] private Image m_itemImage;
+        [SerializeField] protected int m_value;
+        [SerializeField] protected bool m_multiSelect;
         [Space]
-        [SerializeField] private int m_value;
-        [SerializeField] private bool m_multiSelect;
-        [Space]
-        [SerializeField] private List<OptionData> m_options = new();
-        [SerializeField] private float m_alphaFadeSpeed = 0.15f;
+        [SerializeField] protected List<OptionData> m_options = new();
+        [SerializeField] protected float m_alphaFadeSpeed = 0.15f;
 
-        private GameObject m_dropdown;
-        private GameObject m_blocker;
-        private List<UIDropdownItem> m_items = new List<UIDropdownItem>();
-        private FadeTween m_fadeTween = new();
-        private bool m_validTemplate = false;
-        private Coroutine m_coroutine = null;
+        protected GameObject m_dropdown;
+        protected Canvas m_dropdownCanvas;
+        protected GameObject m_blocker;
+        protected List<UIDropdownItem> m_items = new List<UIDropdownItem>();
+
+        protected FadeTween m_fadeTween = new();
+        protected bool m_validTemplate = false;
+        protected Coroutine m_coroutine = null;
 
         #endregion
 
@@ -179,35 +178,6 @@ namespace Dhs5.Utility.UI
                     m_placeholder = value;
                     RefreshShownValue();
                 }
-            } 
-        }
-
-        /// <summary>
-        /// The Text component to hold the text of the item.
-        /// </summary>
-        public virtual TMP_Text ItemText 
-        { 
-            get => m_itemText; 
-            set 
-            {
-                if (m_itemText != value)
-                {
-                    m_itemText = value;
-                    RefreshShownValue();
-                }
-            } 
-        }
-
-        /// <summary>
-        /// The Image component to hold the image of the item
-        /// </summary>
-        public virtual Image ItemImage 
-        { 
-            get => m_itemImage;
-            set 
-            { 
-                m_itemImage = value; 
-                RefreshShownValue(); 
             } 
         }
 
@@ -310,7 +280,11 @@ namespace Dhs5.Utility.UI
 
         protected virtual void SetValue(int value, bool triggerEvent = true)
         {
-            if (Application.isPlaying && (value == m_value || m_options.Count == 0))
+            if (
+#if UNITY_EDITOR
+                Application.isPlaying &&
+#endif
+                (value == m_value || m_options.Count == 0))
                 return;
 
             if (m_multiSelect)
@@ -329,72 +303,6 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Editor
-
-#if UNITY_EDITOR
-
-        protected override void OnValidate()
-        {
-            base.OnValidate();
-
-            if (!IsActive())
-                return;
-
-            RefreshShownValue();
-        }
-
-#endif
-
-        #endregion
-
-        #region Update Visuals
-
-        /// <summary>
-        /// Refreshes the text and image (if available) of the currently selected option.
-        /// </summary>
-        /// <remarks>
-        /// If you have modified the list of options, you should call this method afterwards to ensure that the visual state of the dropdown corresponds to the updated options.
-        /// </remarks>
-        public virtual void RefreshShownValue()
-        {
-            OptionData data = s_NoOptionData;
-
-            if (m_options.Count > 0)
-            {
-                if (m_multiSelect)
-                {
-                    int firstActiveFlag = FirstActiveFlagIndex(m_value);
-                    if (m_value == 0 || firstActiveFlag >= m_options.Count)
-                        data = k_NothingOption;
-                    else if (IsEverythingValue(m_options.Count, m_value))
-                        data = k_EverythingOption;
-                    else if (Mathf.IsPowerOfTwo(m_value) && m_value > 0)
-                        data = m_options[firstActiveFlag];
-                    else
-                        data = k_MixedOption;
-                }
-                else if (m_value >= 0)
-                {
-                    data = m_options[Mathf.Clamp(m_value, 0, m_options.Count - 1)];
-                }
-            }
-
-            if (m_captionText)
-            {
-                if (data != null && data.Text != null)
-                    m_captionText.text = data.Text;
-                else
-                    m_captionText.text = "";
-            }
-
-            if (m_placeholder)
-            {
-                m_placeholder.enabled = m_options.Count == 0 || m_value == -1;
-            }
-        }
-
-        #endregion
-
         #region Options
 
         /// <summary>
@@ -404,9 +312,15 @@ namespace Dhs5.Utility.UI
         /// /// <remarks>
         /// See AddOptions(List<string> options) for code example of usages.
         /// </remarks>
-        public virtual void AddOptions(List<OptionData> options)
+        public virtual void AddOptions(IEnumerable<OptionData> options)
         {
             m_options.AddRange(options);
+            RefreshShownValue();
+        }
+
+        public virtual void AddOption(OptionData option)
+        {
+            m_options.Add(option);
             RefreshShownValue();
         }
 
@@ -425,6 +339,12 @@ namespace Dhs5.Utility.UI
             RefreshShownValue();
         }
 
+        public virtual void AddOption(string option)
+        {
+            m_options.Add(new OptionData(option));
+            RefreshShownValue();
+        }
+
         /// <summary>
         /// Clear the list of options in the Dropdown.
         /// </summary>
@@ -436,100 +356,6 @@ namespace Dhs5.Utility.UI
         }
 
         #endregion
-
-        #region Template
-
-        protected virtual void SetupTemplate()
-        {
-            m_validTemplate = false;
-
-            if (!m_template)
-            {
-                Debug.LogError("The dropdown template is not assigned. The template needs to be assigned and must have a child GameObject with a Toggle component serving as the item.", this);
-                return;
-            }
-
-            GameObject templateGo = m_template.gameObject;
-            templateGo.SetActive(true);
-            Toggle itemToggle = m_template.GetComponentInChildren<Toggle>();
-
-            m_validTemplate = true;
-            if (!itemToggle || itemToggle.transform == Template)
-            {
-                m_validTemplate = false;
-                Debug.LogError("The dropdown template is not valid. The template must have a child GameObject with a Toggle component serving as the item.", Template);
-            }
-            else if (!(itemToggle.transform.parent is RectTransform))
-            {
-                m_validTemplate = false;
-                Debug.LogError("The dropdown template is not valid. The child GameObject with a Toggle component (the item) must have a RectTransform on its parent.", Template);
-            }
-            else if (ItemText != null && !ItemText.transform.IsChildOf(itemToggle.transform))
-            {
-                m_validTemplate = false;
-                Debug.LogError("The dropdown template is not valid. The Item Text must be on the item GameObject or children of it.", Template);
-            }
-            else if (ItemImage != null && !ItemImage.transform.IsChildOf(itemToggle.transform))
-            {
-                m_validTemplate = false;
-                Debug.LogError("The dropdown template is not valid. The Item Image must be on the item GameObject or children of it.", Template);
-            }
-
-            if (!m_validTemplate)
-            {
-                templateGo.SetActive(false);
-                return;
-            }
-
-            UIDropdownItem item = itemToggle.gameObject.AddComponent<UIDropdownItem>();
-            item.Setup();
-            //item.text = m_itemText;
-            //item.image = m_itemImage;
-            //item.toggle = itemToggle;
-            //item.RectTransform = (RectTransform)itemToggle.transform;
-
-            // Find the Canvas that this dropdown is a part of
-            Canvas parentCanvas = null;
-            Transform parentTransform = m_template.parent;
-            while (parentTransform != null)
-            {
-                parentCanvas = parentTransform.GetComponent<Canvas>();
-                if (parentCanvas != null)
-                    break;
-
-                parentTransform = parentTransform.parent;
-            }
-
-            Canvas popupCanvas = GetOrAddComponent<Canvas>(templateGo);
-            popupCanvas.overrideSorting = true;
-            popupCanvas.sortingOrder = 30000;
-
-            // If we have a parent canvas, apply the same raycasters as the parent for consistency.
-            if (parentCanvas != null)
-            {
-                Component[] components = parentCanvas.GetComponents<BaseRaycaster>();
-                for (int i = 0; i < components.Length; i++)
-                {
-                    Type raycasterType = components[i].GetType();
-                    if (templateGo.GetComponent(raycasterType) == null)
-                    {
-                        templateGo.AddComponent(raycasterType);
-                    }
-                }
-            }
-            else
-            {
-                GetOrAddComponent<GraphicRaycaster>(templateGo);
-            }
-
-            GetOrAddComponent<CanvasGroup>(templateGo);
-            templateGo.SetActive(false);
-
-            m_validTemplate = true;
-        }
-
-        #endregion
-
 
         #region IEventHandlers
 
@@ -588,35 +414,19 @@ namespace Dhs5.Utility.UI
             if (!IsActive() || !IsInteractable() || m_dropdown != null)
                 return;
 
-            // Get root Canvas.
-            List<Canvas> list = UIListPool<Canvas>.Get();
-            gameObject.GetComponentsInParent(false, list);
-            if (list.Count == 0)
-                return;
+            var rootCanvas = FindRootCanvas();
+            if (rootCanvas == null) return;
 
-            Canvas rootCanvas = list[list.Count - 1];
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (list[i].isRootCanvas)
-                {
-                    rootCanvas = list[i];
-                    break;
-                }
-            }
-
-            UIListPool<Canvas>.Release(list);
+            var parentCanvas = FindParentCanvas();
 
             if (!m_validTemplate)
             {
-                SetupTemplate();
+                SetupTemplate(rootCanvas, parentCanvas);
                 if (!m_validTemplate)
                     return;
             }
 
             m_template.gameObject.SetActive(true);
-
-            // popupCanvas used to assume the root canvas had the default sorting Layer, next line fixes (case 958281 - [UI] Dropdown list does not copy the parent canvas layer when the panel is opened)
-            m_template.GetComponent<Canvas>().sortingLayerID = rootCanvas.sortingLayerID;
 
             // Instantiate the drop-down template
             m_dropdown = CreateDropdownList(m_template.gameObject);
@@ -645,81 +455,250 @@ namespace Dhs5.Utility.UI
             Vector2 offsetMax = itemTemplateRect.max - dropdownContentRect.max + (Vector2)itemTemplate.RectTransform.localPosition;
             Vector2 itemSize = itemTemplateRect.size;
 
-            m_items.Clear();
+            // Create items
+            CreateItems(itemTemplate);
 
-            UIToggle prev = null;
-            if (m_multiSelect && m_options.Count > 0)
+            // Setup dropdown position and size
+            SetupDropdownRect(rootCanvas, dropdownRectTransform, contentRectTransform, offsetMin, offsetMax, itemSize);
+
+            // Fade in the popup
+            AlphaFadeList(m_alphaFadeSpeed, 0f, 1f);
+
+            // Make drop-down template and item template inactive
+            m_template.gameObject.SetActive(false);
+            itemTemplate.gameObject.SetActive(false);
+
+            m_blocker = CreateBlocker(rootCanvas, parentCanvas);
+        }
+
+        /// <summary>
+        /// Hide the dropdown list. I.e. close it.
+        /// </summary>
+        public virtual void Hide()
+        {
+            if (m_coroutine == null)
             {
-                UIDropdownItem item = AddItem(k_NothingOption, Value == 0, itemTemplate, m_items);
-
-                UIToggle nothingToggle = item.Toggle;
-                nothingToggle.IsOn = Value == 0;
-                nothingToggle.ValueChanged += (x) => { OnSelectItem(nothingToggle); };
-                prev = nothingToggle;
-
-                bool isEverythingValue = IsEverythingValue(m_options.Count, Value);
-                item = AddItem(k_EverythingOption, isEverythingValue, itemTemplate, m_items);
-
-                UIToggle everythingToggle = item.Toggle;
-                everythingToggle.IsOn = isEverythingValue;
-                everythingToggle.ValueChanged += (x) => { OnSelectItem(everythingToggle); };
-
-                // Automatically set up explicit navigation
-                if (prev != null)
+                if (m_dropdown != null)
                 {
-                    Navigation prevNav = prev.navigation;
-                    Navigation toggleNav = item.Toggle.navigation;
-                    prevNav.mode = Navigation.Mode.Explicit;
-                    toggleNav.mode = Navigation.Mode.Explicit;
+                    AlphaFadeList(m_alphaFadeSpeed, 0f);
 
-                    prevNav.selectOnDown = item.Toggle;
-                    prevNav.selectOnRight = item.Toggle;
-                    toggleNav.selectOnLeft = prev;
-                    toggleNav.selectOnUp = prev;
-
-                    prev.navigation = prevNav;
-                    item.Toggle.navigation = toggleNav;
+                    // User could have disabled the dropdown during the OnValueChanged call.
+                    if (IsActive())
+                        m_coroutine = StartCoroutine(DelayedDestroyDropdownList(m_alphaFadeSpeed));
                 }
+
+                if (m_blocker != null)
+                    DestroyBlocker(m_blocker);
+
+                m_blocker = null;
+                Select();
             }
+        }
 
-            for (int i = 0; i < m_options.Count; ++i)
+        #endregion
+
+
+        #region Update Visuals
+
+        /// <summary>
+        /// Refreshes the text and image (if available) of the currently selected option.
+        /// </summary>
+        /// <remarks>
+        /// If you have modified the list of options, you should call this method afterwards to ensure that the visual state of the dropdown corresponds to the updated options.
+        /// </remarks>
+        public virtual void RefreshShownValue()
+        {
+            OptionData data = _noOptionData;
+
+            if (m_options.Count > 0)
             {
-                OptionData data = m_options[i];
-                UIDropdownItem item = AddItem(data, Value == i, itemTemplate, m_items);
-                if (item == null)
-                    continue;
-
-                // Automatically set up a toggle state change listener
                 if (m_multiSelect)
-                    item.Toggle.IsOn = (Value & (1 << i)) != 0;
-                else
-                    item.Toggle.IsOn = Value == i;
-
-                item.Toggle.ValueChanged += (x) => { OnSelectItem(item.Toggle); };
-
-                // Select current option
-                if (item.Toggle.IsOn)
-                    item.Toggle.Select();
-
-                // Automatically set up explicit navigation
-                if (prev != null)
                 {
-                    Navigation prevNav = prev.navigation;
-                    Navigation toggleNav = item.Toggle.navigation;
-                    prevNav.mode = Navigation.Mode.Explicit;
-                    toggleNav.mode = Navigation.Mode.Explicit;
-
-                    prevNav.selectOnDown = item.Toggle;
-                    prevNav.selectOnRight = item.Toggle;
-                    toggleNav.selectOnLeft = prev;
-                    toggleNav.selectOnUp = prev;
-
-                    prev.navigation = prevNav;
-                    item.Toggle.navigation = toggleNav;
+                    int firstActiveFlag = FirstActiveFlagIndex(m_value);
+                    if (m_value == 0 || firstActiveFlag >= m_options.Count)
+                        data = _nothingOption;
+                    else if (IsEverythingValue(m_options.Count, m_value))
+                        data = _everythingOption;
+                    else if (Mathf.IsPowerOfTwo(m_value) && m_value > 0)
+                        data = m_options[firstActiveFlag];
+                    else
+                        data = _mixedOption;
                 }
-                prev = item.Toggle;
+                else if (m_value >= 0)
+                {
+                    data = m_options[Mathf.Clamp(m_value, 0, m_options.Count - 1)];
+                }
             }
 
+            UpdateCaption(data);
+            UpdatePlaceholder();
+        }
+        
+        protected virtual void UpdateCaption(OptionData data)
+        {
+            if (m_captionText)
+            {
+                if (data != null && data.Text != null)
+                    m_captionText.text = data.Text;
+                else
+                    m_captionText.text = "";
+            }
+        }
+        protected virtual void UpdatePlaceholder()
+        {
+            if (m_placeholder)
+            {
+                m_placeholder.enabled = m_options.Count == 0 || m_value == -1;
+            }
+        }
+
+        #endregion
+
+        #region Template
+
+        protected virtual void SetupTemplate(Canvas rootCanvas, Canvas parentCanvas)
+        {
+            m_validTemplate = false;
+
+            if (!m_template)
+            {
+                Debug.LogError("The dropdown template is not assigned. The template needs to be assigned and must have a child GameObject with a Toggle component serving as the item.", this);
+                return;
+            }
+
+            GameObject templateGo = m_template.gameObject;
+            templateGo.SetActive(true);
+
+            if (!m_validTemplate)
+            {
+                templateGo.SetActive(false);
+                return;
+            }
+
+            m_dropdownCanvas = SetupTemplateCanvas(templateGo, rootCanvas, parentCanvas);
+
+            GetOrAddComponent<CanvasGroup>(templateGo);
+            templateGo.SetActive(false);
+
+            m_validTemplate = true;
+        }
+
+        protected virtual Canvas SetupTemplateCanvas(GameObject templateObject, Canvas rootCanvas, Canvas parentCanvas)
+        {
+            Canvas popupCanvas = GetOrAddComponent<Canvas>(templateObject);
+            popupCanvas.overrideSorting = true;
+            popupCanvas.sortingOrder = 30000;
+            popupCanvas.sortingLayerID = rootCanvas.sortingLayerID;
+
+            // If we have a parent canvas, apply the same raycasters as the parent for consistency.
+            if (parentCanvas != null)
+            {
+                ApplyCanvasRaycasters(parentCanvas, popupCanvas);
+            }
+            else
+            {
+                GetOrAddComponent<GraphicRaycaster>(templateObject);
+            }
+
+            return popupCanvas;
+        }
+
+        #endregion
+
+        #region Blocker
+
+        /// <summary>
+        /// Create a blocker that blocks clicks to other controls while the dropdown list is open.
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to obtain a blocker GameObject.
+        /// </remarks>
+        /// <param name="rootCanvas">The root canvas the dropdown is under.</param>
+        /// <returns>The created blocker object</returns>
+        protected virtual GameObject CreateBlocker(Canvas rootCanvas, Canvas parentCanvas)
+        {
+            // Create blocker GameObject.
+            GameObject blocker = new GameObject("Blocker");
+
+            // Set the game object layer to match the Canvas' game object layer, as not doing this can lead to issues
+            // especially in XR applications like PolySpatial on VisionOS (UUM-62470).
+            blocker.layer = rootCanvas.gameObject.layer;
+
+            // Setup blocker RectTransform to cover entire root canvas area.
+            RectTransform blockerRect = blocker.AddComponent<RectTransform>();
+            blockerRect.SetParent(rootCanvas.transform, false);
+            blockerRect.anchorMin = Vector3.zero;
+            blockerRect.anchorMax = Vector3.one;
+            blockerRect.sizeDelta = Vector2.zero;
+
+            // Make blocker be in separate canvas in same layer as dropdown and in layer just below it.
+            Canvas blockerCanvas = blocker.AddComponent<Canvas>();
+            blockerCanvas.overrideSorting = true;
+            blockerCanvas.sortingLayerID = m_dropdownCanvas.sortingLayerID;
+            blockerCanvas.sortingOrder = m_dropdownCanvas.sortingOrder - 1;
+
+            // If we have a parent canvas, apply the same raycasters as the parent for consistency.
+            if (parentCanvas != null)
+            {
+                ApplyCanvasRaycasters(parentCanvas, blockerCanvas);
+            }
+            else
+            {
+                // Add raycaster since it's needed to block.
+                GetOrAddComponent<GraphicRaycaster>(blocker);
+            }
+
+            SetupBlocker(blocker);
+
+            return blocker;
+        }
+        protected virtual void SetupBlocker(GameObject blocker)
+        {
+            // Add image since it's needed to block, but make it clear.
+            Image blockerImage = blocker.AddComponent<Image>();
+            blockerImage.color = Color.clear;
+
+            // Add button since it's needed to block, and to close the dropdown when blocking area is clicked.
+            Button blockerButton = blocker.AddComponent<Button>();
+            blockerButton.onClick.AddListener(Hide);
+
+            //add canvas group to ensure clicking outside the dropdown will hide it (UUM-33691)
+            CanvasGroup blockerCanvasGroup = blocker.AddComponent<CanvasGroup>();
+            blockerCanvasGroup.ignoreParentGroups = true;
+        }
+
+        /// <summary>
+        /// Convenience method to explicitly destroy the previously generated blocker object
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to dispose of a blocker GameObject that blocks clicks to other controls while the dropdown list is open.
+        /// </remarks>
+        /// <param name="blocker">The blocker object to destroy.</param>
+        protected virtual void DestroyBlocker(GameObject blocker)
+        {
+            Destroy(blocker);
+        }
+
+        #endregion
+
+        #region Dropdown List
+
+        /// <summary>
+        /// Create the dropdown list to be shown when the dropdown is clicked. The dropdown list should correspond to the provided template GameObject, equivalent to instantiating a copy of it.
+        /// </summary>
+        /// <remarks>
+        /// Override this method to implement a different way to obtain a dropdown list GameObject.
+        /// </remarks>
+        /// <param name="template">The template to create the dropdown list from.</param>
+        /// <returns>The created drop down list gameobject.</returns>
+        protected virtual GameObject CreateDropdownList(GameObject template)
+        {
+            return (GameObject)Instantiate(template);
+        }
+
+        protected virtual void SetupDropdownRect(Canvas rootCanvas, RectTransform dropdownRectTransform, RectTransform contentRectTransform,
+            Vector2 offsetMin, Vector2 offsetMax, Vector2 itemSize)
+        {
             // Reposition all items now that all of them have been added
             Vector2 sizeDelta = contentRectTransform.sizeDelta;
             sizeDelta.y = itemSize.y * m_items.Count + offsetMin.y - offsetMax.y;
@@ -762,39 +741,18 @@ namespace Dhs5.Utility.UI
                 itemRect.anchoredPosition = new Vector2(itemRect.anchoredPosition.x, offsetMin.y + itemSize.y * (m_items.Count - 1 - i) + itemSize.y * itemRect.pivot.y);
                 itemRect.sizeDelta = new Vector2(itemRect.sizeDelta.x, itemSize.y);
             }
-
-            // Fade in the popup
-            AlphaFadeList(m_alphaFadeSpeed, 0f, 1f);
-
-            // Make drop-down template and item template inactive
-            m_template.gameObject.SetActive(false);
-            itemTemplate.gameObject.SetActive(false);
-
-            m_blocker = CreateBlocker(rootCanvas);
         }
 
         /// <summary>
-        /// Hide the dropdown list. I.e. close it.
+        /// Convenience method to explicitly destroy the previously generated dropdown list
         /// </summary>
-        public virtual void Hide()
+        /// <remarks>
+        /// Override this method to implement a different way to dispose of a dropdown list GameObject.
+        /// </remarks>
+        /// <param name="dropdownList">The dropdown list GameObject to destroy</param>
+        protected virtual void DestroyDropdownList(GameObject dropdownList)
         {
-            if (m_coroutine == null)
-            {
-                if (m_dropdown != null)
-                {
-                    AlphaFadeList(m_alphaFadeSpeed, 0f);
-
-                    // User could have disabled the dropdown during the OnValueChanged call.
-                    if (IsActive())
-                        m_coroutine = StartCoroutine(DelayedDestroyDropdownList(m_alphaFadeSpeed));
-                }
-
-                if (m_blocker != null)
-                    DestroyBlocker(m_blocker);
-
-                m_blocker = null;
-                Select();
-            }
+            Destroy(dropdownList);
         }
 
         protected virtual IEnumerator DelayedDestroyDropdownList(float delay)
@@ -820,135 +778,64 @@ namespace Dhs5.Utility.UI
                 m_fadeTween.Stop();
 
             m_dropdown = null;
+            m_dropdownCanvas = null;
             m_coroutine = null;
         }
 
         #endregion
 
-        #region Blocker
-
-        /// <summary>
-        /// Create a blocker that blocks clicks to other controls while the dropdown list is open.
-        /// </summary>
-        /// <remarks>
-        /// Override this method to implement a different way to obtain a blocker GameObject.
-        /// </remarks>
-        /// <param name="rootCanvas">The root canvas the dropdown is under.</param>
-        /// <returns>The created blocker object</returns>
-        protected virtual GameObject CreateBlocker(Canvas rootCanvas)
-        {
-            // Create blocker GameObject.
-            GameObject blocker = new GameObject("Blocker");
-
-            // Set the game object layer to match the Canvas' game object layer, as not doing this can lead to issues
-            // especially in XR applications like PolySpatial on VisionOS (UUM-62470).
-            blocker.layer = rootCanvas.gameObject.layer;
-
-            // Setup blocker RectTransform to cover entire root canvas area.
-            RectTransform blockerRect = blocker.AddComponent<RectTransform>();
-            blockerRect.SetParent(rootCanvas.transform, false);
-            blockerRect.anchorMin = Vector3.zero;
-            blockerRect.anchorMax = Vector3.one;
-            blockerRect.sizeDelta = Vector2.zero;
-
-            // Make blocker be in separate canvas in same layer as dropdown and in layer just below it.
-            Canvas blockerCanvas = blocker.AddComponent<Canvas>();
-            blockerCanvas.overrideSorting = true;
-            Canvas dropdownCanvas = m_dropdown.GetComponent<Canvas>();
-            blockerCanvas.sortingLayerID = dropdownCanvas.sortingLayerID;
-            blockerCanvas.sortingOrder = dropdownCanvas.sortingOrder - 1;
-
-            // Find the Canvas that this dropdown is a part of
-            Canvas parentCanvas = null;
-            Transform parentTransform = m_template.parent;
-            while (parentTransform != null)
-            {
-                parentCanvas = parentTransform.GetComponent<Canvas>();
-                if (parentCanvas != null)
-                    break;
-
-                parentTransform = parentTransform.parent;
-            }
-
-            // If we have a parent canvas, apply the same raycasters as the parent for consistency.
-            if (parentCanvas != null)
-            {
-                Component[] components = parentCanvas.GetComponents<BaseRaycaster>();
-                for (int i = 0; i < components.Length; i++)
-                {
-                    Type raycasterType = components[i].GetType();
-                    if (blocker.GetComponent(raycasterType) == null)
-                    {
-                        blocker.AddComponent(raycasterType);
-                    }
-                }
-            }
-            else
-            {
-                // Add raycaster since it's needed to block.
-                GetOrAddComponent<GraphicRaycaster>(blocker);
-            }
-
-
-            // Add image since it's needed to block, but make it clear.
-            Image blockerImage = blocker.AddComponent<Image>();
-            blockerImage.color = Color.clear;
-
-            // Add button since it's needed to block, and to close the dropdown when blocking area is clicked.
-            Button blockerButton = blocker.AddComponent<Button>();
-            blockerButton.onClick.AddListener(Hide);
-
-            //add canvas group to ensure clicking outside the dropdown will hide it (UUM-33691)
-            CanvasGroup blockerCanvasGroup = blocker.AddComponent<CanvasGroup>();
-            blockerCanvasGroup.ignoreParentGroups = true;
-
-            return blocker;
-        }
-
-        /// <summary>
-        /// Convenience method to explicitly destroy the previously generated blocker object
-        /// </summary>
-        /// <remarks>
-        /// Override this method to implement a different way to dispose of a blocker GameObject that blocks clicks to other controls while the dropdown list is open.
-        /// </remarks>
-        /// <param name="blocker">The blocker object to destroy.</param>
-        protected virtual void DestroyBlocker(GameObject blocker)
-        {
-            Destroy(blocker);
-        }
-
-        #endregion
-
-        #region Visual List
-
-        /// <summary>
-        /// Create the dropdown list to be shown when the dropdown is clicked. The dropdown list should correspond to the provided template GameObject, equivalent to instantiating a copy of it.
-        /// </summary>
-        /// <remarks>
-        /// Override this method to implement a different way to obtain a dropdown list GameObject.
-        /// </remarks>
-        /// <param name="template">The template to create the dropdown list from.</param>
-        /// <returns>The created drop down list gameobject.</returns>
-        protected virtual GameObject CreateDropdownList(GameObject template)
-        {
-            return (GameObject)Instantiate(template);
-        }
-
-        /// <summary>
-        /// Convenience method to explicitly destroy the previously generated dropdown list
-        /// </summary>
-        /// <remarks>
-        /// Override this method to implement a different way to dispose of a dropdown list GameObject.
-        /// </remarks>
-        /// <param name="dropdownList">The dropdown list GameObject to destroy</param>
-        protected virtual void DestroyDropdownList(GameObject dropdownList)
-        {
-            Destroy(dropdownList);
-        }
-
-        #endregion
-
         #region Items
+
+        protected virtual void CreateItems(UIDropdownItem itemTemplate)
+        {
+            m_items.Clear();
+
+            UIDropdownItem prev = null;
+            if (m_multiSelect && m_options.Count > 0)
+            {
+                UIDropdownItem item = AddItem(0, _nothingOption, Value == 0, itemTemplate, m_items);
+
+                item.IsOn = Value == 0;
+                item.Pressed += OnPressedItem;
+                prev = item;
+
+                bool isEverythingValue = IsEverythingValue(m_options.Count, Value);
+                item = AddItem(1, _everythingOption, isEverythingValue, itemTemplate, m_items);
+
+                item.IsOn = isEverythingValue;
+                item.Pressed += OnPressedItem;
+
+                // Automatically set up explicit navigation
+                prev.SetupNextNavigation(item);
+                item.SetupPrevNavigation(prev);
+                prev = item;
+            }
+
+            for (int i = m_multiSelect ? 2 : 0; i < m_options.Count; ++i)
+            {
+                OptionData data = m_options[i];
+                UIDropdownItem item = AddItem(i, data, Value == i, itemTemplate, m_items);
+                if (item == null)
+                    continue;
+
+                // Automatically set up a toggle state change listener
+                if (m_multiSelect)
+                    item.IsOn = (Value & (1 << i)) != 0;
+                else
+                    item.IsOn = Value == i;
+
+                item.Pressed += OnPressedItem;
+
+                // Select current option
+                if (item.IsOn)
+                    item.SelectAsFirst();
+
+                // Automatically set up explicit navigation
+                if (prev != null) prev.SetupNextNavigation(item);
+                item.SetupPrevNavigation(prev);
+                prev = item;
+            }
+        }
 
         /// <summary>
         /// Create a dropdown item based upon the item template.
@@ -972,10 +859,14 @@ namespace Dhs5.Utility.UI
         /// Likely no action needed since destroying the dropdown list destroys all contained items as well.
         /// </remarks>
         /// <param name="item">The Item to destroy.</param>
-        protected virtual void DestroyItem(UIDropdownItem item) { }
+        protected virtual void DestroyItem(UIDropdownItem item)
+        {
+            item.Selected -= OnSelectedItem;
+            item.Cancelled -= OnCancelledItem;
+        }
 
         // Add a new drop-down list item with the specified values.
-        protected virtual UIDropdownItem AddItem(OptionData data, bool selected, UIDropdownItem itemTemplate, List<UIDropdownItem> items)
+        protected virtual UIDropdownItem AddItem(int index, OptionData data, bool selected, UIDropdownItem itemTemplate, List<UIDropdownItem> items)
         {
             // Add a new item to the dropdown.
             UIDropdownItem item = CreateItem(itemTemplate);
@@ -984,12 +875,11 @@ namespace Dhs5.Utility.UI
             item.gameObject.SetActive(true);
             item.gameObject.name = "Item " + items.Count + (data.Text != null ? ": " + data.Text : "");
 
-            item.ApplyData(data);
+            item.ApplyData(index, data);
+            item.IsOn = false;
 
-            //if (item.toggle != null)
-            //{
-            //    item.toggle.isOn = false;
-            //}
+            item.Selected += OnSelectedItem;
+            item.Cancelled += OnCancelledItem;
 
             items.Add(item);
             return item;
@@ -997,74 +887,37 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
-        #region Fading & Alpha
-
-        private void AlphaFadeList(float duration, float alpha)
-        {
-            CanvasGroup group = m_dropdown.GetComponent<CanvasGroup>();
-            AlphaFadeList(duration, group.alpha, alpha);
-        }
-
-        private void AlphaFadeList(float duration, float start, float end)
-        {
-            if (end.Equals(start))
-                return;
-
-            m_fadeTween.SetStartAlpha(start);
-            m_fadeTween.Start(this, m_dropdown.GetComponent<CanvasGroup>(), duration, end);
-        }
-
-        #endregion
 
         #region Callbacks
 
         // Change the value and hide the dropdown.
-        protected virtual void OnSelectItem(UIToggle toggle)
+        protected virtual void OnPressedItem(int index)
         {
-            int selectedIndex = -1;
-            Transform tr = toggle.transform;
-            Transform parent = tr.parent;
-            for (int i = 1; i < parent.childCount; i++)
-            {
-                if (parent.GetChild(i) == tr)
-                {
-                    // Subtract one to account for template child.
-                    selectedIndex = i - 1;
-                    break;
-                }
-            }
-
-            if (selectedIndex < 0)
+            if (!m_items.IsIndexValid(index, out var item))
                 return;
 
             if (m_multiSelect)
             {
-                switch (selectedIndex)
+                switch (index)
                 {
                     case 0: // Nothing
                         Value = 0;
-                        for (var i = 3; i < parent.childCount; i++)
+                        foreach (var i in m_items)
                         {
-                            var toggleComponent = parent.GetChild(i).GetComponentInChildren<Toggle>();
-                            if (toggleComponent)
-                                toggleComponent.SetIsOnWithoutNotify(false);
+                            i.IsOn = i == item;
                         }
-
-                        toggle.IsOn = true;
                         break;
                     case 1: // Everything
                         Value = EverythingValue(m_options.Count);
-                        for (var i = 3; i < parent.childCount; i++)
+                        for (var i = 0; i < m_items.Count; i++)
                         {
-                            var toggleComponent = parent.GetChild(i).GetComponentInChildren<Toggle>();
-                            if (toggleComponent)
-                                toggleComponent.SetIsOnWithoutNotify(i > 2);
+                            m_items[i].IsOn = i != 0;
                         }
                         break;
                     default:
-                        var flagValue = 1 << (selectedIndex - 2);
+                        var flagValue = 1 << index;
                         var wasSelected = (Value & flagValue) != 0;
-                        toggle.SetIsOnWithoutNotify(!wasSelected);
+                        item.IsOn = !wasSelected;
 
                         if (wasSelected)
                             Value &= ~flagValue;
@@ -1076,17 +929,111 @@ namespace Dhs5.Utility.UI
             }
             else
             {
-                if (!toggle.IsOn)
-                    toggle.SetIsOnWithoutNotify(true);
-
-                Value = selectedIndex;
+                item.IsOn = true;
+                Value = index;
             }
 
             Hide();
         }
 
+        protected virtual void OnSelectedItem(int index) { }
+        protected virtual void OnCancelledItem(int index) { }
+
         #endregion
 
+
+        #region Utility
+
+        protected virtual Canvas FindRootCanvas()
+        {
+            // Get root Canvas.
+            List<Canvas> list = UIListPool<Canvas>.Get();
+            gameObject.GetComponentsInParent(false, list);
+            if (list.Count == 0)
+                return null;
+
+            Canvas rootCanvas = list[list.Count - 1];
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].isRootCanvas)
+                {
+                    rootCanvas = list[i];
+                    break;
+                }
+            }
+
+            UIListPool<Canvas>.Release(list);
+
+            return rootCanvas;
+        }
+        protected virtual Canvas FindParentCanvas()
+        {
+            // Find the Canvas that this dropdown is a part of
+            Canvas parentCanvas = null;
+            Transform parentTransform = m_template.parent;
+            while (parentTransform != null)
+            {
+                parentCanvas = parentTransform.GetComponent<Canvas>();
+                if (parentCanvas != null)
+                    break;
+
+                parentTransform = parentTransform.parent;
+            }
+
+            return parentCanvas;
+        }
+        protected virtual void ApplyCanvasRaycasters(Canvas model, Canvas target)
+        {
+            Component[] components = model.GetComponents<BaseRaycaster>();
+            for (int i = 0; i < components.Length; i++)
+            {
+                Type raycasterType = components[i].GetType();
+                if (target.gameObject.GetComponent(raycasterType) == null)
+                {
+                    target.gameObject.AddComponent(raycasterType);
+                }
+            }
+        }
+
+        #endregion
+
+        #region Fading & Alpha
+
+        protected virtual void AlphaFadeList(float duration, float alpha)
+        {
+            CanvasGroup group = m_dropdown.GetComponent<CanvasGroup>();
+            AlphaFadeList(duration, group.alpha, alpha);
+        }
+
+        protected virtual void AlphaFadeList(float duration, float start, float end)
+        {
+            if (end.Equals(start))
+                return;
+
+            m_fadeTween.SetStartAlpha(start);
+            m_fadeTween.Start(this, m_dropdown.GetComponent<CanvasGroup>(), duration, end);
+        }
+
+        #endregion
+
+
+        #region Editor
+
+#if UNITY_EDITOR
+
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+
+            if (!IsActive())
+                return;
+
+            RefreshShownValue();
+        }
+
+#endif
+
+        #endregion
 
         // --- STATIC ---
 
