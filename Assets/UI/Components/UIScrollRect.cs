@@ -555,6 +555,66 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Actions
+
+        /// <summary>
+        /// Usable only on screen space / overlay canvas
+        /// </summary>
+        /// <param name="rectTransform"></param>
+        /// <returns></returns>
+        public virtual bool EnsureRectTransformVisible(RectTransform rectTransform)
+        {
+            if (rectTransform == null 
+                || ContentRect == null 
+                || ViewportRect == null) return false;
+
+            var parent = rectTransform.parent;
+            while (parent != ContentRect)
+            {
+                parent = parent.parent;
+                if (parent == null) return false;
+            }
+
+            // Get content screen space rect
+            ViewportRect.GetWorldCorners(m_Corners);
+            var viewportRect = new Rect(m_Corners[0], m_Corners[2] - m_Corners[0]);
+
+            // Check if rectTransform is inside and get offset if not
+            rectTransform.GetWorldCorners(m_Corners);
+            var offset = Vector2.zero;
+            var hasOffset = false;
+
+            if (m_Corners[0].x < viewportRect.xMin)
+            {
+                offset.x = m_Corners[0].x - viewportRect.xMin;
+                hasOffset = true;
+            }
+            if (m_Corners[0].y < viewportRect.yMin)
+            {
+                offset.y = m_Corners[0].y - viewportRect.yMin;
+                hasOffset = true;
+            }
+            if (m_Corners[2].x > viewportRect.xMax)
+            {
+                offset.x = m_Corners[2].x - viewportRect.xMax;
+                hasOffset = true;
+            }
+            if (m_Corners[2].y > viewportRect.yMax)
+            {
+                offset.y = m_Corners[2].y - viewportRect.yMax;
+                hasOffset = true;
+            }
+
+            if (hasOffset)
+            {
+                SetContentAnchoredPosition(m_contentRect.anchoredPosition - offset);
+            }
+
+            return true;
+        }
+
+        #endregion
+
         #region Update
 
         protected virtual void LateUpdate()

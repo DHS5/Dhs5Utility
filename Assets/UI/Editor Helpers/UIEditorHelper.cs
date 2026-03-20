@@ -329,20 +329,25 @@ namespace Dhs5.Utility.UI
         }
 
         [MenuItem("GameObject/UI/UI ScrollView/Vertical", secondaryPriority = 6)]
-        private static void CreateUIVerticalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, true, false);
+        private static void CreateUIVerticalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand?.context as GameObject, true, false);
         [MenuItem("GameObject/UI/UI ScrollView/Horizontal", secondaryPriority = 7)]
-        private static void CreateUIHorizontalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, false, true);
+        private static void CreateUIHorizontalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand?.context as GameObject, false, true);
         [MenuItem("GameObject/UI/UI ScrollView/Both", secondaryPriority = 8)]
-        private static void CreateUIBothScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand, true, true);
-        private static void CreateUIScrollView(MenuCommand menuCommand, bool vertical, bool horizontal)
+        private static void CreateUIBothScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand?.context as GameObject, true, true);
+        public static GameObject CreateUIScrollView(GameObject parent, bool vertical, bool horizontal, string name = "ScrollView", Action<RectTransform> rectTransformSetup = null)
         {
-            using (var scope = new InstantiationScope("ScrollView", menuCommand?.context as GameObject,
+            GameObject result = null;
+
+            using (var scope = new InstantiationScope(name, parent,
                 typeof(UIScrollRect), typeof(Image)))
             {
+                result = scope.go;
+
                 var scrollRect = scope.go.GetComponent<UIScrollRect>();
                 Undo.RecordObject(scrollRect, "Setup UI ScrollRect");
                 scrollRect.Vertical = vertical;
                 scrollRect.Horizontal = horizontal;
+
                 var image = scope.go.GetComponent<Image>();
                 image.type = Image.Type.Sliced;
                 image.color = new Color(1f, 1f, 1f, 0.2f);
@@ -350,12 +355,16 @@ namespace Dhs5.Utility.UI
                 Vector2 contentSize = new Vector2(500f, 500f);
                 if (scrollRect.TryGetComponent(out RectTransform rectTransform))
                 {
-                    if (rectTransform.parent is RectTransform parent)
+                    if (rectTransformSetup != null)
+                    {
+                        rectTransformSetup.Invoke(rectTransform);
+                    }
+                    else if (rectTransform.parent is RectTransform p)
                     {
                         rectTransform.anchorMin = Vector2.zero;
                         rectTransform.anchorMax = Vector2.one;
                         rectTransform.sizeDelta = Vector2.zero;
-                        contentSize = parent.rect.size;
+                        contentSize = p.rect.size;
                     }
                     else
                     {
@@ -444,6 +453,152 @@ namespace Dhs5.Utility.UI
                     scrollRect.HorizontalScrollbar = horizontalScrollbar;
                     scrollRect.HorizontalScrollbarVisibility = UIScrollRect.EScrollbarVisibility.AutoHideAndExpandViewport;
                 }
+
+                Selection.activeGameObject = scope.go;
+            }
+
+            return result;
+        }
+
+        [MenuItem("GameObject/UI/UI Dropdown", secondaryPriority = 9)]
+        private static void CreateUIDropdown(MenuCommand menuCommand)
+        {
+            using (var scope = new InstantiationScope("Dropdown", menuCommand?.context as GameObject,
+                typeof(UIDropdown), typeof(Image), typeof(UIGenericTransitioner)))
+            {
+                var dropdown = scope.go.GetComponent<UIDropdown>();
+                Undo.RecordObject(dropdown, "Setup UI Dropdown");
+                dropdown.transition = Selectable.Transition.None;
+                dropdown.navigation = new Navigation() { mode = Navigation.Mode.None };
+                dropdown.AddOption("Option A");
+                dropdown.AddOption("Option B");
+
+                var image = scope.go.GetComponent<Image>();
+                image.type = Image.Type.Sliced;
+                image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+
+                if (dropdown.TryGetComponent(out RectTransform rectTransform))
+                {
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
+                }
+
+                // Caption
+                var captionGO = new GameObject("Caption Text", typeof(TextMeshProUGUI));
+                GameObjectUtility.SetParentAndAlign(captionGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(captionGO, captionGO.name);
+                var captionText = captionGO.GetComponent<TextMeshProUGUI>();
+                captionText.text = "Caption";
+                captionText.fontSize = 22f;
+                captionText.color = Color.black;
+                captionText.horizontalAlignment = HorizontalAlignmentOptions.Left;
+                captionText.verticalAlignment = VerticalAlignmentOptions.Middle;
+                if (captionGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.offsetMin = new Vector2(10f, 6f);
+                    rectTransform.offsetMax = new Vector2(-40f, -7f);
+                }
+                dropdown.CaptionText = captionText;
+
+                // Arrow
+                var arrowGO = new GameObject("Arrow", typeof(Image));
+                GameObjectUtility.SetParentAndAlign(arrowGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(arrowGO, arrowGO.name);
+                var arrowImage = arrowGO.GetComponent<Image>();
+                arrowImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/DropdownArrow.psd");
+                if (arrowGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.pivot = new Vector2(1f, 0.5f);
+                    rectTransform.anchorMin = rectTransform.pivot;
+                    rectTransform.anchorMax = rectTransform.pivot;
+                    rectTransform.anchoredPosition = new Vector2(-10f, 0f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 30f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 30f);
+                }
+
+                // Scroll View (Template)
+                var scrollViewGO = CreateUIScrollView(scope.go, true, false, "Template", (rectTransform) =>
+                {
+                    rectTransform.pivot = new Vector2(0.5f, 1f);
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.right;
+                    rectTransform.sizeDelta = Vector2.zero;
+                    rectTransform.anchoredPosition = new Vector2(0f, 2f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 150f);
+                    dropdown.Template = rectTransform;
+                });
+
+                // Content
+                var contentGO = scrollViewGO.transform.GetChild(0).GetChild(0).gameObject;
+                if (contentGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 35f);
+                }
+
+                // Item
+                var itemGO = new GameObject("Item", typeof(UIDefaultDropdownItem), typeof(UIToggle), typeof(Image));
+                GameObjectUtility.SetParentAndAlign(itemGO, contentGO);
+                Undo.RegisterCreatedObjectUndo(itemGO, itemGO.name);
+                var item = itemGO.GetComponent<UIDefaultDropdownItem>();
+
+                var itemToggle = itemGO.GetComponent<UIToggle>();
+                itemToggle.navigation = new Navigation() { mode = Navigation.Mode.None };
+                itemToggle.transition = Selectable.Transition.ColorTint;
+                itemToggle.colors = new ColorBlock()
+                {
+                    fadeDuration = 0f,
+                    colorMultiplier = 1f,
+                    normalColor = Color.white,
+                    highlightedColor = Color.moccasin,
+                    pressedColor = Color.burlywood,
+                    selectedColor = Color.moccasin,
+                    disabledColor = Color.gray7,
+                };
+                itemToggle.IsOn = false;
+                if (itemGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = new Vector2(0f, 0.5f);
+                    rectTransform.anchorMax = new Vector2(1f, 0.5f);
+                    rectTransform.sizeDelta = new Vector2(0f, 35f);
+                }
+
+                var itemCheckmarkGO = new GameObject("Item Checkmark", typeof(Image));
+                GameObjectUtility.SetParentAndAlign(itemCheckmarkGO, itemGO);
+                Undo.RegisterCreatedObjectUndo(itemCheckmarkGO, itemCheckmarkGO.name);
+                var itemCheckmark = itemCheckmarkGO.GetComponent<Image>();
+                itemCheckmark.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
+                itemToggle.AddCheckmark(itemCheckmark);
+                if (itemCheckmarkGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.pivot = new Vector2(0f, 0.5f);
+                    rectTransform.anchorMin = rectTransform.pivot;
+                    rectTransform.anchorMax = rectTransform.pivot;
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 30f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 30f);
+                }
+
+                var itemTextGO = new GameObject("Item Text", typeof(TextMeshProUGUI));
+                GameObjectUtility.SetParentAndAlign(itemTextGO, itemGO);
+                Undo.RegisterCreatedObjectUndo(itemTextGO, itemTextGO.name);
+                var itemText = itemTextGO.GetComponent<TextMeshProUGUI>();
+                itemText.text = "Option";
+                itemText.fontSize = 18f;
+                itemText.color = Color.black;
+                itemText.horizontalAlignment = HorizontalAlignmentOptions.Left;
+                itemText.verticalAlignment = VerticalAlignmentOptions.Middle;
+                if (itemTextGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.offsetMin = new Vector2(30f, 1f);
+                    rectTransform.offsetMax = new Vector2(-10f, -2f);
+                }
+
+                item.OnValidate();
+
+                scrollViewGO.SetActive(false);
 
                 Selection.activeGameObject = scope.go;
             }

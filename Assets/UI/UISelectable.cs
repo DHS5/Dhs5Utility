@@ -504,6 +504,18 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Utility
+
+        public virtual void Select(BaseEventData eventData)
+        {
+            if (EventSystem.current == null || EventSystem.current.alreadySelecting)
+                return;
+
+            EventSystem.current.SetSelectedGameObject(gameObject, eventData);
+        }
+
+        #endregion
+
 
         // --- STATIC ---
 

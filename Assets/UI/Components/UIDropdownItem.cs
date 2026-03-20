@@ -33,10 +33,10 @@ namespace Dhs5.Utility.UI
             Pressed?.Invoke(Index);
         }
 
-        public event Action<int> Selected;
-        protected void TriggerSelected()
+        public event Action<int, bool> Selected;
+        protected void TriggerSelected(bool navigation)
         {
-            Selected?.Invoke(Index);
+            Selected?.Invoke(Index, navigation);
         }
         
         public event Action<int> Cancelled;
@@ -47,12 +47,53 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Core Behaviour
+
+        protected virtual void OnEnable() { }
+        protected virtual void OnDisable() { }
+
+        #endregion
+
 
         #region Methods
 
-        public abstract void SetupPrevNavigation(UIDropdownItem prevItem);
-        public abstract void SetupNextNavigation(UIDropdownItem nextItem);
-        public abstract void SelectAsFirst();
+        public virtual void SetupPrevNavigation(UIDropdownItem prevItem)
+        {
+            if (Selectable != null)
+            {
+                Selectable.navigation = new Navigation()
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnUp = prevItem != null ? prevItem.Selectable : null,
+                    selectOnLeft = null,
+                    selectOnRight = null,
+                    selectOnDown = Selectable.navigation.selectOnDown,
+                    wrapAround = false
+                };
+            }
+        }
+        public virtual void SetupNextNavigation(UIDropdownItem nextItem)
+        {
+            if (Selectable != null)
+            {
+                Selectable.navigation = new Navigation()
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnDown = nextItem != null ? nextItem.Selectable : null,
+                    selectOnLeft = null,
+                    selectOnRight = null,
+                    selectOnUp = Selectable.navigation.selectOnUp,
+                    wrapAround = false
+                };
+            }
+        }
+        public virtual void SelectAsFirst()
+        {
+            if (Selectable != null)
+            {
+                Selectable.Select();
+            }
+        }
 
 
         public void ApplyData(int index, UIDropdown.OptionData optionData)
@@ -77,7 +118,7 @@ namespace Dhs5.Utility.UI
 
         public void OnSelect(BaseEventData eventData)
         {
-            TriggerSelected();
+            TriggerSelected(eventData is not PointerEventData);
         }
 
         #endregion
@@ -90,68 +131,18 @@ namespace Dhs5.Utility.UI
         }
 
         #endregion
-    }
 
-    public class UIDefaultDropdownItem : UIDropdownItem
-    {
-        #region Members
 
-        [SerializeField] protected UIToggle m_toggle;
-        [SerializeField] protected TMP_Text m_text;
+        #region Editor
 
-        #endregion
+#if UNITY_EDITOR
 
-        #region Properties
-
-        public override Selectable Selectable => m_toggle;
-        public override bool IsOn 
-        { 
-            get => m_toggle.IsOn;
-            set
-            {
-                if (value != m_toggle.IsOn) m_toggle.SetIsOnWithoutNotify(value);
-            }
-        }
-
-        #endregion
-
-        #region Methods
-
-        public override void SelectAsFirst()
+        public virtual void OnValidate()
         {
-            m_toggle.Select();
+            if (m_rectTransform == null) m_rectTransform = GetComponent<RectTransform>();
         }
 
-        public override void SetupNextNavigation(UIDropdownItem nextItem)
-        {
-            m_toggle.navigation = new Navigation()
-            {
-                mode = Navigation.Mode.Explicit,
-                selectOnDown = nextItem.Selectable,
-                selectOnLeft = null,
-                selectOnRight = null,
-                selectOnUp = m_toggle.navigation.selectOnUp,
-                wrapAround = false
-            };
-        }
-
-        public override void SetupPrevNavigation(UIDropdownItem prevItem)
-        {
-            m_toggle.navigation = new Navigation()
-            {
-                mode = Navigation.Mode.Explicit,
-                selectOnUp = prevItem.Selectable,
-                selectOnLeft = null,
-                selectOnRight = null,
-                selectOnDown = m_toggle.navigation.selectOnDown,
-                wrapAround = false
-            };
-        }
-
-        protected override void OnApplyData(UIDropdown.OptionData optionData)
-        {
-            m_text.text = optionData.Text;
-        }
+#endif
 
         #endregion
     }

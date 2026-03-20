@@ -120,13 +120,15 @@ namespace Dhs5.Utility.UI
         [SerializeField] protected List<OptionData> m_options = new();
         [SerializeField] protected float m_alphaFadeSpeed = 0.15f;
 
+        protected Canvas m_templateCanvas;
+        protected bool m_validTemplate = false;
+
         protected GameObject m_dropdown;
-        protected Canvas m_dropdownCanvas;
+        protected UIScrollRect m_scrollRect;
         protected GameObject m_blocker;
         protected List<UIDropdownItem> m_items = new List<UIDropdownItem>();
 
         protected FadeTween m_fadeTween = new();
-        protected bool m_validTemplate = false;
         protected Coroutine m_coroutine = null;
 
         #endregion
@@ -430,8 +432,6 @@ namespace Dhs5.Utility.UI
 
             // Instantiate the drop-down template
             m_dropdown = CreateDropdownList(m_template.gameObject);
-            m_dropdown.name = "Dropdown List";
-            m_dropdown.SetActive(true);
 
             // Make drop-down RectTransform have same values as original.
             RectTransform dropdownRectTransform = m_dropdown.transform as RectTransform;
@@ -446,20 +446,14 @@ namespace Dhs5.Utility.UI
             RectTransform contentRectTransform = content.transform as RectTransform;
             itemTemplate.RectTransform.gameObject.SetActive(true);
 
-            // Get the rects of the dropdown and item
-            Rect dropdownContentRect = contentRectTransform.rect;
-            Rect itemTemplateRect = itemTemplate.RectTransform.rect;
-
-            // Calculate the visual offset between the item's edges and the background's edges
-            Vector2 offsetMin = itemTemplateRect.min - dropdownContentRect.min + (Vector2)itemTemplate.RectTransform.localPosition;
-            Vector2 offsetMax = itemTemplateRect.max - dropdownContentRect.max + (Vector2)itemTemplate.RectTransform.localPosition;
-            Vector2 itemSize = itemTemplateRect.size;
-
             // Create items
             CreateItems(itemTemplate);
 
             // Setup dropdown position and size
-            SetupDropdownRect(rootCanvas, dropdownRectTransform, contentRectTransform, offsetMin, offsetMax, itemSize);
+            SetupDropdownRect(rootCanvas, dropdownRectTransform, contentRectTransform, itemTemplate);
+
+            // Select first item on, after dropdown rect setup
+            SelectFirstItemOn();
 
             // Fade in the popup
             AlphaFadeList(m_alphaFadeSpeed, 0f, 1f);
@@ -569,13 +563,13 @@ namespace Dhs5.Utility.UI
             GameObject templateGo = m_template.gameObject;
             templateGo.SetActive(true);
 
-            if (!m_validTemplate)
+            m_templateCanvas = SetupTemplateCanvas(templateGo, rootCanvas, parentCanvas);
+            
+            if (m_templateCanvas == null)
             {
-                templateGo.SetActive(false);
+                Debug.LogError("The dropdown canvas is null", this);
                 return;
             }
-
-            m_dropdownCanvas = SetupTemplateCanvas(templateGo, rootCanvas, parentCanvas);
 
             GetOrAddComponent<CanvasGroup>(templateGo);
             templateGo.SetActive(false);
@@ -634,8 +628,8 @@ namespace Dhs5.Utility.UI
             // Make blocker be in separate canvas in same layer as dropdown and in layer just below it.
             Canvas blockerCanvas = blocker.AddComponent<Canvas>();
             blockerCanvas.overrideSorting = true;
-            blockerCanvas.sortingLayerID = m_dropdownCanvas.sortingLayerID;
-            blockerCanvas.sortingOrder = m_dropdownCanvas.sortingOrder - 1;
+            blockerCanvas.sortingLayerID = m_templateCanvas.sortingLayerID;
+            blockerCanvas.sortingOrder = m_templateCanvas.sortingOrder - 1;
 
             // If we have a parent canvas, apply the same raycasters as the parent for consistency.
             if (parentCanvas != null)
@@ -693,12 +687,26 @@ namespace Dhs5.Utility.UI
         /// <returns>The created drop down list gameobject.</returns>
         protected virtual GameObject CreateDropdownList(GameObject template)
         {
-            return (GameObject)Instantiate(template);
+            var dropdown = (GameObject)Instantiate(template);
+            dropdown.name = "Dropdown List";
+            dropdown.SetActive(true);
+
+            m_scrollRect = dropdown.GetComponentInChildren<UIScrollRect>();
+
+            return dropdown;
         }
 
-        protected virtual void SetupDropdownRect(Canvas rootCanvas, RectTransform dropdownRectTransform, RectTransform contentRectTransform,
-            Vector2 offsetMin, Vector2 offsetMax, Vector2 itemSize)
+        protected virtual void SetupDropdownRect(Canvas rootCanvas, RectTransform dropdownRectTransform, RectTransform contentRectTransform, UIDropdownItem itemTemplate)
         {
+            // Get the rects of the dropdown and item
+            Rect dropdownContentRect = contentRectTransform.rect;
+            Rect itemTemplateRect = itemTemplate.RectTransform.rect;
+
+            // Calculate the visual offset between the item's edges and the background's edges
+            Vector2 offsetMin = itemTemplateRect.min - dropdownContentRect.min + (Vector2)itemTemplate.RectTransform.localPosition;
+            Vector2 offsetMax = itemTemplateRect.max - dropdownContentRect.max + (Vector2)itemTemplate.RectTransform.localPosition;
+            Vector2 itemSize = itemTemplateRect.size;
+
             // Reposition all items now that all of them have been added
             Vector2 sizeDelta = contentRectTransform.sizeDelta;
             sizeDelta.y = itemSize.y * m_items.Count + offsetMin.y - offsetMax.y;
@@ -778,7 +786,6 @@ namespace Dhs5.Utility.UI
                 m_fadeTween.Stop();
 
             m_dropdown = null;
-            m_dropdownCanvas = null;
             m_coroutine = null;
         }
 
@@ -796,14 +803,12 @@ namespace Dhs5.Utility.UI
                 UIDropdownItem item = AddItem(0, _nothingOption, Value == 0, itemTemplate, m_items);
 
                 item.IsOn = Value == 0;
-                item.Pressed += OnPressedItem;
                 prev = item;
 
                 bool isEverythingValue = IsEverythingValue(m_options.Count, Value);
                 item = AddItem(1, _everythingOption, isEverythingValue, itemTemplate, m_items);
 
                 item.IsOn = isEverythingValue;
-                item.Pressed += OnPressedItem;
 
                 // Automatically set up explicit navigation
                 prev.SetupNextNavigation(item);
@@ -811,24 +816,17 @@ namespace Dhs5.Utility.UI
                 prev = item;
             }
 
-            for (int i = m_multiSelect ? 2 : 0; i < m_options.Count; ++i)
+            var offset = m_multiSelect ? 2 : 0;
+            for (int i = offset; i < m_options.Count + offset; ++i)
             {
-                OptionData data = m_options[i];
-                UIDropdownItem item = AddItem(i, data, Value == i, itemTemplate, m_items);
+                var isOn = m_multiSelect ? 
+                    (Value & (1 << i - 2)) != 0 : 
+                    Value == i;
+
+                OptionData data = m_options[i - offset];
+                UIDropdownItem item = AddItem(i, data, isOn, itemTemplate, m_items);
                 if (item == null)
                     continue;
-
-                // Automatically set up a toggle state change listener
-                if (m_multiSelect)
-                    item.IsOn = (Value & (1 << i)) != 0;
-                else
-                    item.IsOn = Value == i;
-
-                item.Pressed += OnPressedItem;
-
-                // Select current option
-                if (item.IsOn)
-                    item.SelectAsFirst();
 
                 // Automatically set up explicit navigation
                 if (prev != null) prev.SetupNextNavigation(item);
@@ -861,12 +859,13 @@ namespace Dhs5.Utility.UI
         /// <param name="item">The Item to destroy.</param>
         protected virtual void DestroyItem(UIDropdownItem item)
         {
+            item.Pressed -= OnPressedItem;
             item.Selected -= OnSelectedItem;
             item.Cancelled -= OnCancelledItem;
         }
 
         // Add a new drop-down list item with the specified values.
-        protected virtual UIDropdownItem AddItem(int index, OptionData data, bool selected, UIDropdownItem itemTemplate, List<UIDropdownItem> items)
+        protected virtual UIDropdownItem AddItem(int index, OptionData data, bool isOn, UIDropdownItem itemTemplate, List<UIDropdownItem> items)
         {
             // Add a new item to the dropdown.
             UIDropdownItem item = CreateItem(itemTemplate);
@@ -876,13 +875,26 @@ namespace Dhs5.Utility.UI
             item.gameObject.name = "Item " + items.Count + (data.Text != null ? ": " + data.Text : "");
 
             item.ApplyData(index, data);
-            item.IsOn = false;
+            item.IsOn = isOn;
 
+            item.Pressed += OnPressedItem;
             item.Selected += OnSelectedItem;
             item.Cancelled += OnCancelledItem;
 
             items.Add(item);
             return item;
+        }
+
+        protected virtual void SelectFirstItemOn()
+        {
+            for (int i = 0; i < m_items.Count; i++)
+            {
+                if (m_items[i].IsOn)
+                {
+                    m_items[i].SelectAsFirst();
+                    break;
+                }
+            }
         }
 
         #endregion
@@ -915,7 +927,7 @@ namespace Dhs5.Utility.UI
                         }
                         break;
                     default:
-                        var flagValue = 1 << index;
+                        var flagValue = 1 << (index - 2);
                         var wasSelected = (Value & flagValue) != 0;
                         item.IsOn = !wasSelected;
 
@@ -924,6 +936,9 @@ namespace Dhs5.Utility.UI
                         else
                             Value |= flagValue;
 
+                        m_items[0].IsOn = Value == 0;
+                        m_items[1].IsOn = IsEverythingValue(m_options.Count, Value);
+
                         break;
                 }
             }
@@ -931,13 +946,23 @@ namespace Dhs5.Utility.UI
             {
                 item.IsOn = true;
                 Value = index;
+                Hide();
             }
-
-            Hide();
         }
 
-        protected virtual void OnSelectedItem(int index) { }
-        protected virtual void OnCancelledItem(int index) { }
+        protected virtual void OnSelectedItem(int index, bool navigation)
+        {
+            if (navigation
+                && m_scrollRect != null
+                && m_items.IsIndexValid(index, out var item))
+            {
+                m_scrollRect.EnsureRectTransformVisible(item.RectTransform);
+            }
+        }
+        protected virtual void OnCancelledItem(int index)
+        {
+
+        }
 
         #endregion
 
