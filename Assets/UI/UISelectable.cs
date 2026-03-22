@@ -133,38 +133,36 @@ namespace Dhs5.Utility.UI
         // PRESS
         public override sealed void OnPointerDown(PointerEventData eventData)
         {
-            OnBeforePointerDown(eventData);
+            var doBaseLogic = OnBeforePointerDown(eventData);
 
-            if (eventData.button == PointerEventData.InputButton.Left)
+            if (doBaseLogic)
             {
-                IsLeftPointerDown = true;
-            }
-            else if (eventData.button == PointerEventData.InputButton.Right)
-            {
-                IsRightPointerDown = true;
+                base.OnPointerDown(eventData);
             }
 
-            base.OnPointerDown(eventData);
             if (IsActive() && !IsInteractable())
             {
                 DoStateTransition(SelectionState.Disabled, false);
             }
             else if (eventData.button == PointerEventData.InputButton.Right
+                && IsRightPointerDown
                 && UseRightClick())
             {
                 DoStateTransition(SelectionState.Pressed, false);
             }
 
-            if (eventData.button == PointerEventData.InputButton.Left)
+            if (eventData.button == PointerEventData.InputButton.Left
+                && IsLeftPointerDown)
             {
                 OnStateChanged(EUIStateChangeType.LEFT_PRESS, true);
             }
-            else if (eventData.button == PointerEventData.InputButton.Right)
+            else if (eventData.button == PointerEventData.InputButton.Right
+                && IsRightPointerDown)
             {
                 OnStateChanged(EUIStateChangeType.RIGHT_PRESS, true);
             }
 
-            OnAfterPointerDown(eventData);
+            OnAfterPointerDown(eventData, doBaseLogic);
         }
         public override sealed void OnPointerUp(PointerEventData eventData)
         {
@@ -244,8 +242,20 @@ namespace Dhs5.Utility.UI
         protected virtual void OnAfterPointerExit(PointerEventData eventData) { }
 
         // PRESS
-        protected virtual void OnBeforePointerDown(PointerEventData eventData) { }
-        protected virtual void OnAfterPointerDown(PointerEventData eventData) { }
+        protected virtual bool OnBeforePointerDown(PointerEventData eventData) 
+        {
+            if (eventData.button == PointerEventData.InputButton.Left)
+            {
+                IsLeftPointerDown = true;
+            }
+            else if (eventData.button == PointerEventData.InputButton.Right)
+            {
+                IsRightPointerDown = true;
+            }
+
+            return true; 
+        }
+        protected virtual void OnAfterPointerDown(PointerEventData eventData, bool didBaseLogic) { }
         protected virtual void OnBeforePointerUp(PointerEventData eventData) { }
         protected virtual void OnAfterPointerUp(PointerEventData eventData) { }
 

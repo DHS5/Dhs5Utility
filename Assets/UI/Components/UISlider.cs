@@ -398,9 +398,9 @@ namespace Dhs5.Utility.UI
             return IsActive() && IsInteractable() && eventData.button == PointerEventData.InputButton.Left;
         }
         
-        protected override void OnAfterPointerDown(PointerEventData eventData)
+        protected override void OnAfterPointerDown(PointerEventData eventData, bool didBaseLogic)
         {
-            base.OnAfterPointerDown(eventData);
+            base.OnAfterPointerDown(eventData, true);
 
             if (!MayDrag(eventData))
                 return;
