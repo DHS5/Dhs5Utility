@@ -716,7 +716,7 @@ namespace Dhs5.Utility.UI
             if (m_navVisualizationFieldInfo != null)
             {
                 Rect toggleRect = EditorGUILayout.GetControlRect();
-                toggleRect.xMin += EditorGUIUtility.labelWidth;
+                toggleRect.xMin += EditorGUIUtility.labelWidth + 2f;
 
                 var currentValue = (bool)m_navVisualizationFieldInfo.GetValue(null);
                 var newValue = GUI.Toggle(toggleRect, currentValue, g_visualizeNavigation, EditorStyles.miniButton);

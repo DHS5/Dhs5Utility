@@ -35,9 +35,9 @@ namespace Dhs5.Utility.UI
         }
 
 
-        [MenuItem("GameObject/UI/UI Button", secondaryPriority = 0)]
+        [MenuItem("GameObject/UI (Canvas)/UI Button", secondaryPriority = 0)]
         private static void CreateUIButton(MenuCommand menuCommand) => CreateUIButton(menuCommand, false);
-        [MenuItem("GameObject/UI/UI Button + Text", secondaryPriority = 1)]
+        [MenuItem("GameObject/UI (Canvas)/UI Button + Text", secondaryPriority = 1)]
         private static void CreateUITextButton(MenuCommand menuCommand) => CreateUIButton(menuCommand, true);
         private static void CreateUIButton(MenuCommand menuCommand, bool withText)
         {
@@ -88,9 +88,9 @@ namespace Dhs5.Utility.UI
             }
         }
         
-        [MenuItem("GameObject/UI/UI Toggle", secondaryPriority = 2)]
+        [MenuItem("GameObject/UI (Canvas)/UI Toggle", secondaryPriority = 2)]
         private static void CreateUIToggle(MenuCommand menuCommand) => CreateUIToggle(menuCommand, false);
-        [MenuItem("GameObject/UI/UI Toggle + Text", secondaryPriority = 3)]
+        [MenuItem("GameObject/UI (Canvas)/UI Toggle + Text", secondaryPriority = 3)]
         private static void CreateUITextToggle(MenuCommand menuCommand) => CreateUIToggle(menuCommand, true);
         private static void CreateUIToggle(MenuCommand menuCommand, bool withText)
         {
@@ -168,7 +168,7 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        [MenuItem("GameObject/UI/UI Slider", secondaryPriority = 4)]
+        [MenuItem("GameObject/UI (Canvas)/UI Slider", secondaryPriority = 4)]
         private static void CreateUISlider(MenuCommand menuCommand)
         {
             using (var scope = new InstantiationScope("Slider", menuCommand?.context as GameObject,
@@ -251,8 +251,6 @@ namespace Dhs5.Utility.UI
                 }
 
                 var transitioner = scope.go.GetComponent<UIGenericTransitioner>();
-                transitioner.AddGraphic(backgroundImage);
-                transitioner.AddGraphic(fillImage);
                 transitioner.AddGraphic(handleImage);
 
                 slider.AddTransitioner(transitioner);
@@ -261,7 +259,7 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        [MenuItem("GameObject/UI/UI Scrollbar", secondaryPriority = 5)]
+        [MenuItem("GameObject/UI (Canvas)/UI Scrollbar", secondaryPriority = 5)]
         private static void CreateUIScrollbar(MenuCommand menuCommand)
         {
             CreateUIScrollbar("Scrollbar", menuCommand?.context as GameObject);
@@ -318,7 +316,6 @@ namespace Dhs5.Utility.UI
                 }
 
                 var transitioner = scope.go.GetComponent<UIGenericTransitioner>();
-                transitioner.AddGraphic(backgroundImage);
                 transitioner.AddGraphic(handleImage);
 
                 scrollbar.AddTransitioner(transitioner);
@@ -328,11 +325,11 @@ namespace Dhs5.Utility.UI
             return result;
         }
 
-        [MenuItem("GameObject/UI/UI ScrollView/Vertical", secondaryPriority = 6)]
+        [MenuItem("GameObject/UI (Canvas)/UI ScrollView/Vertical", secondaryPriority = 6)]
         private static void CreateUIVerticalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand?.context as GameObject, true, false);
-        [MenuItem("GameObject/UI/UI ScrollView/Horizontal", secondaryPriority = 7)]
+        [MenuItem("GameObject/UI (Canvas)/UI ScrollView/Horizontal", secondaryPriority = 7)]
         private static void CreateUIHorizontalScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand?.context as GameObject, false, true);
-        [MenuItem("GameObject/UI/UI ScrollView/Both", secondaryPriority = 8)]
+        [MenuItem("GameObject/UI (Canvas)/UI ScrollView/Both", secondaryPriority = 8)]
         private static void CreateUIBothScrollView(MenuCommand menuCommand) => CreateUIScrollView(menuCommand?.context as GameObject, true, true);
         public static GameObject CreateUIScrollView(GameObject parent, bool vertical, bool horizontal, string name = "ScrollView", Action<RectTransform> rectTransformSetup = null)
         {
@@ -460,7 +457,7 @@ namespace Dhs5.Utility.UI
             return result;
         }
 
-        [MenuItem("GameObject/UI/UI Dropdown", secondaryPriority = 9)]
+        [MenuItem("GameObject/UI (Canvas)/UI Dropdown", secondaryPriority = 9)]
         private static void CreateUIDropdown(MenuCommand menuCommand)
         {
             using (var scope = new InstantiationScope("Dropdown", menuCommand?.context as GameObject,
@@ -482,6 +479,10 @@ namespace Dhs5.Utility.UI
                     rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
                     rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 50f);
                 }
+
+                var transitioner = scope.go.GetComponent<UIGenericTransitioner>();
+                dropdown.AddTransitioner(transitioner);
+                transitioner.AddGraphic(image);
 
                 // Caption
                 var captionGO = new GameObject("Caption Text", typeof(TextMeshProUGUI));

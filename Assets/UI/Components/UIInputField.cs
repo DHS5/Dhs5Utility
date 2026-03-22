@@ -7,6 +7,11 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections;
 
+#if UNITY_EDITOR
+using UnityEditor;
+using TMPro.EditorUtilities;
+#endif
+
 namespace Dhs5.Utility.UI
 {
     public class UIInputField : UISelectable, IUpdateSelectedHandler,
@@ -107,11 +112,10 @@ namespace Dhs5.Utility.UI
 
         [SerializeField] protected Graphic m_placeholder;
         [SerializeField] protected UIScrollbar m_verticalScrollbar;
-        [SerializeField] protected TMP_ScrollbarEventHandler m_verticalScrollbarEventHandler;
         //private bool m_ForceDeactivation;
 
         protected bool m_isDrivenByLayoutComponents = false;
-        [SerializeField] protected LayoutGroup m_layoutGroup;
+        protected LayoutGroup m_layoutGroup;
 
         protected IScrollHandler m_scrollHandlerParent;
 
@@ -131,7 +135,7 @@ namespace Dhs5.Utility.UI
         /// <summary>
         /// The character used to hide text in password field.
         /// </summary>
-        [SerializeField] protected char m_asteriskChar = '*';
+        [SerializeField] protected char m_passwordChar = '*';
         /// <summary>
         /// Keyboard type applies to mobile keyboards that get shown.
         /// </summary>
@@ -193,10 +197,7 @@ namespace Dhs5.Utility.UI
 
         [SerializeField] protected int m_lineLimit = 0;
 
-        /// <summary>
-        /// Determines if the keyboard is opened in alert mode.
-        /// </summary>
-        [SerializeField] protected bool m_isAlert;
+        protected bool m_isTouchScreenKeyboardAlert;
 
         [SerializeField] protected TMP_InputValidator m_inputValidator = null;
         [SerializeField] protected bool m_shouldActivateOnSelect = true;
@@ -734,10 +735,13 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        public virtual bool IsAlert
+        /// <summary>
+        /// Determines if the keyboard is opened in alert mode.
+        /// </summary>
+        public virtual bool IsTouchScreenKeyboardAlert
         {
-            get => m_isAlert;
-            set => m_isAlert = value;
+            get => m_isTouchScreenKeyboardAlert;
+            set => m_isTouchScreenKeyboardAlert = value;
         }
 
         public virtual bool ReadOnly 
@@ -759,12 +763,12 @@ namespace Dhs5.Utility.UI
         // Derived property
         public virtual bool MultiLine => m_lineType == ELineType.MultiLineNewline || LineType == ELineType.MultiLineSubmit;
         // Not shown in Inspector.
-        public virtual char AsteriskChar 
+        public virtual char PasswordChar 
         { 
-            get => m_asteriskChar;
+            get => m_passwordChar;
             set 
             { 
-                if (SetPropertyUtility.SetStruct(ref m_asteriskChar, value)) 
+                if (SetPropertyUtility.SetStruct(ref m_passwordChar, value)) 
                     UpdateLabel(); 
             } 
         }
@@ -1102,7 +1106,11 @@ namespace Dhs5.Utility.UI
             // Check if parent component has IScrollHandler
             IScrollHandler[] scrollHandlers = GetComponentsInParent<IScrollHandler>();
             if (scrollHandlers.Length > 1)
-                m_scrollHandlerParent = scrollHandlers[1] as ScrollRect;
+            {
+                if (scrollHandlers[1] is ScrollRect s1) m_scrollHandlerParent = s1;
+                else if (scrollHandlers[1] is UIScrollRect s2) m_scrollHandlerParent = s2;
+                else m_scrollHandlerParent = null;
+            }
 
             // Get a reference to the RectMask 2D on the Viewport Text Area object.
             if (m_textViewport != null)
@@ -1170,7 +1178,7 @@ namespace Dhs5.Utility.UI
             base.OnDisable();
         }
 
-        #endregion
+#endregion
 
 
         #region Main Setters
@@ -2306,7 +2314,7 @@ namespace Dhs5.Utility.UI
                     }
 
                     // Release current selection of selected object is another Input Field
-                    if (m_keepTextSelectionVisible == false && selectedObject.GetComponent<TMP_InputField>() != null)
+                    if (m_keepTextSelectionVisible == false && (selectedObject.GetComponent<TMP_InputField>() != null || selectedObject.GetComponent<UIInputField>() != null))
                         ReleaseSelection();
 
                     return;
@@ -3499,7 +3507,7 @@ namespace Dhs5.Utility.UI
 
                 string processed;
                 if (InputType == EInputType.Password)
-                    processed = new string(AsteriskChar, fullText.Length);
+                    processed = new string(PasswordChar, fullText.Length);
                 else
                     processed = fullText;
 
@@ -4385,8 +4393,8 @@ namespace Dhs5.Utility.UI
                 if (ShouldHideSoftKeyboard == false && m_readOnly == false)
                 {
                     m_softKeyboard = (InputType == EInputType.Password) ?
-                        TouchScreenKeyboard.Open(m_text, KeyboardType, false, MultiLine, true, IsAlert, "", CharacterLimit) :
-                        TouchScreenKeyboard.Open(m_text, KeyboardType, InputType == EInputType.AutoCorrect, MultiLine, false, IsAlert, "", CharacterLimit);
+                        TouchScreenKeyboard.Open(m_text, KeyboardType, false, MultiLine, true, IsTouchScreenKeyboardAlert, "", CharacterLimit) :
+                        TouchScreenKeyboard.Open(m_text, KeyboardType, InputType == EInputType.AutoCorrect, MultiLine, false, IsTouchScreenKeyboardAlert, "", CharacterLimit);
 
                     OnFocus();
 
@@ -4859,4 +4867,318 @@ namespace Dhs5.Utility.UI
 
         #endregion
     }
+
+    #region Editor
+
+#if UNITY_EDITOR
+
+    [CustomEditor(typeof(UIInputField))]
+    public class UIInputFieldEditor : UISelectableEditor
+    {
+        #region Members
+
+        protected static bool m_fontSettingsOpen = false;
+        protected static bool m_extraSettingsOpen = false;
+
+        protected SerializedProperty p_textViewport;
+        protected SerializedProperty p_textComponent;
+        protected SerializedProperty p_text;
+        protected SerializedProperty p_contentType;
+        protected SerializedProperty p_lineType;
+        protected SerializedProperty p_lineLimit;
+        protected SerializedProperty p_inputType;
+        protected SerializedProperty p_characterValidation;
+        protected SerializedProperty p_inputValidator;
+        protected SerializedProperty p_regexValue;
+        protected SerializedProperty p_keyboardType;
+        protected SerializedProperty p_characterLimit;
+        protected SerializedProperty p_passwordChar;
+        protected SerializedProperty p_caretBlinkRate;
+        protected SerializedProperty p_caretWidth;
+        protected SerializedProperty p_caretColor;
+        protected SerializedProperty p_customCaretColor;
+        protected SerializedProperty p_selectionColor;
+        protected SerializedProperty p_hideMobileKeyboard;
+        protected SerializedProperty p_hideMobileInput;
+        protected SerializedProperty p_placeholder;
+        protected SerializedProperty p_verticalScrollbar;
+        protected SerializedProperty p_scrollbarScrollSensitivity;
+        protected SerializedProperty p_readOnly;
+        protected SerializedProperty p_richText;
+        protected SerializedProperty p_richTextEditingAllowed;
+        protected SerializedProperty p_resetOnDeActivation;
+        protected SerializedProperty p_keepTextSelectionVisible;
+        protected SerializedProperty p_restoreOriginalTextOnEscape;
+        protected SerializedProperty p_shouldActivateOnSelect;
+        
+        protected SerializedProperty p_onFocusSelectAll;
+        protected SerializedProperty p_globalPointSize;
+        protected SerializedProperty p_globalFontAsset;
+
+        //TMP_InputValidator m_ValidationScript;
+
+        #endregion
+
+        #region Core Behaviour
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            p_textViewport = serializedObject.FindProperty("m_textViewport");
+            p_textComponent = serializedObject.FindProperty("m_textComponent");
+            p_text = serializedObject.FindProperty("m_text");
+            p_contentType = serializedObject.FindProperty("m_contentType");
+            p_lineType = serializedObject.FindProperty("m_lineType");
+            p_lineLimit = serializedObject.FindProperty("m_lineLimit");
+            p_inputType = serializedObject.FindProperty("m_inputType");
+            p_characterValidation = serializedObject.FindProperty("m_characterValidation");
+            p_inputValidator = serializedObject.FindProperty("m_inputValidator");
+            p_regexValue = serializedObject.FindProperty("m_regexValue");
+            p_keyboardType = serializedObject.FindProperty("m_keyboardType");
+            p_characterLimit = serializedObject.FindProperty("m_characterLimit");
+            p_passwordChar = serializedObject.FindProperty("m_passwordChar");
+            p_caretBlinkRate = serializedObject.FindProperty("m_caretBlinkRate");
+            p_caretWidth = serializedObject.FindProperty("m_caretWidth");
+            p_caretColor = serializedObject.FindProperty("m_caretColor");
+            p_customCaretColor = serializedObject.FindProperty("m_customCaretColor");
+            p_selectionColor = serializedObject.FindProperty("m_selectionColor");
+
+            p_hideMobileKeyboard = serializedObject.FindProperty("m_hideSoftKeyboard");
+            p_hideMobileInput = serializedObject.FindProperty("m_hideMobileInput");
+
+            p_placeholder = serializedObject.FindProperty("m_placeholder");
+            p_verticalScrollbar = serializedObject.FindProperty("m_verticalScrollbar");
+            p_scrollbarScrollSensitivity = serializedObject.FindProperty("m_scrollSensitivity");
+
+            p_readOnly = serializedObject.FindProperty("m_readOnly");
+            p_richText = serializedObject.FindProperty("m_richText");
+            p_richTextEditingAllowed = serializedObject.FindProperty("m_isRichTextEditingAllowed");
+            p_resetOnDeActivation = serializedObject.FindProperty("m_resetOnDeActivation");
+            p_keepTextSelectionVisible = serializedObject.FindProperty("m_keepTextSelectionVisible");
+            p_restoreOriginalTextOnEscape = serializedObject.FindProperty("m_restoreOriginalTextOnEscape");
+
+            p_onFocusSelectAll = serializedObject.FindProperty("m_onFocusSelectAll");
+            p_shouldActivateOnSelect = serializedObject.FindProperty("m_shouldActivateOnSelect");
+
+            p_globalPointSize = serializedObject.FindProperty("m_globalPointSize");
+            p_globalFontAsset = serializedObject.FindProperty("m_globalFontAsset");
+
+            m_propertiesToExclude.Add(p_textViewport.propertyPath);
+            m_propertiesToExclude.Add(p_textComponent.propertyPath);
+            m_propertiesToExclude.Add(p_text.propertyPath);
+            m_propertiesToExclude.Add(p_contentType.propertyPath);
+            m_propertiesToExclude.Add(p_lineType.propertyPath);
+            m_propertiesToExclude.Add(p_lineLimit.propertyPath);
+            m_propertiesToExclude.Add(p_inputType.propertyPath);
+            m_propertiesToExclude.Add(p_characterValidation.propertyPath);
+            m_propertiesToExclude.Add(p_inputValidator.propertyPath);
+            m_propertiesToExclude.Add(p_regexValue.propertyPath);
+            m_propertiesToExclude.Add(p_keyboardType.propertyPath);
+            m_propertiesToExclude.Add(p_characterLimit.propertyPath);
+            m_propertiesToExclude.Add(p_passwordChar.propertyPath);
+            m_propertiesToExclude.Add(p_caretBlinkRate.propertyPath);
+            m_propertiesToExclude.Add(p_caretWidth.propertyPath);
+            m_propertiesToExclude.Add(p_caretColor.propertyPath);
+            m_propertiesToExclude.Add(p_customCaretColor.propertyPath);
+            m_propertiesToExclude.Add(p_selectionColor.propertyPath);
+            m_propertiesToExclude.Add(p_hideMobileKeyboard.propertyPath);
+            m_propertiesToExclude.Add(p_hideMobileInput.propertyPath);
+            m_propertiesToExclude.Add(p_placeholder.propertyPath);
+            m_propertiesToExclude.Add(p_verticalScrollbar.propertyPath);
+            m_propertiesToExclude.Add(p_scrollbarScrollSensitivity.propertyPath);
+            m_propertiesToExclude.Add(p_readOnly.propertyPath);
+            m_propertiesToExclude.Add(p_richText.propertyPath);
+            m_propertiesToExclude.Add(p_richTextEditingAllowed.propertyPath);
+            m_propertiesToExclude.Add(p_resetOnDeActivation.propertyPath);
+            m_propertiesToExclude.Add(p_keepTextSelectionVisible.propertyPath);
+            m_propertiesToExclude.Add(p_restoreOriginalTextOnEscape.propertyPath);
+            m_propertiesToExclude.Add(p_onFocusSelectAll.propertyPath);
+            m_propertiesToExclude.Add(p_shouldActivateOnSelect.propertyPath);
+            m_propertiesToExclude.Add(p_globalPointSize.propertyPath);
+            m_propertiesToExclude.Add(p_globalFontAsset.propertyPath);
+        }
+
+        #endregion
+
+        #region Core GUI
+
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            base.OnInspectorGUI();
+
+            EditorGUILayout.Space();
+
+            EditorGUILayout.PropertyField(p_textViewport);
+
+            EditorGUILayout.PropertyField(p_textComponent);
+
+            TextMeshProUGUI text = null;
+            if (p_textComponent != null && p_textComponent.objectReferenceValue != null)
+            {
+                text = p_textComponent.objectReferenceValue as TextMeshProUGUI;
+                //if (text.supportRichText)
+                //{
+                //    EditorGUILayout.HelpBox("Using Rich Text with input is unsupported.", MessageType.Warning);
+                //}
+            }
+
+            EditorGUI.BeginDisabledGroup(p_textComponent == null || p_textComponent.objectReferenceValue == null);
+
+            // TEXT INPUT BOX
+            EditorGUILayout.PropertyField(p_text);
+
+            // INPUT FIELD SETTINGS
+            #region INPUT FIELD SETTINGS
+
+            m_fontSettingsOpen = EditorGUILayout.Foldout(m_fontSettingsOpen, "Input Field Settings", true, TMP_UIStyleManager.boldFoldout);
+
+            if (m_fontSettingsOpen)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(p_globalFontAsset, new GUIContent("Font Asset", "Set the Font Asset for both Placeholder and Input Field text object."));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    UIInputField inputField = target as UIInputField;
+                    inputField.SetGlobalFontAsset(p_globalFontAsset.objectReferenceValue as TMP_FontAsset);
+                }
+
+
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(p_globalPointSize, new GUIContent("Point Size", "Set the point size of both Placeholder and Input Field text object."));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    UIInputField inputField = target as UIInputField;
+                    inputField.SetGlobalPointSize(p_globalPointSize.floatValue);
+                }
+
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(p_characterLimit);
+
+                EditorGUILayout.Space();
+
+                EditorGUILayout.PropertyField(p_contentType);
+                if (!p_contentType.hasMultipleDifferentValues)
+                {
+                    EditorGUI.indentLevel++;
+
+                    if (p_contentType.enumValueIndex == (int)UIInputField.EContentType.Standard ||
+                        p_contentType.enumValueIndex == (int)UIInputField.EContentType.Autocorrected ||
+                        p_contentType.enumValueIndex == (int)UIInputField.EContentType.Custom)
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        EditorGUILayout.PropertyField(p_lineType);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            if (text != null)
+                            {
+                                if (p_lineType.enumValueIndex == (int)UIInputField.ELineType.SingleLine)
+                                    text.textWrappingMode = TextWrappingModes.PreserveWhitespaceNoWrap;
+                                else
+                                {
+                                    text.textWrappingMode = TextWrappingModes.Normal;
+                                }
+                            }
+                        }
+
+                        if (p_lineType.enumValueIndex != (int)UIInputField.ELineType.SingleLine)
+                        {
+                            EditorGUILayout.PropertyField(p_lineLimit);
+                        }
+                    }
+
+                    if (p_contentType.enumValueIndex == (int)UIInputField.EContentType.Password
+                        || p_contentType.enumValueIndex == (int)UIInputField.EContentType.Pin)
+                    {
+                        EditorGUILayout.PropertyField(p_passwordChar);
+                    }
+
+                    if (p_contentType.enumValueIndex == (int)UIInputField.EContentType.Custom)
+                    {
+                        EditorGUILayout.PropertyField(p_inputType);
+                        EditorGUILayout.PropertyField(p_keyboardType);
+                        EditorGUILayout.PropertyField(p_characterValidation);
+                        if (p_characterValidation.enumValueIndex == (int)UIInputField.ECharacterValidation.Regex)
+                        {
+                            EditorGUILayout.PropertyField(p_regexValue);
+                        }
+                        else if (p_characterValidation.enumValueIndex == (int)UIInputField.ECharacterValidation.CustomValidator)
+                        {
+                            EditorGUILayout.PropertyField(p_inputValidator);
+                        }
+                    }
+
+                    EditorGUI.indentLevel--;
+                }
+
+                EditorGUILayout.Space();
+
+                EditorGUILayout.PropertyField(p_placeholder);
+                EditorGUILayout.PropertyField(p_verticalScrollbar);
+
+                if (p_verticalScrollbar.objectReferenceValue != null)
+                    EditorGUILayout.PropertyField(p_scrollbarScrollSensitivity);
+
+                EditorGUILayout.PropertyField(p_caretBlinkRate);
+                EditorGUILayout.PropertyField(p_caretWidth);
+
+                EditorGUILayout.PropertyField(p_customCaretColor);
+                if (p_customCaretColor.boolValue)
+                {
+                    EditorGUILayout.PropertyField(p_caretColor);
+                }
+
+                EditorGUILayout.PropertyField(p_selectionColor);
+
+                EditorGUI.indentLevel--;
+            }
+            #endregion
+
+
+            // CONTROL SETTINGS
+            #region CONTROL SETTINGS
+
+            m_extraSettingsOpen = EditorGUILayout.Foldout(m_extraSettingsOpen, "Control Settings", true, TMP_UIStyleManager.boldFoldout);
+
+            if (m_extraSettingsOpen)
+            {
+                EditorGUI.indentLevel++;
+
+                EditorGUILayout.PropertyField(p_onFocusSelectAll, new GUIContent("OnFocus - Select All", "Should all the text be selected when the Input Field is selected?"));
+                EditorGUILayout.PropertyField(p_resetOnDeActivation, new GUIContent("Reset On Deactivation", "Should the Text and Caret position be reset when Input Field loses focus and is Deactivated?"));
+
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(p_keepTextSelectionVisible, new GUIContent("Keep Text Selection Visible", "Should the text selection remain visible when the input field loses focus and is deactivated?"));
+                EditorGUI.indentLevel--;
+
+                EditorGUILayout.PropertyField(p_restoreOriginalTextOnEscape, new GUIContent("Restore On ESC Key", "Should the original text be restored when pressing ESC? (Property not applicable for HoloLens)"));
+                EditorGUILayout.PropertyField(p_shouldActivateOnSelect, new GUIContent("Should Activate On Select", "Determines if the Input Field will be activated when selected."));
+                EditorGUILayout.PropertyField(p_hideMobileKeyboard, new GUIContent("Hide Soft Keyboard", "Controls the visibility of the mobile virtual keyboard."));
+
+                EditorGUI.BeginDisabledGroup(p_hideMobileKeyboard.boolValue);
+                EditorGUILayout.PropertyField(p_hideMobileInput, new GUIContent("Hide Mobile Input", "Controls the visibility of the editable text field above the mobile virtual keyboard."));
+                EditorGUI.EndDisabledGroup();
+
+                EditorGUILayout.PropertyField(p_readOnly);
+                EditorGUILayout.PropertyField(p_richText);
+                EditorGUILayout.PropertyField(p_richTextEditingAllowed, new GUIContent("Allow Rich Text Editing"));
+
+                EditorGUI.indentLevel--;
+            }
+            #endregion
+
+            EditorGUI.EndDisabledGroup();
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        #endregion
+    }
+
+#endif
+
+    #endregion
 }
