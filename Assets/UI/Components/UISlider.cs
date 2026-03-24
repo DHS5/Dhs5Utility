@@ -41,6 +41,7 @@ namespace Dhs5.Utility.UI
         #endregion
 
         #region ENUM Axis
+
         public enum EAxis
         {
             Horizontal = 0,

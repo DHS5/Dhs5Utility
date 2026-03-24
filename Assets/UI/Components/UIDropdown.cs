@@ -12,7 +12,7 @@ namespace Dhs5.Utility.UI
     [RequireComponent(typeof(RectTransform))]
     public class UIDropdown : UISelectable, IPointerClickHandler, ISubmitHandler, ICancelHandler
     {
-        #region Option CLASSES
+        #region CLASS OptionData
 
         [Serializable]
         /// <summary>
@@ -23,7 +23,7 @@ namespace Dhs5.Utility.UI
             #region Members
 
             [SerializeField] protected string m_text;
-            [SerializeField] protected OptionAsset m_asset;
+            [SerializeField] protected UIComponentOptionAsset m_asset;
 
             #endregion
 
@@ -41,7 +41,7 @@ namespace Dhs5.Utility.UI
             /// <summary>
             /// Asset containing the option's extra datas
             /// </summary>
-            public virtual OptionAsset Asset
+            public virtual UIComponentOptionAsset Asset
             {
                 get => m_asset;
                 set => m_asset = value;
@@ -58,12 +58,12 @@ namespace Dhs5.Utility.UI
                 this.Text = text;
             }
 
-            public OptionData(OptionAsset asset)
+            public OptionData(UIComponentOptionAsset asset)
             {
                 this.Asset = asset;
             }
 
-            public OptionData(string text, OptionAsset asset)
+            public OptionData(string text, UIComponentOptionAsset asset)
             {
                 this.Text = text;
                 this.Asset = asset;
@@ -71,11 +71,6 @@ namespace Dhs5.Utility.UI
 
             #endregion
         }
-
-        /// <summary>
-        /// Class to store extra data of a single option in the dropdown list
-        /// </summary>
-        public abstract class OptionAsset : ScriptableObject { }
 
         #endregion
 

@@ -605,6 +605,98 @@ namespace Dhs5.Utility.UI
             }
         }
 
+        [MenuItem("GameObject/UI (Canvas)/UI Input Field", secondaryPriority = 10)]
+        private static void CreateUIInputField(MenuCommand menuCommand)
+        {
+            using (var scope = new InstantiationScope("InputField", menuCommand?.context  as GameObject, 
+                typeof(UIInputField), typeof(Image), typeof(UIGenericTransitioner)))
+            {
+                var inputField = scope.go.GetComponent<UIInputField>();
+                inputField.transition = Selectable.Transition.None;
+                inputField.navigation = new Navigation() { mode = Navigation.Mode.None };
+
+                var image = scope.go.GetComponent<Image>();
+                image.type = Image.Type.Sliced;
+                image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/InputFieldBackground.psd");
+
+                var transitioner = scope.go.GetComponent<UIGenericTransitioner>();
+                transitioner.AddGraphic(image);
+                inputField.AddTransitioner(transitioner);
+
+                if (scope.go.TryGetComponent(out RectTransform rectTransform))
+                {
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 200f);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 40f);
+                }
+
+                // Text Area
+                var textAreaGO = new GameObject("Text Area", typeof(RectTransform), typeof(RectMask2D));
+                GameObjectUtility.SetParentAndAlign(textAreaGO, scope.go);
+                Undo.RegisterCreatedObjectUndo(textAreaGO, textAreaGO.name);
+
+                if (textAreaGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.offsetMin = new Vector2(10f, 6f);
+                    rectTransform.offsetMax = new Vector2(-10f, -7f);
+
+                    inputField.TextViewport = rectTransform;
+                }
+
+                var rectMask = textAreaGO.GetComponent<RectMask2D>();
+                rectMask.padding = new Vector4(-8f, -5f, -8f, -5f);
+
+                // Placeholder
+                var placeholderGO = new GameObject("Placeholder", typeof(TextMeshProUGUI), typeof(LayoutElement));
+                GameObjectUtility.SetParentAndAlign(placeholderGO, textAreaGO);
+                Undo.RegisterCreatedObjectUndo(placeholderGO, placeholderGO.name);
+                
+                var placeholderText = placeholderGO.GetComponent<TextMeshProUGUI>();
+                placeholderText.text = "Enter text...";
+                placeholderText.color = Color.gray5;
+                placeholderText.fontSize = 22f;
+                placeholderText.fontStyle = FontStyles.Italic;
+                placeholderText.textWrappingMode = TextWrappingModes.NoWrap;
+                placeholderText.horizontalAlignment = HorizontalAlignmentOptions.Left;
+                placeholderText.verticalAlignment = VerticalAlignmentOptions.Middle;
+                placeholderText.raycastTarget = false;
+                inputField.Placeholder = placeholderText;
+
+                var layoutElement = placeholderGO.GetComponent<LayoutElement>();
+                layoutElement.ignoreLayout = true;
+                layoutElement.layoutPriority = 1;
+
+                if (placeholderGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.sizeDelta = Vector2.zero;
+                }
+
+                // Text
+                var textGO = new GameObject("Text", typeof(TextMeshProUGUI));
+                GameObjectUtility.SetParentAndAlign(textGO, textAreaGO);
+                Undo.RegisterCreatedObjectUndo(textGO, textGO.name);
+
+                var text = textGO.GetComponent<TextMeshProUGUI>();
+                text.text = "";
+                text.color = Color.black;
+                text.fontSize = 22f;
+                text.horizontalAlignment = HorizontalAlignmentOptions.Left;
+                text.verticalAlignment = VerticalAlignmentOptions.Middle;
+                text.raycastTarget = false;
+                inputField.TextComponent = text;
+
+                if (textGO.TryGetComponent(out rectTransform))
+                {
+                    rectTransform.anchorMin = Vector2.zero;
+                    rectTransform.anchorMax = Vector2.one;
+                    rectTransform.sizeDelta = Vector2.zero;
+                }
+            }
+        }
+
         #endregion
     }
 }
