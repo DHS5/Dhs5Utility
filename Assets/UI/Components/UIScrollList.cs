@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
 {
-    public class UIScrollList : UISelectable
+    public class UIScrollList : UISelectable, 
+        IScrollHandler, IInitializePotentialDragHandler, IDragHandler
     {
         #region CLASS OptionData
 
@@ -111,10 +113,19 @@ namespace Dhs5.Utility.UI
         [Space]
         [SerializeField] protected EDirection m_direction = EDirection.LeftToRight;
         [SerializeField] protected bool m_wrapAround = true;
-        [SerializeField] protected float m_scrollDuration = 0.5f;
-        [SerializeField] protected float m_itemsSpacing = 20f;
+        [SerializeField, Min(0f)] protected float m_scrollDuration = 0.5f;
+        [SerializeField] protected bool m_canDrag = true;
+        [SerializeField, Min(0f)] protected float m_itemsSpacing = 20f;
 
         protected List<UIScrollListItem> m_items = new();
+        [SerializeField, ReadOnly] protected int m_mainItemIndex;
+        protected float m_visibleLimit;
+        protected int m_directionMultiplier;
+
+        // field is never assigned warning
+#pragma warning disable 649
+        protected DrivenRectTransformTracker m_tracker;
+#pragma warning restore 649
 
         #endregion
 
@@ -205,7 +216,7 @@ namespace Dhs5.Utility.UI
             get => m_value;
             set => Set(value);
         }
-        public virtual IEnumerable<OptionData> Options => m_options;
+        public virtual int OptionsCount => m_options.Count;
 
         public virtual EDirection Direction
         {
@@ -214,12 +225,10 @@ namespace Dhs5.Utility.UI
             {
                 if (SetPropertyUtility.SetStruct(ref m_direction, value))
                 {
-#if UNITY_EDITOR
-                    if (Application.isPlaying)
-#endif
-                    {
-                        // Update direction
-                    }
+                    // Update direction
+                    //...
+                    RefreshItemsSetup();
+                    RefreshShownValues();
                 }
             }
         }
@@ -232,6 +241,18 @@ namespace Dhs5.Utility.UI
         {
             get => m_scrollDuration;
             set => m_scrollDuration = value;
+        }
+        public virtual bool CanDrag
+        {
+            get => m_canDrag;
+            set
+            {
+                if (SetPropertyUtility.SetStruct(ref m_canDrag, value))
+                {
+                    RefreshItemsSetup();
+                    RefreshShownValues();
+                }
+            }
         }
         public virtual float ItemsSpacing
         {
@@ -260,14 +281,40 @@ namespace Dhs5.Utility.UI
 
         #endregion
 
+        #region Core Behaviour
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            if (LeftButton != null) LeftButton.Clicked += OnLeftButtonClicked;
+            if (RightButton != null) RightButton.Clicked += OnRightButtonClicked;
+
+            RefreshItemsSetup();
+            RefreshShownValues();
+        }
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+
+            if (LeftButton != null) LeftButton.Clicked -= OnLeftButtonClicked;
+            if (RightButton != null) RightButton.Clicked -= OnRightButtonClicked;
+
+            m_tracker.Clear();
+        }
+
+        #endregion
+
 
         #region Setters
 
         protected virtual void Set(int value, bool triggerEvent = true)
         {
-            if (m_value == value) return;
+            value = Mathf.Clamp(value, m_placeholder ? -1 : 0, OptionsCount);
+            if (Value == value) return;
 
             m_value = value;
+            RefreshShownValues();
 
             if (triggerEvent)
             {
@@ -276,13 +323,44 @@ namespace Dhs5.Utility.UI
         }
         public virtual void SetValueWithoutNotify(int value) => Set(value, triggerEvent:false);
 
+        protected virtual void SetNext()
+        {
+            Set(GetNextIndex(Value, OptionsCount, WrapAround));
+        }
+        protected virtual void SetPrevious()
+        {
+            Set(GetPreviousIndex(Value, OptionsCount, WrapAround));
+        }
+
         #endregion
 
         #region Visuals Update
 
         public virtual void RefreshShownValues()
         {
+#if UNITY_EDITOR
+            if (!Application.isPlaying
+                && TemplateItem != null
+                && OptionsCount > 0)
+            {
+                TemplateItem.ApplyData(m_options[GetIndex(Value, OptionsCount, WrapAround)]);
+                return;
+            }
+#endif
 
+            var halfCount = m_items.Count / 2;
+            for (int i = -halfCount; i < halfCount + 1; i++)
+            {
+                var itemIndex = GetIndex(i * m_directionMultiplier + m_mainItemIndex, m_items.Count, true);
+                var item = m_items[itemIndex];
+
+                if (item != null)
+                {
+                    var optionIndex = GetIndex(i + Value, OptionsCount, WrapAround);
+                    var option = m_options[optionIndex];
+                    item.ApplyData(option);
+                }
+            }
         }
 
         #endregion
@@ -294,6 +372,79 @@ namespace Dhs5.Utility.UI
 #if UNITY_EDITOR
             if (!Application.isPlaying) return;
 #endif
+
+            if (TemplateItem == null || ViewportRect == null) return;
+
+            // Clear
+            m_tracker.Clear();
+            ClearCurrentItems();
+
+            TemplateItem.gameObject.SetActive(true);
+
+            // Get viewport & template infos
+            var viewportSize = ViewportRect.rect.size;
+            var itemSize = TemplateItem.RectTransform.rect.size;
+            float viewportLength;
+            float itemsLength;
+            Vector2 itemsVOffset;
+            m_directionMultiplier = (m_direction is EDirection.LeftToRight or EDirection.BottomToTop) ? 1 : -1;
+            switch (Direction)
+            {
+                case EDirection.LeftToRight:
+                case EDirection.RightToLeft:
+                    viewportLength = viewportSize.x;
+                    itemsLength = itemSize.x;
+                    itemsVOffset = new Vector2(itemsLength + ItemsSpacing, 0f);
+                    break;
+                
+                default:
+                    viewportLength = viewportSize.y;
+                    itemsLength = itemSize.y;
+                    itemsVOffset = new Vector2(0f, itemsLength + ItemsSpacing);
+                    break;
+            }
+            var itemsOffset = itemsLength + ItemsSpacing;
+            m_visibleLimit = (viewportLength + itemsLength) / 2f;
+
+            // Compute items count
+            var itemsCount = (!CanDrag && ScrollDuration <= 0f ? 1 : 3) + Mathf.FloorToInt(viewportLength / (2f * itemsOffset)) * 2;
+
+            // Instantiate items
+            InstantiateItems(itemsCount, itemsVOffset);
+
+            TemplateItem.gameObject.SetActive(false);
+        }
+
+        protected virtual void InstantiateItems(int count, Vector2 offset)
+        {
+            var halfCount = count / 2;
+            for (int i = 0; i < count; i++)
+            {
+                var item = InstantiateItem(i);
+                m_items.Add(item);
+
+                m_tracker.Add(this, item.RectTransform, DrivenTransformProperties.Anchors | DrivenTransformProperties.AnchoredPosition | DrivenTransformProperties.Pivot);
+                item.RectTransform.anchorMin = item.RectTransform.anchorMax = item.RectTransform.pivot = new Vector2(0.5f, 0.5f);
+                item.RectTransform.anchoredPosition = offset * (i - halfCount);
+            }
+
+            m_mainItemIndex = halfCount;
+        }
+        protected virtual UIScrollListItem InstantiateItem(int index)
+        {
+            var result = Instantiate(TemplateItem, ViewportRect);
+            result.name = "Item " + index;
+            return result;
+        }
+
+        protected virtual void ClearCurrentItems()
+        {
+            foreach (var item in m_items)
+            {
+                if (item != null)
+                    Destroy(item.gameObject);
+            }
+            m_items.Clear();
         }
 
         #endregion
@@ -351,46 +502,127 @@ namespace Dhs5.Utility.UI
 
         protected virtual void OnLeftButtonClicked()
         {
-
+            SetPrevious();
         }
         protected virtual void OnRightButtonClicked()
         {
-
+            SetNext();
         }
 
         #endregion
 
+
+        #region Tweening
+
+        #endregion
+
+        #region Drag
+
+        public virtual void OnInitializePotentialDrag(PointerEventData eventData)
+        {
+            if (!RectTransformUtility.RectangleContainsScreenPoint(ViewportRect, eventData.position))
+            {
+                eventData.pointerDrag = null;
+            }
+        }
+        public virtual void OnDrag(PointerEventData eventData)
+        {
+            
+        }
+
+        #endregion
+
+        #region Scroll
+
+        public virtual void OnScroll(PointerEventData eventData)
+        {
+            
+        }
+
+        #endregion
+
+        #region Move
+
+        #endregion
+
+
+        #region Interactability
+
+        protected override void OnBecameInteractable()
+        {
+            base.OnBecameInteractable();
+
+            EnsureInteractibility();
+        }
+        protected override void OnBecameUninteractable()
+        {
+            base.OnBecameUninteractable();
+
+            EnsureInteractibility();
+        }
+
+        protected virtual void EnsureInteractibility()
+        {
+            if (LeftButton != null) LeftButton.interactable = interactable;
+            if (RightButton != null) RightButton.interactable = interactable;
+        }
+
+        #endregion
+
+
+        #region Editor
+
+#if UNITY_EDITOR
+
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+
+            if (!Application.isPlaying)
+                RefreshShownValues();
+        }
+
+#endif
+
+        #endregion
+
+
+        // --- STATIC ---
+
         #region Index Utility
 
-        protected virtual int GetPreviousValue(int value)
+        protected static int GetIndex(int index, int count, bool wrapAround)
         {
-            if (value > 0) return value - 1;
-            else if (WrapAround)
+            if (count <= 0)
             {
-                var nextValue = m_options.Count - 1 - value;
-                while (nextValue < 0)
-                {
-                    nextValue = m_options.Count - nextValue;
-                }
-                return nextValue;
+                throw new Exception("Invalid count " + count);
             }
 
-            return 0;
+            while (index < 0)
+            {
+                if (wrapAround)
+                {
+                    index += count;
+                }
+                else return 0;
+            }
+            while (index >= count)
+            {
+                if (wrapAround)
+                {
+                    index -= count;
+                }
+                else return count - 1;
+            }
+            return index;
         }
-        protected virtual int GetNextValue(int value)
+        protected static int GetPreviousIndex(int index, int count, bool wrapAround)
         {
-            if (value < m_options.Count - 1) return value + 1;
-            else if (WrapAround)
-            {
-                var nextValue = value + 1 - m_options.Count;
-                while (nextValue >= m_options.Count)
-                {
-                    nextValue -= m_options.Count;
-                }
-                return nextValue;
-            }
-
-            return m_options.Count - 1;
+            return GetIndex(index - 1, count, wrapAround);
+        }
+        protected static int GetNextIndex(int index, int count, bool wrapAround)
+        {
+            return GetIndex(index + 1, count, wrapAround);
         }
 
         #endregion
