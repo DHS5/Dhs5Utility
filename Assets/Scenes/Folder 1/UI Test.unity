@@ -3984,7 +3984,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RectMask2D
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
-  m_Softness: {x: 5, y: 2}
+  m_Softness: {x: 5, y: 5}
 --- !u!1 &1078047186
 GameObject:
   m_ObjectHideFlags: 0
@@ -5107,12 +5107,11 @@ MonoBehaviour:
     m_asset: {fileID: 0}
   - m_text: Option E
     m_asset: {fileID: 0}
-  m_direction: 2
+  m_direction: 1
   m_wrapAround: 1
-  m_scrollDuration: 0.5
-  m_canDrag: 1
   m_itemsSpacing: 10
-  m_mainItemIndex: 0
+  m_scrollDuration: 0.25
+  m_canDrag: 1
 --- !u!1 &1317118668
 GameObject:
   m_ObjectHideFlags: 0

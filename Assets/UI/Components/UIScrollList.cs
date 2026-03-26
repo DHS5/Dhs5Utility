@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -7,7 +8,7 @@ using UnityEngine.UI;
 namespace Dhs5.Utility.UI
 {
     public class UIScrollList : UISelectable, 
-        IScrollHandler, IInitializePotentialDragHandler, IDragHandler
+        IScrollHandler, IInitializePotentialDragHandler, IDragHandler, IEndDragHandler
     {
         #region CLASS OptionData
 
@@ -113,14 +114,17 @@ namespace Dhs5.Utility.UI
         [Space]
         [SerializeField] protected EDirection m_direction = EDirection.LeftToRight;
         [SerializeField] protected bool m_wrapAround = true;
+        [SerializeField, Min(0f)] protected float m_itemsSpacing = 20f;
         [SerializeField, Min(0f)] protected float m_scrollDuration = 0.5f;
         [SerializeField] protected bool m_canDrag = true;
-        [SerializeField, Min(0f)] protected float m_itemsSpacing = 20f;
 
         protected List<UIScrollListItem> m_items = new();
-        [SerializeField, ReadOnly] protected int m_mainItemIndex;
-        protected float m_visibleLimit;
+        protected int m_mainItemIndex;
+        protected float m_dragValueChangeThreshold;
+        protected float m_itemsDistance;
         protected int m_directionMultiplier;
+
+        protected Coroutine m_moveCoroutine;
 
         // field is never assigned warning
 #pragma warning disable 649
@@ -308,13 +312,17 @@ namespace Dhs5.Utility.UI
 
         #region Setters
 
-        protected virtual void Set(int value, bool triggerEvent = true)
+        protected virtual void Set(int value, bool triggerEvent = true, bool refreshShownValues = true)
         {
             value = Mathf.Clamp(value, m_placeholder ? -1 : 0, OptionsCount);
             if (Value == value) return;
 
             m_value = value;
-            RefreshShownValues();
+
+            if (refreshShownValues)
+            {
+                RefreshShownValues();
+            }
 
             if (triggerEvent)
             {
@@ -323,18 +331,18 @@ namespace Dhs5.Utility.UI
         }
         public virtual void SetValueWithoutNotify(int value) => Set(value, triggerEvent:false);
 
-        protected virtual void SetNext()
+        protected virtual void SetNext(bool triggerEvent = true, bool refreshShownValues = true)
         {
-            Set(GetNextIndex(Value, OptionsCount, WrapAround));
+            Set(GetNextIndex(Value, OptionsCount, WrapAround), triggerEvent, refreshShownValues);
         }
-        protected virtual void SetPrevious()
+        protected virtual void SetPrevious(bool triggerEvent = true, bool refreshShownValues = true)
         {
-            Set(GetPreviousIndex(Value, OptionsCount, WrapAround));
+            Set(GetPreviousIndex(Value, OptionsCount, WrapAround), triggerEvent, refreshShownValues);
         }
 
         #endregion
 
-        #region Visuals Update
+        #region Visual Value Update
 
         public virtual void RefreshShownValues()
         {
@@ -351,12 +359,12 @@ namespace Dhs5.Utility.UI
             var halfCount = m_items.Count / 2;
             for (int i = -halfCount; i < halfCount + 1; i++)
             {
-                var itemIndex = GetIndex(i * m_directionMultiplier + m_mainItemIndex, m_items.Count, true);
+                var itemIndex = GetIndex(i + m_mainItemIndex, m_items.Count, true);
                 var item = m_items[itemIndex];
 
                 if (item != null)
                 {
-                    var optionIndex = GetIndex(i + Value, OptionsCount, WrapAround);
+                    var optionIndex = GetIndex(i * m_directionMultiplier + Value, OptionsCount, WrapAround);
                     var option = m_options[optionIndex];
                     item.ApplyData(option);
                 }
@@ -403,11 +411,11 @@ namespace Dhs5.Utility.UI
                     itemsVOffset = new Vector2(0f, itemsLength + ItemsSpacing);
                     break;
             }
-            var itemsOffset = itemsLength + ItemsSpacing;
-            m_visibleLimit = (viewportLength + itemsLength) / 2f;
+            m_itemsDistance = itemsLength + ItemsSpacing;
+            m_dragValueChangeThreshold = itemsLength / 2f;
 
             // Compute items count
-            var itemsCount = (!CanDrag && ScrollDuration <= 0f ? 1 : 3) + Mathf.FloorToInt(viewportLength / (2f * itemsOffset)) * 2;
+            var itemsCount = (!CanDrag && ScrollDuration <= 0f ? 1 : 3) + Mathf.FloorToInt(viewportLength / (2f * m_itemsDistance)) * 2;
 
             // Instantiate items
             InstantiateItems(itemsCount, itemsVOffset);
@@ -514,20 +522,157 @@ namespace Dhs5.Utility.UI
 
         #region Tweening
 
+        protected virtual bool IsMoveCoroutineActive() => m_moveCoroutine != null;
+        protected virtual void StartMoveCoroutine()
+        {
+            m_moveCoroutine = StartCoroutine(MoveCoroutine());
+        }
+        protected virtual IEnumerator MoveCoroutine()
+        {
+            var startOffset = GetCurrentItemsOffset();
+
+            if (Mathf.Approximately(startOffset, 0f))
+                yield break;
+
+            var offsetSign = Mathf.Sign(startOffset);
+            var normalizedTime = (1 - (Mathf.Abs(startOffset) / m_itemsDistance));
+
+            while (normalizedTime < 1f)
+            {
+                normalizedTime += Time.deltaTime / ScrollDuration;
+                var offset = Mathf.Lerp(offsetSign * m_itemsDistance, 0f, normalizedTime);
+                OffsetItems(offset);
+
+                yield return null;
+            }
+
+            OnCompleteMoveCoroutine();
+        }
+        protected virtual void OnCompleteMoveCoroutine()
+        {
+            // Anchor items
+            OffsetItems(0f);
+
+            m_moveCoroutine = null;
+        }
+        protected virtual void KillMoveCoroutineInstant(bool complete)
+        {
+            if (m_moveCoroutine != null)
+            {
+                StopCoroutine(m_moveCoroutine);
+            }
+
+            if (complete)
+            {
+                OnCompleteMoveCoroutine();
+            }
+        }
+
+        #endregion
+
+        #region Items Movement
+
+        protected virtual void OffsetItems(float offset)
+        {
+            var halfCount = m_items.Count / 2;
+            for (int i = -halfCount; i < halfCount + 1; i++)
+            {
+                var itemIndex = GetIndex(i + m_mainItemIndex, m_items.Count, true);
+                var item = m_items[itemIndex];
+
+                var appliedOffset = offset + m_itemsDistance * i;
+                float currentOffset;
+
+                switch (Direction)
+                {
+                    case EDirection.LeftToRight:
+                    case EDirection.RightToLeft:
+                        currentOffset = item.RectTransform.anchoredPosition.x;
+                        item.RectTransform.anchoredPosition = new Vector2(appliedOffset, 0f); 
+                        break;
+                    
+                    default:
+                        currentOffset = item.RectTransform.anchoredPosition.y;
+                        item.RectTransform.anchoredPosition = new Vector2(0f, appliedOffset);
+                        break;
+                }
+
+                // Change of side --> update value
+                if (appliedOffset * currentOffset < 0f)
+                {
+                    var optionIndex = GetIndex(i * m_directionMultiplier + Value, OptionsCount, WrapAround);
+                    var option = m_options[optionIndex];
+                    item.ApplyData(option);
+                }
+            }
+        }
+
         #endregion
 
         #region Drag
 
         public virtual void OnInitializePotentialDrag(PointerEventData eventData)
         {
-            if (!RectTransformUtility.RectangleContainsScreenPoint(ViewportRect, eventData.position))
+            if (!IsInsideViewport(eventData))
             {
                 eventData.pointerDrag = null;
             }
+            else if (IsMoveCoroutineActive())
+            {
+                KillMoveCoroutineInstant(false);
+            }
         }
+        private float m_lastDelta;
         public virtual void OnDrag(PointerEventData eventData)
         {
-            
+            var currentOffset = GetCurrentItemsOffset();
+            var delta = Direction switch
+            {
+                EDirection.LeftToRight => eventData.delta.x,
+                EDirection.RightToLeft => eventData.delta.x,
+                _ => eventData.delta.y,
+            };
+            var newOffset = currentOffset + delta;
+
+            if (Mathf.Abs(newOffset) > m_dragValueChangeThreshold)
+            {
+                if (newOffset < 0f)
+                {
+                    m_mainItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true);
+                    SetNext(triggerEvent: true, refreshShownValues: false);
+                }
+                else
+                {
+                    m_mainItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true);
+                    SetPrevious(triggerEvent: true, refreshShownValues: false);
+                }
+
+                newOffset = GetCurrentItemsOffset() + delta;
+            }
+
+            OffsetItems(newOffset);
+            m_lastDelta = delta;
+        }
+        public virtual void OnEndDrag(PointerEventData eventData)
+        {
+            var newOffset = GetCurrentItemsOffset() + m_lastDelta * 5f;
+            if (Mathf.Abs(newOffset) > m_dragValueChangeThreshold)
+            {
+                if (newOffset < 0f)
+                {
+                    m_mainItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true);
+                    SetNext(triggerEvent: true, refreshShownValues: false);
+                }
+                else
+                {
+                    m_mainItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true);
+                    SetPrevious(triggerEvent: true, refreshShownValues: false);
+                }
+
+                Debug.Log("last minute offset");
+            }
+
+            StartMoveCoroutine();
         }
 
         #endregion
@@ -536,7 +681,21 @@ namespace Dhs5.Utility.UI
 
         public virtual void OnScroll(PointerEventData eventData)
         {
-            
+            if (IsMoveCoroutineActive() || !IsInsideViewport(eventData)) 
+                return;
+
+            if (eventData.scrollDelta.y > 0f)
+            {
+                m_mainItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true);
+                SetPrevious(triggerEvent:true, refreshShownValues:false);
+                StartMoveCoroutine();
+            }
+            else if (eventData.scrollDelta.y < 0f)
+            {
+                m_mainItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true);
+                SetNext(triggerEvent: true, refreshShownValues: false);
+                StartMoveCoroutine();
+            }
         }
 
         #endregion
@@ -565,6 +724,33 @@ namespace Dhs5.Utility.UI
         {
             if (LeftButton != null) LeftButton.interactable = interactable;
             if (RightButton != null) RightButton.interactable = interactable;
+        }
+
+        #endregion
+
+        #region Utility
+
+        protected virtual float GetCurrentItemsOffset()
+        {
+            var mainItem = m_items[GetIndex(m_mainItemIndex, m_items.Count, true)];
+
+            switch (Direction)
+            {
+                case EDirection.LeftToRight:
+                case EDirection.RightToLeft:
+                    return mainItem.RectTransform.anchoredPosition.x;
+                default:
+                    return mainItem.RectTransform.anchoredPosition.y;
+            }
+        }
+
+        protected virtual bool IsInsideViewport(PointerEventData eventData)
+        {
+            return IsInsideViewport(eventData.position);
+        }
+        protected virtual bool IsInsideViewport(Vector2 position)
+        {
+            return RectTransformUtility.RectangleContainsScreenPoint(ViewportRect, position);
         }
 
         #endregion
