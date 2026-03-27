@@ -17,6 +17,7 @@ public class EnabledValue<T>
 
     #region Accessors
 
+    public T Value => m_value;
     public bool IsEnabled(out T value)
     {
         value = m_value;

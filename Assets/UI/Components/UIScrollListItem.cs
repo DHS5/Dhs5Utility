@@ -19,7 +19,7 @@ namespace Dhs5.Utility.UI
 
         #region Methods
 
-        public abstract void ApplyData(UIScrollList.OptionData optionData);
+        public abstract void ApplyData(int value, UIScrollList.OptionData optionData);
 
         #endregion
     }

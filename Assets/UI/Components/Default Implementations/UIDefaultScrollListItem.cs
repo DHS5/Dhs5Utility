@@ -14,9 +14,17 @@ namespace Dhs5.Utility.UI
 
         #region Data
 
-        public override void ApplyData(UIScrollList.OptionData optionData)
+        public override void ApplyData(int value, UIScrollList.OptionData optionData)
         {
-            m_text.text = optionData.Text;
+            if (optionData != null)
+            {
+                gameObject.SetActive(true);
+                m_text.text = optionData.Text;
+            }
+            else
+            {
+                gameObject.SetActive(false);
+            }
         }
 
         #endregion

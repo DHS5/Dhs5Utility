@@ -3,12 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 namespace Dhs5.Utility.UI
 {
     public class UIScrollList : UISelectable, 
-        IScrollHandler, IInitializePotentialDragHandler, IDragHandler, IEndDragHandler
+        IScrollHandler, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         #region CLASS OptionData
 
@@ -105,24 +104,26 @@ namespace Dhs5.Utility.UI
         [Header("Scroll List")]
         [SerializeField] protected RectTransform m_viewportRect;
         [SerializeField] protected UIScrollListItem m_templateItem;
-        [SerializeField] protected Graphic m_placeholder;
         [SerializeField] protected UIButton m_leftButton;
         [SerializeField] protected UIButton m_rightButton;
         [Space]
         [SerializeField] protected int m_value = 0;
         [SerializeField] protected List<OptionData> m_options;
+        [SerializeField] protected EnabledValue<OptionData> m_minusOneOption;
         [Space]
         [SerializeField] protected EDirection m_direction = EDirection.LeftToRight;
         [SerializeField] protected bool m_wrapAround = true;
-        [SerializeField, Min(0f)] protected float m_itemsSpacing = 20f;
-        [SerializeField, Min(0f)] protected float m_scrollDuration = 0.5f;
+        [SerializeField] protected float m_itemsSpacing = 20f;
+        [SerializeField] protected float m_scrollDuration = 0.5f;
         [SerializeField] protected bool m_canDrag = true;
+        [SerializeField] protected bool m_confineDragToViewport = false;
 
         protected List<UIScrollListItem> m_items = new();
         protected int m_mainItemIndex;
         protected float m_dragValueChangeThreshold;
         protected float m_itemsDistance;
         protected int m_directionMultiplier;
+        protected float m_lastDragDelta;
 
         protected Coroutine m_moveCoroutine;
 
@@ -155,17 +156,6 @@ namespace Dhs5.Utility.UI
                 if (SetPropertyUtility.SetClass(ref m_templateItem, value))
                 {
                     RefreshItemsSetup();
-                    RefreshShownValues();
-                }
-            }
-        }
-        public virtual Graphic Placeholder
-        {
-            get => m_placeholder;
-            set
-            {
-                if (SetPropertyUtility.SetClass(ref m_placeholder, value))
-                {
                     RefreshShownValues();
                 }
             }
@@ -221,6 +211,18 @@ namespace Dhs5.Utility.UI
             set => Set(value);
         }
         public virtual int OptionsCount => m_options.Count;
+        public virtual EnabledValue<OptionData> MinusOneOption
+        {
+            get => m_minusOneOption;
+            set
+            {
+                if (SetPropertyUtility.SetClass(ref m_minusOneOption, value))
+                {
+                    RefreshItemsSetup();
+                    RefreshShownValues();
+                }
+            }
+        }
 
         public virtual EDirection Direction
         {
@@ -229,8 +231,6 @@ namespace Dhs5.Utility.UI
             {
                 if (SetPropertyUtility.SetStruct(ref m_direction, value))
                 {
-                    // Update direction
-                    //...
                     RefreshItemsSetup();
                     RefreshShownValues();
                 }
@@ -239,19 +239,9 @@ namespace Dhs5.Utility.UI
         public virtual bool WrapAround
         {
             get => m_wrapAround;
-            set => m_wrapAround = value;
-        }
-        public virtual float ScrollDuration
-        {
-            get => m_scrollDuration;
-            set => m_scrollDuration = value;
-        }
-        public virtual bool CanDrag
-        {
-            get => m_canDrag;
             set
             {
-                if (SetPropertyUtility.SetStruct(ref m_canDrag, value))
+                if (SetPropertyUtility.SetStruct(ref m_wrapAround, value))
                 {
                     RefreshItemsSetup();
                     RefreshShownValues();
@@ -269,6 +259,37 @@ namespace Dhs5.Utility.UI
                     RefreshShownValues();
                 }
             }
+        }
+        public virtual float ScrollDuration
+        {
+            get => m_scrollDuration;
+            set
+            {
+                var needRefresh = (m_scrollDuration <= 0f) != (value <= 0f);
+                if (SetPropertyUtility.SetStruct(ref m_scrollDuration, Mathf.Max(0f, value))
+                    && needRefresh)
+                {
+                    RefreshItemsSetup();
+                    RefreshShownValues();
+                }
+            }
+        }
+        public virtual bool CanDrag
+        {
+            get => m_canDrag;
+            set
+            {
+                if (SetPropertyUtility.SetStruct(ref m_canDrag, value))
+                {
+                    RefreshItemsSetup();
+                    RefreshShownValues();
+                }
+            }
+        }
+        public virtual bool ConfineDragToViewport
+        {
+            get => m_confineDragToViewport;
+            set => m_confineDragToViewport = value;
         }
 
         #endregion
@@ -296,6 +317,7 @@ namespace Dhs5.Utility.UI
 
             RefreshItemsSetup();
             RefreshShownValues();
+            //Set(Value, triggerEvent: false, refreshShownValues: true);
         }
         protected override void OnDisable()
         {
@@ -312,10 +334,10 @@ namespace Dhs5.Utility.UI
 
         #region Setters
 
-        protected virtual void Set(int value, bool triggerEvent = true, bool refreshShownValues = true)
+        protected virtual bool Set(int value, bool triggerEvent = true, bool refreshShownValues = true)
         {
-            value = Mathf.Clamp(value, m_placeholder ? -1 : 0, OptionsCount);
-            if (Value == value) return;
+            value = Mathf.Clamp(value, MinusOneOption.IsEnabled(out _) ? -1 : 0, OptionsCount);
+            if (Value == value) return false;
 
             m_value = value;
 
@@ -328,16 +350,54 @@ namespace Dhs5.Utility.UI
             {
                 TriggerValueChanged();
             }
+            return true;
         }
-        public virtual void SetValueWithoutNotify(int value) => Set(value, triggerEvent:false);
 
-        protected virtual void SetNext(bool triggerEvent = true, bool refreshShownValues = true)
+        protected virtual bool SetNext(bool triggerEvent = true, bool refreshShownValues = true)
         {
-            Set(GetNextIndex(Value, OptionsCount, WrapAround), triggerEvent, refreshShownValues);
+            var newValue = GetOffsetedIndex(Value, m_directionMultiplier, OptionsCount, WrapAround, MinusOneOption.IsEnabled(out _));
+            if (newValue > -1 || (WrapAround && MinusOneOption.IsEnabled(out _) && newValue == -1))
+            {
+                return Set(newValue, triggerEvent, refreshShownValues);
+            }
+            return false;
         }
-        protected virtual void SetPrevious(bool triggerEvent = true, bool refreshShownValues = true)
+        protected virtual bool SetPrevious(bool triggerEvent = true, bool refreshShownValues = true)
         {
-            Set(GetPreviousIndex(Value, OptionsCount, WrapAround), triggerEvent, refreshShownValues);
+            var newValue = GetOffsetedIndex(Value, -m_directionMultiplier, OptionsCount, WrapAround, MinusOneOption.IsEnabled(out _));
+            if (newValue > -1 || (MinusOneOption.IsEnabled(out _) && newValue == -1))
+            {
+                return Set(newValue, triggerEvent, refreshShownValues);
+            }
+            return false;
+        }
+
+        // PUBLIC
+        public virtual void SetValueWithoutNotify(int value) => Set(value, triggerEvent: false);
+        public virtual void SetNext(bool notify) => SetNext(notify, true);
+        public virtual void SetPrevious(bool notify) => SetPrevious(notify, true);
+
+        public virtual bool AnimateNext()
+        {
+            if (SetNext(triggerEvent: true, refreshShownValues: false))
+            {
+                KillMoveCoroutineInstant(true);
+                m_mainItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true, false);
+                StartMoveCoroutine();
+                return true;
+            }
+            return false;
+        }
+        public virtual bool AnimatePrevious()
+        {
+            if (SetPrevious(triggerEvent: true, refreshShownValues: false))
+            {
+                KillMoveCoroutineInstant(true);
+                m_mainItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true, false);
+                StartMoveCoroutine();
+                return true;
+            }
+            return false;
         }
 
         #endregion
@@ -351,7 +411,11 @@ namespace Dhs5.Utility.UI
                 && TemplateItem != null
                 && OptionsCount > 0)
             {
-                TemplateItem.ApplyData(m_options[GetIndex(Value, OptionsCount, WrapAround)]);
+                var optionIndex = GetIndex(Value, OptionsCount, WrapAround, MinusOneOption.IsEnabled(out _));
+                OptionData option = optionIndex > -1 ? m_options[optionIndex] : 
+                    MinusOneOption.IsEnabled(out var minusOneOption) ? minusOneOption : null;
+                TemplateItem.ApplyData(Value, option);
+
                 return;
             }
 #endif
@@ -359,14 +423,17 @@ namespace Dhs5.Utility.UI
             var halfCount = m_items.Count / 2;
             for (int i = -halfCount; i < halfCount + 1; i++)
             {
-                var itemIndex = GetIndex(i + m_mainItemIndex, m_items.Count, true);
+                var itemIndex = GetIndex(i + m_mainItemIndex, m_items.Count, true, false);
                 var item = m_items[itemIndex];
 
                 if (item != null)
                 {
-                    var optionIndex = GetIndex(i * m_directionMultiplier + Value, OptionsCount, WrapAround);
-                    var option = m_options[optionIndex];
-                    item.ApplyData(option);
+                    OptionData option = null;
+                    var allowMinusOne = MinusOneOption.IsEnabled(out var minusOneOption);
+                    var optionIndex = GetIndex(i * m_directionMultiplier + Value, OptionsCount, WrapAround, allowMinusOne);
+                    if (optionIndex > -1) option = m_options[optionIndex];
+                    else if (optionIndex == -1 && allowMinusOne) option = minusOneOption;
+                    item.ApplyData(optionIndex, option);
                 }
             }
         }
@@ -412,7 +479,7 @@ namespace Dhs5.Utility.UI
                     break;
             }
             m_itemsDistance = itemsLength + ItemsSpacing;
-            m_dragValueChangeThreshold = itemsLength / 2f;
+            m_dragValueChangeThreshold = ComputeDragValueChangeThreshold(viewportLength, itemsLength);
 
             // Compute items count
             var itemsCount = (!CanDrag && ScrollDuration <= 0f ? 1 : 3) + Mathf.FloorToInt(viewportLength / (2f * m_itemsDistance)) * 2;
@@ -421,6 +488,10 @@ namespace Dhs5.Utility.UI
             InstantiateItems(itemsCount, itemsVOffset);
 
             TemplateItem.gameObject.SetActive(false);
+        }
+        protected virtual float ComputeDragValueChangeThreshold(float viewportLength, float itemsLength)
+        {
+            return itemsLength / 2f;
         }
 
         protected virtual void InstantiateItems(int count, Vector2 offset)
@@ -499,7 +570,7 @@ namespace Dhs5.Utility.UI
         public virtual void ClearOptions()
         {
             m_options.Clear();
-            m_value = m_placeholder ? -1 : 0;
+            m_value = MinusOneOption.IsEnabled(out _) ? -1 : 0;
             RefreshShownValues();
         }
 
@@ -523,8 +594,14 @@ namespace Dhs5.Utility.UI
         #region Tweening
 
         protected virtual bool IsMoveCoroutineActive() => m_moveCoroutine != null;
-        protected virtual void StartMoveCoroutine()
+        protected virtual void StartMoveCoroutine(bool kill = false, bool complete = false)
         {
+            if (IsMoveCoroutineActive())
+            {
+                if (!kill) return;
+                KillMoveCoroutineInstant(complete);
+            }
+                
             m_moveCoroutine = StartCoroutine(MoveCoroutine());
         }
         protected virtual IEnumerator MoveCoroutine()
@@ -562,10 +639,8 @@ namespace Dhs5.Utility.UI
                 StopCoroutine(m_moveCoroutine);
             }
 
-            if (complete)
-            {
-                OnCompleteMoveCoroutine();
-            }
+            if (complete) OnCompleteMoveCoroutine();
+            else m_moveCoroutine = null;
         }
 
         #endregion
@@ -574,10 +649,12 @@ namespace Dhs5.Utility.UI
 
         protected virtual void OffsetItems(float offset)
         {
+            Debug.Log("Offset " + offset);
+
             var halfCount = m_items.Count / 2;
             for (int i = -halfCount; i < halfCount + 1; i++)
             {
-                var itemIndex = GetIndex(i + m_mainItemIndex, m_items.Count, true);
+                var itemIndex = GetIndex(i + m_mainItemIndex, m_items.Count, true, false);
                 var item = m_items[itemIndex];
 
                 var appliedOffset = offset + m_itemsDistance * i;
@@ -600,9 +677,12 @@ namespace Dhs5.Utility.UI
                 // Change of side --> update value
                 if (appliedOffset * currentOffset < 0f)
                 {
-                    var optionIndex = GetIndex(i * m_directionMultiplier + Value, OptionsCount, WrapAround);
-                    var option = m_options[optionIndex];
-                    item.ApplyData(option);
+                    OptionData option = null;
+                    var allowMinusOne = MinusOneOption.IsEnabled(out var minusOneOption);
+                    var optionIndex = GetIndex(i * m_directionMultiplier + Value, OptionsCount, WrapAround, allowMinusOne);
+                    if (optionIndex > -1) option = m_options[optionIndex];
+                    else if (optionIndex == -1 && allowMinusOne) option = minusOneOption;
+                    item.ApplyData(optionIndex, option);
                 }
             }
         }
@@ -613,18 +693,27 @@ namespace Dhs5.Utility.UI
 
         public virtual void OnInitializePotentialDrag(PointerEventData eventData)
         {
-            if (!IsInsideViewport(eventData))
+            if (!CanDrag || !IsInsideViewport(eventData))
             {
                 eventData.pointerDrag = null;
             }
-            else if (IsMoveCoroutineActive())
+        }
+        public virtual void OnBeginDrag(PointerEventData eventData)
+        {
+            if (IsMoveCoroutineActive())
             {
                 KillMoveCoroutineInstant(false);
             }
         }
-        private float m_lastDelta;
         public virtual void OnDrag(PointerEventData eventData)
         {
+            if (m_confineDragToViewport && !IsInsideViewport(eventData))
+            {
+                eventData.pointerDrag = null;
+                OnEndDrag(eventData);
+                return;
+            }
+
             var currentOffset = GetCurrentItemsOffset();
             var delta = Direction switch
             {
@@ -636,42 +725,47 @@ namespace Dhs5.Utility.UI
 
             if (Mathf.Abs(newOffset) > m_dragValueChangeThreshold)
             {
+                bool isDragValid;
+                int nextItemIndex;
                 if (newOffset < 0f)
                 {
-                    m_mainItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true);
-                    SetNext(triggerEvent: true, refreshShownValues: false);
+                    nextItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true, false);
+                    isDragValid = SetNext(triggerEvent: true, refreshShownValues: false);
                 }
                 else
                 {
-                    m_mainItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true);
-                    SetPrevious(triggerEvent: true, refreshShownValues: false);
+                    nextItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true, false);
+                    isDragValid = SetPrevious(triggerEvent: true, refreshShownValues: false);
                 }
 
-                newOffset = GetCurrentItemsOffset() + delta;
+                if (isDragValid)
+                {
+                    m_mainItemIndex = nextItemIndex;
+                    newOffset = GetCurrentItemsOffset() + delta;
+                }
+                else
+                {
+                    newOffset = currentOffset;
+                }
             }
 
             OffsetItems(newOffset);
-            m_lastDelta = delta;
+            m_lastDragDelta = delta;
         }
         public virtual void OnEndDrag(PointerEventData eventData)
         {
-            var newOffset = GetCurrentItemsOffset() + m_lastDelta * 5f;
+            var newOffset = GetCurrentItemsOffset();// + m_lastDragDelta * 5f;
             if (Mathf.Abs(newOffset) > m_dragValueChangeThreshold)
             {
                 if (newOffset < 0f)
                 {
-                    m_mainItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true);
-                    SetNext(triggerEvent: true, refreshShownValues: false);
+                    if (AnimateNext()) return;
                 }
                 else
                 {
-                    m_mainItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true);
-                    SetPrevious(triggerEvent: true, refreshShownValues: false);
+                    if (AnimatePrevious()) return;
                 }
-
-                Debug.Log("last minute offset");
             }
-
             StartMoveCoroutine();
         }
 
@@ -686,21 +780,55 @@ namespace Dhs5.Utility.UI
 
             if (eventData.scrollDelta.y > 0f)
             {
-                m_mainItemIndex = GetPreviousIndex(m_mainItemIndex, m_items.Count, true);
-                SetPrevious(triggerEvent:true, refreshShownValues:false);
-                StartMoveCoroutine();
+                AnimatePrevious();
             }
             else if (eventData.scrollDelta.y < 0f)
             {
-                m_mainItemIndex = GetNextIndex(m_mainItemIndex, m_items.Count, true);
-                SetNext(triggerEvent: true, refreshShownValues: false);
-                StartMoveCoroutine();
+                AnimateNext();
             }
         }
 
         #endregion
 
-        #region Move
+        #region Navigation
+
+        public override void OnMove(AxisEventData eventData)
+        {
+            if (!IsActive() || !IsInteractable())
+            {
+                base.OnMove(eventData);
+                return;
+            }
+
+            var horizontal = Direction is EDirection.LeftToRight or EDirection.RightToLeft;
+            switch (eventData.moveDir)
+            {
+                case MoveDirection.Left:
+                    if (horizontal && FindSelectableOnLeft() == null)
+                        AnimatePrevious();
+                    else
+                        base.OnMove(eventData);
+                    break;
+                case MoveDirection.Right:
+                    if (horizontal && FindSelectableOnRight() == null)
+                        AnimateNext();
+                    else
+                        base.OnMove(eventData);
+                    break;
+                case MoveDirection.Up:
+                    if (!horizontal && FindSelectableOnUp() == null)
+                        SetNext();
+                    else
+                        base.OnMove(eventData);
+                    break;
+                case MoveDirection.Down:
+                    if (!horizontal && FindSelectableOnDown() == null)
+                        SetPrevious();
+                    else
+                        base.OnMove(eventData);
+                    break;
+            }
+        }
 
         #endregion
 
@@ -732,7 +860,7 @@ namespace Dhs5.Utility.UI
 
         protected virtual float GetCurrentItemsOffset()
         {
-            var mainItem = m_items[GetIndex(m_mainItemIndex, m_items.Count, true)];
+            var mainItem = m_items[GetIndex(m_mainItemIndex, m_items.Count, true, false)];
 
             switch (Direction)
             {
@@ -777,38 +905,44 @@ namespace Dhs5.Utility.UI
 
         #region Index Utility
 
-        protected static int GetIndex(int index, int count, bool wrapAround)
+        protected static int GetIndex(int index, int count, bool wrapAround, bool allowMinusOne)
         {
             if (count <= 0)
             {
                 throw new Exception("Invalid count " + count);
             }
 
-            while (index < 0)
+            while (index < (allowMinusOne ? -1 : 0))
             {
                 if (wrapAround)
                 {
                     index += count;
+                    if (allowMinusOne) index++;
                 }
-                else return 0;
+                else return index;
             }
             while (index >= count)
             {
                 if (wrapAround)
                 {
                     index -= count;
+                    if (allowMinusOne) index--;
                 }
-                else return count - 1;
+                else return -2;
             }
             return index;
         }
-        protected static int GetPreviousIndex(int index, int count, bool wrapAround)
+        protected static int GetOffsetedIndex(int index, int offset, int count, bool wrapAround, bool allowMinusOne)
         {
-            return GetIndex(index - 1, count, wrapAround);
+            return GetIndex(index + offset, count, wrapAround, allowMinusOne);
         }
-        protected static int GetNextIndex(int index, int count, bool wrapAround)
+        protected static int GetPreviousIndex(int index, int count, bool wrapAround, bool allowMinusOne)
         {
-            return GetIndex(index + 1, count, wrapAround);
+            return GetIndex(index - 1, count, wrapAround, allowMinusOne);
+        }
+        protected static int GetNextIndex(int index, int count, bool wrapAround, bool allowMinusOne)
+        {
+            return GetIndex(index + 1, count, wrapAround, allowMinusOne);
         }
 
         #endregion
