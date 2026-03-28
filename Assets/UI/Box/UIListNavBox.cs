@@ -24,17 +24,17 @@ namespace Dhs5.Utility.UI
         [Header("List")]
         [Tooltip("VERTICAL : From up to down\n" +
             "HORIZONTAL : From left to right")]
-        [SerializeField] private List<Selectable> m_selectables;
-        [SerializeField] private EAxis m_axis;
-        [SerializeField] private bool m_wrapAround;
+        [SerializeField] protected List<Selectable> m_selectables;
+        [SerializeField] protected EAxis m_axis;
+        [SerializeField] protected bool m_wrapAround;
 
         #endregion
 
         #region Properties
 
-        public int Count => m_selectables.Count;
+        public virtual int Count => m_selectables.Count;
 
-        public EAxis Axis
+        public virtual EAxis Axis
         {
             get => m_axis;
             set
@@ -46,7 +46,7 @@ namespace Dhs5.Utility.UI
                 }
             }
         }
-        public bool WrapAround
+        public virtual bool WrapAround
         {
             get => m_wrapAround;
             set
@@ -64,45 +64,51 @@ namespace Dhs5.Utility.UI
 
         #region IList<Selectable>
 
-        public Selectable this[int index] 
+        public virtual Selectable this[int index] 
         { 
             get => m_selectables[index]; 
             set
             {
                 m_selectables[index] = value;
-                SetupChildren();
+                SetupChildren(index);
             } 
         }
 
-        public bool IsReadOnly => false;
+        public virtual bool IsReadOnly => false;
 
-        public void Add(Selectable item)
+        public virtual void Add(Selectable item)
         {
-            m_selectables.Add(item);
-            SetupChildren();
+            if (item != null)
+            {
+                m_selectables.Add(item);
+                SetupChildren(m_selectables.Count - 1);
+            }
         }
 
-        public void AddRange(IEnumerable<Selectable> selectables)
+        public virtual void AddRange(IEnumerable<Selectable> selectables)
         {
             m_selectables.AddRange(selectables);
             SetupChildren();
         }
 
-        public void Clear() => m_selectables.Clear();
+        public virtual void Clear() => m_selectables.Clear();
 
-        public bool Contains(Selectable item) => m_selectables.Contains(item);
+        public virtual bool Contains(Selectable item) => m_selectables.Contains(item);
 
-        public void CopyTo(Selectable[] array, int arrayIndex) => m_selectables.CopyTo(array, arrayIndex);
+        public virtual void CopyTo(Selectable[] array, int arrayIndex) => m_selectables.CopyTo(array, arrayIndex);
 
-        public int IndexOf(Selectable item) => m_selectables.IndexOf(item);
+        public virtual int IndexOf(Selectable item) => m_selectables.IndexOf(item);
 
-        public void Insert(int index, Selectable item)
+        public virtual void Insert(int index, Selectable item)
         {
-            m_selectables.Insert(index, item);
-            SetupChildren();
+            if (item != null)
+            {
+                m_selectables.Insert(index, item);
+                SetupChildren(index);
+            }
         }
 
-        public bool Remove(Selectable item)
+        public virtual bool Remove(Selectable item)
         {
             if (m_selectables.Remove(item))
             {
@@ -112,7 +118,11 @@ namespace Dhs5.Utility.UI
             return false;
         }
 
-        public void RemoveAt(int index) => m_selectables.RemoveAt(index);
+        public virtual void RemoveAt(int index)
+        {
+            m_selectables.RemoveAt(index);
+            SetupChildren(index);
+        }
         
         public IEnumerator<Selectable> GetEnumerator()
         {
@@ -129,9 +139,8 @@ namespace Dhs5.Utility.UI
 
         #region Child Setup
 
-        public override void SetupChildren()
+        protected virtual void ValidateChildrenList()
         {
-            // Validate List
             for (int i = Count - 1; i >= 0; i--)
             {
                 if (m_selectables[i] == null || m_selectables[i] == this)
@@ -139,9 +148,25 @@ namespace Dhs5.Utility.UI
                     m_selectables.RemoveAt(i);
                 }
             }
+        }
+        public override void SetupChildren()
+        {
+            // Validate List
+            ValidateChildrenList();
 
             // Setup
             for (int i = 0; i < Count; i++)
+            {
+                SetupChild(m_selectables[i], GetChildNavigation(i));
+            }
+        }
+        protected virtual void SetupChildren(int index)
+        {
+            // Validate List
+            ValidateChildrenList();
+
+            // Setup
+            for (int i = Mathf.Max(0, index - 1); i <= Mathf.Min(Count - 1, index + 1); i++)
             {
                 SetupChild(m_selectables[i], GetChildNavigation(i));
             }
@@ -370,7 +395,7 @@ namespace Dhs5.Utility.UI
 
         #region Utility
 
-        public bool TryGetChildIndex(Selectable child, out int index)
+        public virtual bool TryGetChildIndex(Selectable child, out int index)
         {
             index = m_selectables.FindIndex(c => c == child);
             return index != -1;
