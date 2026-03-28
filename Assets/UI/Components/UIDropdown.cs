@@ -121,7 +121,7 @@ namespace Dhs5.Utility.UI
         protected GameObject m_dropdown;
         protected UIScrollRect m_scrollRect;
         protected GameObject m_blocker;
-        protected List<UIDropdownItem> m_items = new List<UIDropdownItem>();
+        protected List<UIDropdownItem> m_items = new();
 
         protected FadeTween m_fadeTween = new();
         protected Coroutine m_coroutine = null;
@@ -328,9 +328,16 @@ namespace Dhs5.Utility.UI
         /// Add a List of string messages to the Dropdown. The Dropdown shows each member of the list as a separate option.
         /// </remarks>
         /// <param name="options">The list of text strings to add.</param>
-        public virtual void AddOptions(List<string> options)
+        public virtual void AddOptions(IEnumerable<string> options)
         {
-            for (int i = 0; i < options.Count; i++)
+            foreach (var option in options)
+                m_options.Add(new OptionData(option));
+
+            RefreshShownValue();
+        }
+        public virtual void AddOptions(params string[] options)
+        {
+            for (int i = 0; i < options.Length; i++)
                 m_options.Add(new OptionData(options[i]));
 
             RefreshShownValue();

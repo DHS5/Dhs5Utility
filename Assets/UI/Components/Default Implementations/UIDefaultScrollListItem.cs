@@ -28,5 +28,21 @@ namespace Dhs5.Utility.UI
         }
 
         #endregion
+
+
+        #region Editor
+
+#if UNITY_EDITOR
+
+        public override void OnValidate()
+        {
+            base.OnValidate();
+
+            if (m_text == null) m_text = GetComponent<TMP_Text>();
+        }
+
+#endif
+
+        #endregion
     }
 }

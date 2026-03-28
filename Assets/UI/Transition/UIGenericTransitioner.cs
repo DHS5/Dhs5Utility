@@ -9,8 +9,8 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
-        [SerializeField] protected List<Graphic> m_graphics;
-        [SerializeField] protected List<UIGenericTransitionInstance> m_transitionInstances;
+        [SerializeField] protected List<Graphic> m_graphics = new();
+        [SerializeField] protected List<UIGenericTransitionInstance> m_transitionInstances = new();
 
         #endregion
 
