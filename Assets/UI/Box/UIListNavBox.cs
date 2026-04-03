@@ -178,18 +178,14 @@ namespace Dhs5.Utility.UI
 
         protected override Selectable GetDefaultFirstChild()
         {
-            if (m_selectables.IsIndexValid(0, out var selectable))
-            {
-                return selectable;
-            }
-            return null;
+            return GetFirstChildByDirection(MoveDirection.Right);
         }
 
         protected override Selectable GetFirstChildByDirection(MoveDirection moveDirection)
         {
             bool needSetup = false;
 
-            switch (m_axis)
+            switch (Axis)
             {
                 case EAxis.VERTICAL when moveDirection is MoveDirection.Down or MoveDirection.Left or MoveDirection.Right:
                 case EAxis.HORIZONTAL when moveDirection is MoveDirection.Right or MoveDirection.Up or MoveDirection.Down:
@@ -198,11 +194,14 @@ namespace Dhs5.Utility.UI
                         if (m_selectables != null)
                         {
                             var selectable = m_selectables[i];
-                            if (needSetup)
+                            if (selectable.IsActive())
                             {
-                                SetupChildren();
+                                if (needSetup)
+                                {
+                                    SetupChildren();
+                                }
+                                return selectable;
                             }
-                            return selectable;
                         }
                         else
                         {
@@ -218,11 +217,14 @@ namespace Dhs5.Utility.UI
                         if (m_selectables != null)
                         {
                             var selectable = m_selectables[i];
-                            if (needSetup)
+                            if (selectable.IsActive())
                             {
-                                SetupChildren();
+                                if (needSetup)
+                                {
+                                    SetupChildren();
+                                }
+                                return selectable;
                             }
-                            return selectable;
                         }
                         else
                         {
@@ -245,7 +247,7 @@ namespace Dhs5.Utility.UI
             Selectable next = GetNextSelectable(index, false), 
                 previous = GetPreviousSelectable(index, false);
 
-            switch (m_axis)
+            switch (Axis)
             {
                 case EAxis.HORIZONTAL:
                     return new Navigation()
@@ -276,7 +278,7 @@ namespace Dhs5.Utility.UI
         {
             if (index == 0)
             {
-                switch (m_axis)
+                switch (Axis)
                 {
                     case EAxis.HORIZONTAL:
                         if (navigation.selectOnLeft != null && navigation.selectOnLeft.IsActive())
@@ -291,12 +293,13 @@ namespace Dhs5.Utility.UI
             }
 
             Selectable previous = null;
+            int iteration = 0;
 
             do
             {
                 if (index == 0)
                 {
-                    if (m_wrapAround && Count > 1)
+                    if (WrapAround && Count > 1)
                     {
                         previous = m_selectables[^1];
                         index = Count - 1;
@@ -311,7 +314,10 @@ namespace Dhs5.Utility.UI
                     previous = m_selectables[index - 1];
                     index--;
                 }
-            } while (availableOnly && (previous == null || !previous.IsActive()));
+
+                if (availableOnly && previous != null && !previous.IsActive()) previous = null;
+                iteration++;
+            } while (iteration < Count && previous == null);
 
             return previous;
         }
@@ -319,7 +325,7 @@ namespace Dhs5.Utility.UI
         {
             if (index == Count - 1)
             {
-                switch (m_axis)
+                switch (Axis)
                 {
                     case EAxis.HORIZONTAL:
                         if (navigation.selectOnRight != null && navigation.selectOnRight.IsActive())
@@ -334,12 +340,13 @@ namespace Dhs5.Utility.UI
             }
 
             Selectable next = null;
+            int iteration = 0;
 
             do
             {
                 if (index == Count - 1)
                 {
-                    if (m_wrapAround && Count > 1)
+                    if (WrapAround && Count > 1)
                     {
                         next = m_selectables[0];
                         index = 0;
@@ -354,7 +361,10 @@ namespace Dhs5.Utility.UI
                     next = m_selectables[index + 1];
                     index++;
                 }
-            } while (availableOnly && (next == null || !next.IsActive()));
+
+                if (availableOnly && next != null && !next.IsActive()) next = null;
+                iteration++;
+            } while (iteration < Count && next == null);
 
             return next;
         }
@@ -363,7 +373,7 @@ namespace Dhs5.Utility.UI
         {
             // If move is not along list axis :
             // ask parent box for next available selectable
-            switch (m_axis)
+            switch (Axis)
             {
                 case EAxis.VERTICAL when axisEventData.moveDir is MoveDirection.Left or MoveDirection.Right:
                     return Box != null ? Box.FindSelectableOnChildFailed(this, axisEventData) : null;
