@@ -119,6 +119,18 @@ public static class ExtensionMethods
         return new Vector3(vector.x, vector.y, z);
     }
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Clamp(this Vector2 vector, float value)
+    {
+        return Mathf.Clamp(value, vector.x, vector.y);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Clamp(this Vector2Int vector, int value)
+    {
+        return Mathf.Clamp(value, vector.x, vector.y);
+    }
+
     #endregion
 
     #region Boolean
@@ -229,6 +241,21 @@ public static class ExtensionMethods
 
         return sum;
     }
+    public static float Sum(this ICollection<float> collection, int count)
+    {
+        float sum = 0f;
+
+        int i = 0;
+        foreach (var item in collection)
+        {
+            if (i == count) break;
+
+            sum += item;
+            i++;
+        }
+
+        return sum;
+    }
     public static int Sum(this ICollection<int> collection)
     {
         int sum = 0;
@@ -236,6 +263,21 @@ public static class ExtensionMethods
         foreach (var item in collection)
         {
             sum += item;
+        }
+
+        return sum;
+    }
+    public static int Sum(this ICollection<int> collection, int count)
+    {
+        int sum = 0;
+
+        int i = 0;
+        foreach (var item in collection)
+        {
+            if (i == count) break;
+
+            sum += item;
+            i++;
         }
 
         return sum;
@@ -251,6 +293,21 @@ public static class ExtensionMethods
 
         return sum;
     }
+    public static Vector2 Sum(this ICollection<Vector2> collection, int count)
+    {
+        Vector2 sum = Vector2.zero;
+
+        int i = 0;
+        foreach (var item in collection)
+        {
+            if (i == count) break;
+
+            sum += item;
+            i++;
+        }
+
+        return sum;
+    }
     public static Vector3 Sum(this ICollection<Vector3> collection)
     {
         Vector3 sum = Vector3.zero;
@@ -262,22 +319,69 @@ public static class ExtensionMethods
 
         return sum;
     }
+    public static Vector3 Sum(this ICollection<Vector3> collection, int count)
+    {
+        Vector3 sum = Vector3.zero;
+
+        int i = 0;
+        foreach (var item in collection)
+        {
+            if (i == count) break;
+
+            sum += item;
+            i++;
+        }
+
+        return sum;
+    }
 
     public static float Average(this ICollection<float> collection)
     {
-        return collection.Sum() / collection.Count;
+        var count = collection.Count;
+        if (count == 0) return 0f;
+        return collection.Sum() / count;
+    }
+    public static float Average(this ICollection<float> collection, int count)
+    {
+        count = Mathf.Min(collection.Count, count);
+        if (count == 0) return 0f;
+        return collection.Sum(count) / count;
     }
     public static float Average(this ICollection<int> collection)
     {
-        return (float)collection.Sum() / collection.Count;
+        var count = collection.Count;
+        if (count == 0) return 0f;
+        return (float)collection.Sum() / count;
+    }
+    public static float Average(this ICollection<int> collection, int count)
+    {
+        count = Mathf.Min(collection.Count, count);
+        if (count == 0) return 0f;
+        return (float)collection.Sum(count) / count;
     }
     public static Vector2 Average(this ICollection<Vector2> collection)
     {
-        return collection.Sum() / collection.Count;
+        var count = collection.Count;
+        if (count == 0) return Vector2.zero;
+        return collection.Sum() / count;
+    }
+    public static Vector2 Average(this ICollection<Vector2> collection, int count)
+    {
+        count = Mathf.Min(collection.Count, count);
+        if (count == 0) return Vector2.zero;
+        return collection.Sum(count) / count;
     }
     public static Vector3 Average(this ICollection<Vector3> collection)
     {
-        return collection.Sum() / collection.Count;
+        var count = collection.Count;
+        if (count == 0) return Vector3.zero;
+        return collection.Sum() / count;
+    }
+    public static Vector3 Average(this ICollection<Vector3> collection, int count)
+    {
+        count = Mathf.Min(collection.Count, count);
+        if (count == 0) return Vector3.zero;
+        return collection.Sum(count) / count;
     }
 
     public static void InitWithRange(this ICollection<int> collection, int start, int count, int step)
@@ -409,6 +513,32 @@ public static class ExtensionMethods
         if (availableItem.Count > 0) return availableItem[UnityEngine.Random.Range(0, availableItem.Count)];
 
         return list[UnityEngine.Random.Range(0, list.Count)];
+    }
+
+    #endregion
+
+    #region Get Component
+
+    public static bool TryGetComponentInParent<T>(this GameObject obj, out T result) where T : Component
+    {
+        result = obj.GetComponentInParent<T>();
+        return result != null;
+    }
+    public static bool TryGetComponentInParent<T>(this Component obj, out T result) where T : Component
+    {
+        result = obj.GetComponentInParent<T>();
+        return result != null;
+    }
+
+    public static bool TryGetComponentInChildren<T>(this GameObject obj, out T result) where T : Component
+    {
+        result = obj.GetComponentInChildren<T>();
+        return result != null;
+    }
+    public static bool TryGetComponentInChildren<T>(this Component obj, out T result) where T : Component
+    {
+        result = obj.GetComponentInChildren<T>();
+        return result != null;
     }
 
     #endregion

@@ -342,7 +342,7 @@ namespace Dhs5.Utility.Updates
                     p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = null;
                     var newElement = Database.CreateScriptableAndAddToAsset<UpdateChannelObject>(m_updaterAsset);
-                    newElement.name = "NEW_CHANNEL";
+                    newElement.name = p_updateChannels.arraySize == 0 ? "CLASSIC" : "NEW_CHANNEL";
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
                 }
@@ -638,6 +638,16 @@ namespace Dhs5.Utility.Updates
                     {
                         return subAsset is UpdateChannelObject or UpdateTimelineObject;
                     });
+
+                    // Make sure first channel is CLASSIC
+                    if (p_updateChannels.arraySize > 0)
+                    {
+                        var element = p_updateChannels.GetArrayElementAtIndex(0).objectReferenceValue;
+                        if (element != null)
+                        {
+                            element.name = "CLASSIC";
+                        }
+                    }
                 }
             }
         }
