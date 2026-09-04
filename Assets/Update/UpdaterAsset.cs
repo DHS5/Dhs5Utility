@@ -296,7 +296,7 @@ namespace Dhs5.Utility.Updates
                 {
                     EditorGUI.PropertyField(r_updateCondition, p_updateCondition);
                 }
-                
+
                 // Custom Frequency
                 var p_customFrequency = so.FindProperty("m_customFrequency");
                 var r_customFrequency = new Rect(marginedRect.x + halfWidth + 2f, marginedRect.y, halfWidth - 2f, 20f);
@@ -315,7 +315,7 @@ namespace Dhs5.Utility.Updates
                 {
                     EditorGUI.PropertyField(r_timescale, p_timescale);
                 }
-                
+
                 // Realtime
                 var p_realtime = so.FindProperty("m_realtime");
                 var r_realtime = new Rect(marginedRect.x + halfWidth + 2f, marginedRect.y, halfWidth - 2f, 20f);
@@ -391,7 +391,7 @@ namespace Dhs5.Utility.Updates
         }
 
         #endregion
-        
+
         #region CONDITIONS GUI
 
         public void DrawConditonsGUI()
@@ -506,9 +506,10 @@ namespace Dhs5.Utility.Updates
             {
                 if (GUILayout.Button("ADD NEW CONDITION", GUILayout.Height(25f)))
                 {
+                    var first = p_updateConditions.arraySize == 0;
                     p_updateConditions.InsertArrayElementAtIndex(p_updateConditions.arraySize);
                     var p_element = p_updateConditions.GetArrayElementAtIndex(p_updateConditions.arraySize - 1);
-                    p_element.FindPropertyRelative("m_name").stringValue = "NEW_CONDITION";
+                    p_element.FindPropertyRelative("m_name").stringValue = first ? "ALWAYS" : "NEW_CONDITION";
                     p_element.FindPropertyRelative("m_object").objectReferenceValue = null;
                 }
             }
@@ -542,7 +543,7 @@ namespace Dhs5.Utility.Updates
         }
 
         #endregion
-        
+
         #region SETTINGS GUI
 
         public void DrawSettingsGUI()
@@ -646,6 +647,16 @@ namespace Dhs5.Utility.Updates
                         if (element != null)
                         {
                             element.name = "CLASSIC";
+                        }
+                    }
+
+                    // Make sure first condition is ALWAYS
+                    if (p_updateConditions.arraySize > 0)
+                    {
+                        var p_name = p_updateConditions.GetArrayElementAtIndex(0).FindPropertyRelative("m_name");
+                        if (p_name != null)
+                        {
+                            p_name.stringValue = "ALWAYS";
                         }
                     }
                 }
@@ -765,7 +776,7 @@ namespace Dhs5.Utility.Updates
             }
             return false;
         }
-        
+
         private bool DoesUpdateConditionScriptNeedUpdate()
         {
             if (p_updateConditionsTextAsset.objectReferenceValue != null)

@@ -791,6 +791,8 @@ namespace Dhs5.Utility.Updates
 
         private bool IsConditionFulfilled(EUpdateCondition condition)
         {
+            if (condition == EUpdateCondition.ALWAYS) return true;
+
             var conditionObject = UpdaterAsset.GetConditionObject(condition);
             if (conditionObject != null)
             {
