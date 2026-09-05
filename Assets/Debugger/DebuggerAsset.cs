@@ -6,8 +6,6 @@ using System;
 using UnityEngine.InputSystem;
 using System.Text;
 
-
-
 #if UNITY_EDITOR
 using UnityEditor;
 using Dhs5.Utility.Editors;
@@ -319,10 +317,15 @@ namespace Dhs5.Utility.Debugger
             {
                 if (GUILayout.Button("ADD NEW CATEGORY", GUILayout.Height(25f)))
                 {
+                    var first = p_debugCategories.arraySize == 0;
                     p_debugCategories.InsertArrayElementAtIndex(p_debugCategories.arraySize);
                     p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = null;
                     var newElement = Database.CreateScriptableAndAddToAsset<DebugCategoryObject>(m_debuggerAsset);
-                    newElement.name = "NEW_CATEGORY";
+                    newElement.name = first ? "BASE" : "NEW_CATEGORY";
+                    if (first)
+                    {
+                        newElement.Editor_SetColor(Color.white);
+                    }
                     p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
                     EnsureCorrectChannelsIndexation();
@@ -461,6 +464,17 @@ namespace Dhs5.Utility.Debugger
                     {
                         return subAsset is DebugCategoryObject;
                     });
+
+                    // Make sure first debug category is BASE (white)
+                    if (p_debugCategories.arraySize > 0)
+                    {
+                        var baseElement = p_debugCategories.GetArrayElementAtIndex(0).objectReferenceValue as DebugCategoryObject;
+                        if (baseElement != null)
+                        {
+                            baseElement.name = "BASE";
+                            baseElement.Editor_SetColor(Color.white);
+                        }
+                    }
                 }
             }
 

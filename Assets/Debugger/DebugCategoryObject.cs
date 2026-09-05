@@ -52,5 +52,19 @@ namespace Dhs5.Utility.Debugger
         }
 
         #endregion
+
+
+        #region Editor
+
+#if UNITY_EDITOR
+
+        public void Editor_SetColor(Color color)
+        {
+            m_color = color;
+        }
+
+#endif
+
+        #endregion
     }
 }
