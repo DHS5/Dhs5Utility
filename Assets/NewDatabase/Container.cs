@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Dhs5.Utility.Editors;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -257,11 +259,321 @@ namespace Dhs5.Utility.NewDatabase
     [CustomEditor(typeof(Container), editorForChildClasses: true)]
     public class ContainerEditor : Editor
     {
+        #region STRUCT ListEntry
+
+        protected struct ListEntry
+        {
+            public ListEntry(SerializedProperty property)
+            {
+                this.property = property;
+                if (property.objectReferenceValue is IContainerElement elem)
+                {
+                    this.element = elem;
+                }
+                else
+                {
+                    this.element = null;
+                }
+            }
+
+            public SerializedProperty property;
+            public IContainerElement element;
+        }
+
+        #endregion
+
+
+        #region Members
+
+        protected List<ListEntry> m_listEntries;
+
+        protected string m_searchString;
+        protected Vector2 m_listScrollPosition;
+        protected GUIStyle m_listScrollViewStyle;
+        protected float m_listScrollX;
+        protected bool m_isResizing;
+
+        protected GUIStyle ListScrollViewStyle
+        {
+            get
+            {
+                if (m_listScrollViewStyle == null)
+                {
+                    m_listScrollViewStyle = new GUIStyle(GUI.skin.scrollView);
+                    m_listScrollViewStyle.fixedWidth = 0;
+                    m_listScrollViewStyle.stretchWidth = true;
+                }
+                return m_listScrollViewStyle;
+            }
+        }
+
+        #endregion
+
+        #region Serialized Properties
+
+        protected SerializedProperty p_objects;
+
+        #endregion
+
+        #region STATIC Members
+
+        protected static float _listAreaHeight = 300f;
+
+        #endregion
+
+
+        #region Core Behaviour
+
+        private void OnEnable()
+        {
+            p_objects = serializedObject.FindProperty("m_objects");
+
+            RefreshListEntries();
+        }
+
+        #endregion
+
+
+        #region List Entries
+
+        protected void ClearListEntries()
+        {
+            if (m_listEntries == null) m_listEntries = new();
+            else m_listEntries.Clear();
+        }
+        protected virtual void RefreshListEntries()
+        {
+            ClearListEntries();
+
+            var isSearching = !string.IsNullOrWhiteSpace(m_searchString);
+
+            for (int i = 0; i < p_objects.arraySize; i++)
+            {
+                var p_entry = p_objects.GetArrayElementAtIndex(i);
+                if (p_entry.objectReferenceValue != null)
+                {
+                    if (!isSearching
+                        || p_entry.objectReferenceValue.name.Contains(m_searchString, System.StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        m_listEntries.Add(new ListEntry(p_entry));
+                    }
+                }
+            }
+        }
+        protected virtual IEnumerable<ListEntry> GetListEntries()
+        {
+            return m_listEntries;
+        }
+
+        #endregion
+
+
+        // --- GUI ---
+
+        #region Temp
+
+        public override void OnInspectorGUI()
+        {
+            OnDatabaseCoreGUI();
+        }
+
+        #endregion
+
         #region Database Core GUI
 
-        public virtual void OnDatabaseGUI()
+        public void OnDatabaseCoreGUI()
+        {
+            serializedObject.Update();
+
+            OnDatabaseGUI();
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        protected virtual void OnDatabaseGUI()
+        {
+            OnToolbarGUI();
+
+            OnListGUI();
+
+            OnResizeGUI();
+
+            OnDatabaseInpsectorGUI();
+        }
+
+        #endregion
+
+
+        #region Toolbar GUI
+
+        protected GUIContent g_content = new GUIContent("Content");
+
+        protected virtual void OnToolbarGUI()
+        {
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.Height(22f), GUILayout.ExpandWidth(true));
+
+            DrawToolbarContentLabel(100f);
+            DrawToolbarSearchField(-1f);
+            DrawToolbarRefreshButton(40f);
+            DrawToolbarAddButton(40f);
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        protected virtual void DrawToolbarContentLabel(float width) => EditorGUILayout.LabelField(g_content, GUILayout.Width(width));
+        protected virtual void DrawToolbarSearchField(float width)
+        {
+            EditorGUI.BeginChangeCheck();
+            if (width < 0f) m_searchString = EditorGUILayout.TextField(m_searchString, EditorStyles.toolbarSearchField, GUILayout.ExpandWidth(true));
+            else m_searchString = EditorGUILayout.TextField(m_searchString, EditorStyles.toolbarSearchField, GUILayout.Width(width));
+            if (EditorGUI.EndChangeCheck())
+            {
+                OnSearchStringChanged(m_searchString);
+            }
+
+            if (GUILayout.Button(EditorGUIHelper.CrossIcon, EditorStyles.iconButton))
+            {
+                GUI.FocusControl(null);
+                m_searchString = string.Empty;
+                OnSearchStringChanged(m_searchString);
+            }
+        }
+        protected virtual void DrawToolbarRefreshButton(float width)
+        {
+            if (GUILayout.Button(EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton, GUILayout.Width(width)))
+            {
+                OnToolbarRefreshButton();
+            }
+        }
+        protected virtual void DrawToolbarAddButton(float width)
+        {
+            if (GUILayout.Button(EditorGUIHelper.AddMoreIcon, EditorStyles.toolbarButton, GUILayout.Width(width)))
+            {
+                OnToolbarAddButton();
+            }
+        }
+
+        #endregion
+
+        #region Toolbar Callbacks
+
+        protected virtual void OnSearchStringChanged(string searchString)
+        {
+            RefreshListEntries();
+        }
+        
+        protected virtual void OnToolbarRefreshButton()
+        {
+            RefreshListEntries();
+        }
+        protected virtual void OnToolbarAddButton()
         {
 
+        }
+
+        #endregion
+
+
+        #region List GUI
+
+        protected virtual void OnListGUI()
+        {
+            var rect = EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.Height(_listAreaHeight));
+
+            EditorGUI.DrawRect(rect, Color.gray1);
+
+            m_listScrollPosition = GUILayout.BeginScrollView(m_listScrollPosition, ListScrollViewStyle, GUILayout.ExpandWidth(true));
+            Debug.LogError(m_listScrollPosition);
+
+            var listEntries = GetListEntries();
+            if (listEntries != null)
+            {
+                foreach (var entry in listEntries)
+                {
+                    DrawListEntry(entry);
+                }
+            }
+
+            GUILayout.EndScrollView();
+
+            EditorGUI.BeginChangeCheck();
+            m_listScrollX = GUILayout.HorizontalScrollbar(m_listScrollX, 1f, 0f, 2f);
+            if (EditorGUI.EndChangeCheck())
+            {
+                m_listScrollPosition.x = m_listScrollX * rect.width;
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        protected virtual void DrawListEntry(ListEntry entry)
+        {
+            var rect = EditorGUILayout.BeginHorizontal(GUILayout.Height(GetListEntryHeight()));
+
+            DrawListEntryUID(entry, 40f);
+            DrawListEntryName(entry, 50f);
+
+            EditorGUILayout.EndHorizontal();
+
+            DrawListEntryBottomSeparator(rect);
+        }
+        protected virtual float GetListEntryHeight() => 20f;
+
+        protected virtual void DrawListEntryName(ListEntry entry, float width)
+        {
+            EditorGUILayout.LabelField(entry.property.objectReferenceValue.name, GUILayout.Width(width));
+        }
+        protected virtual void DrawListEntryUID(ListEntry entry, float width)
+        {
+            EditorGUILayout.LabelField(entry.element != null ? entry.element.UID.ToString() : string.Empty, EditorStyles.miniLabel, GUILayout.Width(width));
+        }
+        protected virtual void DrawListEntryBottomSeparator(Rect rect)
+        {
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y + rect.height - 1f, rect.width, 1f), Color.gray5);
+        }
+
+        #endregion
+
+
+        #region Resize GUI
+
+        protected virtual void OnResizeGUI()
+        {
+            var rect = EditorGUILayout.GetControlRect(false, 5f);
+
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y + 2f, rect.width, 1f), Color.white);
+
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeVertical);
+
+            if (!m_isResizing
+                && rect.Contains(Event.current.mousePosition)
+                && Event.current.type == EventType.MouseDown)
+            {
+                m_isResizing = true;
+                Event.current.Use();
+            }
+            else if (m_isResizing
+                && Event.current.type == EventType.MouseDrag)
+            {
+                _listAreaHeight = Mathf.Clamp(_listAreaHeight + Event.current.delta.y, 100f, 700f);
+                Event.current.Use();
+            }
+        }
+
+        #endregion
+
+
+        #region Inspector GUI
+
+        protected virtual void OnDatabaseInpsectorGUI()
+        {
+            var rect = EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+
+            EditorGUI.DrawRect(rect, Color.gray4);
+
+            EditorGUILayout.LabelField("Test2");
+
+            EditorGUILayout.EndVertical();
         }
 
         #endregion

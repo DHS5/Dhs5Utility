@@ -24,6 +24,7 @@ namespace Dhs5.Utility.Editors
         public static GUIContent AddIcon => EditorGUIUtility.IconContent("d_Toolbar Plus");
         public static GUIContent AddMoreIcon => EditorGUIUtility.IconContent("d_Toolbar Plus More");
         public static GUIContent DeleteIcon => EditorGUIUtility.IconContent("d_Toolbar Minus");
+        public static GUIContent CrossIcon => EditorGUIUtility.IconContent("d_Close");
         public static GUIContent FavoriteInactiveIcon => EditorGUIUtility.IconContent("d_Favorite");
         public static GUIContent FavoriteActiveIcon => EditorGUIUtility.IconContent("d_Favorite_colored");
         public static GUIContent PresetIcon => EditorGUIUtility.IconContent("d_Preset.Context");
