@@ -2,6 +2,10 @@ using UnityEngine;
 using System.Collections.Generic;
 using Dhs5.Utility.Editors;
 using static UnityEditor.LightingExplorerTableColumn;
+using System;
+using System.Reflection;
+
+
 
 
 
@@ -286,10 +290,27 @@ namespace Dhs5.Utility.NewDatabase
 
         #endregion
 
+        #region STRUCT ListDisplayedProperty
+
+        protected struct ListDisplayedProperty
+        {
+            public ListDisplayedProperty(string propertyName, float width)
+            {
+                this.propertyName = propertyName;
+                this.width = width;
+            }
+
+            public string propertyName;
+            public float width;
+        }
+
+        #endregion
+
 
         #region Members
 
         protected List<ListEntry> m_listEntries;
+        protected List<ListDisplayedProperty> m_listDisplayedProperties;
         protected Dictionary<UnityEngine.Object, Editor> m_editors;
 
         protected int m_focusedIndex;
@@ -374,12 +395,61 @@ namespace Dhs5.Utility.NewDatabase
                 }
             }
 
-            m_focusedIndex = -1;
-            m_focusedObject = null;
+            OnDeselectListEntry();
         }
         protected virtual IEnumerable<ListEntry> GetListEntries()
         {
             return m_listEntries;
+        }
+
+        #endregion
+
+        #region List Displayed Properties
+
+        protected void ClearListDisplayedProperties()
+        {
+            if (m_listDisplayedProperties == null) m_listDisplayedProperties = new();
+            else m_listDisplayedProperties.Clear();
+        }
+        protected virtual void RefreshListDisplayedProperties()
+        {
+            ClearListDisplayedProperties();
+
+            List<Type> types = new();
+
+            for (int i = 0; i < p_objects.arraySize; i++)
+            {
+                var p_entry = p_objects.GetArrayElementAtIndex(i);
+                if (p_entry.objectReferenceValue != null)
+                {
+                    var type = p_entry.objectReferenceValue.GetType();
+                    if (!types.Contains(type))
+                    {
+                        types.Add(type);
+                    }
+                }
+            }
+
+            if (types.Count > 0)
+            {
+                Dictionary<string, ListDisplayedProperty> mappedProperties = new();
+                
+                foreach (var type in types)
+                {
+                    var members = type.GetMembers();
+                    if (members != null)
+                    {
+                        foreach (var member in members)
+                        {
+                            //var attribute = member.GetCustomAttribute<>();
+                        }
+                    }
+                }
+            }
+        }
+        protected virtual IEnumerable<ListDisplayedProperty> GetListDisplayedProperties()
+        {
+            return m_listDisplayedProperties;
         }
 
         #endregion
@@ -572,7 +642,7 @@ namespace Dhs5.Utility.NewDatabase
                 foreach (var entry in listEntries)
                 {
                     var entryRect = EditorGUILayout.GetControlRect(false, GetListEntryHeight());
-                    DrawListEntry(entryRect, entry);
+                    DrawListEntry(entryRect, -m_listScrollX * 100f, entry);
                 }
             }
 
@@ -581,10 +651,21 @@ namespace Dhs5.Utility.NewDatabase
             m_listScrollX = GUILayout.HorizontalScrollbar(m_listScrollX, 1f, 0f, 2f);
 
             EditorGUILayout.EndVertical();
+
+            HandleListAreaEvents(rect);
+        }
+        protected virtual void HandleListAreaEvents(Rect rect)
+        {
+            if (Event.current.type == EventType.MouseDown
+                && rect.Contains(Event.current.mousePosition))
+            {
+                Event.current.Use();
+                OnDeselectListEntry();
+            }
         }
         protected virtual float GetListEntryHeight() => 20f;
 
-        protected virtual void DrawListEntry(Rect rect, ListEntry entry)
+        protected virtual void DrawListEntry(Rect rect, float scrollOffset, ListEntry entry)
         {
             // Background
             if (entry.index == m_focusedIndex)
@@ -597,6 +678,7 @@ namespace Dhs5.Utility.NewDatabase
             DrawListEntryContextButton(contextButtonRect, entry);
 
             var movingRect = rect;
+            movingRect.x += scrollOffset;
 
             if (CanDrawListEntryUID(entry))
             {
@@ -614,7 +696,7 @@ namespace Dhs5.Utility.NewDatabase
 
             // Selection
             var selectionRect = new Rect(rect.x, rect.y, contextButtonRect.x - rect.x, rect.height);
-            DoListEntrySelection(selectionRect, entry);
+            HandleListEntryEvents(selectionRect, entry);
 
             DrawListEntryBottomSeparator(rect);
         }
@@ -633,7 +715,7 @@ namespace Dhs5.Utility.NewDatabase
         protected virtual void DrawListEntryUID(Rect rect, ListEntry entry) => EditorGUI.LabelField(rect, entry.element.UID.ToString(), EditorStyles.miniLabel);
         protected virtual void DrawListEntryBottomSeparator(Rect rect) => EditorGUI.DrawRect(new Rect(rect.x, rect.y + rect.height - 1f, rect.width, 1f), Color.gray5);
 
-        protected virtual void DoListEntrySelection(Rect rect, ListEntry entry)
+        protected virtual void HandleListEntryEvents(Rect rect, ListEntry entry)
         {
             if (Event.current.type == EventType.MouseDown
                 && rect.Contains(Event.current.mousePosition))
@@ -659,6 +741,11 @@ namespace Dhs5.Utility.NewDatabase
             {
                 m_focusedObject = entry.property.objectReferenceValue;
             }
+        }
+        protected virtual void OnDeselectListEntry()
+        {
+            m_focusedIndex = -1;
+            m_focusedObject = null;
         }
 
         #endregion
