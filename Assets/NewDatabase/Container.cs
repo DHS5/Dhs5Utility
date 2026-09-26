@@ -1,16 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Dhs5.Utility.Editors;
-using static UnityEditor.LightingExplorerTableColumn;
 using System;
-using System.Reflection;
-
-
-
-
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using System.Reflection;
+using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.NewDatabase
@@ -239,7 +235,7 @@ namespace Dhs5.Utility.NewDatabase
 
                 foreach (var obj in m_objects)
                 {
-                    if (obj != null && obj is IContainerElement elem)
+                    if (obj != null && obj != newObj && obj is IContainerElement elem)
                     {
                         if (elem.UID == newElem.UID)
                         {
@@ -269,9 +265,10 @@ namespace Dhs5.Utility.NewDatabase
 
         protected struct ListEntry
         {
-            public ListEntry(int index, SerializedProperty property)
+            public ListEntry(int index, int propertyIndex, SerializedProperty property)
             {
-                this.index = index;
+                this.displayIndex = index;
+                this.propertyIndex = propertyIndex;
                 this.property = property;
                 if (property.objectReferenceValue is IContainerElement elem)
                 {
@@ -281,11 +278,14 @@ namespace Dhs5.Utility.NewDatabase
                 {
                     this.element = null;
                 }
+                this.g_name = new GUIContent(property.objectReferenceValue.name, property.objectReferenceValue.name);
             }
 
-            public int index;
+            public int displayIndex;
+            public int propertyIndex;
             public SerializedProperty property;
             public IContainerElement element;
+            public GUIContent g_name;
         }
 
         #endregion
@@ -294,14 +294,43 @@ namespace Dhs5.Utility.NewDatabase
 
         protected struct ListDisplayedProperty
         {
-            public ListDisplayedProperty(string propertyName, float width)
+            #region Constructors
+
+            public ListDisplayedProperty(string propertyName, float width, int priority)
             {
                 this.propertyName = propertyName;
+                this.displayName = ObjectNames.NicifyVariableName(propertyName);
                 this.width = width;
+                this.priority = priority;
+            }
+            
+            public ListDisplayedProperty(string propertyName, ContainerDisplayAttribute attribute)
+            {
+                this.propertyName = propertyName;
+                this.displayName = ObjectNames.NicifyVariableName(propertyName);
+                this.width = attribute.width;
+                this.priority = attribute.priority;
             }
 
+            #endregion
+
+            #region Members
+
             public string propertyName;
+            public string displayName;
             public float width;
+            public int priority;
+
+            #endregion
+
+            #region Methods
+
+            public ListDisplayedProperty Combine(ListDisplayedProperty property)
+            {
+                return new ListDisplayedProperty(propertyName, Mathf.Max(width, property.width), Mathf.Min(priority, property.priority));
+            }
+
+            #endregion
         }
 
         #endregion
@@ -312,18 +341,23 @@ namespace Dhs5.Utility.NewDatabase
         protected List<ListEntry> m_listEntries;
         protected List<ListDisplayedProperty> m_listDisplayedProperties;
         protected Dictionary<UnityEngine.Object, Editor> m_editors;
+        protected Dictionary<UnityEngine.Object, SerializedObject> m_serializedObjects;
 
         protected int m_focusedIndex;
         protected UnityEngine.Object m_focusedObject;
 
         protected Rect m_databaseWindowRect;
         protected string m_searchString;
+        protected float m_listTotalWidth;
+        protected int m_listSize;
         protected Vector2 m_listScrollPosition;
-        protected GUIStyle m_listScrollViewStyle;
         protected float m_listScrollX;
         protected bool m_isResizing;
         protected Vector2 m_inspectorScrollPosition;
+        protected double m_lastListSelectionTime;
+        protected bool m_listHasFocus;
 
+        protected GUIStyle m_listScrollViewStyle;
         protected GUIStyle ListScrollViewStyle
         {
             get
@@ -337,6 +371,9 @@ namespace Dhs5.Utility.NewDatabase
                 return m_listScrollViewStyle;
             }
         }
+
+        protected GUIContent g_uid = new GUIContent("UID", "Unique Identifier");
+        protected GUIContent g_name = new GUIContent("Name", "Actual object's name");
 
         protected Color m_focusedListEntryBackgroundColor = Color.gray2;
 
@@ -362,6 +399,12 @@ namespace Dhs5.Utility.NewDatabase
             p_objects = serializedObject.FindProperty("m_objects");
 
             RefreshListEntries();
+            RefreshListDisplayedProperties();
+        }
+        private void OnDisable()
+        {
+            ClearSerializedObjects();
+            ClearEditors();
         }
 
         #endregion
@@ -380,8 +423,9 @@ namespace Dhs5.Utility.NewDatabase
 
             var isSearching = !string.IsNullOrWhiteSpace(m_searchString);
 
+            m_listSize = p_objects.arraySize;
             int index = 0;
-            for (int i = 0; i < p_objects.arraySize; i++)
+            for (int i = 0; i < m_listSize; i++)
             {
                 var p_entry = p_objects.GetArrayElementAtIndex(i);
                 if (p_entry.objectReferenceValue != null)
@@ -389,17 +433,38 @@ namespace Dhs5.Utility.NewDatabase
                     if (!isSearching
                         || p_entry.objectReferenceValue.name.Contains(m_searchString, System.StringComparison.InvariantCultureIgnoreCase))
                     {
-                        m_listEntries.Add(new ListEntry(index, p_entry));
+                        m_listEntries.Add(new ListEntry(index, i, p_entry));
                         index++;
                     }
                 }
             }
 
+            PruneSerializedObjects();
+
             OnDeselectListEntry();
+        }
+        protected virtual void RefreshListEntriesOnlyIfNecessary()
+        {
+            var actualSize = p_objects.arraySize;
+            if (actualSize != m_listSize)
+            {
+                RefreshListEntries();
+            }
         }
         protected virtual IEnumerable<ListEntry> GetListEntries()
         {
             return m_listEntries;
+        }
+
+        protected virtual bool TryGetFocusedListEntry(out ListEntry focusedEntry)
+        {
+            if (m_focusedIndex > -1
+                && m_listEntries.IsIndexValid(m_focusedIndex, out focusedEntry))
+            {
+                return true;
+            }
+            focusedEntry = default;
+            return false;
         }
 
         #endregion
@@ -436,20 +501,51 @@ namespace Dhs5.Utility.NewDatabase
                 
                 foreach (var type in types)
                 {
-                    var members = type.GetMembers();
-                    if (members != null)
+                    var fields = GetAllInstanceFields(type);
+                    if (fields != null)
                     {
-                        foreach (var member in members)
+                        foreach (var field in fields)
                         {
-                            //var attribute = member.GetCustomAttribute<>();
+                            var attribute = field.GetCustomAttribute<ContainerDisplayAttribute>();
+                            if (attribute != null)
+                            {
+                                if (!mappedProperties.TryAdd(field.Name, new ListDisplayedProperty(field.Name, attribute)))
+                                {
+                                    mappedProperties[field.Name] = mappedProperties[field.Name].Combine(new ListDisplayedProperty(field.Name, attribute));
+                                }
+                            }
                         }
                     }
                 }
+
+                m_listDisplayedProperties.AddRange(mappedProperties.Values);
             }
+
+            InsertCustomListDisplayedProperties();
+            SortListDisplayedProperties();
+            m_listTotalWidth = ComputeListTotalWidth();
         }
         protected virtual IEnumerable<ListDisplayedProperty> GetListDisplayedProperties()
         {
             return m_listDisplayedProperties;
+        }
+
+        protected virtual void InsertCustomListDisplayedProperties() { }
+        protected virtual void SortListDisplayedProperties()
+        {
+            m_listDisplayedProperties.Sort((p1, p2) => p1.priority.CompareTo(p2.priority));
+        }
+
+        protected virtual float ComputeListTotalWidth()
+        {
+            var total = GetListBasePropertyUIDWidth() + GetListBasePropertyNameWidth();
+
+            foreach (var property in m_listDisplayedProperties)
+            {
+                total += property.width;
+            }
+
+            return total + 5f;
         }
 
         #endregion
@@ -517,6 +613,69 @@ namespace Dhs5.Utility.NewDatabase
 
         #endregion
 
+        #region Objects Serialized Objects
+
+        protected void ClearSerializedObjects()
+        {
+            if (m_serializedObjects != null)
+            {
+                foreach (var so in m_serializedObjects.Values)
+                {
+                    so?.Dispose();
+                }
+                m_serializedObjects.Clear();
+            }
+        }
+        protected SerializedObject GetOrCreateSerializedObject(UnityEngine.Object obj)
+        {
+            if (obj == null) return null;
+
+            if (m_serializedObjects == null) m_serializedObjects = new();
+
+            if (m_serializedObjects.TryGetValue(obj, out SerializedObject so))
+            {
+                if (so != null && so.targetObject != null)
+                {
+                    return so;
+                }
+                so?.Dispose();
+            }
+
+            so = new SerializedObject(obj);
+            m_serializedObjects[obj] = so;
+            return so;
+        }
+        /// <summary>
+        /// Disposes the SerializedObjects of objects that are no longer in the container
+        /// </summary>
+        protected void PruneSerializedObjects()
+        {
+            if (m_serializedObjects == null) return;
+
+            HashSet<UnityEngine.Object> alive = new();
+            for (int i = 0; i < p_objects.arraySize; i++)
+            {
+                var obj = p_objects.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (obj != null) alive.Add(obj);
+            }
+
+            List<UnityEngine.Object> toRemove = new();
+            foreach (var kvp in m_serializedObjects)
+            {
+                if (kvp.Key == null || !alive.Contains(kvp.Key))
+                {
+                    kvp.Value?.Dispose();
+                    toRemove.Add(kvp.Key);
+                }
+            }
+            foreach (var key in toRemove)
+            {
+                m_serializedObjects.Remove(key);
+            }
+        }
+
+        #endregion
+
 
         // --- GUI ---
 
@@ -537,6 +696,8 @@ namespace Dhs5.Utility.NewDatabase
 
             serializedObject.Update();
 
+            OnBeforeDatabaseGUI();
+
             OnDatabaseGUI();
 
             serializedObject.ApplyModifiedProperties();
@@ -551,6 +712,18 @@ namespace Dhs5.Utility.NewDatabase
             OnResizeGUI();
 
             OnDatabaseInpsectorGUI();
+        }
+
+        #endregion
+
+        #region Database Core Events & Checks
+
+        protected virtual void OnBeforeDatabaseGUI()
+        {
+            if (m_listHasFocus && GUIUtility.keyboardControl != 0)
+            {
+                m_listHasFocus = false;
+            }
         }
 
         #endregion
@@ -617,6 +790,7 @@ namespace Dhs5.Utility.NewDatabase
         protected virtual void OnToolbarRefreshButton()
         {
             RefreshListEntries();
+            RefreshListDisplayedProperties();
         }
         protected virtual void OnToolbarAddButton()
         {
@@ -634,21 +808,31 @@ namespace Dhs5.Utility.NewDatabase
 
             EditorGUI.DrawRect(rect, Color.gray1);
 
+            var actualWidth = rect.width - GetListEntryContextButtonWidth();
+            var delta = m_listTotalWidth - actualWidth;
+            var scrollOffset = delta > 0f ? -m_listScrollX * delta : 0f;
+
+            // Headers
+            var headerRect = EditorGUILayout.GetControlRect(false, GetListHeaderHeight());
+            DrawListHeader(headerRect, scrollOffset);
+
+            // Entries ScrollView
             m_listScrollPosition = GUILayout.BeginScrollView(m_listScrollPosition, ListScrollViewStyle, GUILayout.ExpandWidth(true));
 
+            RefreshListEntriesOnlyIfNecessary();
             var listEntries = GetListEntries();
             if (listEntries != null)
             {
                 foreach (var entry in listEntries)
                 {
                     var entryRect = EditorGUILayout.GetControlRect(false, GetListEntryHeight());
-                    DrawListEntry(entryRect, -m_listScrollX * 100f, entry);
+                    DrawListEntry(entryRect, scrollOffset, entry);
                 }
             }
 
             GUILayout.EndScrollView();
 
-            m_listScrollX = GUILayout.HorizontalScrollbar(m_listScrollX, 1f, 0f, 2f);
+            m_listScrollX = delta > 0f ? GUILayout.HorizontalScrollbar(m_listScrollX, 1f, 0f, 2f) : 0f;
 
             EditorGUILayout.EndVertical();
 
@@ -662,37 +846,122 @@ namespace Dhs5.Utility.NewDatabase
                 Event.current.Use();
                 OnDeselectListEntry();
             }
+
+            if (m_listHasFocus)
+            {
+                if (Event.current.type == EventType.KeyDown)
+                {
+                    switch (Event.current.keyCode)
+                    {
+                        case KeyCode.Backspace or KeyCode.Delete:
+                            if (TryGetFocusedListEntry(out var focusedEntry))
+                            {
+                                Event.current.Use();
+                                OnTryDeleteListEntry(focusedEntry);
+                            }
+                            break;
+                        
+                        case KeyCode.Return or KeyCode.KeypadEnter:
+                            if (TryGetFocusedListEntry(out focusedEntry))
+                            {
+                                Event.current.Use();
+                                OnDoubleClickListEntry(focusedEntry);
+                            }
+                            break;
+                    }
+                }
+            }
         }
+
+        #endregion
+
+        #region List Header GUI
+
+        protected virtual float GetListHeaderHeight() => 25f;
+        protected virtual float GetListBasePropertyUIDWidth() => 70f;
+        protected virtual float GetListBasePropertyNameWidth() => 150f;
+
+        protected virtual void DrawListHeader(Rect rect, float scrollOffset)
+        {
+            GUI.BeginClip(rect);
+
+            var movingRect = new Rect(scrollOffset, 0f, 0f, rect.height);
+
+            var width = GetListBasePropertyUIDWidth();
+            movingRect.width = width;
+            if (movingRect.x + movingRect.width > 0f) GUI.Label(movingRect, g_uid, EditorStyles.boldLabel);
+            movingRect.x += width;
+
+            width = GetListBasePropertyNameWidth();
+            movingRect.width = width;
+            if (movingRect.x + movingRect.width > 0f) GUI.Label(movingRect, g_name, EditorStyles.boldLabel);
+            movingRect.x += width;
+
+            if (m_listDisplayedProperties != null)
+            {
+                foreach (var displayedProperty in m_listDisplayedProperties)
+                {
+                    movingRect.width = displayedProperty.width;
+                    if (movingRect.x + movingRect.width > 0f) GUI.Label(movingRect, displayedProperty.displayName, EditorStyles.boldLabel);
+                    movingRect.x += displayedProperty.width;
+                }
+            }
+
+            GUI.EndClip();
+
+            DrawListHeaderBottomSeparator(rect);
+        }
+
+        protected virtual void DrawListHeaderBottomSeparator(Rect rect) => EditorGUI.DrawRect(new Rect(rect.x, rect.y + rect.height - 2f, rect.width, 2f), Color.white);
+
+        #endregion
+
+        #region List Entry GUI
+
         protected virtual float GetListEntryHeight() => 20f;
+        protected virtual float GetListEntryContextButtonWidth() => 25f;
 
         protected virtual void DrawListEntry(Rect rect, float scrollOffset, ListEntry entry)
         {
             // Background
-            if (entry.index == m_focusedIndex)
+            if (entry.displayIndex == m_focusedIndex)
             {
                 EditorGUI.DrawRect(rect, m_focusedListEntryBackgroundColor);
             }
 
             // Context Button
-            var contextButtonRect = new Rect(rect.x + rect.width - 25f, rect.y, 25f, rect.height);
+            var contextButtonWidth = GetListEntryContextButtonWidth();
+            var contextButtonRect = new Rect(rect.x + rect.width - contextButtonWidth + 5f, rect.y, contextButtonWidth, rect.height);
             DrawListEntryContextButton(contextButtonRect, entry);
 
-            var movingRect = rect;
-            movingRect.x += scrollOffset;
+            // Starts Clipping
+            GUI.BeginClip(new Rect(rect.x, rect.y, rect.width - contextButtonWidth, rect.height));
 
-            if (CanDrawListEntryUID(entry))
+            // Create MovingRect
+            var movingRect = new Rect(scrollOffset, 0f, 0f, rect.height);
+
+            // Draw Base Properties
+            var width = GetListBasePropertyUIDWidth();
+            if (movingRect.x + width > 0f && CanDrawListEntryUID(entry))
             {
-                movingRect.width = 40f;
+                movingRect.width = width;
                 DrawListEntryUID(movingRect, entry);
             }
-            movingRect.x += 40f;
+            movingRect.x += width;
 
-            if (CanDrawListEntryName(entry))
+            width = GetListBasePropertyNameWidth();
+            if (movingRect.x + width > 0f && CanDrawListEntryName(entry))
             {
-                movingRect.width = 50f;
+                movingRect.width = width;
                 DrawListEntryName(movingRect, entry);
             }
-            movingRect.x += 50f;
+            movingRect.x += width;
+
+            // Draw Displayed Properties
+            DrawListEntryDisplayedProperties(movingRect, entry);
+
+            // End Clipping
+            GUI.EndClip();
 
             // Selection
             var selectionRect = new Rect(rect.x, rect.y, contextButtonRect.x - rect.x, rect.height);
@@ -710,10 +979,43 @@ namespace Dhs5.Utility.NewDatabase
         }
 
         protected virtual bool CanDrawListEntryName(ListEntry entry) => entry.property != null && entry.property.objectReferenceValue != null;
-        protected virtual void DrawListEntryName(Rect rect, ListEntry entry) => EditorGUI.LabelField(rect, entry.property.objectReferenceValue.name);
+        protected virtual void DrawListEntryName(Rect rect, ListEntry entry) => GUI.Label(rect, entry.g_name, EditorStyles.boldLabel);
         protected virtual bool CanDrawListEntryUID(ListEntry entry) => entry.element != null;
         protected virtual void DrawListEntryUID(Rect rect, ListEntry entry) => EditorGUI.LabelField(rect, entry.element.UID.ToString(), EditorStyles.miniLabel);
         protected virtual void DrawListEntryBottomSeparator(Rect rect) => EditorGUI.DrawRect(new Rect(rect.x, rect.y + rect.height - 1f, rect.width, 1f), Color.gray5);
+
+        protected virtual void DrawListEntryDisplayedProperties(Rect movingRect, ListEntry entry)
+        {
+            if (m_listDisplayedProperties == null) return;
+
+            var so = GetOrCreateSerializedObject(entry.property.objectReferenceValue);
+            if (so == null) return;
+            so.UpdateIfRequiredOrScript();
+
+            foreach (var displayedProperty in m_listDisplayedProperties)
+            {
+                if (movingRect.x + displayedProperty.width > 0f 
+                    && CanDrawListEntryDisplayedProperty(entry, so, displayedProperty, out var property))
+                {
+                    movingRect.width = displayedProperty.width;
+                    DrawListEntryDisplayedProperty(movingRect, entry, so, displayedProperty, property);
+                }
+                movingRect.x += displayedProperty.width;
+            }
+
+            so.ApplyModifiedProperties();
+        }
+        protected virtual bool CanDrawListEntryDisplayedProperty(ListEntry entry, SerializedObject so, ListDisplayedProperty displayedProperty, out SerializedProperty property)
+        {
+            property = so.FindProperty(displayedProperty.propertyName);
+            return property != null;
+        }
+        protected virtual void DrawListEntryDisplayedProperty(Rect rect, ListEntry entry, SerializedObject so, ListDisplayedProperty displayedProperty, SerializedProperty property)
+        {
+            rect.x += 2f;
+            rect.width -= 2f;
+            PropertyFieldWithoutDecorators(rect, property, GUIContent.none);
+        }
 
         protected virtual void HandleListEntryEvents(Rect rect, ListEntry entry)
         {
@@ -721,7 +1023,27 @@ namespace Dhs5.Utility.NewDatabase
                 && rect.Contains(Event.current.mousePosition))
             {
                 Event.current.Use();
-                OnSelectListEntry(entry);
+
+                if (EditorApplication.timeSinceStartup - m_lastListSelectionTime < 0.5f)
+                {
+                    OnDoubleClickListEntry(entry);
+                    if (m_focusedIndex != entry.displayIndex)
+                    {
+                        OnSelectListEntry(entry);
+                    }
+                }
+                else
+                {
+                    m_lastListSelectionTime = EditorApplication.timeSinceStartup;
+                    if (m_focusedIndex == entry.displayIndex)
+                    {
+                        OnDeselectListEntry();
+                    }
+                    else
+                    {
+                        OnSelectListEntry(entry);
+                    }
+                }
             }
         }
 
@@ -736,7 +1058,9 @@ namespace Dhs5.Utility.NewDatabase
 
         protected virtual void OnSelectListEntry(ListEntry entry)
         {
-            m_focusedIndex = entry.index;
+            m_focusedIndex = entry.displayIndex;
+            GUI.FocusControl(null);
+            m_listHasFocus = true;
             if (entry.property != null && entry.property.objectReferenceValue != null)
             {
                 m_focusedObject = entry.property.objectReferenceValue;
@@ -746,6 +1070,27 @@ namespace Dhs5.Utility.NewDatabase
         {
             m_focusedIndex = -1;
             m_focusedObject = null;
+            m_listHasFocus = false;
+            GUI.FocusControl(null);
+        }
+        protected virtual void OnDoubleClickListEntry(ListEntry entry)
+        {
+            if (entry.property != null && entry.property.objectReferenceValue != null)
+            {
+                EditorUtils.FullPingObject(entry.property.objectReferenceValue);
+            }
+        }
+        protected virtual void OnTryDeleteListEntry(ListEntry entry)
+        {
+            if (p_objects != null && p_objects.arraySize > entry.propertyIndex)
+            {
+                Undo.RecordObject(target, "Delete list entry");
+                p_objects.DeleteArrayElementAtIndex(entry.propertyIndex);
+            }
+            else
+            {
+                Debug.LogError("Could not delete entry " + entry.displayIndex + " corresponding to index " + entry.propertyIndex + " in objects list.");
+            }
         }
 
         #endregion
@@ -774,6 +1119,10 @@ namespace Dhs5.Utility.NewDatabase
                 _listAreaHeight = Mathf.Clamp(_listAreaHeight + Event.current.delta.y, 100f, m_databaseWindowRect.height - 200f);
                 Event.current.Use();
             }
+            else if (m_isResizing && Event.current.rawType == EventType.MouseUp)
+            {
+                m_isResizing = false;
+            }
         }
 
         #endregion
@@ -791,6 +1140,57 @@ namespace Dhs5.Utility.NewDatabase
 
                 EditorGUILayout.EndScrollView();
             }
+        }
+
+        #endregion
+
+
+        // --- UTILITY ---
+
+        #region Type Fields
+
+        private static IEnumerable<FieldInfo> GetAllInstanceFields(Type type)
+        {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+
+            while (type != null
+                && type != typeof(ScriptableObject)
+                && type != typeof(MonoBehaviour)
+                && type != typeof(UnityEngine.Object))
+            {
+                foreach (var field in type.GetFields(flags))
+                    yield return field;
+
+                type = type.BaseType;
+            }
+        }
+
+        #endregion
+
+        #region Property Field Without Decorators
+
+        private static Func<Rect, SerializedProperty, GUIContent, bool> _defaultPropertyField;
+        private static bool _defaultPropertyFieldResolved;
+
+        /// <summary>
+        /// Draws the property without its DecoratorDrawers (Header, Space...) nor custom PropertyDrawers
+        /// </summary>
+        protected static void PropertyFieldWithoutDecorators(Rect rect, SerializedProperty property, GUIContent label)
+        {
+            if (!_defaultPropertyFieldResolved)
+            {
+                _defaultPropertyFieldResolved = true;
+                var method = typeof(EditorGUI).GetMethod("DefaultPropertyField", BindingFlags.NonPublic | BindingFlags.Static, null,
+                    new[] { typeof(Rect), typeof(SerializedProperty), typeof(GUIContent) }, null);
+                if (method != null)
+                {
+                    _defaultPropertyField = (Func<Rect, SerializedProperty, GUIContent, bool>)
+                        Delegate.CreateDelegate(typeof(Func<Rect, SerializedProperty, GUIContent, bool>), method);
+                }
+            }
+
+            if (_defaultPropertyField != null) _defaultPropertyField(rect, property, label);
+            else EditorGUI.PropertyField(rect, property, label); // Fallback if Unity changes the internal API
         }
 
         #endregion

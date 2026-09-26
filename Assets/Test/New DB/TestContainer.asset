@@ -13,6 +13,14 @@ MonoBehaviour:
   m_Name: TestContainer
   m_EditorClassIdentifier: Assembly-CSharp::TestContainer
   m_objects:
-  - {fileID: -4751636560149229809, guid: 3765bd49233f48046b5ff49c9b48f689, type: 2}
-  - {fileID: 5819532464124954668, guid: 405d8568ecbccbb4fa3ce044cb0ba42b, type: 2}
+  - {fileID: 11400000, guid: cc3933aa7890d8044aa95f6b6bb974d7, type: 2}
+  - {fileID: 11400000, guid: 82fcb47fd0dc90641935cb6029c37a7a, type: 2}
+  - {fileID: 11400000, guid: e99b5186766b09740a7f4249d989c5bb, type: 2}
+  - {fileID: 11400000, guid: b2b440db0d1ff1245b3f634e38891ccc, type: 2}
+  - {fileID: 11400000, guid: 2e1357d20168ff146b7729e2d03cde84, type: 2}
+  - {fileID: 11400000, guid: b097327935487444684da3d04929e73b, type: 2}
+  - {fileID: 11400000, guid: 6a3f677497f2b0a4e99e0748722f4903, type: 2}
+  - {fileID: 11400000, guid: cfffce1faf96e664283836f26faeca2a, type: 2}
+  - {fileID: 11400000, guid: 54e5659658433fd4ca5eec1ef265a05d, type: 2}
+  - {fileID: 11400000, guid: ded8aab960888844b83a04716f1a16ed, type: 2}
   m_lastCreateFolderPath: 
