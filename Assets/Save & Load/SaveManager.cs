@@ -7,6 +7,24 @@ namespace Dhs5.Utility.SaveLoad
 {
     public static class SaveManager
     {
+        #region Engine Callbacks
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            m_loadProcessObject = null;
+            IsSaveProcessActive = false;
+            IsLoadProcessActive = false;
+            CurrentSaveObject = null;
+
+            LoadCompleted = null;
+            LoadCancelled = null;
+
+            _loadables.Clear();
+        }
+
+        #endregion
+
         #region Members
 
         private static LoadProcessObject m_loadProcessObject;
