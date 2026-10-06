@@ -13,6 +13,9 @@ namespace Dhs5.Utility.PlayerLoops
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
+            // In case the previous session didn't restore it (Application.quitting not called)
+            ResetPlayerLoop();
+
             _modifiersRegistrationOpen = true;
             _modifiers.Clear();
             _disabledSystems.Clear();
@@ -49,7 +52,9 @@ namespace Dhs5.Utility.PlayerLoops
         {
             if (_modifiers != null && _modifiers.Count > 0)
             {
-                var playerLoop = PlayerLoop.GetDefaultPlayerLoop();
+                SaveOriginalPlayerLoopIfNeeded();
+                // Start from the current player loop and not the default one, to keep systems inserted by other packages
+                var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
                 SortModifiers();
                 foreach (var modifier in _modifiers)
@@ -66,12 +71,49 @@ namespace Dhs5.Utility.PlayerLoops
             PlayerLoopInitialized = null;
         }
 
+        /// <summary>
+        /// Restores the player loop as it was before any modification made through this class
+        /// </summary>
         public static void ResetPlayerLoop()
         {
-            PlayerLoop.SetPlayerLoop(PlayerLoop.GetDefaultPlayerLoop());
+            if (!_isPlayerLoopModified) return;
+
+            PlayerLoop.SetPlayerLoop(_originalPlayerLoop);
+            _originalPlayerLoop = default;
+            _isPlayerLoopModified = false;
+            _disabledSystems.Clear();
 #if UNITY_EDITOR
             PlayerLoopWindow.TryRefresh();
 #endif
+        }
+        
+        public static void ResetPlayerLoopToDefault()
+        {
+            SaveOriginalPlayerLoopIfNeeded();
+            PlayerLoop.SetPlayerLoop(PlayerLoop.GetDefaultPlayerLoop());
+            _disabledSystems.Clear();
+#if UNITY_EDITOR
+            PlayerLoopWindow.TryRefresh();
+#endif
+        }
+
+        #endregion
+
+        #region Original Player Loop
+
+        // The player loop as it was before our first modification, including systems inserted by other packages
+        // (GetDefaultPlayerLoop() would remove them).
+        // Intentionally not cleared in ResetStatics : it is needed there to restore a loop the previous session left modified.
+        private static PlayerLoopSystem _originalPlayerLoop;
+        private static bool _isPlayerLoopModified;
+
+        private static void SaveOriginalPlayerLoopIfNeeded()
+        {
+            if (_isPlayerLoopModified) return;
+
+            // Separate GetCurrentPlayerLoop() call from the one being modified, so in-place changes to its arrays can't alter this copy
+            _originalPlayerLoop = PlayerLoop.GetCurrentPlayerLoop();
+            _isPlayerLoopModified = true;
         }
 
         #endregion
@@ -113,6 +155,7 @@ namespace Dhs5.Utility.PlayerLoops
         {
             if (_disabledSystems.ContainsKey(type)) return;
 
+            SaveOriginalPlayerLoopIfNeeded();
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             PlayerLoopSystem mainSystem, system;
@@ -148,6 +191,7 @@ namespace Dhs5.Utility.PlayerLoops
         {
             if (!_disabledSystems.ContainsKey(type)) return;
 
+            SaveOriginalPlayerLoopIfNeeded();
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             PlayerLoopSystem mainSystem, system;
@@ -193,6 +237,7 @@ namespace Dhs5.Utility.PlayerLoops
 
         public static void AddCustomMainSystemAtIndex(PlayerLoopSystem system, int index)
         {
+            SaveOriginalPlayerLoopIfNeeded();
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             var mainSystems = playerLoop.subSystemList.ToList();
@@ -206,6 +251,7 @@ namespace Dhs5.Utility.PlayerLoops
         }
         public static void AddCustomMainSystemBefore(PlayerLoopSystem system, Type mainSystemToInsertBeforeType)
         {
+            SaveOriginalPlayerLoopIfNeeded();
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             var mainSystems = playerLoop.subSystemList.ToList();
@@ -214,6 +260,7 @@ namespace Dhs5.Utility.PlayerLoops
                 if (mainSystems[i].type == mainSystemToInsertBeforeType)
                 {
                     mainSystems.Insert(i, system);
+                    break;
                 }
             }
             playerLoop.subSystemList = mainSystems.ToArray();
@@ -225,6 +272,7 @@ namespace Dhs5.Utility.PlayerLoops
         }
         public static void AddCustomMainSystemAfter(PlayerLoopSystem system, Type mainSystemToInsertAfterType)
         {
+            SaveOriginalPlayerLoopIfNeeded();
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             var mainSystems = playerLoop.subSystemList.ToList();
@@ -233,11 +281,15 @@ namespace Dhs5.Utility.PlayerLoops
                 if (mainSystems[i].type == mainSystemToInsertAfterType)
                 {
                     mainSystems.Insert(i + 1, system);
+                    break;
                 }
             }
             playerLoop.subSystemList = mainSystems.ToArray();
 
             PlayerLoop.SetPlayerLoop(playerLoop);
+#if UNITY_EDITOR
+            PlayerLoopWindow.TryRefresh();
+#endif
         }
 
         #endregion
@@ -246,6 +298,7 @@ namespace Dhs5.Utility.PlayerLoops
 
         public static void AddCustomSubSystemAtIndex(PlayerLoopSystem system, Type mainSystemType, int index)
         {
+            SaveOriginalPlayerLoopIfNeeded();
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             for (int i = 0; i < playerLoop.subSystemList.Length; i++)
@@ -276,6 +329,7 @@ namespace Dhs5.Utility.PlayerLoops
         }
         public static void AddCustomSubSystemAtLast(PlayerLoopSystem system, Type mainSystemType)
         {
+            SaveOriginalPlayerLoopIfNeeded();
             var playerLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             for (int i = 0; i < playerLoop.subSystemList.Length; i++)
