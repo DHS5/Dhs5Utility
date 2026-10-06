@@ -10,9 +10,19 @@ namespace Dhs5.Utility.PlayerLoops
     {
         #region Engine Callbacks
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            _modifiersRegistrationOpen = true;
+            _modifiers.Clear();
+            _disabledSystems.Clear();
+            PlayerLoopInitialized = null;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void AfterSceneLoad()
         {
+            Application.quitting -= OnApplicationQuitting;
             Application.quitting += OnApplicationQuitting;
 
             _modifiersRegistrationOpen = false;
