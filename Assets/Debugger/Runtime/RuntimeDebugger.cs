@@ -203,6 +203,21 @@ namespace Dhs5.Utility.Debugger
 
         #endregion
 
+        #region Engine Callbacks
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            // Keep live objects (e.g. ScriptableObject assets registered in OnEnable, which won't re-register)
+            foreach (var set in _registeredObjects.Values)
+            {
+                set.RemoveWhere(obj => obj == null);
+            }
+            _registeredStaticClasses.Clear();
+        }
+
+        #endregion
+
 #endif
 
         #region Registration
