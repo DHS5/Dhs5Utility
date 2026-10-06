@@ -689,6 +689,7 @@ namespace Dhs5.Utility.Updates
         {
             m_channels.Clear();
             m_channelCallbacks.Clear();
+            m_pendingChannelCallbackOperations.Clear();
         }
 
         #endregion
@@ -696,6 +697,9 @@ namespace Dhs5.Utility.Updates
         #region Callbacks
 
         private readonly Dictionary<int, List<UpdateCallback>> m_channelCallbacks = new();
+
+        private readonly List<(bool register, int channelIndex, UpdateCallback callback)> m_pendingChannelCallbackOperations = new();
+        private bool m_isTriggeringChannelCallbacks;
 
         public static void RegisterChannelCallback(bool register, EUpdateChannel channel, UpdateCallback callback)
         {
@@ -712,6 +716,12 @@ namespace Dhs5.Utility.Updates
         }
         private void RegisterChannelCallback(int channelIndex, UpdateCallback callback)
         {
+            if (m_isTriggeringChannelCallbacks)
+            {
+                m_pendingChannelCallbackOperations.Add((true, channelIndex, callback));
+                return;
+            }
+
             if (m_channelCallbacks.TryGetValue(channelIndex, out var list) && list != null)
             {
                 list.Add(callback);
@@ -723,6 +733,12 @@ namespace Dhs5.Utility.Updates
         }
         private void UnregisterChannelCallback(int channelIndex, UpdateCallback callback)
         {
+            if (m_isTriggeringChannelCallbacks)
+            {
+                m_pendingChannelCallbackOperations.Add((false, channelIndex, callback));
+                return;
+            }
+
             if (m_channelCallbacks.TryGetValue(channelIndex, out var list) && list.IsValid())
             {
                 list.Remove(callback);
@@ -733,18 +749,54 @@ namespace Dhs5.Utility.Updates
         {
             if (m_channelCallbacks.TryGetValue(channelIndex, out var list) && list.IsValid())
             {
-                foreach (var callback in list)
+                m_isTriggeringChannelCallbacks = true;
+                try
                 {
-                    try
+                    foreach (var callback in list)
                     {
-                        callback?.Invoke(deltaTime);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogException(e);
+                        // Don't call a callback that was unregistered earlier in this iteration
+                        if (IsChannelCallbackPendingRemoval(channelIndex, callback)) continue;
+
+                        try
+                        {
+                            callback?.Invoke(deltaTime);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogException(e);
+                        }
                     }
                 }
+                finally
+                {
+                    m_isTriggeringChannelCallbacks = false;
+                    ApplyPendingChannelCallbackOperations();
+                }
             }
+        }
+
+        private bool IsChannelCallbackPendingRemoval(int channelIndex, UpdateCallback callback)
+        {
+            for (int i = m_pendingChannelCallbackOperations.Count - 1; i >= 0; i--)
+            {
+                var (register, index, pendingCallback) = m_pendingChannelCallbackOperations[i];
+                if (index == channelIndex && Equals(pendingCallback, callback))
+                {
+                    return !register;
+                }
+            }
+            return false;
+        }
+        private void ApplyPendingChannelCallbackOperations()
+        {
+            if (m_pendingChannelCallbackOperations.Count == 0) return;
+
+            foreach (var (register, channelIndex, callback) in m_pendingChannelCallbackOperations)
+            {
+                if (register) RegisterChannelCallback(channelIndex, callback);
+                else UnregisterChannelCallback(channelIndex, callback);
+            }
+            m_pendingChannelCallbackOperations.Clear();
         }
 
         #endregion
@@ -810,7 +862,15 @@ namespace Dhs5.Utility.Updates
             var conditionObject = UpdaterAsset.GetConditionObject(condition);
             if (conditionObject != null)
             {
-                return conditionObject.CanUpdate();
+                try
+                {
+                    return conditionObject.CanUpdate();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                    return false;
+                }
             }
             Debug.LogWarning("No UpdateConditionObject found for " + condition);
             return false;
@@ -1035,7 +1095,8 @@ namespace Dhs5.Utility.Updates
             public override bool Update(float _, float __)
             {
                 m_remainingFrames -= 1;
-                if (m_remainingFrames == 0)
+                // <= because a call registered with 0 frames (condition unfulfilled at registration) starts at -1 here
+                if (m_remainingFrames <= 0)
                 {
                     SafeInvokeCallback();
                     return true;
@@ -1077,7 +1138,17 @@ namespace Dhs5.Utility.Updates
 
             public override bool Update(float _, float __)
             {
-                bool predicateResult = m_predicate.Invoke();
+                bool predicateResult;
+                try
+                {
+                    predicateResult = m_predicate.Invoke();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                    return true;
+                }
+
                 if (predicateResult == m_waitUntil)
                 {
                     SafeInvokeCallback();
