@@ -6,6 +6,17 @@ namespace Dhs5.Utility.Debugger
 {
     public static class DebuggerLogsContainer
     {
+        #region Engine Callbacks
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            _logs.Clear();
+            Cleared = null;
+        }
+
+        #endregion
+
         #region Members
 
         private readonly static List<DebuggerLog> _logs = new();
