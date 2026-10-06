@@ -529,6 +529,17 @@ namespace Dhs5.Utility.UI
 
         // --- STATIC ---
 
+        #region Engine Callbacks
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            GlobalUseRightClick = false;
+            EventContext = null;
+        }
+
+        #endregion
+
         #region Settings
 
         public static bool GlobalUseRightClick { get; set; } = false;
