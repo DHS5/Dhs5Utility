@@ -249,6 +249,8 @@ namespace Dhs5.Utility.SaveLoad
                 IsLoadProcessActive = true;
 
                 m_loadProcessObject = new GameObject("LOAD PROCESS OBJECT").AddComponent<LoadProcessObject>();
+                // Loadables may load scenes : the process must survive them, otherwise OnDisable would cancel it
+                GameObject.DontDestroyOnLoad(m_loadProcessObject.gameObject);
                 m_loadProcessObject.StartLoadProcessCoroutine(LoadCoroutine(content), OnLoadProcessCancelled);
 
                 return true;
@@ -291,48 +293,67 @@ namespace Dhs5.Utility.SaveLoad
                 {
                     if (_loadables.TryGetValue(category, out var list))
                     {
-                        foreach (var loadable in list)
+                        // Iterate over snapshots of the set : loadables can register/unregister while loading (spawned/destroyed objects...),
+                        // which would invalidate an enumerator of the set across the yields.
+                        // Loadables registered during the load of this category are loaded too, in a following pass.
+                        HashSet<ILoadable> processed = new();
+                        List<ILoadable> toProcess = new(list);
+                        while (toProcess.Count > 0)
                         {
-                            IEnumerator coroutine = null;
-                            try
+                            foreach (var loadable in toProcess)
                             {
-                                if (loadable.CanLoad(category, iteration))
+                                // Unregistered (e.g. destroyed) since the snapshot
+                                if (!list.Contains(loadable)) continue;
+
+                                processed.Add(loadable);
+
+                                IEnumerator coroutine = null;
+                                try
                                 {
-                                    coroutine = loadable.LoadCoroutine(category, iteration, subObject);
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                Debug.LogException(e);
-                            }
-
-                            if (coroutine != null)
-                            {
-                                bool running = true;
-                                while (running)
-                                {
-                                    yield return coroutine.Current;
-
-                                    try
+                                    if (loadable.CanLoad(category, iteration))
                                     {
-                                        running = coroutine.MoveNext();
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Debug.LogException(e);
-
-                                        if (SaveAsset.HasModifier(out var modifier)
-                                            && modifier.TryHandleLoadException(e))
-                                        {
-                                            Debug.Log("RESUMING LOAD PROCESS");
-                                        }
-                                        else
-                                        {
-                                            OnLoadProcessCancelled(e);
-                                            yield break;
-                                        }
+                                        coroutine = loadable.LoadCoroutine(category, iteration, subObject);
                                     }
                                 }
+                                catch (Exception e)
+                                {
+                                    Debug.LogException(e);
+                                }
+
+                                if (coroutine != null)
+                                {
+                                    bool running = true;
+                                    while (running)
+                                    {
+                                        yield return coroutine.Current;
+
+                                        try
+                                        {
+                                            running = coroutine.MoveNext();
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Debug.LogException(e);
+
+                                            if (SaveAsset.HasModifier(out var modifier)
+                                                && modifier.TryHandleLoadException(e))
+                                            {
+                                                Debug.Log("RESUMING LOAD PROCESS");
+                                            }
+                                            else
+                                            {
+                                                OnLoadProcessCancelled(e);
+                                                yield break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            toProcess.Clear();
+                            foreach (var loadable in list)
+                            {
+                                if (!processed.Contains(loadable)) toProcess.Add(loadable);
                             }
                         }
                     }
