@@ -14,6 +14,20 @@ namespace Dhs5.Utility.Updates
 
         internal static Updater Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            Instance?.Clear();
+            Instance = null;
+
+            Time = 0f;
+            DeltaTime = 0f;
+            RealTime = 0f;
+            RealDeltaTime = 0f;
+            Frame = 0;
+            TimePaused = false;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void InitBeforeSceneLoad()
         {
@@ -385,7 +399,7 @@ namespace Dhs5.Utility.Updates
 
             Frame = UnityEngine.Time.frameCount;
 
-            TimePaused = DeltaTime != 0f;
+            TimePaused = DeltaTime == 0f;
         }
         private void OnInitializationUpdate()
         {
@@ -843,7 +857,7 @@ namespace Dhs5.Utility.Updates
 
         private void ClearUpdateTimelineInstances()
         {
-            foreach (var key in m_updateTimelineInstances.Keys)
+            foreach (var key in m_updateTimelineInstances.Keys.ToList())
             {
                 DestroyUpdateTimelineInstance(key);
             }
@@ -1366,6 +1380,13 @@ namespace Dhs5.Utility.Updates
             OnUpdateAfterClassic = null;
             OnUpdateBeforeFixed = null;
             OnUpdateClassic = null;
+
+            OneShotAfterEarlyUpdate = null;
+            OneShotClassicUpdate = null;
+            OneShotAfterClassicUpdate = null;
+            OneShotAfterLateUpdate = null;
+            OneShotBeforeFixedUpdate = null;
+            OneShotAfterPhysicsFixedUpdate = null;
 
             // REGISTRATION KEYS
             _registrationCount = 0;
