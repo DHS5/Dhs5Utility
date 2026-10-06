@@ -419,8 +419,7 @@ namespace Dhs5.Utility.Updates
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_EARLY_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateAfterEarly?.Invoke(DeltaTime);
-            OneShotAfterEarlyUpdate?.Invoke();
-            OneShotAfterEarlyUpdate = null;
+            InvokeOneShot(ref OneShotAfterEarlyUpdate);
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_EARLY_UPDATE);
         }
@@ -428,8 +427,7 @@ namespace Dhs5.Utility.Updates
         {
             UpdateDelayedCalls(EUpdatePass.CLASSIC_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateClassic?.Invoke(DeltaTime);
-            OneShotClassicUpdate?.Invoke();
-            OneShotClassicUpdate = null;
+            InvokeOneShot(ref OneShotClassicUpdate);
 
             m_currentFramePasses.Add(EUpdatePass.CLASSIC_UPDATE);
         }
@@ -437,8 +435,7 @@ namespace Dhs5.Utility.Updates
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateAfterClassic?.Invoke(DeltaTime);
-            OneShotAfterClassicUpdate?.Invoke();
-            OneShotAfterClassicUpdate = null;
+            InvokeOneShot(ref OneShotAfterClassicUpdate);
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_UPDATE);
         }
@@ -446,8 +443,7 @@ namespace Dhs5.Utility.Updates
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_LATE_UPDATE, DeltaTime, RealDeltaTime);
             OnUpdateAfterLate?.Invoke(DeltaTime);
-            OneShotAfterLateUpdate?.Invoke();
-            OneShotAfterLateUpdate = null;
+            InvokeOneShot(ref OneShotAfterLateUpdate);
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_LATE_UPDATE);
         }
@@ -456,8 +452,7 @@ namespace Dhs5.Utility.Updates
         {
             UpdateDelayedCalls(EUpdatePass.BEFORE_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime, UnityEngine.Time.fixedUnscaledDeltaTime);
             OnUpdateBeforeFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
-            OneShotBeforeFixedUpdate?.Invoke();
-            OneShotBeforeFixedUpdate = null;
+            InvokeOneShot(ref OneShotBeforeFixedUpdate);
 
             m_currentFramePasses.Add(EUpdatePass.BEFORE_FIXED_UPDATE);
         }
@@ -465,8 +460,7 @@ namespace Dhs5.Utility.Updates
         {
             UpdateDelayedCalls(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE, UnityEngine.Time.fixedDeltaTime, UnityEngine.Time.fixedUnscaledDeltaTime);
             OnUpdateAfterPhysicsFixed?.Invoke(UnityEngine.Time.fixedDeltaTime);
-            OneShotAfterPhysicsFixedUpdate?.Invoke();
-            OneShotAfterPhysicsFixedUpdate = null;
+            InvokeOneShot(ref OneShotAfterPhysicsFixedUpdate);
 
             m_currentFramePasses.Add(EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE);
         }
@@ -575,6 +569,29 @@ namespace Dhs5.Utility.Updates
                 case EUpdatePass.AFTER_LATE_UPDATE: OneShotAfterLateUpdate += callback; break;
                 case EUpdatePass.BEFORE_FIXED_UPDATE: OneShotBeforeFixedUpdate += callback; break;
                 case EUpdatePass.AFTER_PHYSICS_FIXED_UPDATE: OneShotAfterPhysicsFixedUpdate += callback; break;
+            }
+        }
+
+        /// <summary>
+        /// Detaches <paramref name="oneShot"/> before invoking it, so callbacks registered during the invocation are kept for the next pass,
+        /// and invokes each callback separately, so one throwing doesn't prevent the others from being called
+        /// </summary>
+        private static void InvokeOneShot(ref Action oneShot)
+        {
+            var callbacks = oneShot;
+            oneShot = null;
+            if (callbacks == null) return;
+
+            foreach (Action callback in callbacks.GetInvocationList())
+            {
+                try
+                {
+                    callback.Invoke();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
             }
         }
 
@@ -1167,6 +1184,8 @@ namespace Dhs5.Utility.Updates
         private readonly Dictionary<ulong, DelayedCall> m_delayedCalls = new();
         private readonly Dictionary<ulong, DelayedCall> m_delayedCallsToRegister = new();
         private readonly HashSet<ulong> m_delayedCallsToUnregister = new();
+        // Keys of zero-delay calls waiting for their pass in a OneShot event, so their handle can still kill them
+        private readonly HashSet<ulong> m_pendingOneShotDelayedCalls = new();
 
         private void PreRegisterDelayedCall(ulong key, DelayedCall delayedCall)
         {
@@ -1174,7 +1193,21 @@ namespace Dhs5.Utility.Updates
         }
         private void PreUnregisterDelayedCall(ulong key)
         {
+            // A killed pending one shot call stays in its OneShot event but won't invoke its callback
+            if (m_pendingOneShotDelayedCalls.Remove(key)) return;
+
             m_delayedCallsToUnregister.Add(key);
+        }
+
+        private void RegisterOneShotDelayedCall(ulong key, EUpdatePass pass, Action callback)
+        {
+            m_pendingOneShotDelayedCalls.Add(key);
+            RegisterOneShotCallback(pass, () =>
+            {
+                if (!m_pendingOneShotDelayedCalls.Remove(key)) return; // Killed
+
+                callback?.Invoke(); // Exceptions are handled by InvokeOneShot
+            });
         }
 
         private void PerformDelayedCallsRegistraton()
@@ -1204,7 +1237,7 @@ namespace Dhs5.Utility.Updates
                 && IsConditionFulfilled(condition))
             {
                 if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
-                else RegisterOneShotCallback(pass, callback);
+                else RegisterOneShotDelayedCall(key, pass, callback);
                 return;
             }
 
@@ -1218,7 +1251,7 @@ namespace Dhs5.Utility.Updates
                 && IsConditionFulfilled(condition))
             {
                 if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
-                else RegisterOneShotCallback(pass, callback);
+                else RegisterOneShotDelayedCall(key, pass, callback);
                 return;
             }
 
@@ -1232,7 +1265,7 @@ namespace Dhs5.Utility.Updates
                 && IsConditionFulfilled(condition))
             {
                 if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
-                else RegisterOneShotCallback(pass, callback);
+                else RegisterOneShotDelayedCall(key, pass, callback);
                 return;
             }
 
@@ -1246,7 +1279,7 @@ namespace Dhs5.Utility.Updates
                 && IsConditionFulfilled(condition))
             {
                 if (PassHasBeenTriggeredThisFrame(pass)) callback?.Invoke();
-                else RegisterOneShotCallback(pass, callback);
+                else RegisterOneShotDelayedCall(key, pass, callback);
                 return;
             }
 
@@ -1371,7 +1404,7 @@ namespace Dhs5.Utility.Updates
 
         internal bool DoesDelayedCallExist(ulong key)
         {
-            return m_delayedCalls.ContainsKey(key) || m_delayedCallsToRegister.ContainsKey(key);
+            return m_delayedCalls.ContainsKey(key) || m_delayedCallsToRegister.ContainsKey(key) || m_pendingOneShotDelayedCalls.Contains(key);
         }
         internal bool GetDelayedCallTimeLeft(ulong key, out float timeLeft)
         {
@@ -1405,6 +1438,7 @@ namespace Dhs5.Utility.Updates
             m_delayedCalls.Clear();
             m_delayedCallsToRegister.Clear();
             m_delayedCallsToUnregister.Clear();
+            m_pendingOneShotDelayedCalls.Clear();
         }
 
         #endregion
