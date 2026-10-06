@@ -6,6 +6,16 @@ namespace Dhs5.Utility.Tags
 {
     public static class GameplayTags
     {
+        #region Engine Callbacks
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            _tags.Clear();
+        }
+
+        #endregion
+
         #region Members
 
         private static Dictionary<int, HashSet<int>> _tags = new();
