@@ -1389,7 +1389,11 @@ namespace Dhs5.Utility.Updates
             OneShotAfterPhysicsFixedUpdate = null;
 
             // REGISTRATION KEYS
-            _registrationCount = 0;
+            // _registrationCount is intentionally NOT reset.
+            // Handles (DelayedCallHandle, UpdateTimelineInstanceHandle) are only a key, and can outlive a play session
+            // when domain reload is disabled (non-serialized ScriptableObject fields, static fields, editor windows...).
+            // Restarting keys at 1 would make those stale handles match new registrations,
+            // so Kill() / IsValid() would act on the wrong call. A ulong will never overflow in practice.
         }
 
         #endregion
