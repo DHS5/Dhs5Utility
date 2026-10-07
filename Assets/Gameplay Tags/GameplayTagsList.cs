@@ -172,7 +172,7 @@ namespace Dhs5.Utility.Tags
 
         private int GetTagsSelectorID(SerializedProperty property)
         {
-            return property.serializedObject.targetObject.GetInstanceID() + property.propertyPath.GetHashCode();
+            return property.serializedObject.targetObject.GetEntityId().GetHashCode() + property.propertyPath.GetHashCode();
         }
 
         #endregion

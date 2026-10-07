@@ -18,7 +18,7 @@ namespace Dhs5.Utility.Tags
 
         #region Members
 
-        private static Dictionary<int, HashSet<int>> _tags = new();
+        private static Dictionary<EntityId, HashSet<int>> _tags = new();
 
         #endregion
 
@@ -39,7 +39,7 @@ namespace Dhs5.Utility.Tags
             {
                 tags.Add(tag);
             }
-            _tags[go.GetInstanceID()] = tags;
+            _tags[go.GetEntityId()] = tags;
         }
         /// <summary>
         /// Registers the Gameplay Tags from <paramref name="tagsList"/>
@@ -61,7 +61,7 @@ namespace Dhs5.Utility.Tags
         {
             if (go == null) return;
 
-            _tags.Remove(go.GetInstanceID());
+            _tags.Remove(go.GetEntityId());
         }
         /// <summary>
         /// Unregisters the Gameplay Tags associated with <paramref name="component"/>'s game object
@@ -79,7 +79,7 @@ namespace Dhs5.Utility.Tags
 
         public static GameplayTagsList Get(GameObject go)
         {
-            if (go == null || !_tags.TryGetValue(go.GetInstanceID(), out var tags)) return null;
+            if (go == null || !_tags.TryGetValue(go.GetEntityId(), out var tags)) return null;
 
             return new GameplayTagsList(tags);
         }
@@ -92,7 +92,7 @@ namespace Dhs5.Utility.Tags
 
         public static void Get_NoAlloc(GameObject go, GameplayTagsList tagsList)
         {
-            if (go == null || !_tags.TryGetValue(go.GetInstanceID(), out var tags)) return;
+            if (go == null || !_tags.TryGetValue(go.GetEntityId(), out var tags)) return;
 
             tagsList.Set(tags);
         }
@@ -113,7 +113,7 @@ namespace Dhs5.Utility.Tags
             if (go == null || !tagsList.IsValid()) return;
 
             // Add
-            if (_tags.TryGetValue(go.GetInstanceID(), out var currentTags))
+            if (_tags.TryGetValue(go.GetEntityId(), out var currentTags))
             {
                 foreach (var tag in tagsList)
                 {
@@ -142,7 +142,7 @@ namespace Dhs5.Utility.Tags
             if (go == null || !tagsList.IsValid()) return;
 
             // Remove
-            if (_tags.TryGetValue(go.GetInstanceID(), out var currentTags))
+            if (_tags.TryGetValue(go.GetEntityId(), out var currentTags))
             {
                 foreach (var tag in tagsList)
                 {
@@ -164,7 +164,7 @@ namespace Dhs5.Utility.Tags
 
         public static bool Contains(GameObject go, GameplayTagsList tagsList)
         {
-            if (go == null || !tagsList.IsValid() || !_tags.TryGetValue(go.GetInstanceID(), out var currentTags)) return false;
+            if (go == null || !tagsList.IsValid() || !_tags.TryGetValue(go.GetEntityId(), out var currentTags)) return false;
 
             foreach (var tag in tagsList)
             {
@@ -181,7 +181,7 @@ namespace Dhs5.Utility.Tags
         
         public static bool ContainsAny(GameObject go, GameplayTagsList tagsList)
         {
-            if (go == null || !tagsList.IsValid() || !_tags.TryGetValue(go.GetInstanceID(), out var currentTags)) return false;
+            if (go == null || !tagsList.IsValid() || !_tags.TryGetValue(go.GetEntityId(), out var currentTags)) return false;
 
             foreach (var tag in tagsList)
             {
@@ -202,11 +202,11 @@ namespace Dhs5.Utility.Tags
 
         public static GameplayTagsList Union(GameObject go1, GameObject go2)
         {
-            if (go1 == null || !_tags.TryGetValue(go1.GetInstanceID(), out var go1Tags))
+            if (go1 == null || !_tags.TryGetValue(go1.GetEntityId(), out var go1Tags))
             {
                 return Get(go2);
             }
-            if (go2 == null || !_tags.TryGetValue(go2.GetInstanceID(), out var go2Tags))
+            if (go2 == null || !_tags.TryGetValue(go2.GetEntityId(), out var go2Tags))
             {
                 return Get(go1);
             }
@@ -230,7 +230,7 @@ namespace Dhs5.Utility.Tags
         }
         public static GameplayTagsList Union(GameObject go, GameplayTagsList tagsList)
         {
-            if (go == null || !_tags.TryGetValue(go.GetInstanceID(), out var goTags))
+            if (go == null || !_tags.TryGetValue(go.GetEntityId(), out var goTags))
             {
                 return tagsList;
             }
@@ -262,8 +262,8 @@ namespace Dhs5.Utility.Tags
 
         public static GameplayTagsList Intersection(GameObject go1, GameObject go2)
         {
-            if (go1 == null || !_tags.TryGetValue(go1.GetInstanceID(), out var go1Tags) ||
-                go2 == null || !_tags.TryGetValue(go2.GetInstanceID(), out var go2Tags))
+            if (go1 == null || !_tags.TryGetValue(go1.GetEntityId(), out var go1Tags) ||
+                go2 == null || !_tags.TryGetValue(go2.GetEntityId(), out var go2Tags))
             {
                 return null;
             }
@@ -289,7 +289,7 @@ namespace Dhs5.Utility.Tags
         }
         public static GameplayTagsList Intersection(GameObject go, GameplayTagsList tagsList)
         {
-            if (go == null || !_tags.TryGetValue(go.GetInstanceID(), out var goTags) 
+            if (go == null || !_tags.TryGetValue(go.GetEntityId(), out var goTags) 
                 || !tagsList.IsValid())
             {
                 return null;

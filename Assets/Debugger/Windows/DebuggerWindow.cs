@@ -557,7 +557,7 @@ namespace Dhs5.Utility.Debugger
                     break;
 
                 case SerializedPropertyType.EntityId:
-                    EditorGUILayout.IntField(memberSnapshot.name, (EntityId)memberSnapshot.value);
+                    EditorGUILayout.TextField(memberSnapshot.name, ((EntityId)memberSnapshot.value).ToString());
                     break;
             }
         }
