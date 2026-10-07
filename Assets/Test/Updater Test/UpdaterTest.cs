@@ -10,14 +10,14 @@ public class UpdaterTest : MonoBehaviour
 
     private void OnEnable()
     {
-        Updater.RegisterChannelCallback(true, EUpdateChannel.BASE, OnUpdate1);
-        Updater.RegisterChannelCallback(true, EUpdateChannel.BASE, OnUpdate2);
+        Updater.RegisterChannelCallback(true, EUpdateChannel.CLASSIC, OnUpdate1);
+        Updater.RegisterChannelCallback(true, EUpdateChannel.CLASSIC, OnUpdate2);
         Updater.RegisterChannelCallback(true, EUpdateChannel.SCREEN_LOG, OnUpdate3);
     }
     private void OnDisable()
     {
-        Updater.RegisterChannelCallback(false, EUpdateChannel.BASE, OnUpdate1);
-        Updater.RegisterChannelCallback(false, EUpdateChannel.BASE, OnUpdate2);
+        Updater.RegisterChannelCallback(false, EUpdateChannel.CLASSIC, OnUpdate1);
+        Updater.RegisterChannelCallback(false, EUpdateChannel.CLASSIC, OnUpdate2);
         Updater.RegisterChannelCallback(false, EUpdateChannel.SCREEN_LOG, OnUpdate3);
     }
 
@@ -38,7 +38,7 @@ public class UpdaterTest : MonoBehaviour
             Debug.Log("init delayed calls");
             Updater.CallInXSeconds(2f, OnDelayedCall, out _);
             Updater.CallInXRealtimeSeconds(2f, OnRealtimeDelayedCall, out _);
-            Updater.CreateTimelineInstance(EUpdateChannel.BASE, 5f, out m_timelineHandle);
+            Updater.CreateTimelineInstance(EUpdateChannel.CLASSIC, 5f, out m_timelineHandle);
             m_timelineHandle.Updated += OnTimelineUpdated;
             m_timelineHandle.Started += OnTimelineStarted;
             m_timelineHandle.Ended += OnTimelineEnded;

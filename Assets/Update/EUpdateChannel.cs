@@ -2,13 +2,13 @@ using System;
 
 namespace Dhs5.Utility.Updates
 {
-    public enum EUpdateChannel : Int16
+    public enum EUpdateChannel : Byte
     {
-        BASE = 0,
+        CLASSIC = 0,
         SCREEN_LOG = 1,
     }
 
-    public struct BASE_UpdateChannel { }
+    public struct CLASSIC_UpdateChannel { }
     public struct SCREEN_LOG_UpdateChannel { }
 
     public static class UpdateChannelExtensions
@@ -17,7 +17,7 @@ namespace Dhs5.Utility.Updates
         {
             switch (e)
             {
-                case EUpdateChannel.BASE: return typeof(BASE_UpdateChannel);
+                case EUpdateChannel.CLASSIC: return typeof(CLASSIC_UpdateChannel);
                 case EUpdateChannel.SCREEN_LOG: return typeof(SCREEN_LOG_UpdateChannel);
                 default: return typeof(Updater.DefaultUpdateChannel);
             }

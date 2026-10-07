@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System;
 using Dhs5.Utility.GUIs;
 using System.Text;
+using System.Linq;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -259,10 +261,12 @@ namespace Dhs5.Utility.Updates
                 var r_indexLabel = new Rect(marginedRect.x + enabledToggleTotalWidth, marginedRect.y, 20f, 20f);
                 var r_nameTextField = new Rect(marginedRect.x + enabledToggleTotalWidth + 20f, marginedRect.y, marginedRect.width - enabledToggleTotalWidth - buttonsTotalWidth - 20f, 20f);
                 EditorGUI.LabelField(r_indexLabel, p_enumIndex.intValue.ToString(), EditorStyles.boldLabel);
-                var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, element.name));
-                if (newName != element.name)
+                var displayName = element.name;
+                if (displayName != null && displayName.StartsWith("UC_")) displayName = displayName.Remove(0, 3);
+                var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, displayName));
+                if (newName != displayName)
                 {
-                    element.name = newName;
+                    element.name = "UC_" + newName;
                     AssetDatabase.SaveAssetIfDirty(element);
                 }
 
@@ -584,82 +588,113 @@ namespace Dhs5.Utility.Updates
             {
                 if (GUILayout.Button("ENSURE ASSET SANITY"))
                 {
-                    AssetDatabase.Refresh();
+                    EnsureAssetSanity();
+                }
+            }
+        }
 
-                    // Put all channels in list inside the asset
-                    var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
-                    for (int i = 0; i < p_updateChannels.arraySize; i++)
+        private void EnsureAssetSanity()
+        {
+            AssetDatabase.Refresh();
+            var assetDatabaseChange = false;
+
+            // Put all channels in list inside the folder
+            var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
+            var updaterFolderPath = updaterAssetPath.Substring(0, updaterAssetPath.LastIndexOf('/') + 1);
+
+            for (int i = 0; i < p_updateChannels.arraySize; i++)
+            {
+                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject channelObject)
+                {
+                    var currentObjectPath = AssetDatabase.GetAssetPath(channelObject);
+                    var newObjectPath = updaterFolderPath + channelObject.name + ".asset";
+
+                    if (currentObjectPath != newObjectPath)
                     {
-                        if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject channelObject
-                            && AssetDatabase.GetAssetPath(channelObject) != updaterAssetPath)
+                        if (AssetDatabase.IsSubAsset(channelObject))
                         {
-                            if (AssetDatabase.IsSubAsset(channelObject))
-                            {
-                                AssetDatabase.RemoveObjectFromAsset(channelObject);
-                            }
-                            AssetDatabase.AddObjectToAsset(channelObject, updaterAssetPath);
+                            AssetDatabase.RemoveObjectFromAsset(channelObject);
+                            AssetDatabase.CreateAsset(channelObject, newObjectPath);
                         }
-                    }
-                    // Put all channels in asset inside list
-                    foreach (var subAsset in EditorDataUtility.GetSubAssets(m_updaterAsset))
-                    {
-                        if (subAsset is UpdateChannelObject channelObject)
+                        else
                         {
-                            bool isInside = false;
-                            for (int j = 0; j < p_updateChannels.arraySize; j++)
-                            {
-                                if (p_updateChannels.GetArrayElementAtIndex(j).objectReferenceValue == channelObject)
-                                {
-                                    isInside = true;
-                                    break;
-                                }
-                            }
-
-                            if (!isInside)
-                            {
-                                p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
-                                p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = channelObject;
-                            }
-                            continue;
+                            AssetDatabase.MoveAsset(currentObjectPath, newObjectPath);
                         }
-                        // Same for Timelines
-                    }
-
-                    // Remove list null elements
-                    for (int i = p_updateChannels.arraySize - 1; i >= 0; i--)
-                    {
-                        if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == null)
-                        {
-                            p_updateChannels.DeleteArrayElementAtIndex(i);
-                        }
-                    }
-
-                    // Destroy intrusive objects
-                    EditorDataUtility.EnsureAssetValidity(m_updaterAsset, (subAsset) =>
-                    {
-                        return subAsset is UpdateChannelObject or UpdateTimelineObject;
-                    });
-
-                    // Make sure first channel is CLASSIC
-                    if (p_updateChannels.arraySize > 0)
-                    {
-                        var element = p_updateChannels.GetArrayElementAtIndex(0).objectReferenceValue;
-                        if (element != null)
-                        {
-                            element.name = "CLASSIC";
-                        }
-                    }
-
-                    // Make sure first condition is ALWAYS
-                    if (p_updateConditions.arraySize > 0)
-                    {
-                        var p_name = p_updateConditions.GetArrayElementAtIndex(0).FindPropertyRelative("m_name");
-                        if (p_name != null)
-                        {
-                            p_name.stringValue = "ALWAYS";
-                        }
+                        assetDatabaseChange = true;
                     }
                 }
+            }
+            // Put all channels in folder inside list
+            var guids = AssetDatabase.FindAssets("t:UpdateChannelObject", new[] { updaterFolderPath });
+            foreach (var channelObjectInFolder in guids.Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<UpdateChannelObject>))
+            {
+                bool isInside = false;
+                for (int j = 0; j < p_updateChannels.arraySize; j++)
+                {
+                    if (p_updateChannels.GetArrayElementAtIndex(j).objectReferenceValue == channelObjectInFolder)
+                    {
+                        isInside = true;
+                        break;
+                    }
+                }
+
+                if (!isInside)
+                {
+                    p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
+                    p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = channelObjectInFolder;
+                }
+                continue;
+            }
+            // Same for Timelines
+
+            // Remove list null elements
+            for (int i = p_updateChannels.arraySize - 1; i >= 0; i--)
+            {
+                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    p_updateChannels.DeleteArrayElementAtIndex(i);
+                }
+            }
+
+            // Destroy intrusive objects
+            EditorDataUtility.EnsureAssetValidity(m_updaterAsset, (subAsset) =>
+            {
+                return subAsset is UpdateChannelObject or UpdateTimelineObject;
+            });
+
+            // Make sure channels' names are correct
+            if (p_updateChannels.arraySize > 0)
+            {
+                var element = p_updateChannels.GetArrayElementAtIndex(0).objectReferenceValue;
+                if (element != null)
+                {
+                    element.name = "UC_CLASSIC";
+                }
+
+                for (int i = 1; i < p_updateChannels.arraySize; i++)
+                {
+                    element = p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue;
+                    if (element != null && !element.name.StartsWith("UC_"))
+                    {
+                        element.name = "UC_" + element.name;
+                    }
+                }
+            }
+
+            // Make sure first condition is ALWAYS
+            if (p_updateConditions.arraySize > 0)
+            {
+                var p_name = p_updateConditions.GetArrayElementAtIndex(0).FindPropertyRelative("m_name");
+                if (p_name != null)
+                {
+                    p_name.stringValue = "ALWAYS";
+                }
+            }
+
+            if (assetDatabaseChange)
+            {
+                AssetDatabase.SaveAssets();
             }
         }
 
