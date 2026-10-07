@@ -39,6 +39,7 @@ namespace Dhs5.Utility.UI
 
         private UINavBox m_box;
         private bool m_interactable;
+        private bool m_interactabilityTracked;
 
         private bool m_transitionInitialized;
         protected FUIState m_lastState;
@@ -88,7 +89,13 @@ namespace Dhs5.Utility.UI
         {
             base.OnEnable();
 
-            m_interactable = interactable;
+            // Silently capture the initial interactability (includes CanvasGroups)
+            // Later enables go through CheckInteractabilityChange normally
+            if (!m_interactabilityTracked)
+            {
+                m_interactable = IsInteractable();
+                m_interactabilityTracked = true;
+            }
         }
 
         #endregion
@@ -181,6 +188,12 @@ namespace Dhs5.Utility.UI
             if (IsActive() && !IsInteractable())
             {
                 DoStateTransition(SelectionState.Disabled, false);
+            }
+            else if (IsActive()
+                && eventData.button == PointerEventData.InputButton.Right
+                && UseRightClick())
+            {
+                DoStateTransition(currentSelectionState, false);
             }
 
             if (eventData.button == PointerEventData.InputButton.Left)
@@ -345,6 +358,7 @@ namespace Dhs5.Utility.UI
             if (m_transitioners.IsValid())
             {
                 ApplyTransitions(FUIState.NORMAL, true);
+                m_lastState = FUIState.NORMAL;
             }
         }
 
@@ -400,6 +414,8 @@ namespace Dhs5.Utility.UI
 
         protected void CheckInteractabilityChange()
         {
+            if (!m_interactabilityTracked) return;
+
             if (m_interactable != IsInteractable())
             {
                 m_interactable = !m_interactable;

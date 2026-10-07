@@ -2353,10 +2353,10 @@ namespace Dhs5.Utility.UI
                     bool isDoubleClick = false;
                     float timeStamp = Time.unscaledTime;
 
-                    if (m_KeyDownStartTime + m_DoubleClickDelay > timeStamp)
+                    if (m_keyDownStartTime + m_doubleClickDelay > timeStamp)
                         isDoubleClick = true;
 
-                    m_KeyDownStartTime = timeStamp;
+                    m_keyDownStartTime = timeStamp;
 
                     if (isDoubleClick)
                     {
@@ -4531,7 +4531,7 @@ namespace Dhs5.Utility.UI
 #if PLATFORM_TVOS
             // When a keyboard is open in tvOS, the submit button is used for typing.
             // Only actually close the keyboard on tvOS if "Done" was pressed in the soft keyboard.
-            if (m_SoftKeyboard != null && m_SoftKeyboard.status == TouchScreenKeyboard.Status.Visible)
+            if (m_softKeyboard != null && m_softKeyboard.status == TouchScreenKeyboard.Status.Visible)
                 return;
 #endif
             DeactivateInputField();

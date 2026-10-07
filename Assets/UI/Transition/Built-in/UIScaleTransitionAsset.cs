@@ -31,7 +31,7 @@ namespace Dhs5.Utility.UI
 
             foreach (Graphic g in graphics)
             {
-                g.transform.localScale = value;
+                g.transform.localScale = new Vector3(value.x, value.y, 1f);
             }
 
             return null;
@@ -53,7 +53,7 @@ namespace Dhs5.Utility.UI
 
         public override object GetGraphicInitialValue(Graphic graphic)
         {
-            return graphic.transform.localScale;
+            return (Vector2)graphic.transform.localScale;
         }
 
         #endregion
@@ -66,7 +66,7 @@ namespace Dhs5.Utility.UI
 
             protected override void OnComplete(Graphic graphic, Vector2 targetValue)
             {
-                graphic.transform.localScale = targetValue;
+                graphic.transform.localScale = new Vector3(targetValue.x, targetValue.y, 1f);
             }
 
             protected override void OnInit(Graphic graphic, Vector2 targetValue)
@@ -76,7 +76,7 @@ namespace Dhs5.Utility.UI
 
             protected override void Update(Graphic graphic, float normalizedTime, Vector2 targetValue)
             {
-                graphic.transform.localScale = Vector3.Lerp(m_startScale, targetValue, normalizedTime);
+                graphic.transform.localScale = Vector3.Lerp(m_startScale, new Vector3(targetValue.x, targetValue.y, 1f), normalizedTime);
             }
         }
 

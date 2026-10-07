@@ -346,7 +346,8 @@ namespace Dhs5.Utility.UI
 
         protected virtual bool Set(int value, bool triggerEvent = true, bool refreshShownValues = true, bool force = false)
         {
-            value = Mathf.Clamp(value, MinusOneOption.IsEnabled(out _) ? -1 : 0, OptionsCount);
+            var minValue = MinusOneOption.IsEnabled(out _) ? -1 : 0;
+            value = Mathf.Clamp(value, minValue, Mathf.Max(minValue, OptionsCount - 1));
             if (!force && Value == value) return false;
 
             m_value = value;
@@ -389,6 +390,8 @@ namespace Dhs5.Utility.UI
 
         public virtual bool AnimateNext()
         {
+            if (m_items.Count == 0) return SetNext(triggerEvent: true, refreshShownValues: false);
+
             if (SetNext(triggerEvent: true, refreshShownValues: false))
             {
                 KillMoveCoroutineInstant(true);
@@ -400,6 +403,8 @@ namespace Dhs5.Utility.UI
         }
         public virtual bool AnimatePrevious()
         {
+            if (m_items.Count == 0) return SetPrevious(triggerEvent: true, refreshShownValues: false);
+
             if (SetPrevious(triggerEvent: true, refreshShownValues: false))
             {
                 KillMoveCoroutineInstant(true);
@@ -431,6 +436,8 @@ namespace Dhs5.Utility.UI
                 return;
             }
 #endif
+
+            if (m_items.Count == 0) return;
 
             var halfCount = m_items.Count / 2;
             for (int i = -halfCount; i < halfCount + 1; i++)
@@ -686,6 +693,8 @@ namespace Dhs5.Utility.UI
 
         protected virtual void OffsetItems(float offset)
         {
+            if (m_items.Count == 0) return;
+
             var halfCount = m_items.Count / 2;
             for (int i = -halfCount; i < halfCount + 1; i++)
             {
@@ -930,7 +939,7 @@ namespace Dhs5.Utility.UI
 
         #region Utility
 
-        protected float GetCurrentItemsOffset() => GetItemOffset(m_items[GetIndex(m_mainItemIndex, m_items.Count, true, false)]);
+        protected float GetCurrentItemsOffset() => m_items.Count > 0 ? GetItemOffset(m_items[GetIndex(m_mainItemIndex, m_items.Count, true, false)]) : 0f;
         protected float GetItemOffset(UIScrollListItem item)
         {
             switch (Direction)
@@ -976,12 +985,14 @@ namespace Dhs5.Utility.UI
 
         #region Index Utility
 
+        /// <summary>
+        /// Returns the index in [<paramref name="allowMinusOne"/> ? -1 : 0, <paramref name="count"/> - 1], wrapped if <paramref name="wrapAround"/>.<br/>
+        /// Returns -2 (or the original negative index without wrap) if no valid index exists
+        /// </summary>
         protected static int GetIndex(int index, int count, bool wrapAround, bool allowMinusOne)
         {
-            if (count <= 0)
-            {
-                throw new Exception("Invalid count " + count);
-            }
+            if (count < 0) count = 0;
+            if (count == 0 && !allowMinusOne) return -2;
 
             while (index < (allowMinusOne ? -1 : 0))
             {

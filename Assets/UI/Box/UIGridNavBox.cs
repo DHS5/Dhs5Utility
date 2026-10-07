@@ -504,6 +504,7 @@ namespace Dhs5.Utility.UI
                     if (!column.IsInitialized) column.Initialize();
 
                     column.Add(selectable);
+                    m_columns[columnIndex] = column;
                 }
                 else if (createColumnIfNecessary)
                 {
@@ -515,6 +516,7 @@ namespace Dhs5.Utility.UI
                     if (!column.IsInitialized) column.Initialize();
 
                     column.Add(selectable);
+                    m_columns[columnIndex] = column;
                 }
             }
 
@@ -529,6 +531,7 @@ namespace Dhs5.Utility.UI
                     if (!column.IsInitialized) column.Initialize();
 
                     column.Insert(lineIndex, selectable);
+                    m_columns[columnIndex] = column;
                 }
             }
 

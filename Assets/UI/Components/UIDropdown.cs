@@ -141,6 +141,12 @@ namespace Dhs5.Utility.UI
                 if (m_template != value)
                 {
                     m_template = value;
+                    // New template needs its Canvas, CanvasGroup and raycasters to be setup on next Show
+                    m_validTemplate = false;
+
+                    if (Application.isPlaying && m_template)
+                        m_template.gameObject.SetActive(false);
+
                     RefreshShownValue();
                 }
             } 
@@ -355,7 +361,7 @@ namespace Dhs5.Utility.UI
         public virtual void ClearOptions()
         {
             m_options.Clear();
-            m_value = m_placeholder ? -1 : 0;
+            m_value = !m_multiSelect && m_placeholder ? -1 : 0;
             RefreshShownValue();
         }
 
@@ -963,7 +969,7 @@ namespace Dhs5.Utility.UI
         }
         protected virtual void OnCancelledItem(int index)
         {
-
+            Hide();
         }
 
         #endregion
@@ -997,6 +1003,8 @@ namespace Dhs5.Utility.UI
         {
             // Find the Canvas that this dropdown is a part of
             Canvas parentCanvas = null;
+            if (m_template == null) return parentCanvas;
+
             Transform parentTransform = m_template.parent;
             while (parentTransform != null)
             {

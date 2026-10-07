@@ -191,9 +191,9 @@ namespace Dhs5.Utility.UI
                 case EAxis.HORIZONTAL when moveDirection is MoveDirection.Right or MoveDirection.Up or MoveDirection.Down:
                     for (int i = 0; i < Count; i++)
                     {
-                        if (m_selectables != null)
+                        var selectable = m_selectables[i];
+                        if (selectable != null)
                         {
-                            var selectable = m_selectables[i];
                             if (selectable.IsActive())
                             {
                                 if (needSetup)
@@ -214,9 +214,9 @@ namespace Dhs5.Utility.UI
                 case EAxis.HORIZONTAL when moveDirection is MoveDirection.Left:
                     for (int i = Count - 1; i >= 0; i--)
                     {
-                        if (m_selectables != null)
+                        var selectable = m_selectables[i];
+                        if (selectable != null)
                         {
-                            var selectable = m_selectables[i];
                             if (selectable.IsActive())
                             {
                                 if (needSetup)

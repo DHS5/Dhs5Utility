@@ -30,11 +30,19 @@ namespace Dhs5.Utility.UI
         {
             m_monoBehaviour = monoBehaviour;
 
-            if (monoBehaviour == null
-                && graphic == null
-                && duration <= 0f)
+            if (monoBehaviour == null)
             {
-                Debug.LogError("Invalid tween");
+                Debug.LogError("Invalid tween : MonoBehaviour is null");
+                return;
+            }
+            if (!IsValid(graphic))
+            {
+                return;
+            }
+
+            if (duration <= 0f)
+            {
+                OnComplete(graphic, targetValue);
                 return;
             }
 

@@ -20,6 +20,7 @@ namespace Dhs5.Utility.UI
         [SerializeField] protected bool m_setupOnStart;
 
         private UINavBox m_box;
+        private MoveDirection m_selectionMoveDirection;
 
         #endregion
 
@@ -65,10 +66,12 @@ namespace Dhs5.Utility.UI
 
             if (eventData is AxisEventData axisEventData)
             {
+                m_selectionMoveDirection = axisEventData.moveDir;
                 NextSelection = GetFirstChildByDirection(axisEventData.moveDir);
             }
             else
             {
+                m_selectionMoveDirection = MoveDirection.None;
                 NextSelection = GetDefaultFirstChild();
             }
 
@@ -81,6 +84,20 @@ namespace Dhs5.Utility.UI
 
         public void OnUpdateSelected(BaseEventData eventData)
         {
+            if (NextSelection == null || !NextSelection.IsActive())
+            {
+                // No valid child --> pass the selection to the neighbour in the move direction
+                // If there is none, or the box was selected without direction, the box stays selected
+                var neighbour = FindValidNeighbour(m_selectionMoveDirection);
+                m_selectionMoveDirection = MoveDirection.None;
+
+                if (neighbour != null)
+                {
+                    eventData.selectedObject = neighbour.gameObject;
+                }
+                return;
+            }
+
             OnBeforeNavigateToChild(eventData);
 
             eventData.selectedObject = NextSelection.gameObject;
@@ -136,11 +153,70 @@ namespace Dhs5.Utility.UI
         /// </summary>
         protected abstract Selectable GetFirstChildByDirection(MoveDirection moveDirection);
 
+        /// <summary>
+        /// Whether selecting this box with <paramref name="moveDirection"/> would lead to an active child (searching through nested boxes)
+        /// </summary>
+        protected bool HasValidChild(MoveDirection moveDirection)
+        {
+            var child = GetFirstChildByDirection(moveDirection);
+            if (child == null || !child.IsActive()) return false;
+            if (child is UINavBox childBox) return childBox.HasValidChild(moveDirection);
+            return true;
+        }
+
         #endregion
 
         #region Child Navigation
 
         public abstract Selectable FindSelectableOnChildFailed(Selectable child, AxisEventData axisEventData);
+
+        /// <summary>
+        /// Returns the first neighbour in <paramref name="moveDirection"/> that is not a box without valid child.<br/>
+        /// Empty boxes are skipped over, and a loop of empty boxes returns null
+        /// </summary>
+        protected Selectable FindValidNeighbour(MoveDirection moveDirection)
+        {
+            if (moveDirection == MoveDirection.None) return null;
+
+            HashSet<UINavBox> visited = null;
+            UINavBox current = this;
+            while (true)
+            {
+                var neighbour = current.FindNeighbourOnNoValidChild(moveDirection);
+                if (neighbour is not UINavBox box || box.HasValidChild(moveDirection))
+                    return neighbour;
+
+                visited ??= new() { this };
+                if (!visited.Add(box))
+                    return null;
+
+                current = box;
+            }
+        }
+
+        /// <summary>
+        /// Returns the neighbour of this box in <paramref name="moveDirection"/>, used when the box has no valid child to select
+        /// </summary>
+        protected virtual Selectable FindNeighbourOnNoValidChild(MoveDirection moveDirection)
+        {
+            Selectable neighbour = moveDirection switch
+            {
+                MoveDirection.Left => FindSelectableOnLeft(),
+                MoveDirection.Right => FindSelectableOnRight(),
+                MoveDirection.Up => FindSelectableOnUp(),
+                MoveDirection.Down => FindSelectableOnDown(),
+                _ => null,
+            };
+            if (neighbour != null && neighbour.IsActive()) return neighbour;
+
+            if (moveDirection != MoveDirection.None && Box != null)
+            {
+                neighbour = Box.FindSelectableOnChildFailed(this, new AxisEventData(EventSystem.current) { moveDir = moveDirection });
+                if (neighbour != null && neighbour.IsActive()) return neighbour;
+            }
+
+            return null;
+        }
 
         #endregion
 
