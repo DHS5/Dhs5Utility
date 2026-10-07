@@ -171,20 +171,12 @@ namespace Dhs5.Utility.UI
             get => m_leftButton;
             set
             {
-                if (
-#if UNITY_EDITOR
-                    Application.isPlaying &&
-#endif
-                    m_leftButton != null)
+                if (isActiveAndEnabled && m_leftButton != null)
                     m_leftButton.Clicked -= OnLeftButtonClicked;
 
                 m_leftButton = value;
 
-                if (
-#if UNITY_EDITOR
-                    Application.isPlaying &&
-#endif
-                    m_leftButton != null)
+                if (isActiveAndEnabled && m_leftButton != null)
                     m_leftButton.Clicked += OnLeftButtonClicked;
             }
         }
@@ -193,20 +185,12 @@ namespace Dhs5.Utility.UI
             get => m_rightButton;
             set
             {
-                if (
-#if UNITY_EDITOR
-                    Application.isPlaying &&
-#endif
-                    m_rightButton != null)
+                if (isActiveAndEnabled && m_rightButton != null)
                     m_rightButton.Clicked -= OnRightButtonClicked;
 
                 m_rightButton = value;
 
-                if (
-#if UNITY_EDITOR
-                    Application.isPlaying &&
-#endif
-                    m_rightButton != null)
+                if (isActiveAndEnabled && m_rightButton != null)
                     m_rightButton.Clicked += OnRightButtonClicked;
             }
         }
@@ -336,6 +320,8 @@ namespace Dhs5.Utility.UI
             if (LeftButton != null) LeftButton.Clicked -= OnLeftButtonClicked;
             if (RightButton != null) RightButton.Clicked -= OnRightButtonClicked;
 
+            m_moveCoroutine = null;
+
             m_tracker.Clear();
         }
 
@@ -390,7 +376,12 @@ namespace Dhs5.Utility.UI
 
         public virtual bool AnimateNext()
         {
-            if (m_items.Count == 0) return SetNext(triggerEvent: true, refreshShownValues: false);
+            if (!CanAnimate())
+            {
+                if (!SetNext(triggerEvent: true, refreshShownValues: false)) return false;
+                SnapItems();
+                return true;
+            }
 
             if (SetNext(triggerEvent: true, refreshShownValues: false))
             {
@@ -403,7 +394,12 @@ namespace Dhs5.Utility.UI
         }
         public virtual bool AnimatePrevious()
         {
-            if (m_items.Count == 0) return SetPrevious(triggerEvent: true, refreshShownValues: false);
+            if (!CanAnimate())
+            {
+                if (!SetPrevious(triggerEvent: true, refreshShownValues: false)) return false;
+                SnapItems();
+                return true;
+            }
 
             if (SetPrevious(triggerEvent: true, refreshShownValues: false))
             {
@@ -637,6 +633,21 @@ namespace Dhs5.Utility.UI
 
         #region Tweening
 
+        /// <summary>
+        /// Whether value changes can be animated : needs a scroll duration and more than one item
+        /// </summary>
+        protected virtual bool CanAnimate() => ScrollDuration > 0f && m_items.Count > 1 && isActiveAndEnabled;
+
+        /// <summary>
+        /// Instantly anchors the items around the main item and refreshes their data
+        /// </summary>
+        protected virtual void SnapItems()
+        {
+            KillMoveCoroutineInstant(false);
+            OffsetItems(0f);
+            RefreshShownValues();
+        }
+
         protected virtual bool IsMoveCoroutineActive() => m_moveCoroutine != null;
         protected virtual void StartMoveCoroutine(bool kill = false, bool complete = false)
         {
@@ -645,7 +656,14 @@ namespace Dhs5.Utility.UI
                 if (!kill) return;
                 KillMoveCoroutineInstant(complete);
             }
-                
+
+            if (!CanAnimate()
+                || Mathf.Approximately(GetCurrentItemsOffset(), 0f))
+            {
+                OnCompleteMoveCoroutine();
+                return;
+            }
+
             m_moveCoroutine = StartCoroutine(MoveCoroutine());
         }
         protected virtual IEnumerator MoveCoroutine()
@@ -660,7 +678,7 @@ namespace Dhs5.Utility.UI
 
             while (normalizedTime < 1f)
             {
-                normalizedTime += Time.deltaTime / ScrollDuration;
+                normalizedTime += Time.unscaledDeltaTime / ScrollDuration;
                 var offset = Mathf.Lerp(offsetSign * m_itemsDistance, 0f, normalizedTime);
                 OffsetItems(offset);
 

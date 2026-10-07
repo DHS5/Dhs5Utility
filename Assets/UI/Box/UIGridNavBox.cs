@@ -758,42 +758,106 @@ namespace Dhs5.Utility.UI
 
         protected override Selectable GetFirstChildByDirection(MoveDirection moveDirection)
         {
-            switch (StartCorner)
+            return m_grid.GetFirstAvailableSelectable(ToGridDirection(moveDirection), 1);
+        }
+
+        #endregion
+
+        #region Visual / Grid Space
+
+        // The grid works in its own space : (0,0) is the first cell, Right is x+1 and Up is y+1
+        // StartCorner defines the visual corner where the grid's (0,0) cell is
+
+        /// <summary>
+        /// Whether grid x axis goes visually from right to left
+        /// </summary>
+        protected bool FlipX => StartCorner is EStartCorner.TOP_RIGHT or EStartCorner.BOTTOM_RIGHT;
+        /// <summary>
+        /// Whether grid y axis goes visually from top to bottom
+        /// </summary>
+        protected bool FlipY => StartCorner is EStartCorner.TOP_LEFT or EStartCorner.TOP_RIGHT;
+
+        /// <summary>
+        /// Converts a visual <paramref name="moveDirection"/> to the corresponding direction in grid space
+        /// </summary>
+        protected MoveDirection ToGridDirection(MoveDirection moveDirection)
+        {
+            return moveDirection switch
             {
-                case EStartCorner.TOP_LEFT:
-                    switch (moveDirection)
-                    {
-                        case MoveDirection.Up: moveDirection = MoveDirection.Down; break;
-                        case MoveDirection.Down: moveDirection = MoveDirection.Up; break;
-                    }
-                    return m_grid.GetFirstAvailableSelectable(moveDirection, 1);
-                
-                case EStartCorner.TOP_RIGHT:
-                    switch (moveDirection)
-                    {
-                        case MoveDirection.Up: moveDirection = MoveDirection.Down; break;
-                        case MoveDirection.Down: moveDirection = MoveDirection.Up; break;
-                        case MoveDirection.Left: moveDirection = MoveDirection.Right; break;
-                        case MoveDirection.Right: moveDirection = MoveDirection.Left; break;
-                    }
-                    return m_grid.GetFirstAvailableSelectable(moveDirection, 1);
+                MoveDirection.Left => FlipX ? MoveDirection.Right : MoveDirection.Left,
+                MoveDirection.Right => FlipX ? MoveDirection.Left : MoveDirection.Right,
+                MoveDirection.Up => FlipY ? MoveDirection.Down : MoveDirection.Up,
+                MoveDirection.Down => FlipY ? MoveDirection.Up : MoveDirection.Down,
+                _ => moveDirection,
+            };
+        }
 
-                case EStartCorner.BOTTOM_RIGHT:
-                    switch (moveDirection)
-                    {
-                        case MoveDirection.Left: moveDirection = MoveDirection.Right; break;
-                        case MoveDirection.Right: moveDirection = MoveDirection.Left; break;
-                    }
-                    return m_grid.GetFirstAvailableSelectable(moveDirection, 1);
+        /// <summary>
+        /// Whether <paramref name="coord"/> is on the edge of the grid in <paramref name="gridDirection"/>
+        /// </summary>
+        protected bool IsOnGridEdge(Vector2Int coord, MoveDirection gridDirection)
+        {
+            return gridDirection switch
+            {
+                MoveDirection.Left => coord.x == 0,
+                MoveDirection.Right => coord.x == m_grid.GetColumnCount() - 1,
+                MoveDirection.Down => coord.y == 0,
+                MoveDirection.Up => coord.y == m_grid.GetLineCount(coord.x) - 1,
+                _ => false,
+            };
+        }
 
-                default:
-                    return m_grid.GetFirstAvailableSelectable(moveDirection, 1);
-            }
+        /// <summary>
+        /// Returns the selectable next to <paramref name="coord"/> inside the grid, in <paramref name="gridDirection"/>
+        /// </summary>
+        protected Selectable GetGridSelectable(Vector2Int coord, MoveDirection gridDirection, bool availableOnly)
+        {
+            return gridDirection switch
+            {
+                MoveDirection.Left => m_grid.GetLeftSelectable(coord, availableOnly, WrapAround),
+                MoveDirection.Right => m_grid.GetRightSelectable(coord, availableOnly, WrapAround),
+                MoveDirection.Down => m_grid.GetDownSelectable(coord, availableOnly, WrapAround),
+                MoveDirection.Up => m_grid.GetUpSelectable(coord, availableOnly, WrapAround),
+                _ => null,
+            };
+        }
+
+        /// <summary>
+        /// Returns the box's own neighbour in the visual <paramref name="moveDirection"/>
+        /// </summary>
+        protected Selectable GetBoxNeighbour(MoveDirection moveDirection)
+        {
+            return moveDirection switch
+            {
+                MoveDirection.Left => navigation.selectOnLeft,
+                MoveDirection.Right => navigation.selectOnRight,
+                MoveDirection.Down => navigation.selectOnDown,
+                MoveDirection.Up => navigation.selectOnUp,
+                _ => null,
+            };
         }
 
         #endregion
 
         #region Child Navigation
+
+        /// <summary>
+        /// Returns the selectable next to <paramref name="coord"/> in the visual <paramref name="moveDirection"/>.<br/>
+        /// On the grid edge, the box's own neighbour has priority
+        /// </summary>
+        protected virtual Selectable GetSelectable(Vector2Int coord, MoveDirection moveDirection, bool availableOnly)
+        {
+            var gridDirection = ToGridDirection(moveDirection);
+
+            if (IsOnGridEdge(coord, gridDirection))
+            {
+                var boxNeighbour = GetBoxNeighbour(moveDirection);
+                if (boxNeighbour != null && boxNeighbour.IsActive())
+                    return boxNeighbour;
+            }
+
+            return GetGridSelectable(coord, gridDirection, availableOnly);
+        }
 
         protected virtual Navigation GetChildNavigation(Vector2Int coord)
         {
@@ -812,46 +876,11 @@ namespace Dhs5.Utility.UI
             };
         }
 
-        protected virtual Selectable GetLeftSelectable(Vector2Int coord, bool availableOnly)
-        {
-            if (coord.x == 0)
-            {
-                if (navigation.selectOnLeft != null && navigation.selectOnLeft.IsActive())
-                    return navigation.selectOnLeft;
-            }
-
-            return m_grid.GetLeftSelectable(coord, availableOnly, WrapAround);
-        }
-        protected virtual Selectable GetRightSelectable(Vector2Int coord, bool availableOnly)
-        {
-            if (coord.x == m_grid.GetColumnCount() - 1)
-            {
-                if (navigation.selectOnRight != null && navigation.selectOnRight.IsActive())
-                    return navigation.selectOnRight;
-            }
-
-            return m_grid.GetRightSelectable(coord, availableOnly, WrapAround);
-        }
-        protected virtual Selectable GetDownSelectable(Vector2Int coord, bool availableOnly)
-        {
-            if (coord.y == 0)
-            {
-                if (navigation.selectOnDown != null && navigation.selectOnDown.IsActive())
-                    return navigation.selectOnDown;
-            }
-
-            return m_grid.GetDownSelectable(coord, availableOnly, WrapAround);
-        }
-        protected virtual Selectable GetUpSelectable(Vector2Int coord, bool availableOnly)
-        {
-            if (coord.y == m_grid.GetLineCount(coord.x) - 1)
-            {
-                if (navigation.selectOnUp != null && navigation.selectOnUp.IsActive())
-                    return navigation.selectOnUp;
-            }
-
-            return m_grid.GetUpSelectable(coord, availableOnly, WrapAround);
-        }
+        // Visual directions
+        protected virtual Selectable GetLeftSelectable(Vector2Int coord, bool availableOnly) => GetSelectable(coord, MoveDirection.Left, availableOnly);
+        protected virtual Selectable GetRightSelectable(Vector2Int coord, bool availableOnly) => GetSelectable(coord, MoveDirection.Right, availableOnly);
+        protected virtual Selectable GetDownSelectable(Vector2Int coord, bool availableOnly) => GetSelectable(coord, MoveDirection.Down, availableOnly);
+        protected virtual Selectable GetUpSelectable(Vector2Int coord, bool availableOnly) => GetSelectable(coord, MoveDirection.Up, availableOnly);
 
         public override Selectable FindSelectableOnChildFailed(Selectable child, AxisEventData axisEventData)
         {
@@ -859,24 +888,7 @@ namespace Dhs5.Utility.UI
 
             if (TryGetChildCoord(child, out var coord))
             {
-                switch (axisEventData.moveDir)
-                {
-                    case MoveDirection.Left:
-                        result = m_grid.GetLeftSelectable(coord, true, WrapAround);
-                        break;
-                    
-                    case MoveDirection.Right:
-                        result = m_grid.GetRightSelectable(coord, true, WrapAround);
-                        break;
-                    
-                    case MoveDirection.Down:
-                        result = m_grid.GetDownSelectable(coord, true, WrapAround);
-                        break;
-                    
-                    case MoveDirection.Up:
-                        result = m_grid.GetUpSelectable(coord, true, WrapAround);
-                        break;
-                }
+                result = GetGridSelectable(coord, ToGridDirection(axisEventData.moveDir), true);
             }
 
             if (result == null && Box != null)

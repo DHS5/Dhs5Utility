@@ -558,59 +558,83 @@ namespace Dhs5.Utility.UI
         #region Actions
 
         /// <summary>
-        /// Usable only on screen space / overlay canvas
+        /// Scrolls the content so that <paramref name="rectTransform"/> (a descendant of the content) is fully inside the viewport
         /// </summary>
-        /// <param name="rectTransform"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// Works with any canvas scale, assuming the viewport and content are not rotated
+        /// </remarks>
+        /// <returns>False if <paramref name="rectTransform"/> is not a descendant of the content</returns>
         public virtual bool EnsureRectTransformVisible(RectTransform rectTransform)
         {
-            if (rectTransform == null 
-                || ContentRect == null 
-                || ViewportRect == null) return false;
+            if (rectTransform == null
+                || m_contentRect == null) return false;
 
             var parent = rectTransform.parent;
-            while (parent != ContentRect)
+            while (parent != null && parent != m_contentRect)
             {
                 parent = parent.parent;
-                if (parent == null) return false;
             }
+            if (parent == null) return false;
 
-            // Get content screen space rect
-            ViewportRect.GetWorldCorners(m_Corners);
-            var viewportRect = new Rect(m_Corners[0], m_Corners[2] - m_Corners[0]);
+            // anchoredPosition is expressed in the content's parent space
+            // --> compute viewport and target rects in that space
+            var contentParent = m_contentRect.parent;
+            if (contentParent == null) return false;
+
+            var viewportRect = GetRectInSpace(ViewRect, contentParent);
+            var targetRect = GetRectInSpace(rectTransform, contentParent);
 
             // Check if rectTransform is inside and get offset if not
-            rectTransform.GetWorldCorners(m_Corners);
             var offset = Vector2.zero;
             var hasOffset = false;
 
-            if (m_Corners[0].x < viewportRect.xMin)
+            if (targetRect.xMin < viewportRect.xMin)
             {
-                offset.x = m_Corners[0].x - viewportRect.xMin;
+                offset.x = targetRect.xMin - viewportRect.xMin;
                 hasOffset = true;
             }
-            if (m_Corners[0].y < viewportRect.yMin)
+            if (targetRect.yMin < viewportRect.yMin)
             {
-                offset.y = m_Corners[0].y - viewportRect.yMin;
+                offset.y = targetRect.yMin - viewportRect.yMin;
                 hasOffset = true;
             }
-            if (m_Corners[2].x > viewportRect.xMax)
+            if (targetRect.xMax > viewportRect.xMax)
             {
-                offset.x = m_Corners[2].x - viewportRect.xMax;
+                offset.x = targetRect.xMax - viewportRect.xMax;
                 hasOffset = true;
             }
-            if (m_Corners[2].y > viewportRect.yMax)
+            if (targetRect.yMax > viewportRect.yMax)
             {
-                offset.y = m_Corners[2].y - viewportRect.yMax;
+                offset.y = targetRect.yMax - viewportRect.yMax;
                 hasOffset = true;
             }
 
             if (hasOffset)
             {
+                // Prevent inertia from moving the content away from the target
+                StopMovement();
                 SetContentAnchoredPosition(m_contentRect.anchoredPosition - offset);
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Returns the rect of <paramref name="rectTransform"/> expressed in the local space of <paramref name="space"/>
+        /// </summary>
+        protected Rect GetRectInSpace(RectTransform rectTransform, Transform space)
+        {
+            rectTransform.GetWorldCorners(m_Corners);
+
+            Vector2 min = space.InverseTransformPoint(m_Corners[0]);
+            Vector2 max = min;
+            for (int i = 1; i < 4; i++)
+            {
+                Vector2 corner = space.InverseTransformPoint(m_Corners[i]);
+                min = Vector2.Min(min, corner);
+                max = Vector2.Max(max, corner);
+            }
+            return UnityEngine.Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
         #endregion
