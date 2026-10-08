@@ -10,8 +10,6 @@ namespace Dhs5.Utility.UI
     {
         #region Initial Values
 
-        protected readonly Dictionary<Graphic, float> m_initialValues = new();
-
         public override object GetGraphicInitialValue(Graphic graphic)
         {
             return graphic is TMP_Text text ? text.fontSize : 0f;
@@ -28,13 +26,8 @@ namespace Dhs5.Utility.UI
                 StopTweenCoroutines(param.MonoBehaviour, tweenPayload.Tweens);
             }
 
-            m_initialValues.Clear();
-            foreach (var g in graphics)
-            {
-                m_initialValues[g] = instance.GetInitialValue<float>(g);
-            }
-
-            var tweens = RunTransitionTween<TextSizeTween, TMP_Text>(param.MonoBehaviour, graphics, duration, value);
+            var tweens = RunTransitionTween<TextSizeTween, TMP_Text>(param.MonoBehaviour, graphics, duration,
+                text => GetTargetSize(instance, text, value));
 
             return new UITransitionTweenPayload(tweens);
         }
@@ -50,11 +43,19 @@ namespace Dhs5.Utility.UI
             {
                 if (g is TMP_Text text)
                 {
-                    text.fontSize = instance.GetInitialValue<float>(g) + value;
+                    text.fontSize = GetTargetSize(instance, text, value);
                 }
             }
 
-            return new UITransitionTweenPayload(null); 
+            return new UITransitionTweenPayload(null);
+        }
+
+        /// <summary>
+        /// Value is an offset from the text's initial size, never below 0
+        /// </summary>
+        protected virtual float GetTargetSize(UIGenericTransitionInstance instance, TMP_Text text, float value)
+        {
+            return Mathf.Max(0f, instance.GetInitialValue<float>(text) + value);
         }
 
         #endregion
@@ -70,12 +71,6 @@ namespace Dhs5.Utility.UI
         #endregion
 
         #region Tween
-
-        protected override bool OverrideTweenTargetValue<G>(G graphic, float targetValue, out float overrideValue)
-        {
-            overrideValue = Mathf.Max(0, m_initialValues[graphic] + targetValue);
-            return true;
-        }
 
         public class TextSizeTween : UITransitionTween<float, TMP_Text>
         {

@@ -45,7 +45,8 @@ namespace Dhs5.Utility.UI
 
         protected virtual void OnEnable()
         {
-            CheckForStateChange();
+            // First enable : snap to the initial state instead of animating from nothing
+            CheckForStateChange(instant: m_lastState == 0);
         }
         protected virtual void OnDisable()
         {

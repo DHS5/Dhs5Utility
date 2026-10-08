@@ -317,8 +317,7 @@ namespace Dhs5.Utility.UI
             if (!m_transitionInitialized)
             {
                 m_lastState = 0;
-                m_transitioners = m_transitioners.Where(t => t != null).ToList();
-                m_transitioners.Sort();
+                SortTransitioners();
                 m_transitionInitialized = true;
             }
 
@@ -509,11 +508,26 @@ namespace Dhs5.Utility.UI
 
         public virtual void AddTransitioner(UITransitioner transitioner)
         {
+            if (transitioner == null) return;
+
             m_transitioners ??= new();
             if (!m_transitioners.Contains(transitioner))
             {
                 m_transitioners.Add(transitioner);
+
+                // Already sorted by first transition : keep priority order
+                if (m_transitionInitialized)
+                    SortTransitioners();
             }
+        }
+
+        /// <summary>
+        /// Removes null transitioners and sorts by <see cref="UITransitioner.Priority"/> (stable : same priority keeps list order)
+        /// </summary>
+        protected virtual void SortTransitioners()
+        {
+            if (m_transitioners == null) return;
+            m_transitioners = m_transitioners.Where(t => t != null).OrderBy(t => t.Priority).ToList();
         }
         public virtual bool RemoveTransitioner(UITransitioner transitioner)
         {

@@ -39,7 +39,8 @@ namespace Dhs5.Utility.UI
 
         public int CompareTo(UITransitioner other)
         {
-            return m_priority.CompareTo(other.m_priority);
+            if (other == null) return -1;
+            return Priority.CompareTo(other.Priority);
         }
 
         #endregion

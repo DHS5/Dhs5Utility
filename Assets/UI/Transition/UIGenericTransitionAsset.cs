@@ -53,7 +53,7 @@ namespace Dhs5.Utility.UI
         {
             if (TryGetValueAndDuration(instance.PresetIndex, newStates, out var value, out var duration))
             {
-                if (instant || Mathf.Approximately(0f, duration))
+                if (instant || Mathf.Approximately(0f, duration) || !CanAnimate(param))
                 {
                     return ApplyValueInstant(instance, graphics, value, param);
                 }
@@ -62,7 +62,19 @@ namespace Dhs5.Utility.UI
                     return ApplyValue(instance, graphics, value, duration, param);
                 }
             }
-            return null;
+
+            // Invalid preset : keep the current payload so running tweens can still be stopped later
+            return instance.Payload;
+        }
+
+        /// <summary>
+        /// Coroutines can't be started on an inactive GameObject : transitions are applied instantly in that case
+        /// </summary>
+        protected virtual bool CanAnimate(IUITransitionParam param)
+        {
+            return param != null
+                && param.MonoBehaviour != null
+                && param.MonoBehaviour.gameObject.activeInHierarchy;
         }
 
         protected abstract IUIGenericTransitionPayload ApplyValue(
@@ -97,6 +109,12 @@ namespace Dhs5.Utility.UI
 
         public virtual List<UITransitionTween> RunTransitionTween<Tween, G>(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, T targetValue) where Tween : UITransitionTween<T, G>, new() where G : Graphic
         {
+            return RunTransitionTween<Tween, G>(monoBehaviour, graphics, duration,
+                graphic => OverrideTweenTargetValue(graphic, targetValue, out var overrideValue) ? overrideValue : targetValue);
+        }
+        /// <param name="getTargetValue">Target value for each graphic</param>
+        public virtual List<UITransitionTween> RunTransitionTween<Tween, G>(MonoBehaviour monoBehaviour, IEnumerable<Graphic> graphics, float duration, Func<G, T> getTargetValue) where Tween : UITransitionTween<T, G>, new() where G : Graphic
+        {
             if (monoBehaviour == null)
             {
                 Debug.LogError("MonoBehaviour is null, can't start coroutines");
@@ -108,11 +126,7 @@ namespace Dhs5.Utility.UI
             {
                 if (CanRunTween<G>(g, out var graphic))
                 {
-                    var value = targetValue;
-                    if (OverrideTweenTargetValue(graphic, targetValue, out var overrideValue))
-                    {
-                        value = overrideValue;
-                    }
+                    var value = getTargetValue(graphic);
 
                     var d = duration;
                     if (OverrideTweenDuration(graphic, duration, out var overrideDuration))
