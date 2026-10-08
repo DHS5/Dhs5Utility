@@ -235,6 +235,10 @@ namespace Dhs5.Utility.UI
 
         public virtual void OnSubmit(BaseEventData eventData)
         {
+            // Press feedback even if the value can't change (e.g. last toggle on in a group)
+            if (!CanToggle())
+                return;
+
             TryToggle(true);
             SimulatePress(0.1f);
         }

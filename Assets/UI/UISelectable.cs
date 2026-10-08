@@ -435,7 +435,7 @@ namespace Dhs5.Utility.UI
 
         protected virtual void SimulatePress(float duration)
         {
-            if (!IsActive()) return;
+            if (!IsActive() || !IsInteractable()) return;
 
             StopSimulationCoroutine();
 

@@ -36,8 +36,8 @@ namespace Dhs5.Utility.UI
 
         public virtual void OnSubmit(BaseEventData eventData)
         {
-            TryPress();
-            SimulatePress(0.1f);
+            if (TryPress())
+                SimulatePress(0.1f);
         }
 
         #endregion

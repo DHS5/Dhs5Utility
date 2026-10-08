@@ -198,6 +198,7 @@ namespace Dhs5.Utility.UI
 
         protected override void OnDisable()
         {
+            StopClickRepeat();
             m_tracker.Clear();
 
             base.OnDisable();
@@ -322,7 +323,8 @@ namespace Dhs5.Utility.UI
 
         protected virtual bool MayDrag(PointerEventData eventData)
         {
-            return IsActive() && IsInteractable() && eventData.button == PointerEventData.InputButton.Left;
+            return IsActive() && IsInteractable() && eventData.button == PointerEventData.InputButton.Left
+                && m_handleRect != null && m_containerRect != null;
         }
 
         // Update the scroll bar's position based on the mouse.
@@ -343,10 +345,18 @@ namespace Dhs5.Utility.UI
 
         protected virtual void UpdateDrag(RectTransform containerRect, Vector2 position, Camera camera)
         {
+            UpdateDrag(containerRect, position, camera, m_offset);
+        }
+        /// <param name="offset">Cursor offset from the handle center (grab point while dragging, zero to center the handle on the cursor)</param>
+        protected virtual void UpdateDrag(RectTransform containerRect, Vector2 position, Camera camera, Vector2 offset)
+        {
+            if (m_handleRect == null || containerRect == null)
+                return;
+
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(containerRect, position, camera, out var localCursor))
                 return;
 
-            var handleCenterRelativeToContainerCorner = localCursor - m_offset - m_containerRect.rect.position;
+            var handleCenterRelativeToContainerCorner = localCursor - offset - m_containerRect.rect.position;
             var handleCorner = handleCenterRelativeToContainerCorner - (m_handleRect.rect.size - m_handleRect.sizeDelta) * 0.5f;
 
             float parentSize = Axis == 0 ? m_containerRect.rect.width : m_containerRect.rect.height;
@@ -421,8 +431,20 @@ namespace Dhs5.Utility.UI
             if (!MayDrag(eventData))
                 return;
 
+            StopClickRepeat();
+
             m_isPointerDownAndNotDragging = true;
             m_pointerDownRepeat = StartCoroutine(ClickRepeat(eventData.pointerPressRaycast.screenPosition, eventData.enterEventCamera));
+        }
+
+        protected virtual void StopClickRepeat()
+        {
+            m_isPointerDownAndNotDragging = false;
+            if (m_pointerDownRepeat != null)
+            {
+                StopCoroutine(m_pointerDownRepeat);
+                m_pointerDownRepeat = null;
+            }
         }
 
         protected override void OnAfterPointerUp(PointerEventData eventData)
@@ -441,15 +463,16 @@ namespace Dhs5.Utility.UI
         /// </summary>
         protected virtual IEnumerator ClickRepeat(Vector2 screenPosition, Camera camera)
         {
-            while (m_isPointerDownAndNotDragging)
+            while (m_isPointerDownAndNotDragging && m_handleRect != null)
             {
                 if (!RectTransformUtility.RectangleContainsScreenPoint(m_handleRect, screenPosition, camera))
                 {
-                    UpdateDrag(m_containerRect, screenPosition, camera);
+                    // Track click : center the handle on the click, the last drag's grab offset doesn't apply
+                    UpdateDrag(m_containerRect, screenPosition, camera, Vector2.zero);
                 }
                 yield return new WaitForEndOfFrame();
             }
-            StopCoroutine(m_pointerDownRepeat);
+            m_pointerDownRepeat = null;
         }
 
         #endregion

@@ -390,7 +390,14 @@ namespace Dhs5.Utility.UI
 
         protected virtual bool ValidateToggleIsInGroup(UIToggle toggle, bool acceptNull)
         {
-            if ((toggle == null && !acceptNull) || !m_toggles.Contains(toggle))
+            if (toggle == null)
+            {
+                if (acceptNull) return true;
+
+                Debug.LogErrorFormat("Null toggle is not accepted by ToggleGroup {0}", this);
+                return false;
+            }
+            if (!m_toggles.Contains(toggle))
             {
                 Debug.LogErrorFormat("Toggle {0} is not part of ToggleGroup {1}", new object[] { toggle, this });
                 return false;
