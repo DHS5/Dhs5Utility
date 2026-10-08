@@ -211,10 +211,27 @@ namespace Dhs5.Utility.UI
             set => SetValue(value);
         }
 
-        public bool MultiSelect 
-        { 
-            get => m_multiSelect; 
-            set => m_multiSelect = value; 
+        public bool MultiSelect
+        {
+            get => m_multiSelect;
+            set
+            {
+                if (m_multiSelect == value)
+                    return;
+
+                // The list items differ between modes
+                if (IsExpanded)
+                    Hide();
+
+                // Convert the value : single index <-> flags
+                if (value)
+                    m_value = m_value >= 0 ? 1 << m_value : 0;
+                else
+                    m_value = m_value != 0 ? FirstActiveFlagIndex(m_value) : (m_placeholder ? -1 : 0);
+
+                m_multiSelect = value;
+                RefreshShownValue();
+            }
         }
 
         public bool IsExpanded => m_dropdown != null;
@@ -238,6 +255,8 @@ namespace Dhs5.Utility.UI
 
         protected override void Awake()
         {
+            base.Awake();
+
 #if UNITY_EDITOR
             if (!Application.isPlaying)
                 return;
@@ -283,6 +302,10 @@ namespace Dhs5.Utility.UI
 
         protected virtual void SetValue(int value, bool triggerEvent = true)
         {
+            // Clamp before comparing so that a value clamped back to the current one doesn't trigger the event
+            if (!m_multiSelect)
+                value = Mathf.Clamp(value, m_placeholder ? -1 : 0, m_options.Count - 1);
+
             if (
 #if UNITY_EDITOR
                 Application.isPlaying &&
@@ -290,10 +313,7 @@ namespace Dhs5.Utility.UI
                 (value == m_value || m_options.Count == 0))
                 return;
 
-            if (m_multiSelect)
-                m_value = value;
-            else
-                m_value = Mathf.Clamp(value, m_placeholder ? -1 : 0, m_options.Count - 1);
+            m_value = value;
 
             RefreshShownValue();
 
@@ -448,7 +468,16 @@ namespace Dhs5.Utility.UI
             // Instantiate the drop-down list items
 
             // Find the dropdown item and disable it.
-            UIDropdownItem itemTemplate = m_dropdown.GetComponentInChildren<UIDropdownItem>();
+            UIDropdownItem itemTemplate = m_dropdown.GetComponentInChildren<UIDropdownItem>(true);
+            if (itemTemplate == null)
+            {
+                // Template changed after validation
+                m_template.gameObject.SetActive(false);
+                m_validTemplate = false;
+                ImmediateDestroyDropdownList();
+                Debug.LogError("The dropdown template has no UIDropdownItem", this);
+                return;
+            }
 
             GameObject content = itemTemplate.RectTransform.parent.gameObject;
             RectTransform contentRectTransform = content.transform as RectTransform;
@@ -482,6 +511,13 @@ namespace Dhs5.Utility.UI
             {
                 if (m_dropdown != null)
                 {
+                    // Stop the list from receiving clicks/navigation while fading out
+                    if (m_dropdown.TryGetComponent<CanvasGroup>(out var group))
+                    {
+                        group.interactable = false;
+                        group.blocksRaycasts = false;
+                    }
+
                     AlphaFadeList(m_alphaFadeSpeed, 0f);
 
                     // User could have disabled the dropdown during the OnValueChanged call.
@@ -568,13 +604,26 @@ namespace Dhs5.Utility.UI
                 return;
             }
 
+            var itemTemplate = m_template.GetComponentInChildren<UIDropdownItem>(true);
+            if (itemTemplate == null)
+            {
+                Debug.LogError("The dropdown template is not valid. The template must have a child GameObject with a UIDropdownItem component serving as the item.", this);
+                return;
+            }
+            if (itemTemplate.transform == m_template || !(itemTemplate.transform.parent is RectTransform))
+            {
+                Debug.LogError("The dropdown template is not valid. The UIDropdownItem must be on a child GameObject of the template, under a RectTransform serving as the content.", this);
+                return;
+            }
+
             GameObject templateGo = m_template.gameObject;
             templateGo.SetActive(true);
 
             m_templateCanvas = SetupTemplateCanvas(templateGo, rootCanvas, parentCanvas);
-            
+
             if (m_templateCanvas == null)
             {
+                templateGo.SetActive(false);
                 Debug.LogError("The dropdown canvas is null", this);
                 return;
             }
@@ -913,6 +962,10 @@ namespace Dhs5.Utility.UI
         // Change the value and hide the dropdown.
         protected virtual void OnPressedItem(int index)
         {
+            // Closing
+            if (m_coroutine != null)
+                return;
+
             if (!m_items.IsIndexValid(index, out var item))
                 return;
 
@@ -1045,6 +1098,8 @@ namespace Dhs5.Utility.UI
             if (end.Equals(start))
                 return;
 
+            // Stop the previous fade (e.g. fade-in still running when hiding)
+            m_fadeTween.Stop();
             m_fadeTween.SetStartAlpha(start);
             m_fadeTween.Start(this, m_dropdown.GetComponent<CanvasGroup>(), duration, end);
         }
