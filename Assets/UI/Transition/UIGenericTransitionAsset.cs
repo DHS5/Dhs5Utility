@@ -472,7 +472,7 @@ namespace Dhs5.Utility.UI
         #region Members
 
         [SerializeField] protected string m_name;
-        [SerializeField] protected UITransitionStateOrder m_stateOrder;
+        [SerializeField] protected UITransitionStateOrder m_stateOrder = new();
         [SerializeField] protected UITransitionValue<T> m_normalState = new(default, 0.1f);
         [SerializeField] protected UIEnabledTransitionValue<T> m_highlightedState = new(true, default, 0.1f);
         [SerializeField] protected UIEnabledTransitionValue<T> m_pressedState = new(true, default, 0.1f);
@@ -563,13 +563,32 @@ namespace Dhs5.Utility.UI
     {
         #region Members
 
-        // Base States Order :
-        // - 0 = Normal
-        // - 1 = Selected
-        // - 2 = Highlighted
-        // - 3 = Pressed
+        // Values are EUIState indexes (Normal excluded, it is always the fallback) :
+        // - 1 = Highlighted
+        // - 2 = Pressed
+        // - 3 = Selected
         // - 4 = Disabled
-        [SerializeField] protected List<int> m_order;
+        [SerializeField] protected List<int> m_order = new(DefaultOrder);
+
+        #endregion
+
+        #region Default
+
+        /// <summary>
+        /// Disabled > Pressed > Highlighted > Selected
+        /// </summary>
+        public static IReadOnlyList<int> DefaultOrder { get; } = new int[] { 4, 2, 1, 3 };
+
+        /// <summary>
+        /// Is the order a permutation of the 4 non-Normal states
+        /// </summary>
+        public bool IsValid()
+        {
+            if (m_order == null || m_order.Count != 4) return false;
+            for (int i = 1; i <= 4; i++)
+                if (!m_order.Contains(i)) return false;
+            return true;
+        }
 
         #endregion
 
@@ -577,7 +596,9 @@ namespace Dhs5.Utility.UI
 
         public IEnumerator<int> GetEnumerator()
         {
-            foreach (var i in m_order) yield return i;
+            // Fallback for presets never drawn in the inspector or created from code
+            var order = IsValid() ? (IReadOnlyList<int>)m_order : DefaultOrder;
+            for (int i = 0; i < order.Count; i++) yield return order[i];
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -591,17 +612,17 @@ namespace Dhs5.Utility.UI
 
         public virtual void Set(IEnumerable<int> order)
         {
-            m_order = order.ToList();
-            for (int i = m_order.Count - 1; i >= 0; i--)
+            // Keep valid states in the given order without duplicates, then complete with the missing ones in default order
+            m_order = new List<int>(4);
+            if (order != null)
             {
-                if (m_order[i] <= 0 || m_order[i] > 4)
-                    m_order.RemoveAt(i);
+                foreach (var i in order)
+                    if (i >= 1 && i <= 4 && !m_order.Contains(i))
+                        m_order.Add(i);
             }
-
-            while (m_order.Count > 4)
-            {
-                m_order.RemoveAt(0);
-            }
+            foreach (var i in DefaultOrder)
+                if (!m_order.Contains(i))
+                    m_order.Add(i);
         }
 
         #endregion
@@ -623,15 +644,10 @@ namespace Dhs5.Utility.UI
             // Initialize
             if (p_order.arraySize != 4 || GUI.Button(new Rect(position.x + position.width - 50f, position.y, 50f, 20f), "Reset"))
             {
-                p_order.ClearArray();
-                p_order.InsertArrayElementAtIndex(0);
-                p_order.InsertArrayElementAtIndex(0);
-                p_order.InsertArrayElementAtIndex(0);
-                p_order.InsertArrayElementAtIndex(0);
-                p_order.GetArrayElementAtIndex(0).intValue = 4;
-                p_order.GetArrayElementAtIndex(1).intValue = 2;
-                p_order.GetArrayElementAtIndex(2).intValue = 1;
-                p_order.GetArrayElementAtIndex(3).intValue = 3;
+                var defaultOrder = UITransitionStateOrder.DefaultOrder;
+                p_order.arraySize = defaultOrder.Count;
+                for (int i = 0; i < defaultOrder.Count; i++)
+                    p_order.GetArrayElementAtIndex(i).intValue = defaultOrder[i];
             }
 
             property.isExpanded = EditorGUI.Foldout(new Rect(position.x, position.y, position.width - 52f, 18f), property.isExpanded, label, true);

@@ -23,6 +23,8 @@ namespace Dhs5.Utility.UI
 
         protected bool m_waitingToTriggerStateChange;
 
+        private bool m_validationPending;
+
         #endregion
 
         #region Properties
@@ -91,10 +93,19 @@ namespace Dhs5.Utility.UI
 
         protected override void OnEnable()
         {
+            CancelValidation();
+
             if (didStart)
                 EnsureValidState();
 
             base.OnEnable();
+        }
+
+        protected override void OnDisable()
+        {
+            CancelValidation();
+
+            base.OnDisable();
         }
 
         /// <summary>
@@ -148,8 +159,42 @@ namespace Dhs5.Utility.UI
                     OnContentChanged();
 
                 if (toggle.IsOn)
-                    EnsureValidState();
+                    RequestValidation();
             }
+        }
+
+        #endregion
+
+        #region Deferred Validation
+
+        /// <summary>
+        /// Defers <see cref="EnsureValidState"/> to the next canvas update, so that deactivating a whole hierarchy
+        /// (or unloading a scene) doesn't force toggles on one after another from inside OnDisable.
+        /// </summary>
+        protected void RequestValidation()
+        {
+            // Inactive or being deactivated : OnEnable will validate
+            if (m_validationPending || !isActiveAndEnabled)
+                return;
+
+            m_validationPending = true;
+            Canvas.willRenderCanvases += OnWillRenderCanvases;
+        }
+        protected void CancelValidation()
+        {
+            if (!m_validationPending)
+                return;
+
+            m_validationPending = false;
+            Canvas.willRenderCanvases -= OnWillRenderCanvases;
+        }
+
+        private void OnWillRenderCanvases()
+        {
+            CancelValidation();
+
+            if (isActiveAndEnabled)
+                EnsureValidState();
         }
 
         #endregion

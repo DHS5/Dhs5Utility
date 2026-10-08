@@ -49,7 +49,13 @@ namespace Dhs5.Utility.UI
         }
         protected virtual void OnDisable()
         {
-            CheckForStateChange();
+            // Pointer exit/up events won't be received while disabled
+            IsPointerInside = false;
+            IsLeftPointerDown = false;
+            IsRightPointerDown = false;
+
+            // Coroutines can't be started on an inactive GameObject : apply instantly in that case
+            CheckForStateChange(!gameObject.activeInHierarchy);
         }
 
         #endregion
@@ -112,13 +118,13 @@ namespace Dhs5.Utility.UI
             return state;
         }
 
-        protected virtual void CheckForStateChange()
+        protected virtual void CheckForStateChange(bool instant = false)
         {
             var currentState = GetCurrentState();
             if (currentState == m_lastState)
                 return;
 
-            UpdateState(m_lastState, currentState, false, GetTransitionParam(m_lastState, currentState));
+            UpdateState(m_lastState, currentState, instant, GetTransitionParam(m_lastState, currentState));
 
             m_lastState = currentState;
         }

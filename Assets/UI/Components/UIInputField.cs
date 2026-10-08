@@ -200,7 +200,7 @@ namespace Dhs5.Utility.UI
         protected bool m_isTouchScreenKeyboardAlert;
 
         [SerializeField] protected TMP_InputValidator m_inputValidator = null;
-        [SerializeField] protected bool m_shouldActivateOnSelect = true;
+        [SerializeField] protected bool m_shouldActivateOnSelect = false;
 
         protected TouchScreenKeyboard m_softKeyboard;
 
@@ -4553,9 +4553,36 @@ namespace Dhs5.Utility.UI
 
         public override void OnMove(AxisEventData eventData)
         {
-            // Prevent UI navigation while text is being edited.
-            if (!m_allowInput)
+            // Prevent UI navigation while text is being edited, unless the caret can't use the move
+            if (!m_allowInput || CanNavigateWhileFocused(eventData.moveDir))
                 base.OnMove(eventData);
+        }
+
+        /// <summary>
+        /// Whether a move should navigate away while the field is focused, because the caret can't use it :
+        /// up/down on a single line field, left at the start or right at the end of the text (without selection)
+        /// </summary>
+        protected virtual bool CanNavigateWhileFocused(MoveDirection moveDirection)
+        {
+            // IME composition in progress
+            if (CompositionLength > 0)
+                return false;
+
+            switch (moveDirection)
+            {
+                case MoveDirection.Up:
+                case MoveDirection.Down:
+                    return !MultiLine;
+
+                case MoveDirection.Left:
+                    return !IsSelecting && StringPositionInternal <= 0;
+
+                case MoveDirection.Right:
+                    return !IsSelecting && StringPositionInternal >= (m_text != null ? m_text.Length : 0);
+
+                default:
+                    return false;
+            }
         }
 
         //public virtual void OnLostFocus(BaseEventData eventData)
@@ -4696,14 +4723,12 @@ namespace Dhs5.Utility.UI
 
         protected virtual void SetToCustom(ECharacterValidation characterValidation)
         {
+            m_characterValidation = characterValidation;
+
             if (ContentType == EContentType.Custom)
-            {
-                characterValidation = ECharacterValidation.CustomValidator;
                 return;
-            }
 
             ContentType = EContentType.Custom;
-            characterValidation = ECharacterValidation.CustomValidator;
         }
 
         #endregion
