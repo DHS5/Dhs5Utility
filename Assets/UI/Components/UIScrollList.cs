@@ -132,6 +132,8 @@ namespace Dhs5.Utility.UI
         protected float m_lastDragDelta;
 
         protected Coroutine m_moveCoroutine;
+        protected Coroutine m_itemsResizeCoroutine;
+        protected float m_itemsSetupViewportLength;
 
         // field is never assigned warning
 #pragma warning disable 649
@@ -177,7 +179,10 @@ namespace Dhs5.Utility.UI
                 m_leftButton = value;
 
                 if (isActiveAndEnabled && m_leftButton != null)
+                {
                     m_leftButton.Clicked += OnLeftButtonClicked;
+                    m_leftButton.interactable = IsInteractable();
+                }
             }
         }
         public virtual UIButton RightButton
@@ -191,7 +196,10 @@ namespace Dhs5.Utility.UI
                 m_rightButton = value;
 
                 if (isActiveAndEnabled && m_rightButton != null)
+                {
                     m_rightButton.Clicked += OnRightButtonClicked;
+                    m_rightButton.interactable = IsInteractable();
+                }
             }
         }
 
@@ -312,6 +320,8 @@ namespace Dhs5.Utility.UI
 
             RefreshItemsSetup();
             Set(Value, triggerEvent: false, refreshShownValues: true, force: true);
+
+            EnsureInteractibility();
         }
         protected override void OnDisable()
         {
@@ -321,6 +331,12 @@ namespace Dhs5.Utility.UI
             if (RightButton != null) RightButton.Clicked -= OnRightButtonClicked;
 
             m_moveCoroutine = null;
+
+            if (m_itemsResizeCoroutine != null)
+            {
+                StopCoroutine(m_itemsResizeCoroutine);
+                m_itemsResizeCoroutine = null;
+            }
 
             m_tracker.Clear();
         }
@@ -352,17 +368,19 @@ namespace Dhs5.Utility.UI
 
         protected virtual bool SetNext(bool triggerEvent = true, bool refreshShownValues = true)
         {
-            var newValue = GetOffsetedIndex(Value, m_directionMultiplier, OptionsCount, WrapAround, MinusOneOption.IsEnabled(out _));
-            if (newValue > -1 || (WrapAround && MinusOneOption.IsEnabled(out _) && newValue == -1))
-            {
-                return Set(newValue, triggerEvent, refreshShownValues);
-            }
-            return false;
+            return SetOffseted(m_directionMultiplier, triggerEvent, refreshShownValues);
         }
         protected virtual bool SetPrevious(bool triggerEvent = true, bool refreshShownValues = true)
         {
-            var newValue = GetOffsetedIndex(Value, -m_directionMultiplier, OptionsCount, WrapAround, MinusOneOption.IsEnabled(out _));
-            if (newValue > -1 || (MinusOneOption.IsEnabled(out _) && newValue == -1))
+            return SetOffseted(-m_directionMultiplier, triggerEvent, refreshShownValues);
+        }
+        protected virtual bool SetOffseted(int offset, bool triggerEvent, bool refreshShownValues)
+        {
+            // GetIndex only returns -1 as a valid index when the minus one option is allowed
+            // (reached by going below 0, or by wrapping above the last option), whatever the direction
+            var allowMinusOne = MinusOneOption.IsEnabled(out _);
+            var newValue = GetOffsetedIndex(Value, offset, OptionsCount, WrapAround, allowMinusOne);
+            if (newValue > -1 || (allowMinusOne && newValue == -1))
             {
                 return Set(newValue, triggerEvent, refreshShownValues);
             }
@@ -497,13 +515,78 @@ namespace Dhs5.Utility.UI
             m_dragValueChangeThreshold = ComputeDragValueChangeThreshold(viewportLength, itemsLength);
 
             // Compute items count
-            var itemsCount = (!CanDrag && ScrollDuration <= 0f ? 1 : 3) + Mathf.FloorToInt(viewportLength / (2f * m_itemsDistance)) * 2;
+            var itemsCount = ComputeItemsCount(viewportLength, itemsLength);
+            m_itemsSetupViewportLength = viewportLength;
 
             // Instantiate items
             InstantiateItems(itemsCount, itemsVOffset);
 
             TemplateItem.gameObject.SetActive(false);
         }
+        /// <summary>
+        /// Number of items needed to cover the viewport : every item partially visible around the main one,
+        /// plus one on each side when items can move (drag or animation)
+        /// </summary>
+        protected virtual int ComputeItemsCount(float viewportLength, float itemsLength)
+        {
+            var itemsDistance = itemsLength + ItemsSpacing;
+
+            // Item k (centered at k * distance) is visible if k * distance - itemsLength / 2 < viewportLength / 2
+            var halfCount = itemsDistance > 0f ?
+                Mathf.Max(0, Mathf.CeilToInt((viewportLength + itemsLength) / (2f * itemsDistance)) - 1) : 0;
+
+            if (CanDrag || ScrollDuration > 0f)
+                halfCount++;
+
+            return halfCount * 2 + 1;
+        }
+        protected virtual float GetViewportLength()
+        {
+            if (ViewportRect == null) return 0f;
+
+            var viewportSize = ViewportRect.rect.size;
+            return Direction is EDirection.LeftToRight or EDirection.RightToLeft ? viewportSize.x : viewportSize.y;
+        }
+
+        protected override void OnRectTransformDimensionsChange()
+        {
+            base.OnRectTransformDimensionsChange();
+
+            if (!isActiveAndEnabled || m_items.Count == 0 || m_itemsResizeCoroutine != null)
+                return;
+
+            if (Mathf.Approximately(GetViewportLength(), m_itemsSetupViewportLength))
+                return;
+
+            // Deferred : this callback can happen during a canvas rebuild where instantiating UI isn't allowed
+            m_itemsResizeCoroutine = StartCoroutine(ItemsResizeCoroutine());
+        }
+        protected virtual IEnumerator ItemsResizeCoroutine()
+        {
+            yield return null;
+            m_itemsResizeCoroutine = null;
+
+            var viewportLength = GetViewportLength();
+            if (Mathf.Approximately(viewportLength, m_itemsSetupViewportLength))
+                yield break;
+
+            if (TemplateItem == null)
+                yield break;
+
+            var itemSize = TemplateItem.GetSize();
+            var itemsLength = Direction is EDirection.LeftToRight or EDirection.RightToLeft ? itemSize.x : itemSize.y;
+            if (ComputeItemsCount(viewportLength, itemsLength) == m_items.Count)
+            {
+                // Items are centered in the viewport, the current ones still cover it
+                m_itemsSetupViewportLength = viewportLength;
+                yield break;
+            }
+
+            KillMoveCoroutineInstant(false);
+            RefreshItemsSetup();
+            RefreshShownValues();
+        }
+
         protected virtual float ComputeDragValueChangeThreshold(float viewportLength, float itemsLength)
         {
             return itemsLength / 2f;
@@ -794,11 +877,12 @@ namespace Dhs5.Utility.UI
         protected virtual void UpdateDrag(PointerEventData eventData)
         {
             var currentOffset = GetCurrentItemsOffset();
+            var localDelta = GetLocalDragDelta(eventData);
             var delta = Direction switch
             {
-                EDirection.LeftToRight => eventData.delta.x,
-                EDirection.RightToLeft => eventData.delta.x,
-                _ => eventData.delta.y,
+                EDirection.LeftToRight => localDelta.x,
+                EDirection.RightToLeft => localDelta.x,
+                _ => localDelta.y,
             };
             var newOffset = currentOffset + delta;
 
@@ -831,6 +915,23 @@ namespace Dhs5.Utility.UI
             OffsetItems(newOffset);
             m_lastDragDelta = delta;
         }
+        /// <summary>
+        /// Pointer delta converted from screen pixels to the viewport's local space (where items are offset)
+        /// </summary>
+        protected virtual Vector2 GetLocalDragDelta(PointerEventData eventData)
+        {
+            if (ViewportRect == null)
+                return eventData.delta;
+
+            var camera = eventData.pressEventCamera;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(ViewportRect, eventData.position, camera, out var current)
+                && RectTransformUtility.ScreenPointToLocalPointInRectangle(ViewportRect, eventData.position - eventData.delta, camera, out var previous))
+            {
+                return current - previous;
+            }
+            return eventData.delta;
+        }
+
         public virtual void OnEndDrag(PointerEventData eventData)
         {
             var currentOffset = GetCurrentItemsOffset();
@@ -949,8 +1050,10 @@ namespace Dhs5.Utility.UI
 
         protected virtual void EnsureInteractibility()
         {
-            if (LeftButton != null) LeftButton.interactable = interactable;
-            if (RightButton != null) RightButton.interactable = interactable;
+            // IsInteractable also accounts for parent CanvasGroups
+            var isInteractable = IsInteractable();
+            if (LeftButton != null) LeftButton.interactable = isInteractable;
+            if (RightButton != null) RightButton.interactable = isInteractable;
         }
 
         #endregion
