@@ -606,9 +606,9 @@ namespace Dhs5.Utility.Updates
         {
             #region Constructors
 
-            public UpdateChannel(IUpdateChannel updateChannel)
+            public UpdateChannel(EUpdateChannel channel, IUpdateChannel updateChannel)
             {
-                this.channel = updateChannel.Channel;
+                this.channel = channel;
                 this.type = channel.GetChannelType();
                 this.pass = updateChannel.Pass;
                 this.order = updateChannel.Order;
@@ -667,7 +667,7 @@ namespace Dhs5.Utility.Updates
                 }
                 if (!customFrequency)
                 {
-                    actualDeltaTime = deltaTime;
+                    actualDeltaTime = deltaTime * Timescale;
                     return true;
                 }
                 else
@@ -696,9 +696,11 @@ namespace Dhs5.Utility.Updates
         {
             foreach (var obj in Enum.GetValues(typeof(EUpdateChannel)))
             {
-                var channel = UpdaterAsset.GetChannel((EUpdateChannel)obj);
+                var channelEnum = (EUpdateChannel)obj;
+                var channel = UpdaterAsset.GetChannel(channelEnum);
+                if (channel == null) continue;
 
-                m_channels[(int)channel.Channel] = new(channel);
+                m_channels[(int)channelEnum] = new(channelEnum, channel);
             }
         }
 

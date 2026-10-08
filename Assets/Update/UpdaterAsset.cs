@@ -81,7 +81,7 @@ namespace Dhs5.Utility.Updates
             if (Instance != null)
             {
                 var index = (int)channel;
-                if (Instance.m_updateChannels.IsIndexValid(index, out var obj))
+                if (Instance.m_updateChannels.IsIndexValid(index, out var obj) && obj != null)
                     return obj;
 
                 Debug.LogWarning("No Update Channel found at index " + index);
@@ -361,7 +361,11 @@ namespace Dhs5.Utility.Updates
             {
                 if (GUILayout.Button("UPDATE CHANNEL SCRIPT", GUILayout.Height(25f)))
                 {
-                    if (p_updateChannelsTextAsset.objectReferenceValue is TextAsset textAsset)
+                    if (HasChannelsListNullElements())
+                    {
+                        Debug.LogError("Update Channels list contains empty elements, use ENSURE ASSET SANITY before updating the script");
+                    }
+                    else if (p_updateChannelsTextAsset.objectReferenceValue is TextAsset textAsset)
                     {
                         Database.CreateOrOverwriteTextAsset(textAsset, GetUpdateChannelScriptContent());
                     }
@@ -415,6 +419,8 @@ namespace Dhs5.Utility.Updates
 
         private static string GetChannelEnumName(UnityEngine.Object channelObject)
         {
+            if (channelObject == null) return null;
+
             var name = channelObject.name;
             if (name != null && name.StartsWith(CHANNEL_PREFIX)) return name.Substring(CHANNEL_PREFIX.Length);
             return name;
@@ -739,6 +745,17 @@ namespace Dhs5.Utility.Updates
 
             p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
             p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = channelObject;
+        }
+        private bool HasChannelsListNullElements()
+        {
+            for (int i = 0; i < p_updateChannels.arraySize; i++)
+            {
+                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         private void RemoveChannelsListNullElements()
         {
