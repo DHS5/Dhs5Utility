@@ -66,8 +66,8 @@ namespace Dhs5.Utility.Updates
 
         #region GUI Content
 
-        private GUIContent g_title = new GUIContent("Updater");
-        private GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Channels"), new GUIContent("Conditions"), new GUIContent("Timelines"), new GUIContent("Settings") };
+        private readonly GUIContent g_title = new GUIContent("Updater");
+        private readonly GUIContent[] g_windowOptions = new GUIContent[] { new GUIContent("Channels"), new GUIContent("Conditions"), new GUIContent("Settings") };
 
         #endregion
 
@@ -128,20 +128,8 @@ namespace Dhs5.Utility.Updates
                     }
                     break;
                     
-                // TIMELINES
-                case 2:
-                    if (Asset != null && AssetEditor != null)
-                    {
-                        AssetEditor.DrawTimelinesGUI();
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox("No active asset found", MessageType.Warning);
-                    }
-                    break;
-                    
                 // SETTINGS
-                case 3:
+                case 2:
                     DrawSettingsGUI();
                     break;
             }

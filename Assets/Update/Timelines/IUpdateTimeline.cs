@@ -16,7 +16,6 @@ public interface IUpdateTimeline
 
     #endregion
 
-    public int UID { get; }
     public EUpdateChannel UpdateChannel { get; }
     public float Duration { get; }
     public bool Loop { get; }

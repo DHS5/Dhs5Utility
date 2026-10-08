@@ -414,55 +414,6 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region Channel Assets Utility
-
-        private string GetChannelsFolderPath()
-        {
-            var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
-            return updaterAssetPath.Substring(0, updaterAssetPath.LastIndexOf('/'));
-        }
-        private string GetChannelAssetPath(string enumName)
-        {
-            return GetChannelsFolderPath() + "/" + CHANNEL_PREFIX + enumName + ".asset";
-        }
-
-        private static string GetChannelEnumName(UnityEngine.Object channelObject)
-        {
-            if (channelObject == null) return null;
-
-            var name = channelObject.name;
-            if (name != null && name.StartsWith(CHANNEL_PREFIX)) return name.Substring(CHANNEL_PREFIX.Length);
-            return name;
-        }
-        private string GetUniqueChannelEnumName(string enumName)
-        {
-            var uniqueName = enumName;
-            for (int i = 1; AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(GetChannelAssetPath(uniqueName)) != null; i++)
-            {
-                uniqueName = enumName + "_" + i;
-            }
-            return uniqueName;
-        }
-
-        private void RenameChannel(UpdateChannelObject channelObject, string newEnumName)
-        {
-            if (AssetDatabase.IsMainAsset(channelObject))
-            {
-                var error = AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(channelObject), CHANNEL_PREFIX + newEnumName);
-                if (!string.IsNullOrEmpty(error))
-                {
-                    Debug.LogError("Could not rename channel " + GetChannelEnumName(channelObject) + " : " + error);
-                }
-            }
-            else
-            {
-                channelObject.name = CHANNEL_PREFIX + newEnumName;
-                AssetDatabase.SaveAssetIfDirty(channelObject);
-            }
-        }
-
-        #endregion
-
         #region CONDITIONS GUI
 
         public void DrawConditonsGUI()
@@ -687,15 +638,6 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
-        #region TIMELINES GUI
-
-        public void DrawTimelinesGUI()
-        {
-
-        }
-
-        #endregion
-
         #region SETTINGS GUI
 
         public void DrawSettingsGUI()
@@ -804,7 +746,7 @@ namespace Dhs5.Utility.Updates
             // Destroy intrusive objects (channels that failed to move are kept)
             EditorDataUtility.EnsureAssetValidity(m_updaterAsset, (subAsset) =>
             {
-                return subAsset is UpdateChannelObject or UpdateTimelineObject;
+                return subAsset is UpdateChannelObject;
             });
 
             EnsureCorrectChannelsIndexation();
@@ -860,6 +802,55 @@ namespace Dhs5.Utility.Updates
 
         #endregion
 
+
+        #region Channel Assets Utility
+
+        private string GetChannelsFolderPath()
+        {
+            var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
+            return updaterAssetPath.Substring(0, updaterAssetPath.LastIndexOf('/'));
+        }
+        private string GetChannelAssetPath(string enumName)
+        {
+            return GetChannelsFolderPath() + "/" + CHANNEL_PREFIX + enumName + ".asset";
+        }
+
+        private static string GetChannelEnumName(UnityEngine.Object channelObject)
+        {
+            if (channelObject == null) return null;
+
+            var name = channelObject.name;
+            if (name != null && name.StartsWith(CHANNEL_PREFIX)) return name.Substring(CHANNEL_PREFIX.Length);
+            return name;
+        }
+        private string GetUniqueChannelEnumName(string enumName)
+        {
+            var uniqueName = enumName;
+            for (int i = 1; AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(GetChannelAssetPath(uniqueName)) != null; i++)
+            {
+                uniqueName = enumName + "_" + i;
+            }
+            return uniqueName;
+        }
+
+        private void RenameChannel(UpdateChannelObject channelObject, string newEnumName)
+        {
+            if (AssetDatabase.IsMainAsset(channelObject))
+            {
+                var error = AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(channelObject), CHANNEL_PREFIX + newEnumName);
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Debug.LogError("Could not rename channel " + GetChannelEnumName(channelObject) + " : " + error);
+                }
+            }
+            else
+            {
+                channelObject.name = CHANNEL_PREFIX + newEnumName;
+                AssetDatabase.SaveAssetIfDirty(channelObject);
+            }
+        }
+
+        #endregion
 
         #region Script Generation
 

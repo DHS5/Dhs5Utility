@@ -1,15 +1,16 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Dhs5.Utility.Updates
 {
-    public readonly struct ScriptedUpdateTimeline : IUpdateTimeline
+    [Serializable]
+    public struct ScriptedUpdateTimeline : IUpdateTimeline
     {
         #region Constructors
 
-        public ScriptedUpdateTimeline(EUpdateChannel updateChannel, float duration, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
+        public ScriptedUpdateTimeline(EUpdateChannel updateChannel, float duration, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null)
         {
-            m_uid = uid;
             m_updateChannel = updateChannel;
             m_duration = duration;
             m_loop = loop;
@@ -21,18 +22,15 @@ namespace Dhs5.Utility.Updates
 
         #region Members
 
-        private readonly int m_uid;
-        private readonly EUpdateChannel m_updateChannel;
-        private readonly float m_duration;
-        private readonly bool m_loop;
-        private readonly float m_timescale;
-        private readonly List<IUpdateTimeline.Event> m_events;
+        [SerializeField] private EUpdateChannel m_updateChannel;
+        [SerializeField] private float m_duration;
+        [SerializeField] private bool m_loop;
+        [SerializeField] private float m_timescale;
+        [SerializeField] private List<IUpdateTimeline.Event> m_events;
 
         #endregion
 
         #region IUpdateTimeline
-
-        public int UID => m_uid;
 
         public EUpdateChannel UpdateChannel => m_updateChannel;
 

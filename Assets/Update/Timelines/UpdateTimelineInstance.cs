@@ -17,7 +17,6 @@ namespace Dhs5.Utility.Updates
             Time = 0f;
             Iteration = -1;
 
-            this.timelineUID = updateTimeline.UID;
             this.updateChannel = updateTimeline.UpdateChannel;
             this.duration = updateTimeline.Duration;
             Loop = updateTimeline.Loop;
@@ -39,7 +38,6 @@ namespace Dhs5.Utility.Updates
 
         #region Members
 
-        public readonly int timelineUID;
         public readonly EUpdateChannel updateChannel;
         public readonly float duration;
 
@@ -143,7 +141,7 @@ namespace Dhs5.Utility.Updates
         {
             if (IsPlaying == playing && !force)
             {
-                Debug.LogWarning($"UPDATE TIMELINE ({timelineUID}) is already {(IsPlaying ? "playing" : HasEnded ? "ended" : "paused")}");
+                Debug.LogWarning($"UPDATE TIMELINE ({updateChannel} : {duration}) is already {(IsPlaying ? "playing" : HasEnded ? "ended" : "paused")}");
                 return;
             }
 
@@ -167,7 +165,7 @@ namespace Dhs5.Utility.Updates
             }
             else
             {
-                Debug.LogWarning($"UPDATE TIMELINE ({timelineUID}) can't be resumed as it's not paused");
+                Debug.LogWarning($"UPDATE TIMELINE ({updateChannel} : {duration}) can't be resumed as it's not paused");
             }
         }
         public void Pause()
@@ -204,7 +202,7 @@ namespace Dhs5.Utility.Updates
         {
             if (Time == duration)
             {
-                Debug.LogWarning($"UPDATE TIMELINE ({timelineUID}) is already complete");
+                Debug.LogWarning($"UPDATE TIMELINE ({updateChannel} : {duration}) is already complete");
                 return;
             }
 

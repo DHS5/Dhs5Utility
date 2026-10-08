@@ -951,9 +951,9 @@ namespace Dhs5.Utility.Updates
         /// Creates an <see cref="UpdateTimelineInstance"/> from the parameters and out a handle for it
         /// </summary>
         /// <returns>Whether the instance was successfully registered</returns>
-        public static bool CreateTimelineInstance(EUpdateChannel channel, float duration, out UpdateTimelineInstanceHandle handle, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null, int uid = 0)
+        public static bool CreateTimelineInstance(EUpdateChannel channel, float duration, out UpdateTimelineInstanceHandle handle, bool loop = false, float timescale = 1f, List<IUpdateTimeline.Event> events = null)
         {
-            return CreateTimelineInstance(new ScriptedUpdateTimeline(channel, duration, loop, timescale, events, uid), out handle);
+            return CreateTimelineInstance(new ScriptedUpdateTimeline(channel, duration, loop, timescale, events), out handle);
         }
 
         /// <summary>
@@ -981,21 +981,6 @@ namespace Dhs5.Utility.Updates
 
         internal bool TimelineInstanceExist(ulong key) => m_updateTimelineInstances.ContainsKey(key);
         internal bool TryGetUpdateTimelineInstance(ulong key, out UpdateTimelineInstance state) => m_updateTimelineInstances.TryGetValue(key, out state);
-
-        public static bool TryGetUpdateTimelineInstanceHandle(int timelineUID, out UpdateTimelineInstanceHandle handle)
-        {
-            foreach (var (key, instance) in Instance.m_updateTimelineInstances)
-            {
-                if (instance.timelineUID == timelineUID)
-                {
-                    handle = new(key);
-                    return true;
-                }
-            }
-
-            handle = UpdateTimelineInstanceHandle.Empty;
-            return false;
-        }
 
         #endregion
 
