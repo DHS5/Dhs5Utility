@@ -316,8 +316,15 @@ namespace Dhs5.Utility.SaveLoad
             var r_deleteButton = new Rect(marginedRect.x + marginedRect.width - 30f, marginedRect.y, 32f, 20f);
             using (new GUIHelper.GUIBackgroundColorScope(Color.red))
             {
-                if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon))
+                if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
+                    && EditorUtility.DisplayDialog("Delete category ?",
+                        "Are you sure you want to delete " + p_category.stringValue + " ?\n\n" +
+                        "The load order will be kept without this category.\n" +
+                        "Once the category script is updated, every category after it shifts down by one, " +
+                        "so other serialized ESaveCategory values pointing to them will change.",
+                        "Delete", "Cancel"))
                 {
+                    RemoveCategoryFromLoadOrder(index);
                     p_saveCategories.DeleteArrayElementAtIndex(index);
                 }
             }
@@ -336,7 +343,7 @@ namespace Dhs5.Utility.SaveLoad
                     p_saveCategories.GetArrayElementAtIndex(p_saveCategories.arraySize - 1).stringValue = "NEW_CATEGORY";
                 }
             }
-            using (new GUIHelper.GUIBackgroundColorScope(DoesUpdateChannelScriptNeedUpdate() ? Color.cyan : Color.grey))
+            using (new GUIHelper.GUIBackgroundColorScope(DoesSaveCategoryScriptNeedUpdate() ? Color.cyan : Color.grey))
             {
                 if (GUILayout.Button("UPDATE CATEGORY SCRIPT", GUILayout.Height(25f)))
                 {
@@ -388,7 +395,7 @@ namespace Dhs5.Utility.SaveLoad
                         var cycle = 1;
                         for (int i = 0; i < index; i++)
                         {
-                            if (p_loadOrder.GetArrayElementAtIndex(i).enumValueIndex == property.enumValueIndex)
+                            if (p_loadOrder.GetArrayElementAtIndex(i).intValue == property.intValue)
                             {
                                 cycle++;
                             }
@@ -396,8 +403,8 @@ namespace Dhs5.Utility.SaveLoad
                         var isRepetition = cycle > 1;
 
                         EditorGUI.BeginDisabledGroup(true);
-                        var r_element = new Rect(rect.x, rect.y + 2f, rect.width - (isRepetition ? 20f : 0f), rect.height);
-                        EditorGUI.PropertyField(r_element, property, new GUIContent("Load Step " + index));
+                        var r_element = new Rect(rect.x, rect.y + 2f, rect.width - (isRepetition ? 20f : 0f), EditorGUIUtility.singleLineHeight);
+                        EditorGUI.TextField(r_element, "Load Step " + index, GetSaveCategoryName(property.intValue));
                         if (isRepetition)
                         {
                             var r_cycle = new Rect(rect.x + rect.width - 15f, rect.y, 15f, rect.height);
@@ -410,10 +417,9 @@ namespace Dhs5.Utility.SaveLoad
                     {
                         GenericMenu menu = new();
 
-                        foreach (var value in Enum.GetValues(typeof(ESaveCategory)))
+                        for (int i = 0; i < p_saveCategories.arraySize; i++)
                         {
-                            ESaveCategory category = (ESaveCategory)value;
-                            menu.AddItem(new GUIContent(category.ToString()), false, AddCallback, (int)category);
+                            menu.AddItem(new GUIContent(GetSaveCategoryName(i)), false, AddCallback, i);
                         }
 
                         menu.DropDown(rect);
@@ -426,7 +432,7 @@ namespace Dhs5.Utility.SaveLoad
                         var cycle = 0;
                         for (int i = 0; i < list.index; i++)
                         {
-                            if (p_loadOrder.GetArrayElementAtIndex(i).enumValueIndex == property.enumValueIndex)
+                            if (p_loadOrder.GetArrayElementAtIndex(i).intValue == property.intValue)
                             {
                                 cycle++;
                             }
@@ -437,26 +443,25 @@ namespace Dhs5.Utility.SaveLoad
             }
 
             // Ensure at least one occurence of every categories
-            HashSet<ESaveCategory> currentElementsInLoadOrder = new();
-            var enumValues = Enum.GetValues(typeof(ESaveCategory));
+            // (based on the categories list rather than the compiled enum, which can be outdated)
+            HashSet<int> currentElementsInLoadOrder = new();
             for (int  i = p_loadOrder.arraySize - 1; i >= 0; i--)
             {
-                var enumValueIndex = p_loadOrder.GetArrayElementAtIndex(i).enumValueIndex;
-                if (enumValueIndex >= enumValues.Length || enumValueIndex < 0)
+                var categoryIndex = p_loadOrder.GetArrayElementAtIndex(i).intValue;
+                if (categoryIndex >= p_saveCategories.arraySize || categoryIndex < 0)
                 {
                     p_loadOrder.DeleteArrayElementAtIndex(i);
                     continue;
                 }
 
-                currentElementsInLoadOrder.Add((ESaveCategory)enumValueIndex);
+                currentElementsInLoadOrder.Add(categoryIndex);
             }
-            foreach (var value in enumValues)
+            for (int categoryIndex = 0; categoryIndex < p_saveCategories.arraySize; categoryIndex++)
             {
-                ESaveCategory category = (ESaveCategory)value;
-                if (!currentElementsInLoadOrder.Contains(category))
+                if (!currentElementsInLoadOrder.Contains(categoryIndex))
                 {
                     p_loadOrder.InsertArrayElementAtIndex(p_loadOrder.arraySize);
-                    p_loadOrder.GetArrayElementAtIndex(p_loadOrder.arraySize - 1).enumValueIndex = (int)category;
+                    p_loadOrder.GetArrayElementAtIndex(p_loadOrder.arraySize - 1).intValue = categoryIndex;
                 }
             }
         }
@@ -468,8 +473,37 @@ namespace Dhs5.Utility.SaveLoad
                 serializedObject.Update();
                 var property = serializedObject.FindProperty("m_loadOrder");
                 property.InsertArrayElementAtIndex(property.arraySize);
-                property.GetArrayElementAtIndex(property.arraySize - 1).enumValueIndex = (int)obj;
+                property.GetArrayElementAtIndex(property.arraySize - 1).intValue = (int)obj;
                 serializedObject.ApplyModifiedProperties();
+            }
+        }
+
+        private string GetSaveCategoryName(int categoryIndex)
+        {
+            if (categoryIndex >= 0 && categoryIndex < p_saveCategories.arraySize)
+            {
+                return p_saveCategories.GetArrayElementAtIndex(categoryIndex).stringValue;
+            }
+            return "INVALID (" + categoryIndex + ")";
+        }
+
+        /// <summary>
+        /// Removes every occurence of the category at <paramref name="categoryIndex"/> from the load order
+        /// and shifts the categories after it down by one, so the load order stays the same
+        /// </summary>
+        private void RemoveCategoryFromLoadOrder(int categoryIndex)
+        {
+            for (int i = p_loadOrder.arraySize - 1; i >= 0; i--)
+            {
+                var p_step = p_loadOrder.GetArrayElementAtIndex(i);
+                if (p_step.intValue == categoryIndex)
+                {
+                    p_loadOrder.DeleteArrayElementAtIndex(i);
+                }
+                else if (p_step.intValue > categoryIndex)
+                {
+                    p_step.intValue--;
+                }
             }
         }
 
@@ -491,8 +525,7 @@ namespace Dhs5.Utility.SaveLoad
 
                     void Callback(Type type)
                     {
-                        var newModifier = Database.CreateScriptableAndAddToAsset(type, m_saveAsset);
-                        newModifier.name = ObjectNames.NicifyVariableName(type.Name);
+                        var newModifier = Database.CreateScriptableAsset(type, GetModifierAssetPath(ObjectNames.NicifyVariableName(type.Name)));
                         if (serializedObject != null)
                         {
                             serializedObject.FindProperty("m_modifier").objectReferenceValue = newModifier;
@@ -534,24 +567,36 @@ namespace Dhs5.Utility.SaveLoad
             {
                 if (GUILayout.Button("ENSURE ASSET SANITY"))
                 {
-                    if (p_modifier.objectReferenceValue != null
-                        && AssetDatabase.GetAssetPath(p_modifier.objectReferenceValue) != AssetDatabase.GetAssetPath(m_saveAsset))
-                    {
-                        if (AssetDatabase.IsSubAsset(p_modifier.objectReferenceValue))
-                        {
-                            AssetDatabase.RemoveObjectFromAsset(p_modifier.objectReferenceValue);
-                        }
-                        AssetDatabase.AddObjectToAsset(p_modifier.objectReferenceValue, m_saveAsset);
-                    }
-
-                    EditorDataUtility.EnsureAssetValidity(m_saveAsset, (obj) =>
-                    {
-                        return obj == p_modifier.objectReferenceValue;
-                    });
-
-                    AssetDatabase.SaveAssetIfDirty(m_saveAsset);
+                    EnsureAssetSanity();
                 }
             }
+        }
+
+        private void EnsureAssetSanity()
+        {
+            AssetDatabase.Refresh();
+
+            // Extract the modifier from the asset (legacy sub-asset)
+            var modifier = p_modifier.objectReferenceValue;
+            if (modifier != null && AssetDatabase.IsSubAsset(modifier))
+            {
+                var modifierName = string.IsNullOrWhiteSpace(modifier.name) ? ObjectNames.NicifyVariableName(modifier.GetType().Name) : modifier.name;
+                var newModifierPath = AssetDatabase.GenerateUniqueAssetPath(GetModifierAssetPath(modifierName));
+                AssetDatabase.RemoveObjectFromAsset(modifier);
+                AssetDatabase.CreateAsset(modifier, newModifierPath);
+            }
+
+            // Destroy intrusive objects
+            EditorDataUtility.EnsureAssetValidity(m_saveAsset, (obj) => false);
+
+            serializedObject.ApplyModifiedProperties();
+            AssetDatabase.SaveAssets();
+        }
+
+        private string GetModifierAssetPath(string modifierName)
+        {
+            var saveAssetPath = AssetDatabase.GetAssetPath(m_saveAsset);
+            return saveAssetPath.Substring(0, saveAssetPath.LastIndexOf('/')) + "/" + modifierName + ".asset";
         }
 
         #endregion
@@ -581,7 +626,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Script Check
 
-        private bool DoesUpdateChannelScriptNeedUpdate()
+        private bool DoesSaveCategoryScriptNeedUpdate()
         {
             if (p_saveCategoriesTextAsset.objectReferenceValue != null)
             {
