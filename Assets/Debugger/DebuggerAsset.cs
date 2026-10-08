@@ -5,6 +5,7 @@ using Dhs5.Utility.GUIs;
 using System;
 using UnityEngine.InputSystem;
 using System.Text;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -141,6 +142,13 @@ namespace Dhs5.Utility.Debugger
     [CustomEditor(typeof(DebuggerAsset))]
     public class DebuggerAssetEditor : Editor
     {
+        #region Consts
+
+        private const string CATEGORY_PREFIX = "DC_";
+        private const string BASE_CATEGORY_NAME = "BASE";
+
+        #endregion
+
         #region Members
 
         private DebuggerAsset m_debuggerAsset;
@@ -249,7 +257,7 @@ namespace Dhs5.Utility.Debugger
                     using (new GUIHelper.GUIBackgroundColorScope(Color.red))
                     {
                         if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
-                            && Database.DeleteNestedAsset(element, true))
+                            && Database.DeleteAsset(element, true))
                         {
                             p_debugCategories.DeleteArrayElementAtIndex(index);
                             AssetDatabase.SaveAssetIfDirty(m_debuggerAsset);
@@ -271,11 +279,11 @@ namespace Dhs5.Utility.Debugger
                 var r_indexLabel = new Rect(marginedRect.x, marginedRect.y, 20f, 20f);
                 var r_nameTextField = new Rect(marginedRect.x + 20f, marginedRect.y, marginedRect.width - buttonsTotalWidth - 20f, 20f);
                 EditorGUI.LabelField(r_indexLabel, p_enumIndex.intValue.ToString(), EditorStyles.boldLabel);
-                var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, element.name));
-                if (newName != element.name)
+                var displayName = GetCategoryEnumName(element);
+                var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, displayName));
+                if (newName != displayName)
                 {
-                    element.name = newName;
-                    AssetDatabase.SaveAssetIfDirty(element);
+                    RenameCategory(element, newName);
                 }
                 EditorGUI.EndDisabledGroup();
 
@@ -318,14 +326,14 @@ namespace Dhs5.Utility.Debugger
                 if (GUILayout.Button("ADD NEW CATEGORY", GUILayout.Height(25f)))
                 {
                     var first = p_debugCategories.arraySize == 0;
-                    p_debugCategories.InsertArrayElementAtIndex(p_debugCategories.arraySize);
-                    p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = null;
-                    var newElement = Database.CreateScriptableAndAddToAsset<DebugCategoryObject>(m_debuggerAsset);
-                    newElement.name = first ? "BASE" : "NEW_CATEGORY";
+                    var newElementName = first ? BASE_CATEGORY_NAME : GetUniqueCategoryEnumName("NEW_CATEGORY");
+                    var newElement = Database.CreateScriptableAsset<DebugCategoryObject>(GetCategoryAssetPath(newElementName));
                     if (first)
                     {
                         newElement.Editor_SetColor(Color.white);
+                        EditorUtility.SetDirty(newElement);
                     }
+                    p_debugCategories.InsertArrayElementAtIndex(p_debugCategories.arraySize);
                     p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
                     EnsureCorrectChannelsIndexation();
@@ -375,6 +383,53 @@ namespace Dhs5.Utility.Debugger
 
         #endregion
 
+        #region Category Assets Utility
+
+        private string GetCategoriesFolderPath()
+        {
+            var debuggerAssetPath = AssetDatabase.GetAssetPath(m_debuggerAsset);
+            return debuggerAssetPath.Substring(0, debuggerAssetPath.LastIndexOf('/'));
+        }
+        private string GetCategoryAssetPath(string enumName)
+        {
+            return GetCategoriesFolderPath() + "/" + CATEGORY_PREFIX + enumName + ".asset";
+        }
+
+        private static string GetCategoryEnumName(UnityEngine.Object categoryObject)
+        {
+            var name = categoryObject.name;
+            if (name != null && name.StartsWith(CATEGORY_PREFIX)) return name.Substring(CATEGORY_PREFIX.Length);
+            return name;
+        }
+        private string GetUniqueCategoryEnumName(string enumName)
+        {
+            var uniqueName = enumName;
+            for (int i = 1; AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(GetCategoryAssetPath(uniqueName)) != null; i++)
+            {
+                uniqueName = enumName + "_" + i;
+            }
+            return uniqueName;
+        }
+
+        private void RenameCategory(DebugCategoryObject categoryObject, string newEnumName)
+        {
+            if (AssetDatabase.IsMainAsset(categoryObject))
+            {
+                var error = AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(categoryObject), CATEGORY_PREFIX + newEnumName);
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Debug.LogError("Could not rename category " + GetCategoryEnumName(categoryObject) + " : " + error);
+                }
+            }
+            else
+            {
+                categoryObject.name = CATEGORY_PREFIX + newEnumName;
+                AssetDatabase.SaveAssetIfDirty(categoryObject);
+            }
+        }
+
+        #endregion
+
         #region SETTINGS GUI
 
         public void DrawSettingsGUI()
@@ -409,72 +464,7 @@ namespace Dhs5.Utility.Debugger
             {
                 if (GUILayout.Button("ENSURE ASSET SANITY"))
                 {
-                    AssetDatabase.Refresh();
-
-                    // Put all categories in list inside the asset
-                    var updaterAssetPath = AssetDatabase.GetAssetPath(m_debuggerAsset);
-                    for (int i = 0; i < p_debugCategories.arraySize; i++)
-                    {
-                        if (p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue is DebugCategoryObject categoryObject
-                            && AssetDatabase.GetAssetPath(categoryObject) != updaterAssetPath)
-                        {
-                            if (AssetDatabase.IsSubAsset(categoryObject))
-                            {
-                                AssetDatabase.RemoveObjectFromAsset(categoryObject);
-                            }
-                            AssetDatabase.AddObjectToAsset(categoryObject, updaterAssetPath);
-                        }
-                    }
-                    // Put all channels in asset inside list
-                    foreach (var subAsset in EditorDataUtility.GetSubAssets(m_debuggerAsset))
-                    {
-                        if (subAsset is DebugCategoryObject categoryObject)
-                        {
-                            bool isInside = false;
-                            for (int j = 0; j < p_debugCategories.arraySize; j++)
-                            {
-                                if (p_debugCategories.GetArrayElementAtIndex(j).objectReferenceValue == categoryObject)
-                                {
-                                    isInside = true;
-                                    break;
-                                }
-                            }
-
-                            if (!isInside)
-                            {
-                                p_debugCategories.InsertArrayElementAtIndex(p_debugCategories.arraySize);
-                                p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = categoryObject;
-                            }
-                            continue;
-                        }
-                        // Same for Timelines
-                    }
-
-                    // Remove list null elements
-                    for (int i = p_debugCategories.arraySize - 1; i >= 0; i--)
-                    {
-                        if (p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue == null)
-                        {
-                            p_debugCategories.DeleteArrayElementAtIndex(i);
-                        }
-                    }
-
-                    // Destroy intrusive objects
-                    EditorDataUtility.EnsureAssetValidity(m_debuggerAsset, (subAsset) =>
-                    {
-                        return subAsset is DebugCategoryObject;
-                    });
-
-                    // Make sure first debug category is BASE (white)
-                    if (p_debugCategories.arraySize > 0)
-                    {
-                        var baseElement = p_debugCategories.GetArrayElementAtIndex(0).objectReferenceValue as DebugCategoryObject;
-                        if (baseElement != null)
-                        {
-                            baseElement.name = "BASE";
-                            baseElement.Editor_SetColor(Color.white);
-                        }
-                    }
+                    EnsureAssetSanity();
                 }
             }
 
@@ -484,6 +474,110 @@ namespace Dhs5.Utility.Debugger
             EditorGUILayout.PropertyField(p_enableOnScreenConsole);
             EditorGUILayout.PropertyField(p_openOnScreenConsoleInputRef);
             EditorGUILayout.PropertyField(p_closeOnScreenConsoleInputRef);
+        }
+
+        private void EnsureAssetSanity()
+        {
+            AssetDatabase.Refresh();
+
+            // Put all categories nested in the asset inside list (legacy sub-assets)
+            foreach (var subAsset in EditorDataUtility.GetSubAssets(m_debuggerAsset))
+            {
+                if (subAsset is DebugCategoryObject categoryObject)
+                {
+                    AddToCategoriesListIfMissing(categoryObject);
+                }
+            }
+
+            // Remove list null elements
+            RemoveCategoriesListNullElements();
+
+            // Put all categories in list inside the folder, with correct names
+            for (int i = 0; i < p_debugCategories.arraySize; i++)
+            {
+                if (p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue is DebugCategoryObject categoryObject)
+                {
+                    var enumName = i == 0 ? BASE_CATEGORY_NAME : GetCategoryEnumName(categoryObject);
+                    var currentObjectPath = AssetDatabase.GetAssetPath(categoryObject);
+                    var newObjectPath = GetCategoryAssetPath(enumName);
+
+                    if (currentObjectPath == newObjectPath) continue;
+
+                    if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(newObjectPath) != null)
+                    {
+                        Debug.LogError("Can't move category " + enumName + " to " + newObjectPath + " : an asset already exists at this path");
+                        continue;
+                    }
+
+                    if (AssetDatabase.IsSubAsset(categoryObject))
+                    {
+                        AssetDatabase.RemoveObjectFromAsset(categoryObject);
+                        categoryObject.name = CATEGORY_PREFIX + enumName;
+                        AssetDatabase.CreateAsset(categoryObject, newObjectPath);
+                    }
+                    else
+                    {
+                        var error = AssetDatabase.MoveAsset(currentObjectPath, newObjectPath);
+                        if (!string.IsNullOrEmpty(error))
+                        {
+                            Debug.LogError("Can't move category " + enumName + " to " + newObjectPath + " : " + error);
+                        }
+                    }
+                }
+            }
+
+            // Put all categories in folder inside list
+            var guids = AssetDatabase.FindAssets("t:DebugCategoryObject", new[] { GetCategoriesFolderPath() });
+            foreach (var categoryObject in guids.Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadMainAssetAtPath)
+                .OfType<DebugCategoryObject>())
+            {
+                AddToCategoriesListIfMissing(categoryObject);
+            }
+
+            // Destroy intrusive objects (categories that failed to move are kept)
+            EditorDataUtility.EnsureAssetValidity(m_debuggerAsset, (subAsset) =>
+            {
+                return subAsset is DebugCategoryObject;
+            });
+
+            // Make sure first debug category is white
+            if (p_debugCategories.arraySize > 0
+                && p_debugCategories.GetArrayElementAtIndex(0).objectReferenceValue is DebugCategoryObject baseElement)
+            {
+                baseElement.Editor_SetColor(Color.white);
+                baseElement.RefreshColorString();
+                EditorUtility.SetDirty(baseElement);
+            }
+
+            EnsureCorrectChannelsIndexation();
+
+            serializedObject.ApplyModifiedProperties();
+            AssetDatabase.SaveAssets();
+        }
+
+        private void AddToCategoriesListIfMissing(DebugCategoryObject categoryObject)
+        {
+            for (int i = 0; i < p_debugCategories.arraySize; i++)
+            {
+                if (p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue == categoryObject)
+                {
+                    return;
+                }
+            }
+
+            p_debugCategories.InsertArrayElementAtIndex(p_debugCategories.arraySize);
+            p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = categoryObject;
+        }
+        private void RemoveCategoriesListNullElements()
+        {
+            for (int i = p_debugCategories.arraySize - 1; i >= 0; i--)
+            {
+                if (p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    p_debugCategories.DeleteArrayElementAtIndex(i);
+                }
+            }
         }
 
         #endregion
@@ -496,7 +590,7 @@ namespace Dhs5.Utility.Debugger
             string[] debugCategories = new string[p_debugCategories.arraySize];
             for (int i = 0; i < debugCategories.Length; i++)
             {
-                debugCategories[i] = p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue.name;
+                debugCategories[i] = GetCategoryEnumName(p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue);
             }
 
             var sb = new StringBuilder();
@@ -559,7 +653,7 @@ namespace Dhs5.Utility.Debugger
                 {
                     var value = (EDebugCategory)obj;
                     if (p_debugCategories.arraySize <= i
-                        || value.ToString() != p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue.name)
+                        || value.ToString() != GetCategoryEnumName(p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue))
                     {
                         return true;
                     }
@@ -568,12 +662,12 @@ namespace Dhs5.Utility.Debugger
             }
             return false;
         }
-    }
 
-    #endregion
-}
+        #endregion
+    }
 
 #endif
 
     #endregion
+}
 

@@ -1,21 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-7002647680321824663
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc4b4b7f924ee4e41816400cf1c7b0fa, type: 3}
-  m_Name: UI
-  m_EditorClassIdentifier: 
-  m_enumIndex: 2
-  m_color: {r: 1, g: 0.74650204, b: 0, a: 1}
-  m_colorString: FFBE00
-  m_level: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29,60 +13,12 @@ MonoBehaviour:
   m_Name: Debugger
   m_EditorClassIdentifier: Assembly-CSharp::Dhs5.Utility.Console.DebuggerAsset
   m_debugCategories:
-  - {fileID: 6690754561762255559}
-  - {fileID: 697256396391879857}
-  - {fileID: -7002647680321824663}
-  - {fileID: 5819532464124954668}
+  - {fileID: 11400000, guid: 7220d249980ced14d8f7393d9c7ce0ea, type: 2}
+  - {fileID: 11400000, guid: 7724b1082bf3bd94c8213de9d8e9aaa3, type: 2}
+  - {fileID: 11400000, guid: 51ad4f2279f3b1b47b0e34120cea2b51, type: 2}
+  - {fileID: 11400000, guid: bc7640135ea093045a47921b7d1d5568, type: 2}
   m_enableOnScreenConsole: 1
   m_openOnScreenConsoleInputRef: {fileID: 0}
   m_closeOnScreenConsoleInputRef: {fileID: 0}
   m_debugCategoriesTextAsset: {fileID: 11500000, guid: 2f131b65ccc467349837c7c6abe9a0c6,
     type: 3}
---- !u!114 &697256396391879857
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc4b4b7f924ee4e41816400cf1c7b0fa, type: 3}
-  m_Name: GAME
-  m_EditorClassIdentifier: 
-  m_enumIndex: 1
-  m_color: {r: 1, g: 0, b: 0, a: 1}
-  m_colorString: FF0000
-  m_level: 0
---- !u!114 &5819532464124954668
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc4b4b7f924ee4e41816400cf1c7b0fa, type: 3}
-  m_Name: FLOW
-  m_EditorClassIdentifier: 
-  m_enumIndex: 3
-  m_color: {r: 0, g: 0.9457493, b: 1, a: 1}
-  m_colorString: 00F1FF
-  m_level: 0
---- !u!114 &6690754561762255559
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc4b4b7f924ee4e41816400cf1c7b0fa, type: 3}
-  m_Name: BASE
-  m_EditorClassIdentifier: 
-  m_enumIndex: 0
-  m_color: {r: 1, g: 1, b: 1, a: 1}
-  m_colorString: FFFFFF
-  m_level: 0
