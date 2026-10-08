@@ -24,6 +24,8 @@ namespace Dhs5.Utility.Updates
         {
             [SerializeField] private string m_name;
             [SerializeField] private UpdateConditionObject m_object;
+            [Tooltip("EDITOR ONLY\nName of this condition in the last generated EUpdateCondition script")]
+            [SerializeField] private string m_scriptName;
 
             public UpdateConditionObject Object => m_object;
         }
@@ -166,6 +168,7 @@ namespace Dhs5.Utility.Updates
             p_updateConditionsTextAsset = serializedObject.FindProperty("m_updateConditionsTextAsset");
 
             EnsureCorrectChannelsIndexation();
+            InitConditionsScriptNames();
         }
 
         #endregion
@@ -246,7 +249,13 @@ namespace Dhs5.Utility.Updates
                 using (new GUIHelper.GUIBackgroundColorScope(Color.red))
                 {
                     if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
-                        && Database.DeleteAsset(element, true))
+                        && EditorUtility.DisplayDialog("Delete channel ?",
+                            "Are you sure you want to delete " + GetChannelEnumName(element) + " ?\n\n" +
+                            "Its asset file will be deleted permanently.\n" +
+                            "Once the channel script is updated, every channel after it shifts down by one, " +
+                            "so serialized EUpdateChannel values pointing to them will change.",
+                            "Delete", "Cancel")
+                        && Database.DeleteAsset(element, false))
                     {
                         p_updateChannels.DeleteArrayElementAtIndex(index);
                         AssetDatabase.SaveAssetIfDirty(m_updaterAsset);
@@ -522,7 +531,13 @@ namespace Dhs5.Utility.Updates
             using (new GUIHelper.GUIBackgroundColorScope(Color.red))
             {
                 if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
-                    && EditorUtility.DisplayDialog("Delete condition ?", "Are you sure you want to delete " + p_element.FindPropertyRelative("m_name").stringValue + " ?", "Yes", "Cancel"))
+                    && EditorUtility.DisplayDialog("Delete condition ?",
+                        "Are you sure you want to delete " + p_element.FindPropertyRelative("m_name").stringValue + " ?\n\n" +
+                        "When the condition script is updated, channels using it will be set back to ALWAYS, " +
+                        "and the other channels will keep their condition.\n" +
+                        "Every condition after it shifts down by one, " +
+                        "so other serialized EUpdateCondition values pointing to them will change.",
+                        "Delete", "Cancel"))
                 {
                     p_updateConditions.DeleteArrayElementAtIndex(index);
                     ret = true;
@@ -558,6 +573,78 @@ namespace Dhs5.Utility.Updates
             }
         }
 
+        /// <summary>
+        /// Name used to match this condition with the compiled EUpdateCondition enum
+        /// </summary>
+        private static string GetConditionScriptName(SerializedProperty p_condition)
+        {
+            var scriptName = p_condition.FindPropertyRelative("m_scriptName").stringValue;
+            return string.IsNullOrEmpty(scriptName) ? p_condition.FindPropertyRelative("m_name").stringValue : scriptName;
+        }
+
+        /// <summary>
+        /// When the condition script is up to date, store each condition's current name as its script name
+        /// so renames made afterwards can still be tracked
+        /// </summary>
+        private void InitConditionsScriptNames()
+        {
+            if (p_updateConditions == null || DoesUpdateConditionScriptNeedUpdate()) return;
+
+            for (int i = 0; i < p_updateConditions.arraySize; i++)
+            {
+                var p_condition = p_updateConditions.GetArrayElementAtIndex(i);
+                var p_scriptName = p_condition.FindPropertyRelative("m_scriptName");
+                if (string.IsNullOrEmpty(p_scriptName.stringValue))
+                {
+                    p_scriptName.stringValue = p_condition.FindPropertyRelative("m_name").stringValue;
+                }
+            }
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        /// <summary>
+        /// Updates every channel's condition from the compiled EUpdateCondition values to the conditions list indexes,
+        /// so every channel keeps its condition when conditions are deleted, moved or renamed.<br></br>
+        /// Channels whose condition was deleted are set back to ALWAYS.
+        /// </summary>
+        private void RemapChannelsConditions()
+        {
+            var newIndexes = new Dictionary<string, int>();
+            for (int i = 0; i < p_updateConditions.arraySize; i++)
+            {
+                var scriptName = GetConditionScriptName(p_updateConditions.GetArrayElementAtIndex(i));
+                if (!newIndexes.ContainsKey(scriptName)) newIndexes.Add(scriptName, i);
+            }
+
+            for (int i = 0; i < p_updateChannels.arraySize; i++)
+            {
+                var obj = p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (obj == null) continue;
+
+                using (var so = new SerializedObject(obj))
+                {
+                    var p_updateCondition = so.FindProperty("m_updateCondition");
+                    var oldName = Enum.GetName(typeof(EUpdateCondition), (EUpdateCondition)p_updateCondition.intValue);
+                    p_updateCondition.intValue = oldName != null && newIndexes.TryGetValue(oldName, out var newIndex)
+                        ? newIndex : (int)EUpdateCondition.ALWAYS;
+
+                    if (so.ApplyModifiedProperties())
+                    {
+                        AssetDatabase.SaveAssetIfDirty(obj);
+                    }
+                }
+            }
+
+            // The new script names are the current names
+            for (int i = 0; i < p_updateConditions.arraySize; i++)
+            {
+                var p_condition = p_updateConditions.GetArrayElementAtIndex(i);
+                p_condition.FindPropertyRelative("m_scriptName").stringValue = p_condition.FindPropertyRelative("m_name").stringValue;
+            }
+            serializedObject.ApplyModifiedProperties();
+            AssetDatabase.SaveAssetIfDirty(m_updaterAsset);
+        }
+
         private void DrawConditionsFooter()
         {
             EditorGUILayout.BeginVertical();
@@ -573,6 +660,7 @@ namespace Dhs5.Utility.Updates
                     var p_element = p_updateConditions.GetArrayElementAtIndex(p_updateConditions.arraySize - 1);
                     p_element.FindPropertyRelative("m_name").stringValue = first ? "ALWAYS" : "NEW_CONDITION";
                     p_element.FindPropertyRelative("m_object").objectReferenceValue = null;
+                    p_element.FindPropertyRelative("m_scriptName").stringValue = string.Empty;
                 }
             }
             EditorGUI.EndDisabledGroup();
@@ -582,6 +670,8 @@ namespace Dhs5.Utility.Updates
                 {
                     if (p_updateConditionsTextAsset.objectReferenceValue is TextAsset textAsset)
                     {
+                        // Remap channels before the script changes, while their values still match the compiled enum
+                        RemapChannelsConditions();
                         Database.CreateOrOverwriteTextAsset(textAsset, GetUpdateConditionScriptContent());
                     }
                     else

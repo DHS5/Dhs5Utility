@@ -277,7 +277,13 @@ namespace Dhs5.Utility.Debugger
                     using (new GUIHelper.GUIBackgroundColorScope(Color.red))
                     {
                         if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
-                            && Database.DeleteAsset(element, true))
+                            && EditorUtility.DisplayDialog("Delete category ?",
+                                "Are you sure you want to delete " + GetCategoryEnumName(element) + " ?\n\n" +
+                                "Its asset file will be deleted permanently.\n" +
+                                "Once the category script is updated, every category after it shifts down by one, " +
+                                "so serialized EDebugCategory values pointing to them will change.",
+                                "Delete", "Cancel")
+                            && Database.DeleteAsset(element, false))
                         {
                             p_debugCategories.DeleteArrayElementAtIndex(index);
                             AssetDatabase.SaveAssetIfDirty(m_debuggerAsset);
