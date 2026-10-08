@@ -121,7 +121,7 @@ public static class Logger
             var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, 0, msgString, context));
 
             var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
-            Debug.Log(categorizedMessage, context);
+            Debug.unityLogger.Log(logType, (object)categorizedMessage, context);
 
             if (onScreen && Application.isPlaying)
             {
@@ -181,7 +181,7 @@ public static class Logger
             sb.Append("<color=#");
             sb.Append(categoryObject.ColorString);
             sb.Append("><b>");
-            sb.Append(categoryObject.name);
+            sb.Append((EDebugCategory)categoryObject.EnumIndex);
             sb.Append(" ");
             for (int i = 0; i < DebuggerAsset.MAX_DEBUGGER_LEVEL + 1 - level; i++)
                 sb.Append(">");
