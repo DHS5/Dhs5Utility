@@ -127,6 +127,13 @@ namespace Dhs5.Utility.Updates
     [CustomEditor(typeof(UpdaterAsset))]
     public class UpdaterAssetEditor : Editor
     {
+        #region Consts
+
+        private const string CHANNEL_PREFIX = "UC_";
+        private const string CLASSIC_CHANNEL_NAME = "CLASSIC";
+
+        #endregion
+
         #region Members
 
         private UpdaterAsset m_updaterAsset;
@@ -239,7 +246,7 @@ namespace Dhs5.Utility.Updates
                 using (new GUIHelper.GUIBackgroundColorScope(Color.red))
                 {
                     if (GUI.Button(r_deleteButton, EditorGUIHelper.DeleteIcon)
-                        && Database.DeleteNestedAsset(element, true))
+                        && Database.DeleteAsset(element, true))
                     {
                         p_updateChannels.DeleteArrayElementAtIndex(index);
                         AssetDatabase.SaveAssetIfDirty(m_updaterAsset);
@@ -261,13 +268,11 @@ namespace Dhs5.Utility.Updates
                 var r_indexLabel = new Rect(marginedRect.x + enabledToggleTotalWidth, marginedRect.y, 20f, 20f);
                 var r_nameTextField = new Rect(marginedRect.x + enabledToggleTotalWidth + 20f, marginedRect.y, marginedRect.width - enabledToggleTotalWidth - buttonsTotalWidth - 20f, 20f);
                 EditorGUI.LabelField(r_indexLabel, p_enumIndex.intValue.ToString(), EditorStyles.boldLabel);
-                var displayName = element.name;
-                if (displayName != null && displayName.StartsWith("UC_")) displayName = displayName.Remove(0, 3);
+                var displayName = GetChannelEnumName(element);
                 var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, displayName));
                 if (newName != displayName)
                 {
-                    element.name = "UC_" + newName;
-                    AssetDatabase.SaveAssetIfDirty(element);
+                    RenameChannel(element, newName);
                 }
 
                 marginedRect.y += 25f;
@@ -343,12 +348,12 @@ namespace Dhs5.Utility.Updates
             {
                 if (GUILayout.Button("ADD NEW CHANNEL", GUILayout.Height(25f)))
                 {
+                    var newElementName = p_updateChannels.arraySize == 0 ? CLASSIC_CHANNEL_NAME : GetUniqueChannelEnumName("NEW_CHANNEL");
+                    var newElement = Database.CreateScriptableAsset<UpdateChannelObject>(GetChannelAssetPath(newElementName));
                     p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
-                    p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = null;
-                    var newElement = Database.CreateScriptableAndAddToAsset<UpdateChannelObject>(m_updaterAsset);
-                    newElement.name = p_updateChannels.arraySize == 0 ? "CLASSIC" : "NEW_CHANNEL";
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
+                    EnsureCorrectChannelsIndexation();
                 }
             }
             EditorGUI.EndDisabledGroup();
@@ -391,6 +396,53 @@ namespace Dhs5.Utility.Updates
                         }
                     }
                 }
+            }
+        }
+
+        #endregion
+
+        #region Channel Assets Utility
+
+        private string GetChannelsFolderPath()
+        {
+            var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
+            return updaterAssetPath.Substring(0, updaterAssetPath.LastIndexOf('/'));
+        }
+        private string GetChannelAssetPath(string enumName)
+        {
+            return GetChannelsFolderPath() + "/" + CHANNEL_PREFIX + enumName + ".asset";
+        }
+
+        private static string GetChannelEnumName(UnityEngine.Object channelObject)
+        {
+            var name = channelObject.name;
+            if (name != null && name.StartsWith(CHANNEL_PREFIX)) return name.Substring(CHANNEL_PREFIX.Length);
+            return name;
+        }
+        private string GetUniqueChannelEnumName(string enumName)
+        {
+            var uniqueName = enumName;
+            for (int i = 1; AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(GetChannelAssetPath(uniqueName)) != null; i++)
+            {
+                uniqueName = enumName + "_" + i;
+            }
+            return uniqueName;
+        }
+
+        private void RenameChannel(UpdateChannelObject channelObject, string newEnumName)
+        {
+            if (AssetDatabase.IsMainAsset(channelObject))
+            {
+                var error = AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(channelObject), CHANNEL_PREFIX + newEnumName);
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Debug.LogError("Could not rename channel " + GetChannelEnumName(channelObject) + " : " + error);
+                }
+            }
+            else
+            {
+                channelObject.name = CHANNEL_PREFIX + newEnumName;
+                AssetDatabase.SaveAssetIfDirty(channelObject);
             }
         }
 
@@ -596,91 +648,70 @@ namespace Dhs5.Utility.Updates
         private void EnsureAssetSanity()
         {
             AssetDatabase.Refresh();
-            var assetDatabaseChange = false;
 
-            // Put all channels in list inside the folder
-            var updaterAssetPath = AssetDatabase.GetAssetPath(m_updaterAsset);
-            var updaterFolderPath = updaterAssetPath.Substring(0, updaterAssetPath.LastIndexOf('/') + 1);
+            // Put all channels nested in the asset inside list (legacy sub-assets)
+            foreach (var subAsset in EditorDataUtility.GetSubAssets(m_updaterAsset))
+            {
+                if (subAsset is UpdateChannelObject channelObject)
+                {
+                    AddToChannelsListIfMissing(channelObject);
+                }
+                // Same for Timelines
+            }
 
+            // Remove list null elements
+            RemoveChannelsListNullElements();
+
+            // Put all channels in list inside the folder, with correct names
             for (int i = 0; i < p_updateChannels.arraySize; i++)
             {
                 if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue is UpdateChannelObject channelObject)
                 {
+                    var enumName = i == 0 ? CLASSIC_CHANNEL_NAME : GetChannelEnumName(channelObject);
                     var currentObjectPath = AssetDatabase.GetAssetPath(channelObject);
-                    var newObjectPath = updaterFolderPath + channelObject.name + ".asset";
+                    var newObjectPath = GetChannelAssetPath(enumName);
 
-                    if (currentObjectPath != newObjectPath)
+                    if (currentObjectPath == newObjectPath) continue;
+
+                    if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(newObjectPath) != null)
                     {
-                        if (AssetDatabase.IsSubAsset(channelObject))
+                        Debug.LogError("Can't move channel " + enumName + " to " + newObjectPath + " : an asset already exists at this path");
+                        continue;
+                    }
+
+                    if (AssetDatabase.IsSubAsset(channelObject))
+                    {
+                        AssetDatabase.RemoveObjectFromAsset(channelObject);
+                        channelObject.name = CHANNEL_PREFIX + enumName;
+                        AssetDatabase.CreateAsset(channelObject, newObjectPath);
+                    }
+                    else
+                    {
+                        var error = AssetDatabase.MoveAsset(currentObjectPath, newObjectPath);
+                        if (!string.IsNullOrEmpty(error))
                         {
-                            AssetDatabase.RemoveObjectFromAsset(channelObject);
-                            AssetDatabase.CreateAsset(channelObject, newObjectPath);
+                            Debug.LogError("Can't move channel " + enumName + " to " + newObjectPath + " : " + error);
                         }
-                        else
-                        {
-                            AssetDatabase.MoveAsset(currentObjectPath, newObjectPath);
-                        }
-                        assetDatabaseChange = true;
                     }
                 }
             }
+
             // Put all channels in folder inside list
-            var guids = AssetDatabase.FindAssets("t:UpdateChannelObject", new[] { updaterFolderPath });
-            foreach (var channelObjectInFolder in guids.Select(AssetDatabase.GUIDToAssetPath)
-                .Select(AssetDatabase.LoadAssetAtPath<UpdateChannelObject>))
+            var guids = AssetDatabase.FindAssets("t:UpdateChannelObject", new[] { GetChannelsFolderPath() });
+            foreach (var channelObject in guids.Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadMainAssetAtPath)
+                .OfType<UpdateChannelObject>())
             {
-                bool isInside = false;
-                for (int j = 0; j < p_updateChannels.arraySize; j++)
-                {
-                    if (p_updateChannels.GetArrayElementAtIndex(j).objectReferenceValue == channelObjectInFolder)
-                    {
-                        isInside = true;
-                        break;
-                    }
-                }
-
-                if (!isInside)
-                {
-                    p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
-                    p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = channelObjectInFolder;
-                }
-                continue;
-            }
-            // Same for Timelines
-
-            // Remove list null elements
-            for (int i = p_updateChannels.arraySize - 1; i >= 0; i--)
-            {
-                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == null)
-                {
-                    p_updateChannels.DeleteArrayElementAtIndex(i);
-                }
+                AddToChannelsListIfMissing(channelObject);
             }
 
-            // Destroy intrusive objects
+            // Destroy intrusive objects (channels that failed to move are kept)
             EditorDataUtility.EnsureAssetValidity(m_updaterAsset, (subAsset) =>
             {
                 return subAsset is UpdateChannelObject or UpdateTimelineObject;
             });
 
-            // Make sure channels' names are correct
-            if (p_updateChannels.arraySize > 0)
-            {
-                var element = p_updateChannels.GetArrayElementAtIndex(0).objectReferenceValue;
-                if (element != null)
-                {
-                    element.name = "UC_CLASSIC";
-                }
-
-                for (int i = 1; i < p_updateChannels.arraySize; i++)
-                {
-                    element = p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue;
-                    if (element != null && !element.name.StartsWith("UC_"))
-                    {
-                        element.name = "UC_" + element.name;
-                    }
-                }
-            }
+            EnsureCorrectChannelsIndexation();
 
             // Make sure first condition is ALWAYS
             if (p_updateConditions.arraySize > 0)
@@ -692,9 +723,31 @@ namespace Dhs5.Utility.Updates
                 }
             }
 
-            if (assetDatabaseChange)
+            serializedObject.ApplyModifiedProperties();
+            AssetDatabase.SaveAssets();
+        }
+
+        private void AddToChannelsListIfMissing(UpdateChannelObject channelObject)
+        {
+            for (int i = 0; i < p_updateChannels.arraySize; i++)
             {
-                AssetDatabase.SaveAssets();
+                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == channelObject)
+                {
+                    return;
+                }
+            }
+
+            p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
+            p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = channelObject;
+        }
+        private void RemoveChannelsListNullElements()
+        {
+            for (int i = p_updateChannels.arraySize - 1; i >= 0; i--)
+            {
+                if (p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    p_updateChannels.DeleteArrayElementAtIndex(i);
+                }
             }
         }
 
@@ -708,7 +761,7 @@ namespace Dhs5.Utility.Updates
             string[] enumContent = new string[p_updateChannels.arraySize];
             for (int i = 0; i < enumContent.Length; i++)
             {
-                enumContent[i] = p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue.name;
+                enumContent[i] = GetChannelEnumName(p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue);
             }
 
             StringBuilder sb = new();
@@ -802,7 +855,7 @@ namespace Dhs5.Utility.Updates
                 {
                     var value = (EUpdateChannel)obj;
                     if (p_updateChannels.arraySize <= i
-                        || value.ToString() != p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue.name)
+                        || value.ToString() != GetChannelEnumName(p_updateChannels.GetArrayElementAtIndex(i).objectReferenceValue))
                     {
                         return true;
                     }
