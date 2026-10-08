@@ -36,6 +36,16 @@ namespace Dhs5.Utility.Debugger
 
         // --- STATIC ---
 
+        #region Engine Callbacks
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            _categoryColors.Clear();
+        }
+
+        #endregion
+
         #region Instance
 
         private static DebuggerAsset _instance;
@@ -73,11 +83,14 @@ namespace Dhs5.Utility.Debugger
 
         public static DebugCategoryObject GetDebugCategoryObject(EDebugCategory category)
         {
-            if (Instance.m_debugCategories.IsIndexValid((int)category, out var obj))
+            if (Instance != null)
             {
-                return obj;
+                if (Instance.m_debugCategories.IsIndexValid((int)category, out var obj) && obj != null)
+                {
+                    return obj;
+                }
+                Debug.LogWarning("No DebugCategoryObject found for category " + category);
             }
-            Debug.LogWarning("No DebugCategoryObject found for category " + category);
             return null;
         }
 
@@ -86,8 +99,15 @@ namespace Dhs5.Utility.Debugger
         {
             if (_categoryColors.TryGetValue(category, out var color)) return color;
 
-            _categoryColors[category] = GetDebugCategoryObject(category).Color;
+            var categoryObject = GetDebugCategoryObject(category);
+            if (categoryObject == null) return Color.white;
+
+            _categoryColors[category] = categoryObject.Color;
             return _categoryColors[category];
+        }
+        internal static void ClearCategoryColorsCache()
+        {
+            _categoryColors.Clear();
         }
 
         #endregion
@@ -308,6 +328,7 @@ namespace Dhs5.Utility.Debugger
                 if (EditorGUI.EndChangeCheck())
                 {
                     element.RefreshColorString();
+                    DebuggerAsset.ClearCategoryColorsCache();
                 }
                 EditorGUI.EndDisabledGroup();
 
@@ -321,6 +342,7 @@ namespace Dhs5.Utility.Debugger
             EditorGUILayout.BeginVertical();
 
             EditorGUILayout.Space(3f);
+            EditorGUI.BeginDisabledGroup(p_debugCategories.arraySize == 32);
             using (new GUIHelper.GUIBackgroundColorScope(Color.green))
             {
                 if (GUILayout.Button("ADD NEW CATEGORY", GUILayout.Height(25f)))
@@ -339,11 +361,16 @@ namespace Dhs5.Utility.Debugger
                     EnsureCorrectChannelsIndexation();
                 }
             }
+            EditorGUI.EndDisabledGroup();
             using (new GUIHelper.GUIBackgroundColorScope(DoesDebugCategoryScriptNeedUpdate() ? Color.cyan : Color.grey))
             {
                 if (GUILayout.Button("UPDATE CATEGORY SCRIPT", GUILayout.Height(25f)))
                 {
-                    if (p_debugCategoriesTextAsset.objectReferenceValue is TextAsset textAsset)
+                    if (HasCategoriesListNullElements())
+                    {
+                        Debug.LogError("Debug Categories list contains empty elements, use ENSURE ASSET SANITY before updating the script");
+                    }
+                    else if (p_debugCategoriesTextAsset.objectReferenceValue is TextAsset textAsset)
                     {
                         Database.CreateOrOverwriteTextAsset(textAsset, GetDebugCategoriesScriptContent());
                     }
@@ -397,6 +424,8 @@ namespace Dhs5.Utility.Debugger
 
         private static string GetCategoryEnumName(UnityEngine.Object categoryObject)
         {
+            if (categoryObject == null) return null;
+
             var name = categoryObject.name;
             if (name != null && name.StartsWith(CATEGORY_PREFIX)) return name.Substring(CATEGORY_PREFIX.Length);
             return name;
@@ -548,6 +577,7 @@ namespace Dhs5.Utility.Debugger
                 baseElement.Editor_SetColor(Color.white);
                 baseElement.RefreshColorString();
                 EditorUtility.SetDirty(baseElement);
+                DebuggerAsset.ClearCategoryColorsCache();
             }
 
             EnsureCorrectChannelsIndexation();
@@ -568,6 +598,17 @@ namespace Dhs5.Utility.Debugger
 
             p_debugCategories.InsertArrayElementAtIndex(p_debugCategories.arraySize);
             p_debugCategories.GetArrayElementAtIndex(p_debugCategories.arraySize - 1).objectReferenceValue = categoryObject;
+        }
+        private bool HasCategoriesListNullElements()
+        {
+            for (int i = 0; i < p_debugCategories.arraySize; i++)
+            {
+                if (p_debugCategories.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         private void RemoveCategoriesListNullElements()
         {
