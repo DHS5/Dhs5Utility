@@ -36,6 +36,8 @@ namespace Dhs5.Utility.UI
                 }
                 set
                 {
+                    if (coord.x < 0 || coord.y < 0) throw new IndexOutOfRangeException();
+
                     Column column;
                     while (!m_columns.IsIndexValid(coord.x, out column))
                     {
@@ -581,8 +583,11 @@ namespace Dhs5.Utility.UI
             {
                 if (m_columns.IsIndexValid(columnIndex, out var column))
                 {
-                    column.Clear();
-                    m_columns[columnIndex] = column;
+                    if (column.IsInitialized)
+                    {
+                        column.Clear();
+                        m_columns[columnIndex] = column;
+                    }
                     return true;
                 }
                 return false;
@@ -889,6 +894,14 @@ namespace Dhs5.Utility.UI
             if (TryGetChildCoord(child, out var coord))
             {
                 result = GetGridSelectable(coord, ToGridDirection(axisEventData.moveDir), true);
+            }
+
+            // Nothing found inside the grid (inactive edge cells, ragged grid) : box's own neighbour
+            if (result == null)
+            {
+                var boxNeighbour = GetBoxNeighbour(axisEventData.moveDir);
+                if (boxNeighbour != null && boxNeighbour.IsActive())
+                    return boxNeighbour;
             }
 
             if (result == null && Box != null)

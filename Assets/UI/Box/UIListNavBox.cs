@@ -69,9 +69,13 @@ namespace Dhs5.Utility.UI
             get => m_selectables[index]; 
             set
             {
+                var previous = m_selectables[index];
                 m_selectables[index] = value;
+                if (previous != value && !m_selectables.Contains(previous))
+                    ReleaseChild(previous);
+
                 SetupChildren(index);
-            } 
+            }
         }
 
         public virtual bool IsReadOnly => false;
@@ -91,7 +95,13 @@ namespace Dhs5.Utility.UI
             SetupChildren();
         }
 
-        public virtual void Clear() => m_selectables.Clear();
+        public virtual void Clear()
+        {
+            for (int i = 0; i < m_selectables.Count; i++)
+                ReleaseChild(m_selectables[i]);
+
+            m_selectables.Clear();
+        }
 
         public virtual bool Contains(Selectable item) => m_selectables.Contains(item);
 
@@ -110,9 +120,10 @@ namespace Dhs5.Utility.UI
 
         public virtual bool Remove(Selectable item)
         {
-            if (m_selectables.Remove(item))
+            var index = m_selectables.IndexOf(item);
+            if (index != -1)
             {
-                SetupChildren();
+                RemoveAt(index);
                 return true;
             }
             return false;
@@ -120,7 +131,11 @@ namespace Dhs5.Utility.UI
 
         public virtual void RemoveAt(int index)
         {
+            var removed = m_selectables[index];
             m_selectables.RemoveAt(index);
+            if (!m_selectables.Contains(removed))
+                ReleaseChild(removed);
+
             SetupChildren(index);
         }
         
@@ -163,12 +178,30 @@ namespace Dhs5.Utility.UI
         protected virtual void SetupChildren(int index)
         {
             // Validate List
+            var count = Count;
             ValidateChildrenList();
 
-            // Setup
+            // Indexes moved because invalid children were removed : full setup
+            if (Count != count)
+            {
+                SetupChildren();
+                return;
+            }
+
+            if (Count == 0) return;
+            index = Mathf.Clamp(index, 0, Count - 1);
+
+            // Setup the changed child and its neighbours
             for (int i = Mathf.Max(0, index - 1); i <= Mathf.Min(Count - 1, index + 1); i++)
             {
                 SetupChild(m_selectables[i], GetChildNavigation(i));
+            }
+
+            // With wrap around, first and last children are neighbours too
+            if (WrapAround)
+            {
+                if (index - 1 > 0) SetupChild(m_selectables[0], GetChildNavigation(0));
+                if (index + 1 < Count - 1) SetupChild(m_selectables[^1], GetChildNavigation(Count - 1));
             }
         }
 
@@ -234,7 +267,7 @@ namespace Dhs5.Utility.UI
                     return null;
 
                 default:
-                    throw new NotImplementedException();
+                    return GetDefaultFirstChild();
             }
         }
 
@@ -274,99 +307,53 @@ namespace Dhs5.Utility.UI
             }
         }
 
-        protected virtual Selectable GetPreviousSelectable(int index, bool availableOnly)
+        protected virtual Selectable GetPreviousSelectable(int index, bool availableOnly) => GetSelectable(index, -1, availableOnly);
+        protected virtual Selectable GetNextSelectable(int index, bool availableOnly) => GetSelectable(index, 1, availableOnly);
+
+        /// <summary>
+        /// Returns the selectable after <paramref name="index"/> in <paramref name="step"/> direction (1 = next, -1 = previous).<br/>
+        /// Reaching the end of the list (even past inactive children), the box's own neighbour has priority over wrap around
+        /// </summary>
+        protected virtual Selectable GetSelectable(int index, int step, bool availableOnly)
         {
-            if (index == 0)
+            var lastIndex = step > 0 ? Count - 1 : 0;
+
+            for (int iteration = 0; iteration < Count; iteration++)
             {
-                switch (Axis)
+                if (index == lastIndex)
                 {
-                    case EAxis.HORIZONTAL:
-                        if (navigation.selectOnLeft != null && navigation.selectOnLeft.IsActive())
-                            return navigation.selectOnLeft;
-                        break;
+                    var boxNeighbour = GetBoxNeighbour(step > 0);
+                    if (boxNeighbour != null && boxNeighbour.IsActive())
+                        return boxNeighbour;
 
-                    case EAxis.VERTICAL:
-                        if (navigation.selectOnUp != null && navigation.selectOnUp.IsActive())
-                            return navigation.selectOnUp;
-                        break;
-                }
-            }
+                    if (!WrapAround || Count <= 1)
+                        return null;
 
-            Selectable previous = null;
-            int iteration = 0;
-
-            do
-            {
-                if (index == 0)
-                {
-                    if (WrapAround && Count > 1)
-                    {
-                        previous = m_selectables[^1];
-                        index = Count - 1;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    index = step > 0 ? 0 : Count - 1;
                 }
                 else
                 {
-                    previous = m_selectables[index - 1];
-                    index--;
+                    index += step;
                 }
 
-                if (availableOnly && previous != null && !previous.IsActive()) previous = null;
-                iteration++;
-            } while (iteration < Count && previous == null);
+                var selectable = m_selectables[index];
+                if (selectable != null && (!availableOnly || selectable.IsActive()))
+                    return selectable;
+            }
 
-            return previous;
+            return null;
         }
-        protected virtual Selectable GetNextSelectable(int index, bool availableOnly)
+
+        /// <summary>
+        /// Returns the box's own neighbour after the end of the list (<paramref name="next"/>) or before its start
+        /// </summary>
+        protected Selectable GetBoxNeighbour(bool next)
         {
-            if (index == Count - 1)
+            return Axis switch
             {
-                switch (Axis)
-                {
-                    case EAxis.HORIZONTAL:
-                        if (navigation.selectOnRight != null && navigation.selectOnRight.IsActive())
-                            return navigation.selectOnRight;
-                        break;
-
-                    case EAxis.VERTICAL:
-                        if (navigation.selectOnDown != null && navigation.selectOnDown.IsActive())
-                            return navigation.selectOnDown;
-                        break;
-                }
-            }
-
-            Selectable next = null;
-            int iteration = 0;
-
-            do
-            {
-                if (index == Count - 1)
-                {
-                    if (WrapAround && Count > 1)
-                    {
-                        next = m_selectables[0];
-                        index = 0;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    next = m_selectables[index + 1];
-                    index++;
-                }
-
-                if (availableOnly && next != null && !next.IsActive()) next = null;
-                iteration++;
-            } while (iteration < Count && next == null);
-
-            return next;
+                EAxis.HORIZONTAL => next ? navigation.selectOnRight : navigation.selectOnLeft,
+                _ => next ? navigation.selectOnDown : navigation.selectOnUp,
+            };
         }
 
         public override Selectable FindSelectableOnChildFailed(Selectable child, AxisEventData axisEventData)
@@ -382,22 +369,29 @@ namespace Dhs5.Utility.UI
                     return Box != null ? Box.FindSelectableOnChildFailed(this, axisEventData) : null;
             }
 
-            // Get next available child inside list
+            // Get next available child inside list, or the box's own neighbour past the end
+            Selectable result = null;
             if (TryGetChildIndex(child, out var index))
             {
                 switch (axisEventData.moveDir)
                 {
                     case MoveDirection.Down:
                     case MoveDirection.Right:
-                        return GetNextSelectable(index, true);
-                    
+                        result = GetNextSelectable(index, true);
+                        break;
+
                     case MoveDirection.Up:
                     case MoveDirection.Left:
-                        return GetPreviousSelectable(index, true);
+                        result = GetPreviousSelectable(index, true);
+                        break;
                 }
             }
 
-            return null;
+            // Nothing in the list nor next to it : ask parent box
+            if (result == null && Box != null)
+                return Box.FindSelectableOnChildFailed(this, axisEventData);
+
+            return result;
         }
 
         #endregion

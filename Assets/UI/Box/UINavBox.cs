@@ -64,7 +64,8 @@ namespace Dhs5.Utility.UI
         {
             OnBeforeSelect(eventData);
 
-            if (eventData is AxisEventData axisEventData)
+            if (eventData is AxisEventData axisEventData
+                && axisEventData.moveDir != MoveDirection.None)
             {
                 m_selectionMoveDirection = axisEventData.moveDir;
                 NextSelection = GetFirstChildByDirection(axisEventData.moveDir);
@@ -138,6 +139,20 @@ namespace Dhs5.Utility.UI
             {
                 boxable.Box = this;
             }
+        }
+
+        /// <summary>
+        /// Called on a selectable removed from this box : detaches it and resets its navigation to automatic
+        /// </summary>
+        protected virtual void ReleaseChild(Selectable selectable)
+        {
+            if (selectable == null) return;
+
+            if (selectable is IUIBoxable boxable && boxable.Box == this)
+            {
+                boxable.Box = null;
+            }
+            selectable.navigation = Navigation.defaultNavigation;
         }
 
         #endregion
