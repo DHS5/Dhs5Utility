@@ -121,27 +121,29 @@ namespace Dhs5.Utility.Debugger
         {
             if (IsActive)
             {
-                float logMinHeight = 50f;//TODO settings
-                var rect = new Rect(0f, 0f, 800f, 500f);
+                var sizes = DebuggerAsset.OnScreenGUI;
+                float logMinHeight = sizes.logMinHeight;
+                var rect = new Rect(0f, 0f, sizes.logsAreaSize.x, sizes.logsAreaSize.y);
                 var logRect = new Rect(rect.x, rect.y, rect.width, logMinHeight);
 
                 for (int i = LogsCount - 1; i >= 0 && logRect.y + logMinHeight <= rect.y + rect.height; i--)
                 {
                     var logId = m_activeOnScreenLogs[i];
                     if (!DebuggerLogsContainer.TryGetLog(logId, out var log)) continue; // removed by the logs limit
-                    OnScreenLogGUI(logRect, i, log, out var logNecessaryHeight);
+                    OnScreenLogGUI(logRect, i, log, sizes, out var logNecessaryHeight);
                     logRect.y += logNecessaryHeight;
                 }
             }
         }
 
-        private void OnScreenLogGUI(Rect rect, int index, DebuggerLog log, out float necessaryHeight)
+        private void OnScreenLogGUI(Rect rect, int index, DebuggerLog log, DebuggerAsset.OnScreenGUISettings sizes, out float necessaryHeight)
         {
             var prevLabelFontSize = GUI.skin.label.fontSize;
-            GUI.skin.label.fontSize = 22;
+            GUI.skin.label.fontSize = sizes.logFontSize;
 
+            var categoryWidth = sizes.logCategoryWidth;
             GUIContent messageContent = new GUIContent(log.message);
-            necessaryHeight = Mathf.Max(rect.height, GUI.skin.label.CalcHeight(messageContent, rect.width - 150f));
+            necessaryHeight = Mathf.Max(rect.height, GUI.skin.label.CalcHeight(messageContent, rect.width - categoryWidth));
             rect.height = necessaryHeight;
 
             // BACKGROUND
@@ -160,7 +162,7 @@ namespace Dhs5.Utility.Debugger
 
             // Icon
             var categoryColor = DebuggerAsset.GetCategoryColor(log.category);
-            var r_categoryLabel = new Rect(rect.x + 2f, rect.y, 144f, 30f);
+            var r_categoryLabel = new Rect(rect.x + 2f, rect.y, categoryWidth - 6f, sizes.logFontSize + 8f);
             GUI.skin.label.fontStyle = FontStyle.Bold;
             using (new GUIHelper.GUIContentColorScope(categoryColor))
             {
@@ -168,12 +170,12 @@ namespace Dhs5.Utility.Debugger
             }
             GUI.skin.label.fontStyle = FontStyle.Normal;
 
-            var messageRect = new Rect(150f, rect.y, rect.width - 150f, rect.height);
+            var messageRect = new Rect(rect.x + categoryWidth, rect.y, rect.width - categoryWidth, rect.height);
             GUI.Label(messageRect, messageContent);
 
-            GUI.skin.label.fontSize = 18;
+            GUI.skin.label.fontSize = sizes.logTimeFontSize;
 
-            var timeRect = new Rect(rect.x + 2f, rect.y + 26f, 144f, rect.height);
+            var timeRect = new Rect(rect.x + 2f, rect.y + sizes.logFontSize + 4f, categoryWidth - 6f, rect.height);
             GUI.Label(timeRect, log.timestamp.ToString("0.00"));
 
             GUI.skin.label.fontSize = prevLabelFontSize;

@@ -1,3 +1,4 @@
+using System;
 using Dhs5.Utility.GUIs;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -113,6 +114,11 @@ namespace Dhs5.Utility.Debugger
         #region Activation
 
         private int m_lastActivationChangeFrame = -1;
+        /// <summary>
+        /// Last frame the open or close console input was performed : its key must not be typed in the command line
+        /// </summary>
+        private int m_lastConsoleInputFrame = -1;
+
         protected void OpenConsole()
         {
             if (IsActive || m_lastActivationChangeFrame == Time.frameCount) return;
@@ -124,9 +130,11 @@ namespace Dhs5.Utility.Debugger
             m_justOpenedConsole = true;
 
             OnOpenConsole();
+            Opened?.Invoke();
         }
         private void OpenConsoleCallback(InputAction.CallbackContext callbackContext)
         {
+            m_lastConsoleInputFrame = Time.frameCount;
             OpenConsole();
         }
         protected void CloseConsole()
@@ -138,9 +146,11 @@ namespace Dhs5.Utility.Debugger
             IsActive = false;
 
             OnCloseConsole();
+            Closed?.Invoke();
         }
         private void CloseConsoleCallback(InputAction.CallbackContext callbackContext)
         {
+            m_lastConsoleInputFrame = Time.frameCount;
             CloseConsole();
         }
 
@@ -156,7 +166,15 @@ namespace Dhs5.Utility.Debugger
         {
             if (IsActive)
             {
-                float inputRectHeight = 50f;//TODO settings
+                // The key of the open/close console input must not be typed in the command line
+                // (its key events can reach the GUI the frame it was performed, or the next one)
+                if (Event.current.type == EventType.KeyDown && Time.frameCount - m_lastConsoleInputFrame <= 1)
+                {
+                    Event.current.Use();
+                }
+
+                var sizes = DebuggerAsset.OnScreenGUI;
+                float inputRectHeight = sizes.consoleInputHeight;
                 var inputRect = new Rect(0f, Screen.height - inputRectHeight - 7f, Screen.width, inputRectHeight);
                 bool hasFocus = GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl;
 
@@ -164,12 +182,12 @@ namespace Dhs5.Utility.Debugger
                 OnHandleEvents(hasFocus);
 
                 // INPUT
-                OnInputGUI(inputRect, hasFocus);
+                OnInputGUI(inputRect, hasFocus, sizes);
 
                 // OPTIONS
                 if (hasFocus)
                 {
-                    OnOptionsGUI(inputRect.y, inputRect.width * 0.5f);
+                    OnOptionsGUI(inputRect.y, inputRect.width * sizes.consoleOptionsWidthRatio, sizes);
                 }
             }
         }
@@ -220,14 +238,14 @@ namespace Dhs5.Utility.Debugger
             }
         }
 
-        private void OnInputGUI(Rect rect, bool hasFocus)
+        private void OnInputGUI(Rect rect, bool hasFocus, DebuggerAsset.OnScreenGUISettings sizes)
         {
             var prevInputFontSize = GUI.skin.textField.fontSize;
             var prevLabelFontSize = GUI.skin.label.fontSize;
             var prevInputAlignment = GUI.skin.textField.alignment;
             var prevLabelAlignment = GUI.skin.label.alignment;
-            GUI.skin.textField.fontSize = 32;// TODO settings
-            GUI.skin.label.fontSize = 32;// TODO settings
+            GUI.skin.textField.fontSize = sizes.consoleFontSize;
+            GUI.skin.label.fontSize = sizes.consoleFontSize;
             GUI.skin.textField.alignment = TextAnchor.MiddleLeft;
             GUI.skin.label.alignment = TextAnchor.MiddleLeft;
             GUI.SetNextControlName(ConsoleCommandTextFieldControl);
@@ -248,11 +266,11 @@ namespace Dhs5.Utility.Debugger
             }
         }
 
-        private void OnOptionsGUI(float y, float width)
+        private void OnOptionsGUI(float y, float width, DebuggerAsset.OnScreenGUISettings sizes)
         {
             var optionsCount = ConsoleCommandsRegister.CurrentOptionsCount;
-            float optionRectHeight = 32f;//TODO settings
-            float scrollViewRectHeight = 300f;//TODO settings
+            float optionRectHeight = sizes.consoleOptionHeight;
+            float scrollViewRectHeight = sizes.consoleOptionsMaxHeight;
             var scrollViewRect = new Rect(0, y - scrollViewRectHeight, width, scrollViewRectHeight);
             var viewRect = new Rect(0, 0, width - 25f, Mathf.Max(scrollViewRectHeight, optionRectHeight * optionsCount));
 
@@ -284,7 +302,7 @@ namespace Dhs5.Utility.Debugger
                 }
 
                 var prevFontSize = GUI.skin.label.fontSize;
-                GUI.skin.label.fontSize = 24;
+                GUI.skin.label.fontSize = sizes.consoleOptionFontSize;
                 using (new GUIHelper.GUIContentColorScope(color))
                 {
                     GUI.Label(new Rect(optionRect.x + 2f, optionRect.y, optionRect.width - 4f, optionRect.height), option);
@@ -303,6 +321,35 @@ namespace Dhs5.Utility.Debugger
 
 
         #region STATIC
+
+        #region Engine Callbacks
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            Opened = null;
+            Closed = null;
+        }
+
+        #endregion
+
+        #region Events & State
+
+        /// <summary>
+        /// Triggered when the on screen console opens, e.g. to disable the game inputs while typing commands
+        /// </summary>
+        public static event Action Opened;
+        /// <summary>
+        /// Triggered when the on screen console closes
+        /// </summary>
+        public static event Action Closed;
+
+        /// <summary>
+        /// Whether the on screen console is currently opened
+        /// </summary>
+        public static bool IsOpened => Instance != null && Instance.IsActive;
+
+        #endregion
 
         #region Instance Creation
 

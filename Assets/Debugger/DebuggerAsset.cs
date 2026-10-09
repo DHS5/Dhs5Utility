@@ -16,6 +16,33 @@ namespace Dhs5.Utility.Debugger
 {
     public class DebuggerAsset : ScriptableObject
     {
+        #region CLASS OnScreenGUISettings
+
+        /// <summary>
+        /// Sizes of the on screen console and logs, in pixels
+        /// </summary>
+        [Serializable]
+        public class OnScreenGUISettings
+        {
+            [Header("Console")]
+            [Min(1f)] public float consoleInputHeight = 50f;
+            [Min(1)] public int consoleFontSize = 32;
+            [Tooltip("Width of the command options list, relative to the screen width")]
+            [Range(0.1f, 1f)] public float consoleOptionsWidthRatio = 0.5f;
+            [Min(1f)] public float consoleOptionsMaxHeight = 300f;
+            [Min(1f)] public float consoleOptionHeight = 32f;
+            [Min(1)] public int consoleOptionFontSize = 24;
+
+            [Header("Logs")]
+            public Vector2 logsAreaSize = new Vector2(800f, 500f);
+            [Min(1f)] public float logMinHeight = 50f;
+            [Min(1f)] public float logCategoryWidth = 150f;
+            [Min(1)] public int logFontSize = 22;
+            [Min(1)] public int logTimeFontSize = 18;
+        }
+
+        #endregion
+
         #region Consts
 
         public const int MAX_DEBUGGER_LEVEL = 2;
@@ -34,6 +61,8 @@ namespace Dhs5.Utility.Debugger
         [Tooltip("Maximum number of logs kept in memory, 0 for unlimited\n" +
             "When reached, the oldest 10% are removed at once")]
         [SerializeField, Min(0)] private int m_maxLogsCount = 0;
+
+        [SerializeField] private OnScreenGUISettings m_onScreenGUISettings = new();
 
         #endregion
 
@@ -123,6 +152,13 @@ namespace Dhs5.Utility.Debugger
         /// Maximum number of logs kept in memory, 0 for unlimited
         /// </summary>
         internal static int MaxLogsCount => Instance != null ? Instance.m_maxLogsCount : 0;
+
+        private static readonly OnScreenGUISettings _defaultOnScreenGUISettings = new();
+        /// <summary>
+        /// Sizes of the on screen console and logs (default sizes if there is no DebuggerAsset)
+        /// </summary>
+        internal static OnScreenGUISettings OnScreenGUI =>
+            Instance != null && Instance.m_onScreenGUISettings != null ? Instance.m_onScreenGUISettings : _defaultOnScreenGUISettings;
         internal static bool TryGetOpenOnScreenConsoleInputRef(out InputActionReference inputRef)
         {
             if (Instance != null && Instance.m_openOnScreenConsoleInputRef != null)
@@ -192,6 +228,7 @@ namespace Dhs5.Utility.Debugger
         private SerializedProperty p_openOnScreenConsoleInputRef;
         private SerializedProperty p_closeOnScreenConsoleInputRef;
         private SerializedProperty p_maxLogsCount;
+        private SerializedProperty p_onScreenGUISettings;
 
         private SerializedProperty p_debugCategoriesTextAsset;
 
@@ -208,6 +245,7 @@ namespace Dhs5.Utility.Debugger
             p_openOnScreenConsoleInputRef = serializedObject.FindProperty("m_openOnScreenConsoleInputRef");
             p_closeOnScreenConsoleInputRef = serializedObject.FindProperty("m_closeOnScreenConsoleInputRef");
             p_maxLogsCount = serializedObject.FindProperty("m_maxLogsCount");
+            p_onScreenGUISettings = serializedObject.FindProperty("m_onScreenGUISettings");
 
             p_debugCategoriesTextAsset = serializedObject.FindProperty("m_debugCategoriesTextAsset");
 
@@ -524,7 +562,11 @@ namespace Dhs5.Utility.Debugger
             // LOGS
             EditorGUILayout.Space(15f);
             EditorGUILayout.LabelField("Logs", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(p_maxLogsCount, new GUIContent("Max Logs Count (0 = unlimited)", p_maxLogsCount.tooltip));
+            EditorGUILayout.PropertyField(p_maxLogsCount, new GUIContent("Max Logs Count", p_maxLogsCount.tooltip));
+
+            // ON SCREEN SIZES
+            EditorGUILayout.Space(15f);
+            EditorGUILayout.PropertyField(p_onScreenGUISettings, new GUIContent("On Screen Sizes"), includeChildren: true);
         }
 
         private void EnsureAssetSanity()

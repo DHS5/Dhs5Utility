@@ -154,51 +154,6 @@ namespace Dhs5.Utility.Debugger
                 (parameters) => { Time.timeScale = (float)parameters[0]; });
 
             #endregion
-
-            #region Test
-
-            yield return new ConsoleCommand(
-                "test",
-                ConsoleCommand.EScope.EDITOR,
-                null,
-                (parameters) => { Debug.Log("test"); });
-            yield return new ConsoleCommand(
-                "testing",
-                ConsoleCommand.EScope.EDITOR,
-                null,
-                (parameters) => { Debug.Log("testing"); });
-            yield return new ConsoleCommand(
-                "test",
-                ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.BOOL, typeof(bool)) },
-                (parameters) => { Debug.Log("test " + parameters[0]); });
-            yield return new ConsoleCommand(
-                "test",
-                ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.INT, typeof(int)) },
-                (parameters) => { Debug.Log("test " + parameters[0]); });
-            yield return new ConsoleCommand(
-                "test",
-                ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.FLOAT, typeof(float)), new(ConsoleCommand.EParameterType.FLOAT, typeof(float), 0.2f) },
-                (parameters) => { Debug.Log("test " + parameters[0] + " " + parameters[1]); });
-            yield return new ConsoleCommand(
-                "test",
-                ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.VECTOR3, typeof(Vector3)) },
-                (parameters) => { Debug.Log("test " + parameters[0]); });
-            yield return new ConsoleCommand(
-                "test_enum",
-                ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.ENUM, typeof(EDebugCategory)) },
-                (parameters) => { Debug.Log("test " + parameters[0]); });
-            yield return new ConsoleCommand(
-                "testdef",
-                ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.INT, typeof(int), 5) },
-                (parameters) => { Debug.Log("test default " + parameters[0]); });
-
-            #endregion
         }
 
         #endregion
