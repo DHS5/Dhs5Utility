@@ -10,11 +10,11 @@ namespace Dhs5.Utility.Settings
     [Serializable]
     public class PlayerPrefVector2Int : PlayerPrefMember<Vector2Int>
     {
-        public override void Load()
+        protected override Vector2Int LoadValue()
         {
             int x = PlayerPrefs.GetInt(Key + "X", Default.x);
             int y = PlayerPrefs.GetInt(Key + "Y", Default.y);
-            m_current = new Vector2Int(x, y);
+            return new Vector2Int(x, y);
         }
 
         public override void Save(Vector2Int value)

@@ -6,9 +6,9 @@ namespace Dhs5.Utility.Settings
     [Serializable]
     public class PlayerPrefInt : PlayerPrefMember<int>
     {
-        public override void Load()
+        protected override int LoadValue()
         {
-            m_current = PlayerPrefs.GetInt(Key, Default);
+            return PlayerPrefs.GetInt(Key, Default);
         }
         public override void Save(int value)
         {

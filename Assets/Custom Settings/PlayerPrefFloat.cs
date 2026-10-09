@@ -6,9 +6,9 @@ namespace Dhs5.Utility.Settings
     [Serializable]
     public class PlayerPrefFloat : PlayerPrefMember<float>
     {
-        public override void Load()
+        protected override float LoadValue()
         {
-            m_current = PlayerPrefs.GetFloat(Key, Default);
+            return PlayerPrefs.GetFloat(Key, Default);
         }
 
         public override void Save(float value)

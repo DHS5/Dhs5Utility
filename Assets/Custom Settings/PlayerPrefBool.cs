@@ -6,9 +6,9 @@ namespace Dhs5.Utility.Settings
     [Serializable]
     public class PlayerPrefBool : PlayerPrefMember<bool>
     {
-        public override void Load()
+        protected override bool LoadValue()
         {
-            m_current = PlayerPrefs.GetInt(Key, Default ? 1 : 0) == 1;
+            return PlayerPrefs.GetInt(Key, Default ? 1 : 0) == 1;
         }
 
         public override void Save(bool value)

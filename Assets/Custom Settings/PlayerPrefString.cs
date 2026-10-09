@@ -6,9 +6,9 @@ namespace Dhs5.Utility.Settings
     [Serializable]
     public class PlayerPrefString : PlayerPrefMember<string>
     {
-        public override void Load()
+        protected override string LoadValue()
         {
-            m_current = PlayerPrefs.GetString(Key, Default);
+            return PlayerPrefs.GetString(Key, Default);
         }
 
         public override void Save(string value)

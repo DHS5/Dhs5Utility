@@ -10,12 +10,12 @@ namespace Dhs5.Utility.Settings
     [Serializable]
     public class PlayerPrefVector3Int : PlayerPrefMember<Vector3Int>
     {
-        public override void Load()
+        protected override Vector3Int LoadValue()
         {
             int x = PlayerPrefs.GetInt(Key + "X", Default.x);
             int y = PlayerPrefs.GetInt(Key + "Y", Default.y);
             int z = PlayerPrefs.GetInt(Key + "Z", Default.z);
-            m_current = new Vector3Int(x, y, z);
+            return new Vector3Int(x, y, z);
         }
 
         public override void Save(Vector3Int value)

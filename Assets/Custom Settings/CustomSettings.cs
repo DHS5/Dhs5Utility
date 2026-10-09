@@ -67,6 +67,8 @@ namespace Dhs5.Utility.Settings
             return instance;
         }
 
+#if !UNITY_EDITOR
+        // Build only : in the editor, the most derived type is known through the TypeCache
         private static BaseSettings GetMostDerivedAsset(UnityEngine.Object[] assets)
         {
             BaseSettings mostDerived = null;
@@ -91,6 +93,7 @@ namespace Dhs5.Utility.Settings
             for (var t = type; t != null; t = t.BaseType) depth++;
             return depth;
         }
+#endif
 
 #if UNITY_EDITOR
 
@@ -114,11 +117,81 @@ namespace Dhs5.Utility.Settings
 
         #region Editor Utility
 
+        /// <summary>
+        /// Gives a key to the PlayerPrefMembers without one as soon as the settings are loaded or edited in the editor.<br></br>
+        /// Declared in every build so that subclasses can override it without #if (Unity only calls it in the editor).
+        /// If you override it, call base.OnValidate().
+        /// </summary>
+        protected virtual void OnValidate()
+        {
+#if UNITY_EDITOR
+            // Delayed : the asset can't be modified safely during OnValidate
+            EditorApplication.delayCall -= AssignPlayerPrefKeys;
+            EditorApplication.delayCall += AssignPlayerPrefKeys;
+#endif
+        }
+
 #if UNITY_EDITOR
 
         internal string Editor_GetPath()
         {
             return GetPath(GetType());
+        }
+
+        /// <summary>
+        /// OnValidate isn't called for already loaded assets after a domain reload : every settings asset is checked once the editor is loaded
+        /// </summary>
+        [InitializeOnLoadMethod]
+        private static void AssignAllPlayerPrefKeysOnLoad()
+        {
+            EditorApplication.delayCall += () =>
+            {
+                foreach (var type in TypeCache.GetTypesDerivedFrom<BaseSettings>())
+                {
+                    if (type.IsAbstract || type.IsGenericType) continue;
+
+                    foreach (var guid in AssetDatabase.FindAssets("t:" + type.Name))
+                    {
+                        if (AssetDatabase.LoadAssetAtPath<BaseSettings>(AssetDatabase.GUIDToAssetPath(guid)) is BaseSettings settings
+                            && settings.GetType() == type)
+                        {
+                            settings.AssignPlayerPrefKeys();
+                        }
+                    }
+                }
+            };
+        }
+
+        private void AssignPlayerPrefKeys()
+        {
+            if (this == null) return;
+
+            using var serializedObject = new SerializedObject(this);
+            var property = serializedObject.GetIterator();
+            bool changed = false;
+            while (property.Next(true))
+            {
+                if (property.propertyType != SerializedPropertyType.Generic) continue;
+
+                // PlayerPrefMember only : checked on the actual object, not just on field names
+                var p_key = property.FindPropertyRelative("m_key");
+                if (p_key == null || p_key.propertyType != SerializedPropertyType.String
+                    || !PlayerPrefMemberDrawer.IsPlayerPrefMember(PlayerPrefMemberDrawer.GetMemberObject(property))) continue;
+
+                if (string.IsNullOrWhiteSpace(p_key.stringValue))
+                {
+                    p_key.stringValue = PlayerPrefMemberDrawer.GetDefaultKey(this, property.propertyPath);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(this);
+                // Saved right away : builds must get the keys
+                AssetDatabase.SaveAssetIfDirty(this);
+            }
         }
 
 #endif

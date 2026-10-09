@@ -14,38 +14,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_word: 
   m_playerPrefInt:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefInt
     m_default: 0
-    m_current: 0
   m_playerPrefVector3:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefVector3
     m_default: {x: 0, y: 0, z: 0}
-    m_current: {x: 0, y: 0, z: 0}
   m_playerPrefVector3Int:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefVector3Int
     m_default: {x: 0, y: 0, z: 0}
-    m_current: {x: 0, y: 0, z: 0}
   m_playerPrefVector2:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefVector2
     m_default: {x: 0, y: 0}
-    m_current: {x: 0, y: 0}
   m_playerPrefVector2Int:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefVector2Int
     m_default: {x: 0, y: 0}
-    m_current: {x: 0, y: 0}
   m_playerPrefFloat:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefFloat
     m_default: 0
-    m_current: 0
   m_playerPrefString:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefString
     m_default: 
-    m_current: 
   m_playerPrefBool:
-    m_key: 
+    m_key: TestSettings2.m_playerPrefBool
     m_default: 0
-    m_current: 0
-  m_subSetTest: {fileID: 0}
+  m_subSetTest: {fileID: 11400000, guid: 9be8836a303ca70478f90087abb51d4a, type: 2}
   m_subSetTest2: {fileID: 0}
   m_subSetTest3: {fileID: 0}
   m_serializedMonoScript:
