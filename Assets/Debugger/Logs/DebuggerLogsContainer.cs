@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_EDITOR
 namespace Dhs5.Utility.Debugger
 {
     /// <summary>
-    /// Keeps the logs in memory (all of them, or up to <see cref="DebuggerAsset.MaxLogsCount"/>).<br></br>
+    /// EDITOR ONLY<br></br>
+    /// Keeps the logs in memory for the D5 Console (all of them, or up to <see cref="DebuggerAsset.MaxLogsCount"/>).<br></br>
     /// Logs are identified by an ID that stays valid when the oldest logs are removed :
     /// IDs are consecutive, from <see cref="FirstLogId"/> (oldest log kept) to <see cref="NextLogId"/> - 1 (newest log).
     /// </summary>
@@ -109,3 +111,4 @@ namespace Dhs5.Utility.Debugger
         #endregion
     }
 }
+#endif

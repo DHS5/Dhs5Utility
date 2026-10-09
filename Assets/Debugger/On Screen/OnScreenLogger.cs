@@ -6,25 +6,25 @@ using Dhs5.Utility.GUIs;
 
 namespace Dhs5.Utility.Debugger
 {
+    /// <summary>
+    /// Displays logs on screen for a few seconds.<br></br>
+    /// Only compiled in the editor and development builds : in release builds, <see cref="Log"/> does nothing.
+    /// </summary>
     public class OnScreenLogger : MonoBehaviour
     {
-        #region STRUCT : LogDisposalTime
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        #region STRUCT : ScreenLog
 
-        private struct LogDisposalTime : IComparable<LogDisposalTime>
+        private readonly struct ScreenLog
         {
-            public LogDisposalTime(int index, float disposalTime)
+            public ScreenLog(DebuggerLog log, float disposalTime)
             {
-                this.logIndex = index;
+                this.log = log;
                 this.disposalTime = disposalTime;
             }
 
-            public readonly int logIndex;
+            public readonly DebuggerLog log;
             public readonly float disposalTime;
-
-            public int CompareTo(LogDisposalTime other)
-            {
-                return disposalTime.CompareTo(other.disposalTime);
-            }
         }
 
         #endregion
@@ -34,13 +34,15 @@ namespace Dhs5.Utility.Debugger
 
         #region Properties
 
-        public bool IsActive => m_activeOnScreenLogs.IsValid();
-        public int LogsCount => m_activeOnScreenLogs.Count;
+        public bool IsActive => m_screenLogs.Count > 0;
+        public int LogsCount => m_screenLogs.Count;
 
         #endregion
 
         #region Core Behaviour
 
+#if UNITY_EDITOR
+        // The D5 Console's Clear button also clears the on screen logs
         private void OnEnable()
         {
             DebuggerLogsContainer.Cleared += OnLogsCleared;
@@ -49,33 +51,26 @@ namespace Dhs5.Utility.Debugger
         {
             DebuggerLogsContainer.Cleared -= OnLogsCleared;
         }
+        private void OnLogsCleared()
+        {
+            m_screenLogs.Clear();
+        }
+#endif
 
         #endregion
 
 
         #region ScreenLogs Management
 
-        private readonly List<int> m_activeOnScreenLogs = new();
-        private readonly List<LogDisposalTime> m_logsDisposalTime = new();
+        /// <summary>
+        /// Logs currently displayed, oldest first : they are stored here, not looked up in the logs container (editor only)
+        /// </summary>
+        private readonly List<ScreenLog> m_screenLogs = new();
 
-        private void AddScreenLog(int logIndex, float duration)
+        private void AddScreenLog(DebuggerLog log, float duration)
         {
-            m_activeOnScreenLogs.Add(logIndex);
-
             // Unscaled : logs must disappear even when the game is paused (timescale 0)
-            var logDisposalTime = new LogDisposalTime(logIndex, Time.unscaledTime + duration);
-            m_logsDisposalTime.Add(logDisposalTime);
-
-            SortDisposalTimes();
-        }
-        private void RemoveScreenLog(int logIndex)
-        {
-            m_activeOnScreenLogs.Remove(logIndex);
-        }
-
-        private void SortDisposalTimes()
-        {
-            m_logsDisposalTime.Sort((l1,l2) => l1.CompareTo(l2));
+            m_screenLogs.Add(new ScreenLog(log, Time.unscaledTime + duration));
         }
 
         #endregion
@@ -84,32 +79,11 @@ namespace Dhs5.Utility.Debugger
 
         private void LateUpdate()
         {
-            if (IsActive) 
+            if (IsActive)
             {
                 float time = Time.unscaledTime;
-
-                // Disposal times are sorted : expired logs are at the start of the list
-                int expiredCount = 0;
-                while (expiredCount < m_logsDisposalTime.Count && time >= m_logsDisposalTime[expiredCount].disposalTime)
-                {
-                    RemoveScreenLog(m_logsDisposalTime[expiredCount].logIndex);
-                    expiredCount++;
-                }
-                if (expiredCount > 0)
-                {
-                    m_logsDisposalTime.RemoveRange(0, expiredCount);
-                }
+                m_screenLogs.RemoveAll(screenLog => time >= screenLog.disposalTime);
             }
-        }
-
-        #endregion
-
-        #region Callbacks
-
-        private void OnLogsCleared()
-        {
-            m_activeOnScreenLogs.Clear();
-            m_logsDisposalTime.Clear();
         }
 
         #endregion
@@ -127,11 +101,10 @@ namespace Dhs5.Utility.Debugger
                 var rect = new Rect(0f, 0f, sizes.logsAreaSize.x * scale, sizes.logsAreaSize.y * scale);
                 var logRect = new Rect(rect.x, rect.y, rect.width, logMinHeight);
 
+                // Newest first
                 for (int i = LogsCount - 1; i >= 0 && logRect.y + logMinHeight <= rect.y + rect.height; i--)
                 {
-                    var logId = m_activeOnScreenLogs[i];
-                    if (!DebuggerLogsContainer.TryGetLog(logId, out var log)) continue; // removed by the logs limit
-                    OnScreenLogGUI(logRect, i, log, sizes, out var logNecessaryHeight);
+                    OnScreenLogGUI(logRect, i, m_screenLogs[i].log, sizes, out var logNecessaryHeight);
                     logRect.y += logNecessaryHeight;
                 }
             }
@@ -153,12 +126,12 @@ namespace Dhs5.Utility.Debugger
             switch (log.type)
             {
                 case LogType.Warning:
-                    GUIHelper.DrawRect(rect, Color.yellowNice); 
+                    GUIHelper.DrawRect(rect, Color.yellowNice);
                     break;
                 case LogType.Exception:
                 case LogType.Assert:
                 case LogType.Error:
-                    GUIHelper.DrawRect(rect, Color.darkRed); 
+                    GUIHelper.DrawRect(rect, Color.darkRed);
                     break;
             }
             GUIHelper.DrawRect(rect, index % 2 == 0 ? GUIHelper.transparentBlack07 : GUIHelper.transparentBlack06);
@@ -187,11 +160,17 @@ namespace Dhs5.Utility.Debugger
         #endregion
 
         #endregion
+#else
+        // Release build : the on screen logger is not compiled
+        public bool IsActive => false;
+        public int LogsCount => 0;
+#endif
 
-        // ---------- ---------- ---------- 
+        // ---------- ---------- ----------
 
         #region STATIC
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         #region Instance Creation
 
         private static OnScreenLogger Instance { get; set; }
@@ -216,12 +195,19 @@ namespace Dhs5.Utility.Debugger
         }
 
         #endregion
+#endif
 
         #region Log Behaviour
 
-        public static void Log(int logIndex, float duration = DebuggerAsset.DEFAULT_SCREEN_LOG_DURATION)
+        /// <summary>
+        /// Displays <paramref name="log"/> on screen for <paramref name="duration"/> seconds (unscaled time).<br></br>
+        /// Does nothing in release builds.
+        /// </summary>
+        public static void Log(DebuggerLog log, float duration = DebuggerAsset.DEFAULT_SCREEN_LOG_DURATION)
         {
-            GetInstance().AddScreenLog(logIndex, duration);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            GetInstance().AddScreenLog(log, duration);
+#endif
         }
 
         #endregion

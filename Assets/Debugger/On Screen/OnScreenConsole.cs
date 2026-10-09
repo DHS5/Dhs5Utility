@@ -5,8 +5,15 @@ using UnityEngine.InputSystem;
 
 namespace Dhs5.Utility.Debugger
 {
+    /// <summary>
+    /// On screen console to run <see cref="ConsoleCommandAttribute"/> commands in game.<br></br>
+    /// Only compiled in the editor and development builds : in release builds, only the public API remains
+    /// (<see cref="IsOpened"/> is always false, <see cref="Opened"/>/<see cref="Closed"/> never fire, <see cref="Open"/> does nothing)
+    /// so that game code using it still compiles.
+    /// </summary>
     public class OnScreenConsole : MonoBehaviour
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         #region INSTANCE
 
         #region Consts
@@ -341,6 +348,12 @@ namespace Dhs5.Utility.Debugger
         #endregion
 
         #endregion
+#else
+        // Release build : the on screen console is not compiled
+        public bool IsActive => false;
+        protected virtual void OnOpenConsole() { }
+        protected virtual void OnCloseConsole() { }
+#endif
 
 
         #region STATIC
@@ -358,6 +371,9 @@ namespace Dhs5.Utility.Debugger
 
         #region Events & State
 
+#if !(UNITY_EDITOR || DEVELOPMENT_BUILD)
+#pragma warning disable CS0414 // Never fired in release builds
+#endif
         /// <summary>
         /// Triggered when the on screen console opens, e.g. to disable the game inputs while typing commands
         /// </summary>
@@ -366,14 +382,23 @@ namespace Dhs5.Utility.Debugger
         /// Triggered when the on screen console closes
         /// </summary>
         public static event Action Closed;
+#if !(UNITY_EDITOR || DEVELOPMENT_BUILD)
+#pragma warning restore CS0414
+#endif
 
         /// <summary>
         /// Whether the on screen console is currently opened
         /// </summary>
-        public static bool IsOpened => Instance != null && Instance.IsActive;
+        public static bool IsOpened =>
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Instance != null && Instance.IsActive;
+#else
+            false;
+#endif
 
         #endregion
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         #region Instance Creation
 
         private static OnScreenConsole Instance { get; set; }
@@ -415,6 +440,11 @@ namespace Dhs5.Utility.Debugger
         }
 
         #endregion
+#else
+        // Release build : the on screen console is not compiled
+        public static void Init() { }
+        public static void Open() { }
+#endif
 
         #endregion
     }

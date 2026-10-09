@@ -15,7 +15,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
-            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, msgString, context));
+            var log = new DebuggerLog(category, logType, level, msgString, context);
+            StoreLog(log);
 
             if (CanLog(categoryObj, logType, level))
             {
@@ -24,7 +25,7 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenLogger.Log(logIndex);
+                    OnScreenLogger.Log(log);
                 }
             }
         }
@@ -41,7 +42,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
-            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, msgString, context));
+            var log = new DebuggerLog(category, logType, level, msgString, context);
+            StoreLog(log);
 
             if (CanLog(categoryObj, logType, level))
             {
@@ -50,7 +52,7 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenLogger.Log(logIndex);
+                    OnScreenLogger.Log(log);
                 }
             }
         }
@@ -67,7 +69,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
-            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, msgString, context));
+            var log = new DebuggerLog(category, logType, level, msgString, context);
+            StoreLog(log);
 
             if (CanLog(categoryObj, logType, level))
             {
@@ -76,7 +79,7 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenLogger.Log(logIndex);
+                    OnScreenLogger.Log(log);
                 }
             }
         }
@@ -93,7 +96,8 @@ public static class Logger
         {
             var msgString = message.ToString();
 
-            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, 0, msgString, context));
+            var log = new DebuggerLog(category, logType, 0, msgString, context);
+            StoreLog(log);
 
             if (CanLog(categoryObj, logType, 0))
             {
@@ -102,7 +106,7 @@ public static class Logger
 
                 if (onScreen && Application.isPlaying)
                 {
-                    OnScreenLogger.Log(logIndex);
+                    OnScreenLogger.Log(log);
                 }
             }
         }
@@ -118,14 +122,15 @@ public static class Logger
         {
             var msgString = message.ToString();
 
-            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, 0, msgString, context));
+            var log = new DebuggerLog(category, logType, 0, msgString, context);
+            StoreLog(log);
 
             var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
             Debug.unityLogger.Log(logType, (object)categorizedMessage, context);
 
             if (onScreen && Application.isPlaying)
             {
-                OnScreenLogger.Log(logIndex);
+                OnScreenLogger.Log(log);
             }
         }
     }
@@ -136,14 +141,29 @@ public static class Logger
     {
         if (Application.isPlaying)
         {
-            var logIndex = DebuggerLogsContainer.AddLog(new DebuggerLog(category, logType, level, message, null));
+            var log = new DebuggerLog(category, logType, level, message, null);
+            StoreLog(log);
 
-            OnScreenLogger.Log(logIndex, duration);
+            OnScreenLogger.Log(log, duration);
         }
     }
 
     #endregion
 
+
+    #region Log Storage
+
+    /// <summary>
+    /// Keeps the log for the D5 Console : editor only, logs are not kept in builds
+    /// </summary>
+    private static void StoreLog(DebuggerLog log)
+    {
+#if UNITY_EDITOR
+        DebuggerLogsContainer.AddLog(log);
+#endif
+    }
+
+    #endregion
 
     #region Log Permission
 
