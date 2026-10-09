@@ -7,6 +7,9 @@ public static class Logger
     // Each log method is written out in full on purpose : calling a shared method would add a frame to the stack trace,
     // pushing the calling code further down in Unity's console
 
+    // LogOnScreen is [Conditional] : on screen logs only exist in the editor and development builds, so in release builds
+    // its calls (and the building of their arguments) are removed. The other log methods write to the player log in every build.
+
     #region Public Log Behaviour
 
     [HideInCallstack]
@@ -174,13 +177,26 @@ public static class Logger
 
     // --- ON SCREEN ---
     [HideInCallstack]
+    [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
     public static void LogOnScreen(EDebugCategory category, object message, LogType logType = LogType.Log, int level = DebuggerAsset.MAX_DEBUGGER_LEVEL, float duration = DebuggerAsset.DEFAULT_SCREEN_LOG_DURATION)
     {
-        if (Application.isPlaying)
-        {
-            var log = new DebuggerLog(category, logType, level, MessageToString(message), null);
-            StoreLog(log);
+        if (!Application.isPlaying) return;
 
+        var categoryObj = DebuggerAsset.GetDebugCategoryObject(category);
+
+        // Category not found (no DebuggerAsset, missing category...) : the message still reaches Unity's console, uncategorized
+        if (categoryObj == null)
+        {
+            Debug.unityLogger.Log(logType, (object)MessageToString(message), null);
+            return;
+        }
+
+        var log = new DebuggerLog(category, logType, level, MessageToString(message), null);
+        StoreLog(log);
+
+        // Like the other log methods : filtered by the category's level (errors always get through)
+        if (categoryObj.CanLog(logType, level))
+        {
             OnScreenLogger.Log(log, duration);
         }
     }
