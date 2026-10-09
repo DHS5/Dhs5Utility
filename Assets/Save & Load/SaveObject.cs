@@ -419,6 +419,7 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Editor Methods
 
+#if UNITY_EDITOR
         internal void Editor_RefreshDictionaryFromArray()
         {
             m_subObjectDictionary.Clear();
@@ -431,6 +432,7 @@ namespace Dhs5.Utility.SaveLoad
                 }
             }
         }
+#endif
 
         #endregion
     }
