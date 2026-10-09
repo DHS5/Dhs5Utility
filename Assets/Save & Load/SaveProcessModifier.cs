@@ -49,7 +49,12 @@ namespace Dhs5.Utility.SaveLoad
         // WRITE
 
         /// <summary>
-        /// Writes the <paramref name="content"/> of the save file at <paramref name="path"/> using the method of your choice.
+        /// Writes the <paramref name="content"/> of the save file at <paramref name="path"/> using the method of your choice.<br></br>
+        /// <paramref name="path"/> is a temporary path next to the one returned by <see cref="CreateSavePath"/> :
+        /// once the file is written there, the save system replaces the actual save file with it,
+        /// so an interrupted write never corrupts the previous save.<br></br>
+        /// If nothing is written at <paramref name="path"/> (e.g. custom storage), the save system does nothing more.<br></br>
+        /// Exceptions are caught and logged, and the save is considered failed.
         /// </summary>
         public abstract void WriteToDisk(string path, string content, ISaveParameter parameter);
         

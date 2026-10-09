@@ -39,25 +39,12 @@ namespace Dhs5.Utility
         }
         public static void EnsureAssetParentDirectoryExistence(string assetPath)
         {
-            var index = assetPath.LastIndexOf('/');
-            if (index != -1)
+            // Works with relative and absolute paths, with '/' or '\' separators
+            // (creates every missing directory in the path)
+            var directoryPath = Path.GetDirectoryName(assetPath);
+            if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
             {
-                string directoryPath = assetPath.Substring(0, index);
-                if (!Directory.Exists(directoryPath))
-                {
-                    string[] pathMembers = directoryPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                    string currentPath = "";
-
-                    for (int i = 0; i < pathMembers.Length; i++)
-                    {
-                        currentPath += pathMembers[i];
-                        if (!Directory.Exists(currentPath))
-                        {
-                            Directory.CreateDirectory(currentPath);
-                        }
-                        currentPath += "/";
-                    }
-                }
+                Directory.CreateDirectory(directoryPath);
             }
         }
 

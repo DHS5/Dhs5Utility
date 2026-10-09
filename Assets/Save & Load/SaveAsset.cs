@@ -93,7 +93,8 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Static Process Methods
 
-        internal static void SaveContentToDisk(SaveObject saveObject, ISaveParameter parameter)
+        /// <returns>Whether the save file was successfully written. If not, the previous save file is kept intact</returns>
+        internal static bool SaveContentToDisk(SaveObject saveObject, ISaveParameter parameter)
         {
             // PATH
             var path = CreateSavePath(saveObject, parameter);
@@ -105,7 +106,7 @@ namespace Dhs5.Utility.SaveLoad
             UtilityMethods.EnsureAssetParentDirectoryExistence(path);
 
             // WRITE
-            WriteToDisk(path, content, parameter);
+            return WriteToDisk(path, content, parameter);
         }
 
         /// <summary>
@@ -168,19 +169,15 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Encryption
 
+        /// <summary>
+        /// Exceptions thrown by the modifier are not caught : writing unencrypted content would create a save file that can't be loaded,
+        /// so the save process fails instead (see <see cref="SaveManager.CompleteSaveProcess"/>) and the previous save file is kept
+        /// </summary>
         private static string GetEncryptedContent(string content)
         {
             if (HasModifier(out var modifier))
             {
-                try
-                {
-                    return modifier.GetEncryptedContent(content);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogException(e);
-                    return content;
-                }
+                return modifier.GetEncryptedContent(content);
             }
             return content;
         }
@@ -189,16 +186,68 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Write
 
-        private static void WriteToDisk(string path, string content, ISaveParameter parameter)
+        private const string TEMP_FILE_EXTENSION = ".tmp";
+
+        /// <summary>
+        /// Writes <paramref name="content"/> to a temporary file first, then replaces the save file with it :
+        /// if the write is interrupted (crash, power loss...) or fails, the previous save file stays intact
+        /// </summary>
+        private static bool WriteToDisk(string path, string content, ISaveParameter parameter)
         {
-            if (HasModifier(out var modifier))
+            var tempPath = path + TEMP_FILE_EXTENSION;
+            try
             {
-                modifier.WriteToDisk(path, content, parameter);
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+
+                if (HasModifier(out var modifier))
+                {
+                    modifier.WriteToDisk(tempPath, content, parameter);
+                }
+                else
+                {
+                    var encoding = parameter != null ? parameter.GetEncoding() : System.Text.Encoding.Default;
+                    File.WriteAllText(tempPath, content, encoding);
+                }
+
+                // The modifier didn't write at the given path (e.g. custom storage) : nothing to replace
+                if (!File.Exists(tempPath)) return true;
+
+                ReplaceFile(tempPath, path);
+                return true;
             }
-            else
+            catch (Exception e)
             {
-                var encoding = parameter != null ? parameter.GetEncoding() : System.Text.Encoding.Default;
-                File.WriteAllText(path, content, encoding);
+                Debug.LogException(e);
+                Debug.LogError("SAVE ERROR : Could not write the save file at " + path + ", the previous save file is kept");
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch (Exception deleteException)
+                {
+                    Debug.LogException(deleteException);
+                }
+                return false;
+            }
+        }
+
+        private static void ReplaceFile(string sourcePath, string destinationPath)
+        {
+            if (!File.Exists(destinationPath))
+            {
+                File.Move(sourcePath, destinationPath);
+                return;
+            }
+
+            try
+            {
+                File.Replace(sourcePath, destinationPath, null);
+            }
+            catch (Exception e) when (e is PlatformNotSupportedException or IOException)
+            {
+                // Some platforms or file systems don't support File.Replace
+                File.Copy(sourcePath, destinationPath, true);
+                File.Delete(sourcePath);
             }
         }
 

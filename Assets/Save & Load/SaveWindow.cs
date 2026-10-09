@@ -286,7 +286,7 @@ namespace Dhs5.Utility.SaveLoad
                 // Create asset button
                 if (GUILayout.Button("Create new asset"))
                 {
-                    Database.CreateAssetOfType(typeof(SaveAsset), "Assets/Resources/SaveLoad/SaveLoad.asset");
+                    Database.CreateAssetOfType(typeof(SaveAsset), "Assets/Resources/Save/SaveAsset.asset");
                     AssetDatabase.SaveAssets();
                 }
             }

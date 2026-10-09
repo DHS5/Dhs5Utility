@@ -218,10 +218,20 @@ namespace Dhs5.Utility.SaveLoad
             return true;
         }
 
-        public static void CompleteSaveProcess(ISaveParameter parameter = null)
+        /// <returns>Whether the save file was successfully written. If not, the previous save file is kept intact</returns>
+        public static bool CompleteSaveProcess(ISaveParameter parameter = null)
         {
             IsSaveProcessActive = false;
-            SaveAsset.SaveContentToDisk(CurrentSaveObject, parameter);
+            try
+            {
+                return SaveAsset.SaveContentToDisk(CurrentSaveObject, parameter);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Debug.LogError("SAVE ERROR : Could not complete the save process");
+                return false;
+            }
         }
 
         #endregion
@@ -232,30 +242,66 @@ namespace Dhs5.Utility.SaveLoad
         {
             if (IsLoadProcessActive || IsSaveProcessActive) return false;
 
-            var content = SaveAsset.ReadContentFromSelectedSaveFile();
+            string content;
+            try
+            {
+                content = SaveAsset.ReadContentFromSelectedSaveFile();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Debug.LogError("LOAD ERROR : Could not read the selected save file");
+                return false;
+            }
             return StartLoadProcess(content);
         }
         public static bool StartLoadProcess(string path, System.Text.Encoding encoding)
         {
             if (IsLoadProcessActive || IsSaveProcessActive) return false;
 
-            var content = SaveAsset.ReadContentAtPath(path, encoding);
+            string content;
+            try
+            {
+                content = SaveAsset.ReadContentAtPath(path, encoding);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Debug.LogError("LOAD ERROR : Could not read the save file at " + path);
+                return false;
+            }
             return StartLoadProcess(content);
         }
         private static bool StartLoadProcess(string content)
         {
-            if (!string.IsNullOrWhiteSpace(content))
+            if (string.IsNullOrWhiteSpace(content))
             {
-                IsLoadProcessActive = true;
-
-                m_loadProcessObject = new GameObject("LOAD PROCESS OBJECT").AddComponent<LoadProcessObject>();
-                // Loadables may load scenes : the process must survive them, otherwise OnDisable would cancel it
-                GameObject.DontDestroyOnLoad(m_loadProcessObject.gameObject);
-                m_loadProcessObject.StartLoadProcessCoroutine(LoadCoroutine(content), OnLoadProcessCancelled);
-
-                return true;
+                Debug.LogError("LOAD ERROR : Save content is empty");
+                return false;
             }
-            return false;
+
+            // Parse the content before starting the process : if it's invalid, nothing starts and the current save object is kept
+            var loadedSaveObject = SaveObject.CreateInstance<SaveObject>();
+            try
+            {
+                loadedSaveObject.Load(content);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Debug.LogError("LOAD ERROR : Save content is invalid");
+                ScriptableObject.Destroy(loadedSaveObject);
+                return false;
+            }
+
+            IsLoadProcessActive = true;
+
+            m_loadProcessObject = new GameObject("LOAD PROCESS OBJECT").AddComponent<LoadProcessObject>();
+            // Loadables may load scenes : the process must survive them, otherwise OnDisable would cancel it
+            GameObject.DontDestroyOnLoad(m_loadProcessObject.gameObject);
+            m_loadProcessObject.StartLoadProcessCoroutine(LoadCoroutine(loadedSaveObject), OnLoadProcessCancelled);
+
+            return true;
         }
         private static void OnLoadProcessFinished()
         {
@@ -280,10 +326,9 @@ namespace Dhs5.Utility.SaveLoad
             LoadCompleted?.Invoke();
         }
 
-        private static IEnumerator LoadCoroutine(string content)
+        private static IEnumerator LoadCoroutine(SaveObject loadedSaveObject)
         {
-            CurrentSaveObject = SaveObject.CreateInstance<SaveObject>();
-            CurrentSaveObject.Load(content);
+            CurrentSaveObject = loadedSaveObject;
 
             foreach (var (category, iteration) in SaveAsset.GetCategoriesInLoadOrder())
             {
