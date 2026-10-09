@@ -10,11 +10,35 @@ namespace Dhs5.Utility.Debugger
         #region Members
 
         private static HashSet<ConsoleCommand> _commands;
+        /// <summary>
+        /// Commands are filtered by scope depending on play mode : they are registered again when it changes
+        /// </summary>
+        private static bool _registeredWhilePlaying;
 
         #endregion
 
 
         #region Commands Registration
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// In the editor, commands are registered on load (fast thanks to the TypeCache)
+        /// so that registration errors show up right away, not on the first use of a console
+        /// </summary>
+        [UnityEditor.InitializeOnLoadMethod]
+        private static void RegisterCommandsOnLoad()
+        {
+            RegisterCommands();
+        }
+#endif
+
+        private static void EnsureCommandsRegistered()
+        {
+            if (_commands == null || _registeredWhilePlaying != Application.isPlaying)
+            {
+                RegisterCommands();
+            }
+        }
 
         private static void RegisterCommands()
         {
@@ -27,44 +51,88 @@ namespace Dhs5.Utility.Debugger
             {
                 _commands = new();
             }
+            _registeredWhilePlaying = Application.isPlaying;
 
             // Built-in Commands
             foreach (var command in GetBuiltInCommands())
             {
-                if (IsScopeValid(command.scope) && !_commands.Add(command))
+                if (IsScopeValid(command.scope))
                 {
-                    Debug.LogWarning("Could not register Built-in Command " + command.optionString);
+                    TryAddCommand(command, "Built-in Command " + command.optionString);
                 }
             }
 
             // User Commands
-            var bindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var methodInfo in GetCommandMethods())
             {
+                var attribute = methodInfo.GetCustomAttribute<ConsoleCommandAttribute>(inherit: false);
+                if (attribute == null || !IsScopeValid(attribute.scope)) continue;
+
+                var source = "ConsoleCommand " + attribute.name + " (" + methodInfo.DeclaringType + "." + methodInfo.Name + ")";
+                if (!methodInfo.IsStatic)
+                {
+                    Debug.LogError("Could not register " + source + " : the method must be static");
+                    continue;
+                }
+
+                // One invalid command must not prevent the registration of the others
+                ConsoleCommand command;
                 try
                 {
-                    foreach (var type in assembly.GetTypes())
-                    {
-                        foreach (var methodInfo in type.GetMethods(bindingFlags))
-                        {
-                            var attribute = methodInfo.GetCustomAttribute<ConsoleCommandAttribute>(inherit:false);
-                            if (attribute != null && IsScopeValid(attribute.scope))
-                            {
-                                if (!_commands.Add(new ConsoleCommand(attribute.name, attribute.scope, methodInfo)))
-                                {
-                                    Debug.LogWarning("Could not register ConsoleCommand with name " + attribute.name
-                                        + " from Method " + methodInfo.Name + " on " + methodInfo.DeclaringType);
-                                }
-                            }
-                        }
-                    }
+                    command = new ConsoleCommand(attribute.name, attribute.scope, methodInfo);
                 }
                 catch (Exception e)
                 {
-                    Debug.LogException(e);
+                    Debug.LogError("Could not register " + source + " : " + e);
+                    continue;
+                }
+                TryAddCommand(command, source);
+            }
+        }
+        private static void TryAddCommand(ConsoleCommand command, string source)
+        {
+            if (!_commands.Add(command))
+            {
+                _commands.TryGetValue(command, out var existingCommand);
+                Debug.LogWarning("Could not register " + source + " : it conflicts with the command " + existingCommand?.optionString
+                    + " (same name and parameter types, or a default value making the call ambiguous)");
+            }
+        }
+
+        private static IEnumerable<MethodInfo> GetCommandMethods()
+        {
+#if UNITY_EDITOR
+            foreach (var methodInfo in UnityEditor.TypeCache.GetMethodsWithAttribute<ConsoleCommandAttribute>())
+            {
+                yield return methodInfo;
+            }
+#else
+            var bindingFlags = BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                Type[] types;
+                try
+                {
+                    types = assembly.GetTypes();
+                }
+                catch (ReflectionTypeLoadException e)
+                {
+                    types = e.Types;
+                }
+
+                foreach (var type in types)
+                {
+                    if (type == null) continue;
+                    foreach (var methodInfo in type.GetMethods(bindingFlags))
+                    {
+                        if (methodInfo.IsDefined(typeof(ConsoleCommandAttribute), false))
+                        {
+                            yield return methodInfo;
+                        }
+                    }
                 }
             }
+#endif
         }
         private static bool IsScopeValid(ConsoleCommand.EScope scope)
         {
@@ -103,11 +171,6 @@ namespace Dhs5.Utility.Debugger
                 "test",
                 ConsoleCommand.EScope.EDITOR,
                 new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.BOOL, typeof(bool)) },
-                (parameters) => { Debug.Log("test " + parameters[0]); });
-            yield return new ConsoleCommand(
-                "test",
-                ConsoleCommand.EScope.EDITOR,
-                new ConsoleCommand.Parameter[] { new(ConsoleCommand.EParameterType.INT, typeof(int), 5) },
                 (parameters) => { Debug.Log("test " + parameters[0]); });
             yield return new ConsoleCommand(
                 "test",
@@ -197,10 +260,7 @@ namespace Dhs5.Utility.Debugger
         }
         private static void ComputeCommandOptions()
         {
-            if (_commands == null)
-            {
-                RegisterCommands();
-            }
+            EnsureCommandsRegistered();
 
             _currentCommandOptions.Clear();
             _optionsMatchResult.Clear();
@@ -367,8 +427,10 @@ namespace Dhs5.Utility.Debugger
             CommandLineContent = CommandLineContent.Trim();
             AddToCommandHistory(CommandLineContent);
 
+            // ACCEPTED_MATCH runs too : default values left out, int for a float, 0/1 for a bool, number for an enum...
+            // (a PERFECT_MATCH overload is still preferred when there is one)
             if (_closestMatch != null
-                && _optionsMatchResult[_closestMatch] == ConsoleCommand.EMatchResult.PERFECT_MATCH)
+                && _optionsMatchResult[_closestMatch] is ConsoleCommand.EMatchResult.PERFECT_MATCH or ConsoleCommand.EMatchResult.ACCEPTED_MATCH)
             {
                 // Run command
                 if (_commandLineContentAsArray.Length > 1)

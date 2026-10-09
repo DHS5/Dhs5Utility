@@ -31,6 +31,10 @@ namespace Dhs5.Utility.Debugger
         [SerializeField] private InputActionReference m_openOnScreenConsoleInputRef;
         [SerializeField] private InputActionReference m_closeOnScreenConsoleInputRef;
 
+        [Tooltip("Maximum number of logs kept in memory, 0 for unlimited\n" +
+            "When reached, the oldest 10% are removed at once")]
+        [SerializeField, Min(0)] private int m_maxLogsCount = 0;
+
         #endregion
 
 
@@ -115,6 +119,10 @@ namespace Dhs5.Utility.Debugger
         #region Settings Static Accessors
 
         internal static bool EnableOnScreenConsole => Instance != null && Instance.m_enableOnScreenConsole;
+        /// <summary>
+        /// Maximum number of logs kept in memory, 0 for unlimited
+        /// </summary>
+        internal static int MaxLogsCount => Instance != null ? Instance.m_maxLogsCount : 0;
         internal static bool TryGetOpenOnScreenConsoleInputRef(out InputActionReference inputRef)
         {
             if (Instance != null && Instance.m_openOnScreenConsoleInputRef != null)
@@ -183,6 +191,7 @@ namespace Dhs5.Utility.Debugger
         private SerializedProperty p_enableOnScreenConsole;
         private SerializedProperty p_openOnScreenConsoleInputRef;
         private SerializedProperty p_closeOnScreenConsoleInputRef;
+        private SerializedProperty p_maxLogsCount;
 
         private SerializedProperty p_debugCategoriesTextAsset;
 
@@ -198,6 +207,7 @@ namespace Dhs5.Utility.Debugger
             p_enableOnScreenConsole = serializedObject.FindProperty("m_enableOnScreenConsole");
             p_openOnScreenConsoleInputRef = serializedObject.FindProperty("m_openOnScreenConsoleInputRef");
             p_closeOnScreenConsoleInputRef = serializedObject.FindProperty("m_closeOnScreenConsoleInputRef");
+            p_maxLogsCount = serializedObject.FindProperty("m_maxLogsCount");
 
             p_debugCategoriesTextAsset = serializedObject.FindProperty("m_debugCategoriesTextAsset");
 
@@ -510,6 +520,11 @@ namespace Dhs5.Utility.Debugger
             EditorGUILayout.PropertyField(p_enableOnScreenConsole);
             EditorGUILayout.PropertyField(p_openOnScreenConsoleInputRef);
             EditorGUILayout.PropertyField(p_closeOnScreenConsoleInputRef);
+
+            // LOGS
+            EditorGUILayout.Space(15f);
+            EditorGUILayout.LabelField("Logs", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(p_maxLogsCount, new GUIContent("Max Logs Count (0 = unlimited)", p_maxLogsCount.tooltip));
         }
 
         private void EnsureAssetSanity()

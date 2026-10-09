@@ -62,7 +62,8 @@ namespace Dhs5.Utility.Debugger
         {
             m_activeOnScreenLogs.Add(logIndex);
 
-            var logDisposalTime = new LogDisposalTime(logIndex, Time.time + duration);
+            // Unscaled : logs must disappear even when the game is paused (timescale 0)
+            var logDisposalTime = new LogDisposalTime(logIndex, Time.unscaledTime + duration);
             m_logsDisposalTime.Add(logDisposalTime);
 
             SortDisposalTimes();
@@ -85,18 +86,18 @@ namespace Dhs5.Utility.Debugger
         {
             if (IsActive) 
             {
-                float time = Time.time;
+                float time = Time.unscaledTime;
 
-                foreach (var log in m_logsDisposalTime)
+                // Disposal times are sorted : expired logs are at the start of the list
+                int expiredCount = 0;
+                while (expiredCount < m_logsDisposalTime.Count && time >= m_logsDisposalTime[expiredCount].disposalTime)
                 {
-                    if (time >= log.disposalTime)
-                    {
-                        RemoveScreenLog(log.logIndex);
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    RemoveScreenLog(m_logsDisposalTime[expiredCount].logIndex);
+                    expiredCount++;
+                }
+                if (expiredCount > 0)
+                {
+                    m_logsDisposalTime.RemoveRange(0, expiredCount);
                 }
             }
         }
@@ -126,8 +127,9 @@ namespace Dhs5.Utility.Debugger
 
                 for (int i = LogsCount - 1; i >= 0 && logRect.y + logMinHeight <= rect.y + rect.height; i--)
                 {
-                    var logIndex = m_activeOnScreenLogs[i];
-                    OnScreenLogGUI(logRect, i, DebuggerLogsContainer.GetLogAtIndex(logIndex), out var logNecessaryHeight);
+                    var logId = m_activeOnScreenLogs[i];
+                    if (!DebuggerLogsContainer.TryGetLog(logId, out var log)) continue; // removed by the logs limit
+                    OnScreenLogGUI(logRect, i, log, out var logNecessaryHeight);
                     logRect.y += logNecessaryHeight;
                 }
             }

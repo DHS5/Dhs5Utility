@@ -39,9 +39,18 @@ namespace Dhs5.Utility.Debugger
         private int[] m_filtersValues;
 
         // LOGS
-        private int m_selectedLogIndex = -1;
+        private int m_selectedLogId = -1;
         private Vector2 m_logsScrollPosition;
         private Vector2 m_selectedLogScrollPosition;
+
+        // VISIBLE LOGS CACHE
+        /// <summary>
+        /// IDs of the logs passing the filters, ascending
+        /// </summary>
+        private readonly List<int> m_visibleLogIds = new();
+        private int m_cacheVersion = -1;
+        private int m_cacheNextLogId;
+        private int[] m_cacheFiltersValues;
 
         // COMMANDS
         private bool m_isWritingOnCommandLine;
@@ -142,7 +151,7 @@ namespace Dhs5.Utility.Debugger
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
             {
                 Event.current.Use();
-                m_selectedLogIndex = -1;
+                m_selectedLogId = -1;
                 GUI.FocusControl(null);
             }
         }
@@ -240,32 +249,100 @@ namespace Dhs5.Utility.Debugger
 
         #region LOGS GUI
 
-        private void DrawLogsListGUI(float listHeight)
-        {
-            m_logsScrollPosition = EditorGUILayout.BeginScrollView(m_logsScrollPosition, GUILayout.Height(listHeight));
+        private const float LOG_ROW_HEIGHT = 19f;
+        private const float LOG_ROW_SPACING = 2f;
 
-            int index = 0;
-            foreach (var log in DebuggerLogsContainer.GetLogs())
+        /// <summary>
+        /// Keeps <see cref="m_visibleLogIds"/> up to date : only new and removed logs are processed,
+        /// the whole list is rebuilt only when the logs are cleared or the filters change
+        /// </summary>
+        private void UpdateVisibleLogsCache()
+        {
+            var filtersChanged = m_filtersValues != null
+                && (m_cacheFiltersValues == null || !m_filtersValues.SequenceEqual(m_cacheFiltersValues));
+
+            if (m_cacheVersion != DebuggerLogsContainer.Version || filtersChanged)
             {
-                if (DoesLogPassFilters(log))
-                {
-                    var selected = m_selectedLogIndex == index;
-                    var g_message = new GUIContent(log.message);
-                    var prevWrap = EditorStyles.label.wordWrap;
-                    EditorStyles.label.wordWrap = true;
-                    var height = selected ? Mathf.Max(38f, Mathf.Min(100f, EditorStyles.label.CalcHeight(g_message, position.width - 150f) + 4f)) : 19f;
-                    EditorStyles.label.wordWrap = prevWrap;
-                    var rect = EditorGUILayout.GetControlRect(false, height);
-                    rect.width += rect.x + 3f; rect.x = 0f; rect.height++;
-                    DrawLog(rect, index, selected, g_message, log);
-                }
-                index++;
+                m_visibleLogIds.Clear();
+                m_cacheVersion = DebuggerLogsContainer.Version;
+                m_cacheNextLogId = DebuggerLogsContainer.FirstLogId;
+                m_cacheFiltersValues = m_filtersValues != null ? (int[])m_filtersValues.Clone() : null;
             }
 
-            EditorGUILayout.EndScrollView();
+            // Logs removed by the logs limit
+            var firstLogId = DebuggerLogsContainer.FirstLogId;
+            int removedCount = 0;
+            while (removedCount < m_visibleLogIds.Count && m_visibleLogIds[removedCount] < firstLogId) removedCount++;
+            if (removedCount > 0) m_visibleLogIds.RemoveRange(0, removedCount);
+
+            // New logs
+            var nextLogId = DebuggerLogsContainer.NextLogId;
+            for (int id = Mathf.Max(m_cacheNextLogId, firstLogId); id < nextLogId; id++)
+            {
+                if (DebuggerLogsContainer.TryGetLog(id, out var log) && DoesLogPassFilters(log))
+                {
+                    m_visibleLogIds.Add(id);
+                }
+            }
+            m_cacheNextLogId = nextLogId;
         }
 
-        private void DrawLog(Rect rect, int index, bool selected, GUIContent g_message, DebuggerLog log)
+        private void DrawLogsListGUI(float listHeight)
+        {
+            UpdateVisibleLogsCache();
+
+            var listRect = GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.ExpandWidth(true), GUILayout.Height(listHeight));
+            // Sizes computed from known values, not from listRect : during the Layout event, GetRect returns a placeholder rect,
+            // and the same rows must be drawn in every event
+            var viewWidth = position.width - (m_filtersOpen ? 251f : 0f) - 14f;
+            var rowPitch = LOG_ROW_HEIGHT + LOG_ROW_SPACING;
+            var count = m_visibleLogIds.Count;
+
+            // Selected log : the only row with a different height
+            var selectedPosition = m_selectedLogId >= 0 ? m_visibleLogIds.BinarySearch(m_selectedLogId) : -1;
+            GUIContent g_selectedMessage = null;
+            float selectedExtraHeight = 0f;
+            if (selectedPosition >= 0 && DebuggerLogsContainer.TryGetLog(m_selectedLogId, out var selectedLog))
+            {
+                g_selectedMessage = new GUIContent(selectedLog.message);
+                var prevWrap = EditorStyles.label.wordWrap;
+                EditorStyles.label.wordWrap = true;
+                var selectedHeight = Mathf.Max(38f, Mathf.Min(100f, EditorStyles.label.CalcHeight(g_selectedMessage, position.width - 150f) + 4f));
+                EditorStyles.label.wordWrap = prevWrap;
+                selectedExtraHeight = selectedHeight - LOG_ROW_HEIGHT;
+            }
+            else
+            {
+                selectedPosition = -1;
+            }
+
+            float RowY(int row) => row * rowPitch + (selectedPosition >= 0 && row > selectedPosition ? selectedExtraHeight : 0f);
+
+            var viewRect = new Rect(0f, 0f, viewWidth, count * rowPitch + selectedExtraHeight);
+            m_logsScrollPosition = GUI.BeginScrollView(listRect, m_logsScrollPosition, viewRect);
+
+            // Only the rows inside the scroll view are drawn
+            var scrollY = m_logsScrollPosition.y;
+            int first = Mathf.Max(0, Mathf.FloorToInt(scrollY / rowPitch));
+            if (selectedPosition >= 0 && first > selectedPosition)
+            {
+                first = Mathf.Max(selectedPosition, Mathf.FloorToInt((scrollY - selectedExtraHeight) / rowPitch));
+            }
+            for (int i = first; i < count && RowY(i) < scrollY + listHeight; i++)
+            {
+                var logId = m_visibleLogIds[i];
+                if (!DebuggerLogsContainer.TryGetLog(logId, out var log)) continue;
+
+                var selected = i == selectedPosition;
+                var height = selected ? LOG_ROW_HEIGHT + selectedExtraHeight : LOG_ROW_HEIGHT;
+                var rect = new Rect(0f, RowY(i), viewWidth + 3f, height + 1f);
+                DrawLog(rect, i, logId, selected, selected ? g_selectedMessage : new GUIContent(log.message), log);
+            }
+
+            GUI.EndScrollView();
+        }
+
+        private void DrawLog(Rect rect, int index, int logId, bool selected, GUIContent g_message, DebuggerLog log)
         {
             // Background
             EditorGUI.DrawRect(rect, selected ? Color.gray1 : index % 2 == 0 ? Color.gray3 : Color.gray2);
@@ -278,7 +355,7 @@ namespace Dhs5.Utility.Debugger
                 && rect.Contains(Event.current.mousePosition))
             {
                 Event.current.Use();
-                m_selectedLogIndex = index;
+                m_selectedLogId = logId;
                 m_selectedLogScrollPosition = Vector2.zero;
                 selected = true;
                 GUI.FocusControl(null);

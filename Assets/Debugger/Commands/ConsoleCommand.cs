@@ -242,6 +242,9 @@ namespace Dhs5.Utility.Debugger
         }
         public void Run(object[] commandParameters)
         {
+            // No parameters typed (command without parameters, or only default values)
+            commandParameters ??= Array.Empty<object>();
+
             try
             {
                 if (parameters.Length > commandParameters.Length)
@@ -298,7 +301,7 @@ namespace Dhs5.Utility.Debugger
                 if (parameters[i].hasDefaultValue)
                 {
                     sb.Append("=");
-                    sb.Append(parameters[i].defaultValue);
+                    sb.Append(FormatValue(parameters[i].defaultValue));
                 }
                 if (i < parameters.Length - 1) sb.Append(' ');
             }
@@ -358,7 +361,7 @@ namespace Dhs5.Utility.Debugger
 
         public static bool TryParseParameterInfo(ParameterInfo parameterInfo, out Parameter parameter)
         {
-            var hasDefaultValue = parameterInfo.RawDefaultValue != DBNull.Value;
+            var hasDefaultValue = parameterInfo.HasDefaultValue;
 
             var type = parameterInfo.ParameterType;
             EParameterType parameterType;
@@ -411,7 +414,18 @@ namespace Dhs5.Utility.Debugger
 
             if (hasDefaultValue)
             {
-                parameter = new Parameter(parameterType, type, parameterInfo.RawDefaultValue);
+                var defaultValue = parameterInfo.RawDefaultValue;
+                // Struct parameter with '= default' (Vector3 position = default...) : no value is stored
+                if (defaultValue == null && type.IsValueType)
+                {
+                    defaultValue = Activator.CreateInstance(type);
+                }
+                // Enum default values are stored as their underlying number
+                else if (type.IsEnum && defaultValue != null && defaultValue.GetType() != type)
+                {
+                    defaultValue = Enum.ToObject(type, defaultValue);
+                }
+                parameter = new Parameter(parameterType, type, defaultValue);
             }
             else
             {
@@ -454,32 +468,28 @@ namespace Dhs5.Utility.Debugger
                 case EParameterType.STRING: return EMatchResult.PERFECT_MATCH;
 
                 case EParameterType.ENUM:
-                    bool isInt = int.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intRes);
-                    var values = Enum.GetValues(parameter.underlyingType);
-                    if (values.Length > 0)
                     {
-                        for (int i = 0; i < values.Length; i++)
+                        // Enum values are converted with Convert.ToInt64 : unboxing to int fails for enums not backed by int
+                        bool isInt = long.TryParse(parameterString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intRes);
+                        var values = Enum.GetValues(parameter.underlyingType);
+
+                        // Exact matches first : a value's name can be the start of another value's name
+                        foreach (var value in values)
                         {
-                            if (isInt && intRes == (int)values.GetValue(i)) 
+                            if (isInt && intRes == Convert.ToInt64(value))
                                 return EMatchResult.ACCEPTED_MATCH;
-                            var str = values.GetValue(i).ToString();
-                            if (string.Equals(str, parameterString, StringComparison.InvariantCultureIgnoreCase))
+                            if (string.Equals(value.ToString(), parameterString, StringComparison.InvariantCultureIgnoreCase))
                                 return EMatchResult.PERFECT_MATCH;
-                            if (str.StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase))
+                        }
+                        foreach (var value in values)
+                        {
+                            if (value.ToString().StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase))
+                                return EMatchResult.PARTIAL_MATCH;
+                            if (isInt && Convert.ToInt64(value).ToString(CultureInfo.InvariantCulture).StartsWith(parameterString, StringComparison.Ordinal))
                                 return EMatchResult.PARTIAL_MATCH;
                         }
-
-                        if (isInt)
-                        {
-                            for (int i = 0; i < values.Length; i++)
-                            {
-                                var str = ((int)values.GetValue(i)).ToString();
-                                if (str.StartsWith(parameterString, StringComparison.InvariantCultureIgnoreCase))
-                                    return EMatchResult.PARTIAL_MATCH;
-                            }
-                        }
+                        return EMatchResult.NO_MATCH;
                     }
-                    return EMatchResult.NO_MATCH;
 
                 case EParameterType.VECTOR2:
                     {
@@ -672,7 +682,7 @@ namespace Dhs5.Utility.Debugger
 
         public static string GetParameterDefaultValueAsString(Parameter parameter)
         {
-            if (parameter.hasDefaultValue) return parameter.defaultValue.ToString();
+            if (parameter.hasDefaultValue) return FormatValue(parameter.defaultValue);
 
             switch (parameter.type)
             {
@@ -687,6 +697,27 @@ namespace Dhs5.Utility.Debugger
                 case EParameterType.VECTOR3INT: return "0,0,0";
                 case EParameterType.COLOR: return "0,0,0,0";
                 default: throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
+        /// Writes <paramref name="value"/> the way <see cref="ParseParameter"/> reads it :
+        /// invariant culture (the current culture could write '0,2' for a float), vectors and colors as comma separated values
+        /// </summary>
+        public static string FormatValue(object value)
+        {
+            var c = CultureInfo.InvariantCulture;
+            switch (value)
+            {
+                case null: return string.Empty;
+                case bool b: return b ? "true" : "false";
+                case Vector2 v: return v.x.ToString(c) + "," + v.y.ToString(c);
+                case Vector2Int v: return v.x.ToString(c) + "," + v.y.ToString(c);
+                case Vector3 v: return v.x.ToString(c) + "," + v.y.ToString(c) + "," + v.z.ToString(c);
+                case Vector3Int v: return v.x.ToString(c) + "," + v.y.ToString(c) + "," + v.z.ToString(c);
+                case Color col: return col.r.ToString(c) + "," + col.g.ToString(c) + "," + col.b.ToString(c) + "," + col.a.ToString(c);
+                case IFormattable formattable: return formattable.ToString(null, c); // numbers, enums (by name)
+                default: return value.ToString();
             }
         }
 
