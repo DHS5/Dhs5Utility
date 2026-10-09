@@ -349,6 +349,9 @@ namespace Dhs5.Utility.Debugger
         }
         private void DrawRuntimeDebugObjectGUI(UnityEngine.Object obj, string memberFilterString = null)
         {
+            // Destroyed without being unregistered
+            if (obj == null) return;
+
             bool hasMemberFilter = !string.IsNullOrWhiteSpace(memberFilterString);
 
             // Init if necessary
@@ -467,6 +470,22 @@ namespace Dhs5.Utility.Debugger
         }
         private void DrawRuntimeDebugMemberSnapshotGUI(RuntimeDebugger.MemberSnapshot memberSnapshot)
         {
+            // Value that couldn't be read (the getter threw)
+            if (memberSnapshot.error != null)
+            {
+                using (new GUIHelper.GUIContentColorScope(Color.softRed))
+                {
+                    EditorGUILayout.TextField(memberSnapshot.name, memberSnapshot.error);
+                }
+                return;
+            }
+            // Null value : only object fields can draw it (with their declared type)
+            if (memberSnapshot.value == null && memberSnapshot.propertyType != SerializedPropertyType.ObjectReference)
+            {
+                EditorGUILayout.TextField(memberSnapshot.name, "null");
+                return;
+            }
+
             switch (memberSnapshot.propertyType)
             {
                 case SerializedPropertyType.Integer:
@@ -487,8 +506,8 @@ namespace Dhs5.Utility.Debugger
                     break;
 
                 case SerializedPropertyType.ObjectReference:
-                    var unityObj = (UnityEngine.Object)memberSnapshot.value;
-                    EditorGUILayout.ObjectField(memberSnapshot.name, unityObj, unityObj.GetType(), true);
+                    // Declared type : the value can be null (unassigned or destroyed)
+                    EditorGUILayout.ObjectField(memberSnapshot.name, (UnityEngine.Object)memberSnapshot.value, memberSnapshot.valueType, true);
                     break;
 
                 case SerializedPropertyType.LayerMask:
@@ -558,6 +577,20 @@ namespace Dhs5.Utility.Debugger
 
                 case SerializedPropertyType.EntityId:
                     EditorGUILayout.TextField(memberSnapshot.name, ((EntityId)memberSnapshot.value).ToString());
+                    break;
+
+                // Types without a dedicated field (lists, custom structs and classes...) : override ToString to choose what is shown
+                default:
+                    string valueString;
+                    try
+                    {
+                        valueString = memberSnapshot.value.ToString();
+                    }
+                    catch (Exception e)
+                    {
+                        valueString = "ToString threw " + e.GetType().Name + " : " + e.Message;
+                    }
+                    EditorGUILayout.TextField(memberSnapshot.name, valueString);
                     break;
             }
         }

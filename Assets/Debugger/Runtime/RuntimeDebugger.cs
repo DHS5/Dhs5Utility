@@ -101,6 +101,10 @@ namespace Dhs5.Utility.Debugger
                 {
                     return SerializedPropertyType.Vector3Int;
                 }
+                if (type == typeof(Rect))
+                {
+                    return SerializedPropertyType.Rect;
+                }
                 if (type == typeof(RectInt))
                 {
                     return SerializedPropertyType.RectInt;
@@ -155,17 +159,26 @@ namespace Dhs5.Utility.Debugger
             public readonly Dictionary<PropertyInfo, MemberDebugInformations> propertyInfos;
             public readonly Dictionary<MethodInfo, MethodDebugInformations> methodInfos;
 
-            public IEnumerable<MemberInfo> GetAllMemberInfos()
+            public IEnumerable<MemberInfo> GetAllMemberInfos(bool staticOnly = false)
             {
                 foreach (var (fieldInfo, _) in fieldInfos)
                 {
-                    yield return fieldInfo;
+                    if (!staticOnly || fieldInfo.IsStatic) yield return fieldInfo;
                 }
                 foreach (var (propertyInfo, _) in propertyInfos)
                 {
-                    yield return propertyInfo;
+                    if (!staticOnly || IsStatic(propertyInfo)) yield return propertyInfo;
                 }
             }
+        }
+
+        /// <summary>
+        /// Static classes are registered without an instance : only their static members can be read
+        /// </summary>
+        private static bool IsStatic(PropertyInfo propertyInfo)
+        {
+            var getter = propertyInfo.GetGetMethod(true);
+            return getter != null && getter.IsStatic;
         }
 
         #endregion
@@ -177,19 +190,54 @@ namespace Dhs5.Utility.Debugger
             public MemberSnapshot(UnityEngine.Object obj, FieldInfo fieldInfo, MemberDebugInformations informations)
             {
                 this.name = ObjectNames.NicifyVariableName(fieldInfo.Name);
-                this.value = fieldInfo.GetValue(obj);
+                this.valueType = fieldInfo.FieldType;
                 this.propertyType = informations.propertyType;
+                this.value = null;
+                this.error = null;
+                try
+                {
+                    this.value = fieldInfo.GetValue(obj);
+                }
+                catch (Exception e)
+                {
+                    this.error = GetErrorMessage(e);
+                }
             }
             public MemberSnapshot(UnityEngine.Object obj, PropertyInfo propertyInfo, MemberDebugInformations informations)
             {
                 this.name = ObjectNames.NicifyVariableName(propertyInfo.Name);
-                this.value = propertyInfo.GetValue(obj);
+                this.valueType = propertyInfo.PropertyType;
                 this.propertyType = informations.propertyType;
+                this.value = null;
+                this.error = null;
+                // The getter can throw (e.g. accessing a destroyed component) : it must not break the debugger GUI
+                try
+                {
+                    this.value = propertyInfo.GetValue(obj);
+                }
+                catch (Exception e)
+                {
+                    this.error = GetErrorMessage(e);
+                }
             }
 
             public readonly string name;
             public readonly object value;
+            /// <summary>
+            /// Declared type of the member (the value can be null)
+            /// </summary>
+            public readonly Type valueType;
             public readonly SerializedPropertyType propertyType;
+            /// <summary>
+            /// Not null if the value couldn't be read
+            /// </summary>
+            public readonly string error;
+
+            private static string GetErrorMessage(Exception e)
+            {
+                if (e is TargetInvocationException && e.InnerException != null) e = e.InnerException;
+                return e.GetType().Name + " : " + e.Message;
+            }
         }
 
         #endregion
@@ -331,43 +379,57 @@ namespace Dhs5.Utility.Debugger
         {
             try
             {
-                var bindingFlags = BindingFlags.Instance| BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+                // DeclaredOnly on each type of the hierarchy : GetFields/GetProperties/GetMethods on the type itself
+                // don't return the private members of its base classes
+                var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
                 RuntimeDebugAttribute attribute = null;
 
                 Dictionary<FieldInfo, MemberDebugInformations> fieldInfos = new();
-                foreach (var fieldInfo in type.GetFields(bindingFlags))
-                {
-                    attribute = fieldInfo.GetCustomAttribute<RuntimeDebugAttribute>();
-                    if (attribute != null)
-                    {
-                        fieldInfos.Add(fieldInfo, new MemberDebugInformations(attribute, fieldInfo.FieldType));
-                    }
-                }
-
                 Dictionary<PropertyInfo, MemberDebugInformations> propertyInfos = new();
-                foreach (var propertyInfo in type.GetProperties(bindingFlags))
-                {
-                    attribute = propertyInfo.GetCustomAttribute<RuntimeDebugAttribute>();
-                    if (attribute != null)
-                    {
-                        propertyInfos.Add(propertyInfo, new MemberDebugInformations(attribute, propertyInfo.PropertyType));
-                    }
-                }
-
                 Dictionary<MethodInfo, MethodDebugInformations> methodInfos = new();
-                foreach (var methodInfo in type.GetMethods(bindingFlags))
+                // Overridden properties/methods are declared again in derived types : only the most derived one is kept
+                HashSet<string> propertyNames = new();
+                HashSet<string> methodNames = new();
+
+                for (var currentType = type; currentType != null && currentType != typeof(object); currentType = currentType.BaseType)
                 {
-                    attribute = methodInfo.GetCustomAttribute<RuntimeDebugAttribute>();
-                    if (attribute != null)
+                    foreach (var fieldInfo in currentType.GetFields(bindingFlags))
                     {
-                        if (methodInfo.ReturnType == typeof(void)
-                            && !methodInfo.GetParameters().IsValid())
+                        attribute = fieldInfo.GetCustomAttribute<RuntimeDebugAttribute>();
+                        if (attribute != null)
                         {
-                            methodInfos.Add(methodInfo, new MethodDebugInformations(attribute));
+                            fieldInfos.Add(fieldInfo, new MemberDebugInformations(attribute, fieldInfo.FieldType));
                         }
-                        else
+                    }
+
+                    foreach (var propertyInfo in currentType.GetProperties(bindingFlags))
+                    {
+                        attribute = propertyInfo.GetCustomAttribute<RuntimeDebugAttribute>();
+                        if (attribute != null && propertyNames.Add(propertyInfo.Name))
                         {
-                            Debug.LogWarning("Can't register RuntimeDebugMethod " + methodInfo.Name + " on type " + type.Name + " that doesn't return void and/or takes parameters");
+                            if (propertyInfo.GetIndexParameters().Length > 0)
+                            {
+                                Debug.LogWarning("Can't register RuntimeDebug indexer " + propertyInfo.Name + " on type " + currentType.Name);
+                                continue;
+                            }
+                            propertyInfos.Add(propertyInfo, new MemberDebugInformations(attribute, propertyInfo.PropertyType));
+                        }
+                    }
+
+                    foreach (var methodInfo in currentType.GetMethods(bindingFlags))
+                    {
+                        attribute = methodInfo.GetCustomAttribute<RuntimeDebugAttribute>();
+                        if (attribute != null && methodNames.Add(methodInfo.Name))
+                        {
+                            if (methodInfo.ReturnType == typeof(void)
+                                && !methodInfo.GetParameters().IsValid())
+                            {
+                                methodInfos.Add(methodInfo, new MethodDebugInformations(attribute));
+                            }
+                            else
+                            {
+                                Debug.LogWarning("Can't register RuntimeDebugMethod " + methodInfo.Name + " on type " + currentType.Name + " that doesn't return void and/or takes parameters");
+                            }
                         }
                     }
                 }
@@ -415,6 +477,9 @@ namespace Dhs5.Utility.Debugger
             {
                 foreach (var obj in objects)
                 {
+                    // Destroyed without being unregistered
+                    if (obj == null) continue;
+
                     if (obj.name.Contains(nameFilter, StringComparison.InvariantCultureIgnoreCase))
                     {
                         yield return obj;
@@ -443,6 +508,9 @@ namespace Dhs5.Utility.Debugger
             {
                 foreach (var obj in objects)
                 {
+                    // Destroyed without being unregistered
+                    if (obj == null) continue;
+
                     if (_typeInformations.TryGetValue(obj.GetType(), out var typeInformations))
                     {
                         foreach (var memberInfo in typeInformations.GetAllMemberInfos())
@@ -466,7 +534,7 @@ namespace Dhs5.Utility.Debugger
                 {
                     if (_typeInformations.TryGetValue(type, out var typeInformations))
                     {
-                        foreach (var memberInfo in typeInformations.GetAllMemberInfos())
+                        foreach (var memberInfo in typeInformations.GetAllMemberInfos(staticOnly: true))
                         {
                             if (ObjectNames.NicifyVariableName(memberInfo.Name).Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
                             {
@@ -480,80 +548,41 @@ namespace Dhs5.Utility.Debugger
         }
 
         internal static IEnumerable<MemberSnapshot> GetMemberSnapshotsOfObject(UnityEngine.Object obj)
-        {
-            if (_typeInformations.TryGetValue(obj.GetType(), out var typeInformations))
-            {
-                foreach (var (fieldInfo, debugInfo) in typeInformations.fieldInfos)
-                {
-                    yield return new MemberSnapshot(obj, fieldInfo, debugInfo);
-                }
-                
-                foreach (var (propertyInfo, debugInfo) in typeInformations.propertyInfos)
-                {
-                    yield return new MemberSnapshot(obj, propertyInfo, debugInfo);
-                }
-            }
-        }
+            => GetMemberSnapshots(obj.GetType(), obj, staticOnly: false, memberFilter: null);
         internal static IEnumerable<MemberSnapshot> GetMemberSnapshotsOfStaticClass(Type type)
-        {
-            if (_typeInformations.TryGetValue(type, out var typeInformations))
-            {
-                foreach (var (fieldInfo, debugInfo) in typeInformations.fieldInfos)
-                {
-                    yield return new MemberSnapshot(null, fieldInfo, debugInfo);
-                }
-                
-                foreach (var (propertyInfo, debugInfo) in typeInformations.propertyInfos)
-                {
-                    yield return new MemberSnapshot(null, propertyInfo, debugInfo);
-                }
-            }
-        }
+            => GetMemberSnapshots(type, null, staticOnly: true, memberFilter: null);
         internal static IEnumerable<MemberSnapshot> GetMemberSnapshotsOfObjectFiltered(UnityEngine.Object obj, string memberFilter)
+            => GetMemberSnapshots(obj.GetType(), obj, staticOnly: false, memberFilter);
+        internal static IEnumerable<MemberSnapshot> GetMemberSnapshotsOfStaticClassFiltered(Type type, string memberFilter)
+            => GetMemberSnapshots(type, null, staticOnly: true, memberFilter);
+
+        /// <param name="obj">Instance to read the members from, null for a static class</param>
+        /// <param name="staticOnly">Static classes are registered without an instance : only their static members can be read</param>
+        /// <param name="memberFilter">Checked on the name before reading the value : getters of filtered out members are not called</param>
+        private static IEnumerable<MemberSnapshot> GetMemberSnapshots(Type type, UnityEngine.Object obj, bool staticOnly, string memberFilter)
         {
-            if (_typeInformations.TryGetValue(obj.GetType(), out var typeInformations))
+            if (!_typeInformations.TryGetValue(type, out var typeInformations)) yield break;
+
+            foreach (var (fieldInfo, debugInfo) in typeInformations.fieldInfos)
             {
-                foreach (var (fieldInfo, debugInfo) in typeInformations.fieldInfos)
-                {
-                    var memberSnapshot = new MemberSnapshot(obj, fieldInfo, debugInfo);
-                    if (memberSnapshot.name.Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
-                    { 
-                        yield return memberSnapshot; 
-                    }
-                }
-                
-                foreach (var (propertyInfo, debugInfo) in typeInformations.propertyInfos)
-                {
-                    var memberSnapshot = new MemberSnapshot(obj, propertyInfo, debugInfo);
-                    if (memberSnapshot.name.Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        yield return memberSnapshot;
-                    }
-                }
+                if (staticOnly && !fieldInfo.IsStatic) continue;
+                if (!IsMemberNameMatching(fieldInfo, memberFilter)) continue;
+
+                yield return new MemberSnapshot(obj, fieldInfo, debugInfo);
+            }
+
+            foreach (var (propertyInfo, debugInfo) in typeInformations.propertyInfos)
+            {
+                if (staticOnly && !IsStatic(propertyInfo)) continue;
+                if (!IsMemberNameMatching(propertyInfo, memberFilter)) continue;
+
+                yield return new MemberSnapshot(obj, propertyInfo, debugInfo);
             }
         }
-        internal static IEnumerable<MemberSnapshot> GetMemberSnapshotsOfStaticClassFiltered(Type type, string memberFilter)
+        private static bool IsMemberNameMatching(MemberInfo memberInfo, string memberFilter)
         {
-            if (_typeInformations.TryGetValue(type, out var typeInformations))
-            {
-                foreach (var (fieldInfo, debugInfo) in typeInformations.fieldInfos)
-                {
-                    var memberSnapshot = new MemberSnapshot(null, fieldInfo, debugInfo);
-                    if (memberSnapshot.name.Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
-                    { 
-                        yield return memberSnapshot; 
-                    }
-                }
-                
-                foreach (var (propertyInfo, debugInfo) in typeInformations.propertyInfos)
-                {
-                    var memberSnapshot = new MemberSnapshot(null, propertyInfo, debugInfo);
-                    if (memberSnapshot.name.Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        yield return memberSnapshot;
-                    }
-                }
-            }
+            return string.IsNullOrEmpty(memberFilter)
+                || ObjectNames.NicifyVariableName(memberInfo.Name).Contains(memberFilter, StringComparison.InvariantCultureIgnoreCase);
         }
 
         internal static void InvokeRuntimeDebugMethodsOfObject(UnityEngine.Object obj)
@@ -579,6 +608,9 @@ namespace Dhs5.Utility.Debugger
             {
                 foreach (var (methodInfo, debugInfo) in typeInformations.methodInfos)
                 {
+                    // Registered without an instance : only static methods can be called
+                    if (!methodInfo.IsStatic) continue;
+
                     try
                     {
                         methodInfo.Invoke(null, null);
