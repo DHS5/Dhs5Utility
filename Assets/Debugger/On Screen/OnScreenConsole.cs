@@ -117,7 +117,9 @@ namespace Dhs5.Utility.Debugger
 
         private int m_lastActivationChangeFrame = -1;
         /// <summary>
-        /// Last frame the open or close console input was performed : its key must not be typed in the command line
+        /// Last frame the close console input was performed, or the open input opened the console :
+        /// that key press must not be typed in the command line.<br></br>
+        /// The open key stays typable once the console is opened.
         /// </summary>
         private int m_lastConsoleInputFrame = -1;
 
@@ -136,8 +138,13 @@ namespace Dhs5.Utility.Debugger
         }
         private void OpenConsoleCallback(InputAction.CallbackContext callbackContext)
         {
-            m_lastConsoleInputFrame = Time.frameCount;
+            var wasActive = IsActive;
             OpenConsole();
+            // Only the key press that opens the console is filtered : the open key can be typed afterwards
+            if (!wasActive && IsActive)
+            {
+                m_lastConsoleInputFrame = Time.frameCount;
+            }
         }
         protected void CloseConsole()
         {
