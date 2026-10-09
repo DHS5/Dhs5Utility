@@ -110,9 +110,9 @@ namespace Dhs5.Utility.SaveLoad
         }
 
         /// <summary>
-        /// Can't work without a SaveProcessModifier
+        /// Without a SaveProcessModifier, reads the default save file (see <see cref="GetDefaultSavePath"/>)
         /// </summary>
-        internal static string ReadContentFromSelectedSaveFile()
+        internal static string ReadContentFromSelectedSaveFile(ISaveParameter parameter)
         {
             // GET SAVE CONTENT
             if (HasModifier(out var modifier))
@@ -120,7 +120,7 @@ namespace Dhs5.Utility.SaveLoad
                 return modifier.GetDecryptedContent(modifier.ReadSelectedSaveFileFromDisk());
             }
 
-            return null;
+            return File.ReadAllText(GetDefaultSavePath(parameter), GetEncoding(parameter));
         }
         internal static string ReadContentAtPath(string path, System.Text.Encoding encoding)
         {
@@ -136,33 +136,31 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Path
 
+        /// <summary>
+        /// Exceptions thrown by the modifier are not caught : falling back to the default path would create a save file the modifier never reads,
+        /// so the save process fails instead (see <see cref="SaveManager.CompleteSaveProcess"/>) and the previous save file is kept
+        /// </summary>
         private static string CreateSavePath(SaveObject saveObject, ISaveParameter parameter)
         {
             if (HasModifier(out var modifier))
             {
-                try
-                {
-                    return modifier.CreateSavePath(saveObject, parameter);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogException(e);
-                }
+                return modifier.CreateSavePath(saveObject, parameter);
             }
 
-            return CreateBackupSavePath(saveObject, parameter);
+            return GetDefaultSavePath(parameter);
         }
-        private static string CreateBackupSavePath(SaveObject saveObject, ISaveParameter parameter)
+        /// <summary>
+        /// Path of the save file when there is no SaveProcessModifier : a single save file in the persistent data folder
+        /// </summary>
+        internal static string GetDefaultSavePath(ISaveParameter parameter)
         {
             var extension = parameter != null ? parameter.GetExtension() : ".txt";
-            if (string.IsNullOrWhiteSpace(saveObject.name))
-            {
-                return Application.persistentDataPath + "/Save/SAVE_" + SerializableDate.Now.ToFullStringNoSeparator(true, true) + extension;
-            }
-            else
-            {
-                return Application.persistentDataPath + "/Save/SAVE_" + saveObject.name + extension;
-            }
+            return Application.persistentDataPath + "/Save/SAVE" + extension;
+        }
+
+        private static System.Text.Encoding GetEncoding(ISaveParameter parameter)
+        {
+            return parameter != null ? parameter.GetEncoding() : System.Text.Encoding.Default;
         }
 
         #endregion
@@ -205,8 +203,7 @@ namespace Dhs5.Utility.SaveLoad
                 }
                 else
                 {
-                    var encoding = parameter != null ? parameter.GetEncoding() : System.Text.Encoding.Default;
-                    File.WriteAllText(tempPath, content, encoding);
+                    File.WriteAllText(tempPath, content, GetEncoding(parameter));
                 }
 
                 // The modifier didn't write at the given path (e.g. custom storage) : nothing to replace

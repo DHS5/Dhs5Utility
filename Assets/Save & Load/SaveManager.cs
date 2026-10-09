@@ -123,42 +123,45 @@ namespace Dhs5.Utility.SaveLoad
         }
         public static void Set(BaseSaveSubObject subObject)
         {
-            if (CurrentSaveObject != null)
+            if (CanModifyCurrentSaveObject())
             {
                 CurrentSaveObject.Set(subObject);
-            }
-            else
-            {
-                if (CurrentSaveObject == null) Debug.LogError("SAVE SET ERROR : Current SaveObject is null");
-                else Debug.LogError("SAVE SET ERROR : Save Process is not active");
             }
         }
         public static bool Remove(ESaveCategory category)
         {
-            if (CurrentSaveObject != null)
+            if (CanModifyCurrentSaveObject())
             {
                 return CurrentSaveObject.Remove(category);
             }
-            else
-            {
-                if (CurrentSaveObject == null) Debug.LogError("SAVE SET ERROR : Current SaveObject is null");
-                else Debug.LogError("SAVE SET ERROR : Save Process is not active");
-                return false;
-            }
+            return false;
         }
         public static bool Remove(ESaveCategory category, out BaseSaveSubObject subObject)
         {
-            if (CurrentSaveObject != null)
+            if (CanModifyCurrentSaveObject())
             {
                 return CurrentSaveObject.Remove(category, out subObject);
             }
-            else
+            subObject = null;
+            return false;
+        }
+
+        /// <summary>
+        /// The current SaveObject can't be modified while it's being loaded
+        /// </summary>
+        private static bool CanModifyCurrentSaveObject()
+        {
+            if (CurrentSaveObject == null)
             {
-                if (CurrentSaveObject == null) Debug.LogError("SAVE SET ERROR : Current SaveObject is null");
-                else Debug.LogError("SAVE SET ERROR : Save Process is not active");
-                subObject = null;
+                Debug.LogError("SAVE SET ERROR : Current SaveObject is null");
                 return false;
             }
+            if (IsLoadProcessActive)
+            {
+                Debug.LogError("SAVE SET ERROR : Can't modify the current SaveObject during the Load Process");
+                return false;
+            }
+            return true;
         }
 
         #endregion
@@ -238,14 +241,18 @@ namespace Dhs5.Utility.SaveLoad
         
         #region LOAD Process
 
-        public static bool StartLoadProcess()
+        /// <summary>
+        /// Loads the save file selected by the SaveProcessModifier, or the default save file if there is none
+        /// </summary>
+        /// <param name="parameter">Without a SaveProcessModifier, must match the parameter used to save (extension and encoding)</param>
+        public static bool StartLoadProcess(ISaveParameter parameter = null)
         {
             if (IsLoadProcessActive || IsSaveProcessActive) return false;
 
             string content;
             try
             {
-                content = SaveAsset.ReadContentFromSelectedSaveFile();
+                content = SaveAsset.ReadContentFromSelectedSaveFile(parameter);
             }
             catch (Exception e)
             {

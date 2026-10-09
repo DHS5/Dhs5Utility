@@ -281,27 +281,26 @@ namespace Dhs5.Utility.SaveLoad
         }
         private bool TryLoadScriptableObject<T>(Type type, string content, out T scriptableObject) where T : ScriptableObject
         {
+            // Check the type BEFORE creating an instance : the type name comes from the save file,
+            // which could make the game create (and run Awake/OnEnable of) any ScriptableObject type
+            if (!typeof(T).IsAssignableFrom(type) || type.IsAbstract)
+            {
+                Debug.LogError("LOAD ERROR : Type " + type + " is not a valid " + typeof(T).Name);
+                scriptableObject = null;
+                return false;
+            }
+
+            scriptableObject = null;
             try
             {
-                scriptableObject = ScriptableObject.CreateInstance(type) as T;
-                if (scriptableObject == null)
-                {
-                    Debug.LogError("LOAD ERROR : Unable to create instance of " + type + " as " + typeof(T).Name);
-                    return false;
-                }
-
+                scriptableObject = (T)ScriptableObject.CreateInstance(type);
                 JsonUtility.FromJsonOverwrite(content, scriptableObject);
-                if (scriptableObject == null)
-                {
-                    Debug.LogError("LOAD ERROR : Json Overwrite nulled the object");
-                    return false;
-                }
-
                 return true;
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
+                if (scriptableObject != null) DestroyImmediate(scriptableObject);
                 scriptableObject = null;
                 return false;
             }
