@@ -4,6 +4,9 @@ using System.Text;
 
 public static class Logger
 {
+    // Each log method is written out in full on purpose : calling a shared method would add a frame to the stack trace,
+    // pushing the calling code further down in Unity's console
+
     #region Public Log Behaviour
 
     [HideInCallstack]
@@ -11,22 +14,30 @@ public static class Logger
     {
         var categoryObj = DebuggerAsset.GetDebugCategoryObject(category);
 
-        if (categoryObj != null)
+        if (categoryObj == null)
         {
-            var msgString = message.ToString();
+            Debug.unityLogger.Log(logType, (object)MessageToString(message), context);
+            return;
+        }
 
-            var log = new DebuggerLog(category, logType, level, msgString, context);
+        var canLog = categoryObj.CanLog(logType, level);
+        if (!canLog && !StoresLogs) return;
+
+        DebuggerLog log = default;
+        if (StoresLogs || onScreen)
+        {
+            log = new DebuggerLog(category, logType, level, MessageToString(message), context);
             StoreLog(log);
+        }
 
-            if (CanLog(categoryObj, logType, level))
+        if (canLog)
+        {
+            var categorizedMessage = CategorizeMessage(categoryObj, level, message);
+            Debug.unityLogger.Log(logType, (object)categorizedMessage, context);
+
+            if (onScreen && Application.isPlaying)
             {
-                var categorizedMessage = CategorizeMessage(categoryObj, level, message);
-                Debug.unityLogger.Log(logType, (object)categorizedMessage, context);
-
-                if (onScreen && Application.isPlaying)
-                {
-                    OnScreenLogger.Log(log);
-                }
+                OnScreenLogger.Log(log);
             }
         }
     }
@@ -38,22 +49,30 @@ public static class Logger
         var categoryObj = DebuggerAsset.GetDebugCategoryObject(category);
         var logType = LogType.Log;
 
-        if (categoryObj != null)
+        if (categoryObj == null)
         {
-            var msgString = message.ToString();
+            Debug.Log(MessageToString(message), context);
+            return;
+        }
 
-            var log = new DebuggerLog(category, logType, level, msgString, context);
+        var canLog = categoryObj.CanLog(logType, level);
+        if (!canLog && !StoresLogs) return;
+
+        DebuggerLog log = default;
+        if (StoresLogs || onScreen)
+        {
+            log = new DebuggerLog(category, logType, level, MessageToString(message), context);
             StoreLog(log);
+        }
 
-            if (CanLog(categoryObj, logType, level))
+        if (canLog)
+        {
+            var categorizedMessage = CategorizeMessage(categoryObj, level, message);
+            Debug.Log(categorizedMessage, context);
+
+            if (onScreen && Application.isPlaying)
             {
-                var categorizedMessage = CategorizeMessage(categoryObj, level, message);
-                Debug.Log(categorizedMessage, context);
-
-                if (onScreen && Application.isPlaying)
-                {
-                    OnScreenLogger.Log(log);
-                }
+                OnScreenLogger.Log(log);
             }
         }
     }
@@ -65,22 +84,30 @@ public static class Logger
         var categoryObj = DebuggerAsset.GetDebugCategoryObject(category);
         var logType = LogType.Warning;
 
-        if (categoryObj != null)
+        if (categoryObj == null)
         {
-            var msgString = message.ToString();
+            Debug.LogWarning(MessageToString(message), context);
+            return;
+        }
 
-            var log = new DebuggerLog(category, logType, level, msgString, context);
+        var canLog = categoryObj.CanLog(logType, level);
+        if (!canLog && !StoresLogs) return;
+
+        DebuggerLog log = default;
+        if (StoresLogs || onScreen)
+        {
+            log = new DebuggerLog(category, logType, level, MessageToString(message), context);
             StoreLog(log);
+        }
 
-            if (CanLog(categoryObj, logType, level))
+        if (canLog)
+        {
+            var categorizedMessage = CategorizeMessage(categoryObj, level, message);
+            Debug.LogWarning(categorizedMessage, context);
+
+            if (onScreen && Application.isPlaying)
             {
-                var categorizedMessage = CategorizeMessage(categoryObj, level, message);
-                Debug.LogWarning(categorizedMessage, context);
-
-                if (onScreen && Application.isPlaying)
-                {
-                    OnScreenLogger.Log(log);
-                }
+                OnScreenLogger.Log(log);
             }
         }
     }
@@ -92,22 +119,27 @@ public static class Logger
         var categoryObj = DebuggerAsset.GetDebugCategoryObject(category);
         var logType = LogType.Error;
 
-        if (categoryObj != null)
+        if (categoryObj == null)
         {
-            var msgString = message.ToString();
+            Debug.LogError(MessageToString(message), context);
+            return;
+        }
 
-            var log = new DebuggerLog(category, logType, 0, msgString, context);
+        DebuggerLog log = default;
+        if (StoresLogs || onScreen)
+        {
+            log = new DebuggerLog(category, logType, 0, MessageToString(message), context);
             StoreLog(log);
+        }
 
-            if (CanLog(categoryObj, logType, 0))
+        if (categoryObj.CanLog(logType, 0))
+        {
+            var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
+            Debug.LogError(categorizedMessage, context);
+
+            if (onScreen && Application.isPlaying)
             {
-                var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
-                Debug.LogError(categorizedMessage, context);
-
-                if (onScreen && Application.isPlaying)
-                {
-                    OnScreenLogger.Log(log);
-                }
+                OnScreenLogger.Log(log);
             }
         }
     }
@@ -118,20 +150,25 @@ public static class Logger
     {
         var categoryObj = DebuggerAsset.GetDebugCategoryObject(category);
 
-        if (categoryObj != null)
+        if (categoryObj == null)
         {
-            var msgString = message.ToString();
+            Debug.unityLogger.Log(logType, (object)MessageToString(message), context);
+            return;
+        }
 
-            var log = new DebuggerLog(category, logType, 0, msgString, context);
+        DebuggerLog log = default;
+        if (StoresLogs || onScreen)
+        {
+            log = new DebuggerLog(category, logType, 0, MessageToString(message), context);
             StoreLog(log);
+        }
 
-            var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
-            Debug.unityLogger.Log(logType, (object)categorizedMessage, context);
+        var categorizedMessage = CategorizeMessage(categoryObj, 0, message);
+        Debug.unityLogger.Log(logType, (object)categorizedMessage, context);
 
-            if (onScreen && Application.isPlaying)
-            {
-                OnScreenLogger.Log(log);
-            }
+        if (onScreen && Application.isPlaying)
+        {
+            OnScreenLogger.Log(log);
         }
     }
 
@@ -141,11 +178,32 @@ public static class Logger
     {
         if (Application.isPlaying)
         {
-            var log = new DebuggerLog(category, logType, level, message, null);
+            var log = new DebuggerLog(category, logType, level, MessageToString(message), null);
             StoreLog(log);
 
             OnScreenLogger.Log(log, duration);
         }
+    }
+
+    #endregion
+
+    #region Log Helpers
+
+#if UNITY_EDITOR
+    /// <summary>
+    /// Logs are kept for the D5 Console in the editor only
+    /// </summary>
+    private const bool StoresLogs = true;
+#else
+    private const bool StoresLogs = false;
+#endif
+
+    /// <summary>
+    /// Like Debug.Log : a null message is logged as "Null"
+    /// </summary>
+    private static string MessageToString(object message)
+    {
+        return message?.ToString() ?? "Null";
     }
 
     #endregion
@@ -206,11 +264,11 @@ public static class Logger
             for (int i = 0; i < DebuggerAsset.MAX_DEBUGGER_LEVEL + 1 - level; i++)
                 sb.Append(">");
             sb.Append("</b></color> ");
-            sb.Append(message);
+            sb.Append(MessageToString(message));
 
             return sb.ToString();
         }
-        return message.ToString();
+        return MessageToString(message);
     }
 
     #endregion

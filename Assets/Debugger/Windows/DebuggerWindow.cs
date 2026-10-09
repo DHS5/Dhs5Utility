@@ -551,8 +551,7 @@ namespace Dhs5.Utility.Debugger
                     break;
 
                 case SerializedPropertyType.Quaternion:
-                    var quaternion = (Quaternion)memberSnapshot.value;
-                    EditorGUILayout.Vector4Field(memberSnapshot.name, new Vector4(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
+                    EditorGUILayout.Vector3Field(memberSnapshot.name, ((Quaternion)memberSnapshot.value).eulerAngles);
                     break;
 
                 case SerializedPropertyType.Vector2Int:

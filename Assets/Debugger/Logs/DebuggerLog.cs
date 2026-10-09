@@ -18,7 +18,7 @@ namespace Dhs5.Utility.Debugger
             this.category = category;
             this.type = type;
             this.level = level;
-            this.message = message.ToString();
+            this.message = message?.ToString() ?? "Null";
             this.context = context;
             this.timestamp = Time.timeAsDouble;
         }

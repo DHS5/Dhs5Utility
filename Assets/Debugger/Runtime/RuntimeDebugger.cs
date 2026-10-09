@@ -270,12 +270,18 @@ namespace Dhs5.Utility.Debugger
 
         #region Registration
 
-        public static void Register(bool register, EDebugCategory category, MonoBehaviour monoBehaviour)
+        /// <summary>
+        /// Registers <paramref name="obj"/> (MonoBehaviour, ScriptableObject...) to show its [RuntimeDebug] members in the Debugger window's Runtime tab.<br></br>
+        /// Editor only : does nothing in builds.
+        /// </summary>
+        public static void Register(bool register, EDebugCategory category, UnityEngine.Object obj)
         {
 #if UNITY_EDITOR
+            if (obj == null) return;
+
             if (register)
             {
-                var type = monoBehaviour.GetType();
+                var type = obj.GetType();
 
                 if (!_typeInformations.ContainsKey(type)
                     && !ComputeTypeInformations(type))
@@ -289,49 +295,16 @@ namespace Dhs5.Utility.Debugger
                     _registeredObjects.Add(category, new());
                 }
                 
-                if (!_registeredObjects[category].Add(monoBehaviour))
+                if (!_registeredObjects[category].Add(obj))
                 {
-                    Debug.LogWarning("MonoBehaviour " + monoBehaviour + " already registered under category " + category);
+                    Debug.LogWarning(type.Name + " " + obj + " already registered under category " + category);
                 }
             }
             else
             {
                 if (_registeredObjects.TryGetValue(category, out var set))
                 {
-                    set.Remove(monoBehaviour);
-                }
-            }
-#endif
-        }
-        public static void Register(bool register, EDebugCategory category, ScriptableObject scriptableObject)
-        {
-#if UNITY_EDITOR
-            if (register)
-            {
-                var type = scriptableObject.GetType();
-
-                if (!_typeInformations.ContainsKey(type)
-                    && !ComputeTypeInformations(type))
-                {
-                    Debug.LogError("Runtime debugger can't handle type " + type.Name);
-                    return;
-                }
-
-                if (!_registeredObjects.ContainsKey(category))
-                {
-                    _registeredObjects.Add(category, new());
-                }
-
-                if (!_registeredObjects[category].Add(scriptableObject))
-                {
-                    Debug.LogWarning("ScriptableObject " + scriptableObject + " already registered under category " + category);
-                }
-            }
-            else
-            {
-                if (_registeredObjects.TryGetValue(category, out var set))
-                {
-                    set.Remove(scriptableObject);
+                    set.Remove(obj);
                 }
             }
 #endif

@@ -34,10 +34,11 @@ namespace Dhs5.Utility.Debugger
             {
                 case LogType.Log: return Active && logLevel <= Level;
                 case LogType.Warning: return Active && logLevel <= Level;
+                // Errors, exceptions and asserts always get through, even from a disabled category
                 case LogType.Error:
                 case LogType.Exception:
                 case LogType.Assert:
-                    return Active;
+                    return true;
                 default: return false;
             }
         }

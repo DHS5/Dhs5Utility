@@ -85,15 +85,6 @@ namespace Dhs5.Utility.Debugger
 
         // --- STATIC ---
 
-        #region Engine Callbacks
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics()
-        {
-            _categoryColors.Clear();
-        }
-
-        #endregion
 
         #region Instance
 
@@ -143,20 +134,13 @@ namespace Dhs5.Utility.Debugger
             return null;
         }
 
-        private readonly static Dictionary<EDebugCategory, Color> _categoryColors = new();
+        /// <summary>
+        /// Read from the category object every time (no cache) : stays correct when categories are reordered, added or deleted
+        /// </summary>
         public static Color GetCategoryColor(EDebugCategory category)
         {
-            if (_categoryColors.TryGetValue(category, out var color)) return color;
-
             var categoryObject = GetDebugCategoryObject(category);
-            if (categoryObject == null) return Color.white;
-
-            _categoryColors[category] = categoryObject.Color;
-            return _categoryColors[category];
-        }
-        internal static void ClearCategoryColorsCache()
-        {
-            _categoryColors.Clear();
+            return categoryObject != null ? categoryObject.Color : Color.white;
         }
 
         #endregion
@@ -404,7 +388,6 @@ namespace Dhs5.Utility.Debugger
                 if (EditorGUI.EndChangeCheck())
                 {
                     so.FindProperty("m_colorString").stringValue = ColorUtility.ToHtmlStringRGB(p_color.colorValue);
-                    DebuggerAsset.ClearCategoryColorsCache();
                 }
                 EditorGUI.EndDisabledGroup();
 
@@ -664,7 +647,6 @@ namespace Dhs5.Utility.Debugger
                 baseElement.Editor_SetColor(Color.white);
                 baseElement.RefreshColorString();
                 EditorUtility.SetDirty(baseElement);
-                DebuggerAsset.ClearCategoryColorsCache();
             }
 
             EnsureCorrectChannelsIndexation();
