@@ -15,11 +15,34 @@ namespace Dhs5.Utility.SaveLoad
 {
     public class SaveAsset : ScriptableObject
     {
+        #region STRUCT CategoryRename
+
+        [Serializable]
+        private struct CategoryRename
+        {
+            public CategoryRename(string previousName, string currentName)
+            {
+                this.previousName = previousName;
+                this.currentName = currentName;
+            }
+
+            public string previousName;
+            public string currentName;
+        }
+
+        #endregion
+
         #region Members
 
         [SerializeField] private SaveProcessModifier m_modifier;
         [SerializeField] private List<string> m_saveCategories;
         [SerializeField] private List<ESaveCategory> m_loadOrder;
+
+        [Tooltip("Version written in every save file\n" +
+            "Increase it when the save data changes in a way loadables need to handle (see SaveManager.GetSaveVersion)")]
+        [SerializeField, Min(1)] private int m_saveVersion = 1;
+        [Tooltip("Former names of the save categories, used to load the sub objects of saves made before a category was renamed")]
+        [SerializeField] private List<CategoryRename> m_categoryRenames = new();
 
         #endregion
 
@@ -65,6 +88,42 @@ namespace Dhs5.Utility.SaveLoad
         {
             modifier = Instance != null ? Instance.m_modifier : null;
             return modifier != null;
+        }
+
+        /// <summary>
+        /// Version written in new save files
+        /// </summary>
+        internal static int SaveVersion => Instance != null ? Instance.m_saveVersion : 0;
+
+        /// <summary>
+        /// Finds the current category of data saved under <paramref name="savedName"/>,
+        /// following the renames of the category since the save was made
+        /// </summary>
+        /// <returns>FALSE if the category doesn't exist anymore</returns>
+        internal static bool TryGetCategoryFromSavedName(string savedName, out ESaveCategory category)
+        {
+            if (TryParseCategory(savedName, out category))
+            {
+                return true;
+            }
+
+            if (Instance != null && Instance.m_categoryRenames != null)
+            {
+                foreach (var rename in Instance.m_categoryRenames)
+                {
+                    if (rename.previousName == savedName)
+                    {
+                        return TryParseCategory(rename.currentName, out category);
+                    }
+                }
+            }
+
+            category = default;
+            return false;
+        }
+        private static bool TryParseCategory(string name, out ESaveCategory category)
+        {
+            return Enum.TryParse(name, out category) && Enum.IsDefined(typeof(ESaveCategory), category);
         }
 
         internal static IEnumerable<KeyValuePair<ESaveCategory, uint>> GetCategoriesInLoadOrder()
@@ -290,6 +349,9 @@ namespace Dhs5.Utility.SaveLoad
         private SerializedProperty p_saveCategories;
         private SerializedProperty p_loadOrder;
 
+        private SerializedProperty p_saveVersion;
+        private SerializedProperty p_categoryRenames;
+
         private SerializedProperty p_saveCategoriesTextAsset;
 
         #endregion
@@ -303,6 +365,9 @@ namespace Dhs5.Utility.SaveLoad
             p_modifier = serializedObject.FindProperty("m_modifier");
             p_saveCategories = serializedObject.FindProperty("m_saveCategories");
             p_loadOrder = serializedObject.FindProperty("m_loadOrder");
+
+            p_saveVersion = serializedObject.FindProperty("m_saveVersion");
+            p_categoryRenames = serializedObject.FindProperty("m_categoryRenames");
 
             p_saveCategoriesTextAsset = serializedObject.FindProperty("m_saveCategoriesTextAsset");
         }
@@ -354,8 +419,10 @@ namespace Dhs5.Utility.SaveLoad
             var r_nameTextField = new Rect(marginedRect.x + 20f, marginedRect.y, marginedRect.width - buttonsTotalWidth - 20f, 20f);
             EditorGUI.LabelField(r_indexLabel, index.ToString(), EditorStyles.boldLabel);
             var newName = EnumWriter.EnsureCorrectEnumName(EditorGUI.DelayedTextField(r_nameTextField, p_category.stringValue));
-            if (newName != p_category.stringValue)
+            if (newName != p_category.stringValue
+                && CanUseCategoryName(newName))
             {
+                RegisterCategoryRename(p_category.stringValue, newName);
                 p_category.stringValue = newName;
             }
 
@@ -371,10 +438,85 @@ namespace Dhs5.Utility.SaveLoad
                         "Delete", "Cancel"))
                 {
                     RemoveCategoryFromLoadOrder(index);
+                    RemoveCategoryRenames(p_category.stringValue);
                     p_saveCategories.DeleteArrayElementAtIndex(index);
                 }
             }
         }
+
+        #region Category Renames
+
+        /// <summary>
+        /// Former names of a category are kept so that old saves still load into it :
+        /// reusing a former name for a category would make those old saves load into it instead
+        /// </summary>
+        private bool CanUseCategoryName(string name)
+        {
+            for (int i = 0; i < p_categoryRenames.arraySize; i++)
+            {
+                var p_rename = p_categoryRenames.GetArrayElementAtIndex(i);
+                if (p_rename.FindPropertyRelative("previousName").stringValue == name)
+                {
+                    var currentName = p_rename.FindPropertyRelative("currentName").stringValue;
+                    if (EditorUtility.DisplayDialog("Use former category name ?",
+                        name + " is a former name of " + currentName + ".\n\n" +
+                        "Saves made before the rename store " + currentName + "'s data under " + name + " : " +
+                        "if you use this name, they will load into this category instead of " + currentName + ".",
+                        "Use it anyway", "Cancel"))
+                    {
+                        p_categoryRenames.DeleteArrayElementAtIndex(i);
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void RegisterCategoryRename(string oldName, string newName)
+        {
+            // Former names of the renamed category now point to its new name
+            for (int i = p_categoryRenames.arraySize - 1; i >= 0; i--)
+            {
+                var p_rename = p_categoryRenames.GetArrayElementAtIndex(i);
+                var p_currentName = p_rename.FindPropertyRelative("currentName");
+                if (p_currentName.stringValue == oldName)
+                {
+                    p_currentName.stringValue = newName;
+                }
+                // Renamed back to a former name
+                if (p_rename.FindPropertyRelative("previousName").stringValue == p_currentName.stringValue)
+                {
+                    p_categoryRenames.DeleteArrayElementAtIndex(i);
+                }
+            }
+
+            // Only names written in the category script can be in save files
+            if (oldName != newName
+                && Enum.TryParse(oldName, out ESaveCategory category) && Enum.IsDefined(typeof(ESaveCategory), category))
+            {
+                p_categoryRenames.InsertArrayElementAtIndex(p_categoryRenames.arraySize);
+                var p_rename = p_categoryRenames.GetArrayElementAtIndex(p_categoryRenames.arraySize - 1);
+                p_rename.FindPropertyRelative("previousName").stringValue = oldName;
+                p_rename.FindPropertyRelative("currentName").stringValue = newName;
+            }
+        }
+
+        /// <summary>
+        /// The data of a deleted category is ignored when loading old saves
+        /// </summary>
+        private void RemoveCategoryRenames(string deletedName)
+        {
+            for (int i = p_categoryRenames.arraySize - 1; i >= 0; i--)
+            {
+                if (p_categoryRenames.GetArrayElementAtIndex(i).FindPropertyRelative("currentName").stringValue == deletedName)
+                {
+                    p_categoryRenames.DeleteArrayElementAtIndex(i);
+                }
+            }
+        }
+
+        #endregion
 
         private void DrawCategoriesFooter()
         {
@@ -582,6 +724,23 @@ namespace Dhs5.Utility.SaveLoad
                 }
             }
             EditorGUILayout.EndHorizontal();
+
+            // VERSION
+            EditorGUILayout.Space(5f);
+            EditorGUILayout.LabelField("Version", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(p_saveVersion);
+
+            // CATEGORY RENAMES
+            if (p_categoryRenames.arraySize > 0)
+            {
+                EditorGUILayout.Space(5f);
+                EditorGUILayout.LabelField(new GUIContent("Category Renames", p_categoryRenames.tooltip), EditorStyles.boldLabel);
+                for (int i = 0; i < p_categoryRenames.arraySize; i++)
+                {
+                    var p_rename = p_categoryRenames.GetArrayElementAtIndex(i);
+                    EditorGUILayout.LabelField(p_rename.FindPropertyRelative("previousName").stringValue + "  →  " + p_rename.FindPropertyRelative("currentName").stringValue);
+                }
+            }
 
             // SCRIPTS
             EditorGUILayout.Space(5f);

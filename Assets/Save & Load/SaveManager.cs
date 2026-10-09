@@ -180,6 +180,27 @@ namespace Dhs5.Utility.SaveLoad
                 return null;
             }
         }
+        /// <summary>
+        /// Version of the current save : during and after a load, the version the save file was made with (0 for saves made before versioning).<br></br>
+        /// Use it in loadables to handle data saved by older versions of the game.
+        /// </summary>
+        public static int GetSaveVersion()
+        {
+            if (CurrentSaveObject != null)
+            {
+                return CurrentSaveObject.Version;
+            }
+            else
+            {
+                Debug.LogError("SAVE GET ERROR : Current SaveObject is null");
+                return 0;
+            }
+        }
+        /// <summary>
+        /// Version written in new save files, set in the SaveAsset
+        /// </summary>
+        public static int CurrentVersion => SaveAsset.SaveVersion;
+
         public static bool TryGetSubObject(ESaveCategory category, out BaseSaveSubObject subObject)
         {
             if (CurrentSaveObject != null)

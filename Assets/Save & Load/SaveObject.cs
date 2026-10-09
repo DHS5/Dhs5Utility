@@ -17,8 +17,9 @@ namespace Dhs5.Utility.SaveLoad
         [Serializable]
         private struct SaveWrapper
         {
-            public SaveWrapper(BaseSaveInfo saveInfo, ICollection<BaseSaveSubObject> saveSubObjects)
+            public SaveWrapper(int version, BaseSaveInfo saveInfo, ICollection<BaseSaveSubObject> saveSubObjects)
             {
+                this.version = version;
                 infoWrapper = new(saveInfo);
 
                 subWrappers = new();
@@ -31,6 +32,10 @@ namespace Dhs5.Utility.SaveLoad
                 }
             }
 
+            /// <summary>
+            /// 0 for saves made before versioning
+            /// </summary>
+            public int version;
             public SaveInfoWrapper infoWrapper;
             public List<SubSaveWrapper> subWrappers;
         }
@@ -89,6 +94,7 @@ namespace Dhs5.Utility.SaveLoad
         #region Members
 
         [SerializeField, DateReadOnly] private SerializableDate m_date;
+        [SerializeField, ReadOnly] private int m_version;
         [SerializeField] private BaseSaveInfo m_saveInfo;
 
 #if UNITY_EDITOR
@@ -131,6 +137,11 @@ namespace Dhs5.Utility.SaveLoad
         #region Access Methods
 
         internal BaseSaveInfo GetSaveInfo() => m_saveInfo;
+        /// <summary>
+        /// Version of the save : when loaded, the version of the save file (0 for saves made before versioning),
+        /// when saved, the current version of the SaveAsset
+        /// </summary>
+        internal int Version => m_version;
         internal bool TryGetSubObject(ESaveCategory category, out BaseSaveSubObject subObject)
         {
             return m_subObjectDictionary.TryGetValue(category, out subObject);
@@ -154,7 +165,8 @@ namespace Dhs5.Utility.SaveLoad
 
         internal string GetSaveContent()
         {
-            SaveWrapper wrapper = new(m_saveInfo, m_subObjectDictionary.Values);
+            m_version = SaveAsset.SaveVersion;
+            SaveWrapper wrapper = new(m_version, m_saveInfo, m_subObjectDictionary.Values);
 
             return JsonUtility.ToJson(wrapper);
         }
@@ -169,7 +181,8 @@ namespace Dhs5.Utility.SaveLoad
 
             var wrapper = JsonUtility.FromJson<SaveWrapper>(saveContent);
 
-            // Date
+            // Version & Date
+            m_version = wrapper.version;
             m_date = wrapper.infoWrapper.date;
 
             // Save Info
@@ -244,6 +257,15 @@ namespace Dhs5.Utility.SaveLoad
 
         private bool TryLoadSubObject(string categoryName, string typeName, string content, out BaseSaveSubObject subObject)
         {
+            // Category is found by name, following the renames since the save was made :
+            // the category number stored in the content can't be trusted, as categories may have been deleted or moved since
+            if (!SaveAsset.TryGetCategoryFromSavedName(categoryName, out var category))
+            {
+                Debug.LogWarning("LOAD WARNING : Category " + categoryName + " doesn't exist anymore, its data is ignored");
+                subObject = null;
+                return false;
+            }
+
             var type = Type.GetType(typeName, false);
 
             if (type == null
@@ -255,23 +277,7 @@ namespace Dhs5.Utility.SaveLoad
 
             if (type != null && TryLoadScriptableObject(type, content, out subObject))
             {
-                // Category double check
-                if (Enum.TryParse(typeof(ESaveCategory), categoryName, out var result))
-                {
-                    ESaveCategory category = (ESaveCategory)result;
-                    if (category != subObject.Category)
-                    {
-                        Debug.LogWarning("Sub Object category is " + subObject.Category + " but category name was " + categoryName + " when serializing\n" +
-                            "The category will be changed to " + category);
-                        subObject.Category = category;
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("Sub Object category is " + subObject.Category + " but category name was " + categoryName + " when serializing\n" +
-                            "Can't find Category with name " + categoryName + " so Sub Object category will stay " + subObject.Category);
-                }
-
+                subObject.Category = category;
                 return true;
             }
 
