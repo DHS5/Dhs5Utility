@@ -18,7 +18,25 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 51ad4f2279f3b1b47b0e34120cea2b51, type: 2}
   - {fileID: 11400000, guid: bc7640135ea093045a47921b7d1d5568, type: 2}
   m_enableOnScreenConsole: 1
-  m_openOnScreenConsoleInputRef: {fileID: 0}
-  m_closeOnScreenConsoleInputRef: {fileID: 0}
+  m_openOnScreenConsoleInputRef: {fileID: 5852638082770485466, guid: 9368637356315ca4eacc57f5450bf078,
+    type: 3}
+  m_closeOnScreenConsoleInputRef: {fileID: 3807760221207014426, guid: 9368637356315ca4eacc57f5450bf078,
+    type: 3}
+  m_commandHistorySize: 20
+  m_maxLogsCount: 0
+  m_onScreenGUISettings:
+    scaleWithScreenHeight: 1
+    referenceScreenHeight: 1080
+    consoleInputHeight: 50
+    consoleFontSize: 32
+    consoleOptionsWidthRatio: 0.5
+    consoleOptionsMaxHeight: 300
+    consoleOptionHeight: 32
+    consoleOptionFontSize: 24
+    logsAreaSize: {x: 800, y: 500}
+    logMinHeight: 50
+    logCategoryWidth: 150
+    logFontSize: 22
+    logTimeFontSize: 18
   m_debugCategoriesTextAsset: {fileID: 11500000, guid: 2f131b65ccc467349837c7c6abe9a0c6,
     type: 3}

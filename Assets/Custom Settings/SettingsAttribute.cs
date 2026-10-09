@@ -11,6 +11,11 @@ namespace Dhs5.Utility.Settings
         Project = 1
     }
 
+    /// <summary>
+    /// Path and scope of a settings class in the Settings window and Project Settings / Preferences.<br></br>
+    /// A settings class with a non-abstract subclass is never shown nor used : the most derived class replaces it
+    /// (with its own [Settings], or at the same path if it has none).
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class SettingsAttribute : Attribute
     {
@@ -28,7 +33,6 @@ namespace Dhs5.Utility.Settings
 
         public readonly string path;
         public readonly Scope scope;
-        public bool overrideBaseType;
 
         #endregion
     }

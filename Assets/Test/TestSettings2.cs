@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[Settings("Test 2", Scope.Project, overrideBaseType = true)]
+[Settings("Test 2", Scope.Project)]
 public class TestSettings2 : TestSettings
 {
     

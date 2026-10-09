@@ -20,31 +20,76 @@ namespace Dhs5.Utility.Settings
         #region Instance
 
         private static Dictionary<Type, BaseSettings> _instances = new();
+        /// <summary>
+        /// Gets the settings of <paramref name="type"/> : the asset of its most derived non-abstract type
+        /// (a settings class with a non-abstract subclass is replaced by it)
+        /// </summary>
         internal static BaseSettings GetInstance(Type type)
         {
             if (!type.IsSubclassOf(typeof(BaseSettings))) return null;
 
-            if (!_instances.TryGetValue(type, out var instance) 
-                || instance == null)
+            if (_instances.TryGetValue(type, out var instance) && instance != null)
             {
-                // LoadAll does load every object of type and child types
-                var list = Resources.LoadAll("Settings", type);
-
-                if (list.IsValid())
-                {
-                    instance = list[0] as BaseSettings;
-                    _instances[type] = instance;
-                }
-#if UNITY_EDITOR
-                else if (!type.IsAbstract)
-                {
-                    instance = Database.CreateAssetOfType(type, "Assets/Resources/Settings/" + type.Name + ".asset") as BaseSettings;
-                    AssetDatabase.SaveAssets();
-                }
-#endif
+                return instance;
             }
 
+            // LoadAll does load every object of type and child types
+            var assets = Resources.LoadAll("Settings", type);
+
+#if UNITY_EDITOR
+            // In the editor, the most derived type is known : its asset is loaded, or created if missing
+            var mostDerivedType = GetMostDerivedType(type);
+            if (mostDerivedType == null) return null; // Abstract without non-abstract subclass
+
+            instance = null;
+            foreach (var asset in assets)
+            {
+                if (asset != null && asset.GetType() == mostDerivedType)
+                {
+                    instance = (BaseSettings)asset;
+                    break;
+                }
+            }
+            if (instance == null)
+            {
+                instance = Database.CreateAssetOfType(mostDerivedType, "Assets/Resources/Settings/" + mostDerivedType.Name + ".asset") as BaseSettings;
+                AssetDatabase.SaveAssets();
+            }
+#else
+            // In builds, the asset of the most derived type among the loaded ones
+            instance = GetMostDerivedAsset(assets);
+#endif
+
+            if (instance != null)
+            {
+                _instances[type] = instance;
+            }
             return instance;
+        }
+
+        private static BaseSettings GetMostDerivedAsset(UnityEngine.Object[] assets)
+        {
+            BaseSettings mostDerived = null;
+            int maxDepth = -1;
+            foreach (var asset in assets)
+            {
+                if (asset is BaseSettings settings)
+                {
+                    var depth = GetInheritanceDepth(settings.GetType());
+                    if (depth > maxDepth)
+                    {
+                        maxDepth = depth;
+                        mostDerived = settings;
+                    }
+                }
+            }
+            return mostDerived;
+        }
+        private static int GetInheritanceDepth(Type type)
+        {
+            int depth = 0;
+            for (var t = type; t != null; t = t.BaseType) depth++;
+            return depth;
         }
 
 #if UNITY_EDITOR
@@ -92,14 +137,54 @@ namespace Dhs5.Utility.Settings
                 return true;
             }
 
-            attribute = type.GetCustomAttribute<SettingsAttribute>(inherit: true);
-
-            if (attribute != null)
+            // [Settings] is not inherited by the attribute system : walk up the hierarchy so that a subclass
+            // without its own attribute replaces its base class at the same path
+            for (var t = type; t != null && t != typeof(BaseSettings); t = t.BaseType)
             {
-                _attributes.Add(type, attribute);
-                return true;
+                attribute = t.GetCustomAttribute<SettingsAttribute>(inherit: false);
+                if (attribute != null)
+                {
+                    _attributes.Add(type, attribute);
+                    return true;
+                }
             }
             return false;
+        }
+
+        /// <summary>
+        /// A settings type is used only if it's non-abstract and no non-abstract subclass exists
+        /// </summary>
+        private static bool IsMostDerivedType(Type type)
+        {
+            if (type.IsAbstract) return false;
+            foreach (var subType in TypeCache.GetTypesDerivedFrom(type))
+            {
+                if (!subType.IsAbstract) return false;
+            }
+            return true;
+        }
+        /// <returns>The type whose settings asset is used for <paramref name="type"/>, null if there is none (abstract type without non-abstract subclass)</returns>
+        private static Type GetMostDerivedType(Type type)
+        {
+            if (IsMostDerivedType(type)) return type;
+
+            Type mostDerivedType = null;
+            foreach (var subType in TypeCache.GetTypesDerivedFrom(type))
+            {
+                if (IsMostDerivedType(subType))
+                {
+                    if (mostDerivedType == null)
+                    {
+                        mostDerivedType = subType;
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Settings type " + type.Name + " has several non-abstract leaf subclasses (" + mostDerivedType.Name + ", " + subType.Name + ") : " + mostDerivedType.Name + " is used");
+                        break;
+                    }
+                }
+            }
+            return mostDerivedType;
         }
         internal static string GetPath(Type type)
         {
@@ -118,45 +203,11 @@ namespace Dhs5.Utility.Settings
             return SettingsScope.Project;
         }
 
+        /// <returns>The settings types shown and used : non-abstract, without non-abstract subclass, with a [Settings] path</returns>
         private static Type[] GetAllChildTypes()
         {
-            List<Type> childTypes = new();
-            HashSet<Type> overridenTypes = new();
-
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                try
-                {
-                    foreach (var type in assembly.GetTypes())
-                    {
-                        if (!overridenTypes.Contains(type)
-                            && type.IsSubclassOf(typeof(BaseSettings))
-                            && !type.IsAbstract
-                            && TryGetAttribute(type, out var attribute))
-                        {
-                            childTypes.Add(type);
-
-                            if (attribute.overrideBaseType
-                                && type.BaseType != null)
-                            {
-                                overridenTypes.Add(type.BaseType);
-                                childTypes.Remove(type.BaseType);
-                            }
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogException(e);
-                }
-            }
-            return childTypes.ToArray();
-        }
-        private static Type[] GetAllChildTypes2()
-        {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(BaseSettings)) && !t.IsAbstract && TryGetAttribute(t, out _))
+            return TypeCache.GetTypesDerivedFrom<BaseSettings>()
+                .Where(t => IsMostDerivedType(t) && TryGetAttribute(t, out _))
                 .ToArray();
         }
         private static Type[] GetAllChildTypes(Func<Type, bool> predicate)
@@ -368,6 +419,140 @@ namespace Dhs5.Utility.Settings
 
         #region Sub Settings
 
+        #region Sub Settings Assets
+
+        /// <summary>
+        /// Sub settings are assets in the folder of their settings asset, named with this prefix
+        /// </summary>
+        protected const string SUB_SETTINGS_PREFIX = "SUBS_";
+
+        protected string GetSettingsFolderPath()
+        {
+            var settingsPath = AssetDatabase.GetAssetPath(m_settings);
+            return settingsPath.Substring(0, settingsPath.LastIndexOf('/'));
+        }
+
+        /// <summary>
+        /// SUBS_ + the name of the field without spaces (m_subSetTest -> SUBS_SubSetTest)
+        /// </summary>
+        protected string GetNewSubSettingsAssetPath(FieldInfo field)
+        {
+            var name = SUB_SETTINGS_PREFIX + ObjectNames.NicifyVariableName(field.Name).Replace(" ", "");
+            return AssetDatabase.GenerateUniqueAssetPath(GetSettingsFolderPath() + "/" + name + ".asset");
+        }
+
+        /// <summary>
+        /// Name shown in the sub settings foldout : without the SUBS_ prefix, nicified (SUBS_SubSetTest -> Sub Set Test)
+        /// </summary>
+        protected static string GetSubSettingsDisplayName(ScriptableObject subSettings)
+        {
+            var name = subSettings.name;
+            if (name.StartsWith(SUB_SETTINGS_PREFIX)) name = name.Substring(SUB_SETTINGS_PREFIX.Length);
+            return ObjectNames.NicifyVariableName(name);
+        }
+
+        protected ScriptableObject CreateSubSettings(Type type, FieldInfo field)
+        {
+            var newSubSettings = Database.CreateScriptableAsset(type, GetNewSubSettingsAssetPath(field));
+            AssetDatabase.SaveAssetIfDirty(newSubSettings);
+            return newSubSettings;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="subSettings"/> is its own asset, in the folder of the settings, with the SUBS_ prefix
+        /// </summary>
+        protected bool IsSubSettingsPlaced(ScriptableObject subSettings)
+        {
+            if (!AssetDatabase.IsMainAsset(subSettings)) return false;
+
+            var path = AssetDatabase.GetAssetPath(subSettings);
+            return path.Substring(0, path.LastIndexOf('/')) == GetSettingsFolderPath()
+                && subSettings.name.StartsWith(SUB_SETTINGS_PREFIX);
+        }
+
+        /// <summary>
+        /// Makes <paramref name="subSettings"/> its own asset in the folder of the settings (extracted if nested, moved otherwise)
+        /// and ensures its name has the SUBS_ prefix (the rest of its name is kept)
+        /// </summary>
+        protected void PlaceSubSettings(ScriptableObject subSettings, FieldInfo field)
+        {
+            if (subSettings == null || IsSubSettingsPlaced(subSettings)) return;
+
+            var currentName = string.IsNullOrWhiteSpace(subSettings.name)
+                ? ObjectNames.NicifyVariableName(field.Name).Replace(" ", "")
+                : subSettings.name;
+            var placedName = currentName.StartsWith(SUB_SETTINGS_PREFIX) ? currentName : SUB_SETTINGS_PREFIX + currentName;
+            var placedPath = GetSettingsFolderPath() + "/" + placedName + ".asset";
+
+            // Nested in an asset (former sub settings were added to their settings asset) or not saved at all : becomes its own asset
+            if (!AssetDatabase.IsMainAsset(subSettings))
+            {
+                placedPath = AssetDatabase.GenerateUniqueAssetPath(placedPath);
+                if (AssetDatabase.IsSubAsset(subSettings))
+                {
+                    AssetDatabase.RemoveObjectFromAsset(subSettings);
+                }
+                subSettings.name = System.IO.Path.GetFileNameWithoutExtension(placedPath);
+                AssetDatabase.CreateAsset(subSettings, placedPath);
+                return;
+            }
+
+            // Own asset in another folder or without the prefix : moved / renamed
+            var currentPath = AssetDatabase.GetAssetPath(subSettings);
+            if (currentPath != placedPath)
+            {
+                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(placedPath) != null)
+                {
+                    placedPath = AssetDatabase.GenerateUniqueAssetPath(placedPath);
+                }
+                var error = AssetDatabase.MoveAsset(currentPath, placedPath);
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Debug.LogError("Could not place sub settings " + subSettings.name + " at " + placedPath + " : " + error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Places every sub settings in the folder of the settings, then removes the objects nested in the settings asset
+        /// </summary>
+        protected void EnsureSubSettingsValidity()
+        {
+            if (m_subSettingsFields.IsValid())
+            {
+                foreach (var (field, _) in m_subSettingsFields)
+                {
+                    var p_subSettings = serializedObject.FindProperty(field.Name);
+                    if (p_subSettings != null && p_subSettings.objectReferenceValue is ScriptableObject subSettings)
+                    {
+                        PlaceSubSettings(subSettings, field);
+                    }
+                }
+            }
+
+            // Sub settings that couldn't be extracted are kept
+            EditorDataUtility.EnsureAssetValidity(m_settings, (subAsset) =>
+            {
+                if (m_subSettingsFields.IsValid())
+                {
+                    foreach (var (field, _) in m_subSettingsFields)
+                    {
+                        var p_subSettings = serializedObject.FindProperty(field.Name);
+                        if (p_subSettings != null && p_subSettings.objectReferenceValue == subAsset)
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
+
+            serializedObject.ApplyModifiedProperties();
+            AssetDatabase.SaveAssets();
+        }
+
+        #endregion
+
         #region Utility Methods
 
         protected virtual void FetchSubSettingsField()
@@ -442,30 +627,27 @@ namespace Dhs5.Utility.Settings
 
                         // Button
                         var buttonRect = new Rect(rect.x + rect.width * 0.7f, rect.y, rect.width * 0.3f, rect.height);
-                        if (p_subSettings.objectReferenceValue != null)
+                        if (p_subSettings.objectReferenceValue is ScriptableObject subSettings)
                         {
-                            if (AssetDatabase.GetAssetPath(p_subSettings.objectReferenceValue) != AssetDatabase.GetAssetPath(m_settings))
+                            if (!IsSubSettingsPlaced(subSettings))
                             {
-                                if (GUI.Button(buttonRect, "ADD TO ASSET"))
+                                using (new GUIHelper.GUIBackgroundColorScope(Color.yellow))
                                 {
-                                    if (AssetDatabase.IsSubAsset(p_subSettings.objectReferenceValue))
+                                    if (GUI.Button(buttonRect, "PLACE IN FOLDER"))
                                     {
-                                        AssetDatabase.RemoveObjectFromAsset(p_subSettings.objectReferenceValue);
+                                        PlaceSubSettings(subSettings, field);
+                                        AssetDatabase.SaveAssets();
                                     }
-                                    AssetDatabase.AddObjectToAsset(p_subSettings.objectReferenceValue, AssetDatabase.GetAssetPath(m_settings));
                                 }
                             }
                             else
                             {
                                 using (new GUIHelper.GUIBackgroundColorScope(Color.red))
                                 {
-                                    if (GUI.Button(buttonRect, "DESTROY SUB SETTINGS"))
+                                    // Database.DeleteAsset asks for confirmation
+                                    if (GUI.Button(buttonRect, "DELETE SUB SETTINGS")
+                                        && Database.DeleteAsset(subSettings, needValidation: true))
                                     {
-                                        if (AssetDatabase.IsSubAsset(p_subSettings.objectReferenceValue))
-                                        {
-                                            AssetDatabase.RemoveObjectFromAsset(p_subSettings.objectReferenceValue);
-                                        }
-                                        DestroyImmediate(p_subSettings.objectReferenceValue);
                                         p_subSettings.objectReferenceValue = null;
                                         AssetDatabase.SaveAssetIfDirty(m_settings);
                                     }
@@ -480,10 +662,7 @@ namespace Dhs5.Utility.Settings
                                 {
                                     if (GUI.Button(buttonRect, "CREATE " + field.FieldType.ToString().ToUpper()))
                                     {
-                                        var newSubSettings = Database.CreateScriptableAndAddToAsset(field.FieldType, m_settings);
-                                        newSubSettings.name = ObjectNames.NicifyVariableName(field.Name);
-                                        p_subSettings.objectReferenceValue = newSubSettings;
-                                        AssetDatabase.SaveAssetIfDirty(newSubSettings);
+                                        p_subSettings.objectReferenceValue = CreateSubSettings(field.FieldType, field);
                                     }
                                 }
                                 else
@@ -494,14 +673,12 @@ namespace Dhs5.Utility.Settings
 
                                         void Callback(Type type)
                                         {
-                                            var newSubSettings = Database.CreateScriptableAndAddToAsset(type, m_settings);
-                                            newSubSettings.name = ObjectNames.NicifyVariableName(field.Name);
+                                            var newSubSettings = CreateSubSettings(type, field);
                                             if (serializedObject != null)
                                             {
                                                 serializedObject.FindProperty(field.Name).objectReferenceValue = newSubSettings;
                                                 serializedObject.ApplyModifiedProperties();
                                             }
-                                            AssetDatabase.SaveAssetIfDirty(newSubSettings);
                                         }
                                     }
                                 }
@@ -521,22 +698,7 @@ namespace Dhs5.Utility.Settings
             {
                 if (GUILayout.Button("ENSURE ASSET VALIDITY"))
                 {
-                    EditorDataUtility.EnsureAssetValidity(m_settings, (subAsset) =>
-                    {
-                        if (m_subSettingsFields.IsValid())
-                        {
-                            foreach (var (field, _) in m_subSettingsFields)
-                            {
-                                var p_subSettings = serializedObject.FindProperty(field.Name);
-                                if (p_subSettings != null && p_subSettings.objectReferenceValue == subAsset)
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-
-                        return false;
-                    });
+                    EnsureSubSettingsValidity();
                 }
             }
         }
@@ -580,7 +742,7 @@ namespace Dhs5.Utility.Settings
 
             // Foldout
             var foldoutRect = new Rect(rect.x, rect.y, rect.width - 30f, rect.height);
-            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, so.name, true);
+            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, GetSubSettingsDisplayName(so), true);
             // Options Button
             var optionsButtonRect = new Rect(rect.x + rect.width - 20f, rect.y + 2f, 30f, rect.height);
             if (GUI.Button(optionsButtonRect, EditorGUIHelper.MenuIcon, EditorStyles.iconButton))
