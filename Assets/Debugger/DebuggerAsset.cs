@@ -24,6 +24,11 @@ namespace Dhs5.Utility.Debugger
         [Serializable]
         public class OnScreenGUISettings
         {
+            [Header("Scaling")]
+            [Tooltip("Scale every size with the screen height : sizes below are then given for the reference screen height")]
+            public bool scaleWithScreenHeight = true;
+            [Min(1f)] public float referenceScreenHeight = 1080f;
+
             [Header("Console")]
             [Min(1f)] public float consoleInputHeight = 50f;
             [Min(1)] public int consoleFontSize = 32;
@@ -39,6 +44,15 @@ namespace Dhs5.Utility.Debugger
             [Min(1f)] public float logCategoryWidth = 150f;
             [Min(1)] public int logFontSize = 22;
             [Min(1)] public int logTimeFontSize = 18;
+
+            /// <summary>
+            /// Factor to apply to every size
+            /// </summary>
+            public float Scale => scaleWithScreenHeight ? Screen.height / Mathf.Max(1f, referenceScreenHeight) : 1f;
+            /// <summary>
+            /// <paramref name="fontSize"/> scaled, as fonts need integer sizes
+            /// </summary>
+            public int ScaledFont(int fontSize) => Mathf.Max(1, Mathf.RoundToInt(fontSize * Scale));
         }
 
         #endregion
@@ -57,6 +71,8 @@ namespace Dhs5.Utility.Debugger
         [SerializeField] private bool m_enableOnScreenConsole;
         [SerializeField] private InputActionReference m_openOnScreenConsoleInputRef;
         [SerializeField] private InputActionReference m_closeOnScreenConsoleInputRef;
+        [Tooltip("Number of commands kept in the console history")]
+        [SerializeField, Min(0)] private int m_commandHistorySize = 20;
 
         [Tooltip("Maximum number of logs kept in memory, 0 for unlimited\n" +
             "When reached, the oldest 10% are removed at once")]
@@ -152,6 +168,10 @@ namespace Dhs5.Utility.Debugger
         /// Maximum number of logs kept in memory, 0 for unlimited
         /// </summary>
         internal static int MaxLogsCount => Instance != null ? Instance.m_maxLogsCount : 0;
+        /// <summary>
+        /// Number of commands kept in the console history
+        /// </summary>
+        internal static int CommandHistorySize => Instance != null ? Instance.m_commandHistorySize : 20;
 
         private static readonly OnScreenGUISettings _defaultOnScreenGUISettings = new();
         /// <summary>
@@ -227,6 +247,7 @@ namespace Dhs5.Utility.Debugger
         private SerializedProperty p_enableOnScreenConsole;
         private SerializedProperty p_openOnScreenConsoleInputRef;
         private SerializedProperty p_closeOnScreenConsoleInputRef;
+        private SerializedProperty p_commandHistorySize;
         private SerializedProperty p_maxLogsCount;
         private SerializedProperty p_onScreenGUISettings;
 
@@ -244,6 +265,7 @@ namespace Dhs5.Utility.Debugger
             p_enableOnScreenConsole = serializedObject.FindProperty("m_enableOnScreenConsole");
             p_openOnScreenConsoleInputRef = serializedObject.FindProperty("m_openOnScreenConsoleInputRef");
             p_closeOnScreenConsoleInputRef = serializedObject.FindProperty("m_closeOnScreenConsoleInputRef");
+            p_commandHistorySize = serializedObject.FindProperty("m_commandHistorySize");
             p_maxLogsCount = serializedObject.FindProperty("m_maxLogsCount");
             p_onScreenGUISettings = serializedObject.FindProperty("m_onScreenGUISettings");
 
@@ -558,6 +580,7 @@ namespace Dhs5.Utility.Debugger
             EditorGUILayout.PropertyField(p_enableOnScreenConsole);
             EditorGUILayout.PropertyField(p_openOnScreenConsoleInputRef);
             EditorGUILayout.PropertyField(p_closeOnScreenConsoleInputRef);
+            EditorGUILayout.PropertyField(p_commandHistorySize);
 
             // LOGS
             EditorGUILayout.Space(15f);

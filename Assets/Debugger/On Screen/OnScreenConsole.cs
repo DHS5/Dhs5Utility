@@ -26,6 +26,8 @@ namespace Dhs5.Utility.Debugger
         // PARAMETERS
         private bool m_justOpenedConsole;
         private Vector2 m_optionsScrollPos;
+        private int m_lastScrolledOptionIndex = -1;
+        private int m_lastScrolledOptionsCount = -1;
 
         #endregion
 
@@ -174,9 +176,17 @@ namespace Dhs5.Utility.Debugger
                 }
 
                 var sizes = DebuggerAsset.OnScreenGUI;
-                float inputRectHeight = sizes.consoleInputHeight;
-                var inputRect = new Rect(0f, Screen.height - inputRectHeight - 7f, Screen.width, inputRectHeight);
+                var scale = sizes.Scale;
+                float inputRectHeight = sizes.consoleInputHeight * scale;
+                var inputRect = new Rect(0f, Screen.height - inputRectHeight - 7f * scale, Screen.width, inputRectHeight);
                 bool hasFocus = GUI.GetNameOfFocusedControl() == ConsoleCommandTextFieldControl;
+
+                // The command line keeps the focus while the console is opened :
+                // after a click elsewhere, the next click or key press gives it back
+                if (!hasFocus && Event.current.type is EventType.KeyDown or EventType.MouseDown)
+                {
+                    GUI.FocusControl(ConsoleCommandTextFieldControl);
+                }
 
                 // EVENTS
                 OnHandleEvents(hasFocus);
@@ -244,8 +254,8 @@ namespace Dhs5.Utility.Debugger
             var prevLabelFontSize = GUI.skin.label.fontSize;
             var prevInputAlignment = GUI.skin.textField.alignment;
             var prevLabelAlignment = GUI.skin.label.alignment;
-            GUI.skin.textField.fontSize = sizes.consoleFontSize;
-            GUI.skin.label.fontSize = sizes.consoleFontSize;
+            GUI.skin.textField.fontSize = sizes.ScaledFont(sizes.consoleFontSize);
+            GUI.skin.label.fontSize = sizes.ScaledFont(sizes.consoleFontSize);
             GUI.skin.textField.alignment = TextAnchor.MiddleLeft;
             GUI.skin.label.alignment = TextAnchor.MiddleLeft;
             GUI.SetNextControlName(ConsoleCommandTextFieldControl);
@@ -269,8 +279,8 @@ namespace Dhs5.Utility.Debugger
         private void OnOptionsGUI(float y, float width, DebuggerAsset.OnScreenGUISettings sizes)
         {
             var optionsCount = ConsoleCommandsRegister.CurrentOptionsCount;
-            float optionRectHeight = sizes.consoleOptionHeight;
-            float scrollViewRectHeight = sizes.consoleOptionsMaxHeight;
+            float optionRectHeight = sizes.consoleOptionHeight * sizes.Scale;
+            float scrollViewRectHeight = sizes.consoleOptionsMaxHeight * sizes.Scale;
             var scrollViewRect = new Rect(0, y - scrollViewRectHeight, width, scrollViewRectHeight);
             var viewRect = new Rect(0, 0, width - 25f, Mathf.Max(scrollViewRectHeight, optionRectHeight * optionsCount));
 
@@ -298,11 +308,17 @@ namespace Dhs5.Utility.Debugger
                 if (selected)
                 {
                     GUIHelper.DrawRect(optionRect, Color.gray1);
-                    GUI.ScrollTo(optionRect);
+                    // Only when the selection changes : the list can be scrolled freely otherwise
+                    if (index != m_lastScrolledOptionIndex || optionsCount != m_lastScrolledOptionsCount)
+                    {
+                        m_lastScrolledOptionIndex = index;
+                        m_lastScrolledOptionsCount = optionsCount;
+                        GUI.ScrollTo(optionRect);
+                    }
                 }
 
                 var prevFontSize = GUI.skin.label.fontSize;
-                GUI.skin.label.fontSize = sizes.consoleOptionFontSize;
+                GUI.skin.label.fontSize = sizes.ScaledFont(sizes.consoleOptionFontSize);
                 using (new GUIHelper.GUIContentColorScope(color))
                 {
                     GUI.Label(new Rect(optionRect.x + 2f, optionRect.y, optionRect.width - 4f, optionRect.height), option);

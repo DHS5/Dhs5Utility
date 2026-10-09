@@ -52,6 +52,15 @@ namespace Dhs5.Utility.Debugger
         private int m_cacheNextLogId;
         private int[] m_cacheFiltersValues;
 
+        // AUTO REPAINT & SCROLL
+        private int m_repaintVersion = -1;
+        private int m_repaintNextLogId = -1;
+        private float m_lastMaxLogsScroll;
+
+        // COMMAND OPTIONS SCROLL
+        private int m_lastScrolledOptionIndex = -1;
+        private int m_lastScrolledOptionsCount = -1;
+
         // COMMANDS
         private bool m_isWritingOnCommandLine;
         private Vector2 m_commandsOptionsScrollPosition;
@@ -103,6 +112,23 @@ namespace Dhs5.Utility.Debugger
 
         #endregion
 
+
+        #region Core Behaviour
+
+        /// <summary>
+        /// Called ~10 times per second : repaints the window when logs are added or cleared
+        /// </summary>
+        private void OnInspectorUpdate()
+        {
+            if (m_repaintVersion != DebuggerLogsContainer.Version || m_repaintNextLogId != DebuggerLogsContainer.NextLogId)
+            {
+                m_repaintVersion = DebuggerLogsContainer.Version;
+                m_repaintNextLogId = DebuggerLogsContainer.NextLogId;
+                Repaint();
+            }
+        }
+
+        #endregion
 
         #region Core GUI
 
@@ -289,6 +315,10 @@ namespace Dhs5.Utility.Debugger
 
         private void DrawLogsListGUI(float listHeight)
         {
+            // Scrolled to the bottom before the update : follow the new logs
+            var wasAtBottom = m_logsScrollPosition.y >= m_lastMaxLogsScroll - 1f;
+            var previousVisibleCount = m_visibleLogIds.Count;
+
             UpdateVisibleLogsCache();
 
             var listRect = GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.ExpandWidth(true), GUILayout.Height(listHeight));
@@ -319,6 +349,12 @@ namespace Dhs5.Utility.Debugger
             float RowY(int row) => row * rowPitch + (selectedPosition >= 0 && row > selectedPosition ? selectedExtraHeight : 0f);
 
             var viewRect = new Rect(0f, 0f, viewWidth, count * rowPitch + selectedExtraHeight);
+            var maxScroll = Mathf.Max(0f, viewRect.height - listHeight);
+            if (wasAtBottom && count != previousVisibleCount)
+            {
+                m_logsScrollPosition.y = maxScroll;
+            }
+            m_lastMaxLogsScroll = maxScroll;
             m_logsScrollPosition = GUI.BeginScrollView(listRect, m_logsScrollPosition, viewRect);
 
             // Only the rows inside the scroll view are drawn
@@ -480,7 +516,13 @@ namespace Dhs5.Utility.Debugger
                     if (selected)
                     {
                         EditorGUI.DrawRect(r_command, Color.gray1);
-                        GUI.ScrollTo(r_command);
+                        // Only when the selection changes : the list can be scrolled freely otherwise
+                        if (index != m_lastScrolledOptionIndex || options.Count != m_lastScrolledOptionsCount)
+                        {
+                            m_lastScrolledOptionIndex = index;
+                            m_lastScrolledOptionsCount = options.Count;
+                            GUI.ScrollTo(r_command);
+                        }
                     }
                     using (new GUIHelper.GUIContentColorScope(color))
                     {

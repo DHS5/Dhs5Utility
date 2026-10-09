@@ -122,8 +122,9 @@ namespace Dhs5.Utility.Debugger
             if (IsActive)
             {
                 var sizes = DebuggerAsset.OnScreenGUI;
-                float logMinHeight = sizes.logMinHeight;
-                var rect = new Rect(0f, 0f, sizes.logsAreaSize.x, sizes.logsAreaSize.y);
+                var scale = sizes.Scale;
+                float logMinHeight = sizes.logMinHeight * scale;
+                var rect = new Rect(0f, 0f, sizes.logsAreaSize.x * scale, sizes.logsAreaSize.y * scale);
                 var logRect = new Rect(rect.x, rect.y, rect.width, logMinHeight);
 
                 for (int i = LogsCount - 1; i >= 0 && logRect.y + logMinHeight <= rect.y + rect.height; i--)
@@ -139,9 +140,11 @@ namespace Dhs5.Utility.Debugger
         private void OnScreenLogGUI(Rect rect, int index, DebuggerLog log, DebuggerAsset.OnScreenGUISettings sizes, out float necessaryHeight)
         {
             var prevLabelFontSize = GUI.skin.label.fontSize;
-            GUI.skin.label.fontSize = sizes.logFontSize;
+            var scale = sizes.Scale;
+            var fontSize = sizes.ScaledFont(sizes.logFontSize);
+            GUI.skin.label.fontSize = fontSize;
 
-            var categoryWidth = sizes.logCategoryWidth;
+            var categoryWidth = sizes.logCategoryWidth * scale;
             GUIContent messageContent = new GUIContent(log.message);
             necessaryHeight = Mathf.Max(rect.height, GUI.skin.label.CalcHeight(messageContent, rect.width - categoryWidth));
             rect.height = necessaryHeight;
@@ -162,7 +165,7 @@ namespace Dhs5.Utility.Debugger
 
             // Icon
             var categoryColor = DebuggerAsset.GetCategoryColor(log.category);
-            var r_categoryLabel = new Rect(rect.x + 2f, rect.y, categoryWidth - 6f, sizes.logFontSize + 8f);
+            var r_categoryLabel = new Rect(rect.x + 2f, rect.y, categoryWidth - 6f, fontSize + 8f * scale);
             GUI.skin.label.fontStyle = FontStyle.Bold;
             using (new GUIHelper.GUIContentColorScope(categoryColor))
             {
@@ -173,9 +176,9 @@ namespace Dhs5.Utility.Debugger
             var messageRect = new Rect(rect.x + categoryWidth, rect.y, rect.width - categoryWidth, rect.height);
             GUI.Label(messageRect, messageContent);
 
-            GUI.skin.label.fontSize = sizes.logTimeFontSize;
+            GUI.skin.label.fontSize = sizes.ScaledFont(sizes.logTimeFontSize);
 
-            var timeRect = new Rect(rect.x + 2f, rect.y + sizes.logFontSize + 4f, categoryWidth - 6f, rect.height);
+            var timeRect = new Rect(rect.x + 2f, rect.y + fontSize + 4f * scale, categoryWidth - 6f, rect.height);
             GUI.Label(timeRect, log.timestamp.ToString("0.00"));
 
             GUI.skin.label.fontSize = prevLabelFontSize;

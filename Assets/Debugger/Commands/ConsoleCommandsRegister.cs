@@ -108,8 +108,14 @@ namespace Dhs5.Utility.Debugger
             }
 #else
             var bindingFlags = BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            // Only assemblies that can use the attribute : the one defining it, and the ones referencing it
+            // (skips Unity's and .NET's assemblies, which hold most of the types)
+            var attributeAssembly = typeof(ConsoleCommandAttribute).Assembly;
+            var attributeAssemblyName = attributeAssembly.GetName().Name;
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
+                if (assembly != attributeAssembly && !ReferencesAssembly(assembly, attributeAssemblyName)) continue;
+
                 Type[] types;
                 try
                 {
@@ -133,6 +139,21 @@ namespace Dhs5.Utility.Debugger
                 }
             }
 #endif
+        }
+        private static bool ReferencesAssembly(Assembly assembly, string assemblyName)
+        {
+            try
+            {
+                foreach (var reference in assembly.GetReferencedAssemblies())
+                {
+                    if (reference.Name == assemblyName) return true;
+                }
+            }
+            catch (Exception)
+            {
+                // Dynamic or unloadable assembly : can't hold commands
+            }
+            return false;
         }
         private static bool IsScopeValid(ConsoleCommand.EScope scope)
         {
@@ -346,9 +367,10 @@ namespace Dhs5.Utility.Debugger
         {
             _commandsHistory.Insert(0, rawCommand);
 
-            if (_commandsHistory.Count > 20) // TODO
+            var historySize = DebuggerAsset.CommandHistorySize;
+            if (_commandsHistory.Count > historySize)
             {
-                _commandsHistory.RemoveAt(_commandsHistory.Count - 1);
+                _commandsHistory.RemoveRange(historySize, _commandsHistory.Count - historySize);
             }
         }
 
