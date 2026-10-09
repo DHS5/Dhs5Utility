@@ -17,10 +17,10 @@ namespace Dhs5.Utility.SaveLoad
         [Serializable]
         private struct SaveWrapper
         {
-            public SaveWrapper(int version, BaseSaveInfo saveInfo, ICollection<BaseSaveSubObject> saveSubObjects)
+            public SaveWrapper(int version, SerializableDate date, BaseSaveInfo saveInfo, ICollection<BaseSaveSubObject> saveSubObjects)
             {
                 this.version = version;
-                infoWrapper = new(saveInfo);
+                infoWrapper = new(date, saveInfo);
 
                 subWrappers = new();
                 foreach (var subObject in saveSubObjects)
@@ -47,9 +47,9 @@ namespace Dhs5.Utility.SaveLoad
         [Serializable]
         private struct SaveInfoWrapper
         {
-            public SaveInfoWrapper(BaseSaveInfo saveInfo)
+            public SaveInfoWrapper(SerializableDate date, BaseSaveInfo saveInfo)
             {
-                date = SerializableDate.Now;
+                this.date = date;
 
                 if (saveInfo != null)
                 {
@@ -102,6 +102,11 @@ namespace Dhs5.Utility.SaveLoad
 #endif
 
         private readonly Dictionary<ESaveCategory, BaseSaveSubObject> m_subObjectDictionary = new();
+        /// <summary>
+        /// Save info and sub objects created by this save object (when loading, or with the Create methods),
+        /// destroyed with it
+        /// </summary>
+        private readonly HashSet<UnityEngine.Object> m_ownedObjects = new();
 
         #endregion
 
@@ -111,6 +116,23 @@ namespace Dhs5.Utility.SaveLoad
         internal void SetInfo(BaseSaveInfo saveInfo)
         {
             m_saveInfo = saveInfo;
+        }
+        internal T CreateSaveInfo<T>() where T : BaseSaveInfo
+        {
+            var saveInfo = CreateInstance<T>();
+            saveInfo.name = "SAVE INFO";
+            m_ownedObjects.Add(saveInfo);
+            SetInfo(saveInfo);
+            return saveInfo;
+        }
+        internal T CreateCategoryData<T>(ESaveCategory category) where T : BaseSaveSubObject
+        {
+            var subObject = CreateInstance<T>();
+            subObject.Category = category;
+            subObject.name = category.ToString();
+            m_ownedObjects.Add(subObject);
+            Set(subObject);
+            return subObject;
         }
         internal void Add(BaseSaveSubObject subObject)
         {
@@ -142,6 +164,10 @@ namespace Dhs5.Utility.SaveLoad
         /// when saved, the current version of the SaveAsset
         /// </summary>
         internal int Version => m_version;
+        /// <summary>
+        /// Date of the save : when loaded, the date the save file was written, when saved, the date of the last write
+        /// </summary>
+        internal SerializableDate Date => m_date;
         internal bool TryGetSubObject(ESaveCategory category, out BaseSaveSubObject subObject)
         {
             return m_subObjectDictionary.TryGetValue(category, out subObject);
@@ -166,7 +192,8 @@ namespace Dhs5.Utility.SaveLoad
         internal string GetSaveContent()
         {
             m_version = SaveAsset.SaveVersion;
-            SaveWrapper wrapper = new(m_version, m_saveInfo, m_subObjectDictionary.Values);
+            m_date = SerializableDate.Now;
+            SaveWrapper wrapper = new(m_version, m_date, m_saveInfo, m_subObjectDictionary.Values);
 
             return JsonUtility.ToJson(wrapper);
         }
@@ -186,8 +213,10 @@ namespace Dhs5.Utility.SaveLoad
             m_date = wrapper.infoWrapper.date;
 
             // Save Info
+            // (the save info and sub objects are created here : this save object owns them)
             if (TryLoadSaveInfo(wrapper.infoWrapper.typeName, wrapper.infoWrapper.content, out m_saveInfo))
             {
+                m_ownedObjects.Add(m_saveInfo);
                 m_saveInfo.name = "SAVE INFO";
             }
 
@@ -196,6 +225,7 @@ namespace Dhs5.Utility.SaveLoad
             {
                 if (TryLoadSubObject(w.categoryName, w.typeName, w.content, out var subObject))
                 {
+                    m_ownedObjects.Add(subObject);
                     subObject.name = subObject.Category.ToString();
                     if (!m_subObjectDictionary.TryAdd(subObject.Category, subObject))
                     {
@@ -318,9 +348,35 @@ namespace Dhs5.Utility.SaveLoad
 
         #region Utility
 
+        /// <summary>
+        /// Destroys this save object, and the save info and sub objects it created (when loading, or with the Create methods).<br></br>
+        /// Objects given to it during a save process (see <see cref="SaveManager.Set"/>) belong to the game and are never destroyed.
+        /// </summary>
+        internal void DestroyWithOwnedContent()
+        {
+            // Owned objects are destroyed even if they were replaced or removed from this save object since
+            foreach (var ownedObject in m_ownedObjects)
+            {
+                SafeDestroyObject(ownedObject);
+            }
+            m_ownedObjects.Clear();
+            m_saveInfo = null;
+            m_subObjectDictionary.Clear();
+
+            SafeDestroyObject(this);
+        }
+        private static void SafeDestroyObject(UnityEngine.Object obj)
+        {
+            if (obj == null) return;
+
+            if (Application.isPlaying) Destroy(obj);
+            else DestroyImmediate(obj);
+        }
+
         private void Clear()
         {
             m_subObjectDictionary.Clear();
+            m_ownedObjects.Clear();
 
 #if UNITY_EDITOR
             if (!Application.isPlaying)

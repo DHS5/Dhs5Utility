@@ -49,6 +49,11 @@ public class TestLoadable : MonoBehaviour, ILoadable
         return true;
     }
 
+    public void LoadDefault(ESaveCategory category)
+    {
+        Debug.Log("load default " + category);
+    }
+
     public IEnumerator LoadCoroutine(ESaveCategory category, uint iteration, BaseSaveSubObject subObject)
     {
         switch (category)

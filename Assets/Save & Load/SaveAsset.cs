@@ -558,7 +558,6 @@ namespace Dhs5.Utility.SaveLoad
         {
             EnsureListValidity();
 
-            var lastRect = GUILayoutUtility.GetLastRect();
             var listRect = EditorGUILayout.BeginVertical();
             listRect.x += 5f; listRect.width -= 10f;
             m_loadList.DoList(listRect);
