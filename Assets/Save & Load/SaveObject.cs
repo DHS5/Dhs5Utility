@@ -54,7 +54,7 @@ namespace Dhs5.Utility.SaveLoad
                 if (saveInfo != null)
                 {
                     typeName = saveInfo.GetType().AssemblyQualifiedName;
-                    content = JsonUtility.ToJson(saveInfo);
+                    content = SerializeData(saveInfo);
                 }
                 else
                 {
@@ -80,7 +80,7 @@ namespace Dhs5.Utility.SaveLoad
             {
                 categoryName = subObject.Category.ToString();
                 typeName = subObject.GetType().AssemblyQualifiedName;
-                content = JsonUtility.ToJson(subObject);
+                content = SerializeData(subObject);
             }
 
             public string categoryName;
@@ -330,7 +330,7 @@ namespace Dhs5.Utility.SaveLoad
             try
             {
                 scriptableObject = (T)ScriptableObject.CreateInstance(type);
-                JsonUtility.FromJsonOverwrite(content, scriptableObject);
+                DeserializeData(content, scriptableObject, m_version);
                 return true;
             }
             catch (Exception e)
@@ -343,6 +343,30 @@ namespace Dhs5.Utility.SaveLoad
         }
 
         #endregion
+
+        #endregion
+
+        #region Data Serialization
+
+        // The data of the save info and sub objects goes through the modifier (JsonUtility by default),
+        // the save file structure (SaveWrapper) always uses JsonUtility
+        private static string SerializeData(ScriptableObject data)
+        {
+            if (SaveAsset.HasModifier(out var modifier))
+            {
+                return modifier.SerializeData(data);
+            }
+            return JsonUtility.ToJson(data);
+        }
+        private static void DeserializeData(string content, ScriptableObject data, int saveVersion)
+        {
+            if (SaveAsset.HasModifier(out var modifier))
+            {
+                modifier.DeserializeData(content, data, saveVersion);
+                return;
+            }
+            JsonUtility.FromJsonOverwrite(content, data);
+        }
 
         #endregion
 

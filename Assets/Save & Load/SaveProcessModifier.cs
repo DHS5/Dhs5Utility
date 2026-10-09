@@ -22,6 +22,36 @@ namespace Dhs5.Utility.SaveLoad
 
         #endregion
 
+        #region Data Serialization
+
+        /// <summary>
+        /// Serializes the content of a save info or a sub object.<br></br>
+        /// Override to use another serializer than <see cref="JsonUtility"/> (default), e.g. Newtonsoft Json.<br></br>
+        /// Only the data of the save info and sub objects goes through this method :
+        /// the save file structure itself (version, date, type and category names) always uses <see cref="JsonUtility"/>.<br></br>
+        /// UnityEngine.Object references can't be saved whatever the serializer. Exceptions make the save process fail.
+        /// </summary>
+        /// <param name="data">The save info or sub object</param>
+        public virtual string SerializeData(ScriptableObject data)
+        {
+            return JsonUtility.ToJson(data);
+        }
+
+        /// <summary>
+        /// Fills <paramref name="data"/>, an already created save info or sub object, from <paramref name="content"/>.<br></br>
+        /// Override to use another serializer than <see cref="JsonUtility"/> (default), together with <see cref="SerializeData"/>.<br></br>
+        /// Save infos and sub objects are ScriptableObjects, created by the save system : the serializer must populate them, not create them
+        /// (e.g. Newtonsoft's JsonConvert.PopulateObject).<br></br>
+        /// Exceptions make the save info or sub object ignored (loadables get <see cref="ILoadable.LoadDefault"/> instead).
+        /// </summary>
+        /// <param name="saveVersion">Version of the save file, e.g. to keep reading saves written with a former serializer</param>
+        public virtual void DeserializeData(string content, ScriptableObject data, int saveVersion)
+        {
+            JsonUtility.FromJsonOverwrite(content, data);
+        }
+
+        #endregion
+
         #region Save & Load Process
 
         // ENCRYPTION
