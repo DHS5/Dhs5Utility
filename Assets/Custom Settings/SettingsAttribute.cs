@@ -7,7 +7,14 @@ namespace Dhs5.Utility.Settings
 {
     public enum Scope
     {
+        /// <summary>
+        /// Shown in Preferences. Stored per user in the UserSettings folder (not shared, not in builds) : editor only.
+        /// Sub settings aren't supported.
+        /// </summary>
         User = 0,
+        /// <summary>
+        /// Shown in Project Settings. Stored as an asset in Assets/Resources/Settings (shared, in builds).
+        /// </summary>
         Project = 1
     }
 

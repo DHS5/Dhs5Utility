@@ -141,6 +141,8 @@ namespace Dhs5.Utility.Settings
 
         private void GetSettings()
         {
+            // Destroyed, not just dropped : it owns the sub settings editors
+            ClearEditors();
             m_editor = null;
 
             // Settings

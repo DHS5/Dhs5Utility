@@ -41,6 +41,14 @@ namespace Dhs5.Utility.Settings
             var mostDerivedType = GetMostDerivedType(type);
             if (mostDerivedType == null) return null; // Abstract without non-abstract subclass
 
+            // User scope (Preferences) : per user, stored in the UserSettings folder, editor only
+            if (GetScope(mostDerivedType) == SettingsScope.User)
+            {
+                instance = LoadOrCreateUserSettings(mostDerivedType, assets);
+                _instances[type] = instance;
+                return instance;
+            }
+
             instance = null;
             foreach (var asset in assets)
             {
@@ -192,7 +200,76 @@ namespace Dhs5.Utility.Settings
                 // Saved right away : builds must get the keys
                 AssetDatabase.SaveAssetIfDirty(this);
             }
+
+            // User settings aren't assets : saved to their file after every change (OnValidate is called on edits and undo)
+            if (Editor_IsUserSettings)
+            {
+                SaveUserSettings(this);
+            }
         }
+
+        #region User Settings
+
+        /// <summary>
+        /// User scope settings (Preferences) are stored per user in the UserSettings folder, not in the project's assets.
+        /// They only exist in the editor.
+        /// </summary>
+        internal bool Editor_IsUserSettings => !AssetDatabase.Contains(this) && GetScope(GetType()) == SettingsScope.User;
+
+        private static string GetUserSettingsPath(Type type) => "UserSettings/" + type.Name + ".asset";
+
+        private static BaseSettings LoadOrCreateUserSettings(Type type, UnityEngine.Object[] resourcesAssets)
+        {
+            var path = GetUserSettingsPath(type);
+            BaseSettings settings = null;
+
+            if (System.IO.File.Exists(path))
+            {
+                foreach (var obj in UnityEditorInternal.InternalEditorUtility.LoadSerializedFileAndForget(path))
+                {
+                    if (obj is BaseSettings loaded && loaded.GetType() == type)
+                    {
+                        settings = loaded;
+                        break;
+                    }
+                }
+            }
+
+            if (settings == null)
+            {
+                settings = (BaseSettings)CreateInstance(type);
+                settings.name = type.Name;
+
+                // Former user settings stored as an asset in Resources/Settings : their values are copied once
+                foreach (var asset in resourcesAssets)
+                {
+                    if (asset != null && asset.GetType() == type)
+                    {
+                        EditorUtility.CopySerialized(asset, settings);
+                        settings.name = type.Name;
+                        Debug.Log("User settings " + type.Name + " moved to " + path + " : the asset " + AssetDatabase.GetAssetPath(asset) + " isn't used anymore and can be deleted");
+                        break;
+                    }
+                }
+            }
+
+            // Not saved with scenes nor unloaded : saved to its own file
+            settings.hideFlags = HideFlags.DontSave;
+            if (!System.IO.File.Exists(path))
+            {
+                SaveUserSettings(settings);
+            }
+            return settings;
+        }
+
+        private static void SaveUserSettings(BaseSettings settings)
+        {
+            var path = GetUserSettingsPath(settings.GetType());
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+            UnityEditorInternal.InternalEditorUtility.SaveToSerializedFileAndForget(new UnityEngine.Object[] { settings }, path, allowTextSerialization: true);
+        }
+
+        #endregion
 
 #endif
 
@@ -454,6 +531,11 @@ namespace Dhs5.Utility.Settings
 
             FetchSubSettingsField();
         }
+        protected virtual void OnDisable()
+        {
+            // The sub settings editors are owned by this editor
+            ClearSubSettingsEditor();
+        }
 
         #endregion
 
@@ -672,11 +754,21 @@ namespace Dhs5.Utility.Settings
 
         protected void ClearSubSettingsEditor()
         {
+            if (m_subSettingsEditors == null) return;
+
             foreach (var (_, editor) in m_subSettingsEditors)
             {
-                DestroyImmediate(editor);
+                if (editor != null) DestroyImmediate(editor);
             }
             m_subSettingsEditors.Clear();
+        }
+        protected void DestroySubSettingsEditor(ScriptableObject so)
+        {
+            if (m_subSettingsEditors != null && m_subSettingsEditors.TryGetValue(so, out var editor))
+            {
+                if (editor != null) DestroyImmediate(editor);
+                m_subSettingsEditors.Remove(so);
+            }
         }
 
         #endregion
@@ -685,6 +777,16 @@ namespace Dhs5.Utility.Settings
 
         protected virtual void OnSubSettingsReferenceGUI()
         {
+            // Sub settings are assets next to their settings asset : user settings are stored in a file, not as an asset
+            if (m_settings.Editor_IsUserSettings)
+            {
+                if (m_subSettingsFields.IsValid())
+                {
+                    EditorGUILayout.HelpBox("Sub settings aren't supported for user settings (Preferences), which are stored in the UserSettings folder", MessageType.Info);
+                }
+                return;
+            }
+
             if (m_subSettingsFields.IsValid())
             {
                 foreach (var (field, attribute) in m_subSettingsFields)
@@ -717,12 +819,23 @@ namespace Dhs5.Utility.Settings
                             {
                                 using (new GUIHelper.GUIBackgroundColorScope(Color.red))
                                 {
-                                    // Database.DeleteAsset asks for confirmation
                                     if (GUI.Button(buttonRect, "DELETE SUB SETTINGS")
-                                        && Database.DeleteAsset(subSettings, needValidation: true))
+                                        && EditorUtility.DisplayDialog("Delete sub settings ?",
+                                            "Delete " + subSettings.name + " ?\n\n" +
+                                            "The asset is moved to the system's recycle bin : restore it from there, then undo (Ctrl+Z) to get the reference back.",
+                                            "Delete", "Cancel"))
                                     {
-                                        p_subSettings.objectReferenceValue = null;
-                                        AssetDatabase.SaveAssetIfDirty(m_settings);
+                                        DestroySubSettingsEditor(subSettings);
+                                        // Unity's undo can't restore a deleted asset file : moved to the trash instead of deleted.
+                                        // The reference change goes through the serialized object, so it can be undone
+                                        if (AssetDatabase.MoveAssetToTrash(AssetDatabase.GetAssetPath(subSettings)))
+                                        {
+                                            p_subSettings.objectReferenceValue = null;
+                                        }
+                                        else
+                                        {
+                                            Debug.LogError("Could not move " + subSettings.name + " to the trash");
+                                        }
                                     }
                                 }
                             }
