@@ -6,6 +6,7 @@ using System.Linq;
 #if UNITY_EDITOR
 using UnityEditor;
 using System.Reflection;
+using System.IO;
 using Dhs5.Utility.Editors;
 #endif
 
@@ -211,9 +212,13 @@ namespace Dhs5.Utility.NewDatabase
 
         #region List Callbacks
 
-        public virtual void Editor_OnNewObjectInContainer(UnityEngine.Object newObj, IContainerElement newElem)
+        public virtual bool Editor_OnBeforeNewObjectInContainer(UnityEngine.Object newObj, IContainerElement newElem)
         {
+            if (newObj == null || newElem == null || m_objects.Contains(newObj)) return false;
+
             Editor_EnsureNewObjectValidUID(newObj, newElem);
+
+            return true;
         }
 
         #endregion
@@ -338,6 +343,9 @@ namespace Dhs5.Utility.NewDatabase
 
         #region Members
 
+        protected Container m_container;
+
+        protected List<Type> m_objectTypes;
         protected List<ListEntry> m_listEntries;
         protected List<ListDisplayedProperty> m_listDisplayedProperties;
         protected Dictionary<UnityEngine.Object, Editor> m_editors;
@@ -356,6 +364,9 @@ namespace Dhs5.Utility.NewDatabase
         protected Vector2 m_inspectorScrollPosition;
         protected double m_lastListSelectionTime;
         protected bool m_listHasFocus;
+        protected GenericMenu m_addMenu;
+        protected bool m_projectObjectPickerRequested;
+        protected int m_projectObjectPickerControlID = -1;
 
         protected GUIStyle m_listScrollViewStyle;
         protected GUIStyle ListScrollViewStyle
@@ -382,6 +393,13 @@ namespace Dhs5.Utility.NewDatabase
         #region Serialized Properties
 
         protected SerializedProperty p_objects;
+        protected SerializedProperty p_lastCreateFolderPath;
+
+        protected virtual void FindSerializedProperties()
+        {
+            p_objects = serializedObject.FindProperty("m_objects");
+            p_lastCreateFolderPath = serializedObject.FindProperty("m_lastCreateFolderPath");
+        }
 
         #endregion
 
@@ -394,14 +412,18 @@ namespace Dhs5.Utility.NewDatabase
 
         #region Core Behaviour
 
-        private void OnEnable()
+        protected virtual void OnEnable()
         {
-            p_objects = serializedObject.FindProperty("m_objects");
+            m_container = target as Container;
 
+            FindSerializedProperties();
+
+            RefreshObjectTypes();
+            ValidateContainerContentFromObjectTypes();
             RefreshListEntries();
             RefreshListDisplayedProperties();
         }
-        private void OnDisable()
+        protected virtual void OnDisable()
         {
             ClearSerializedObjects();
             ClearEditors();
@@ -409,6 +431,78 @@ namespace Dhs5.Utility.NewDatabase
 
         #endregion
 
+
+        #region Object Types
+
+        protected virtual void RefreshObjectTypes()
+        {
+            if (m_objectTypes == null) m_objectTypes = new();
+            else m_objectTypes.Clear();
+
+            if (m_container != null)
+            {
+                var containerType = m_container.GetType();
+                if (containerType != null)
+                {
+                    var typesAttribute = containerType.GetCustomAttribute<ContainerTypesAttribute>();
+                    if (typesAttribute != null && typesAttribute.types != null)
+                    {
+                        var containerElementType = typeof(IContainerElement);
+                        var unityObjType = typeof(UnityEngine.Object);
+                        foreach (var type in typesAttribute.types)
+                        {
+                            if (type != null 
+                                && containerElementType.IsAssignableFrom(type)
+                                && unityObjType.IsAssignableFrom(type))
+                            {
+                                if (type.IsAbstract)
+                                    m_objectTypes.AddRange(TypeCache.GetTypesDerivedFrom(type));
+                                else
+                                    m_objectTypes.Add(type);
+                            }
+                        }
+                    }
+                }
+            }
+
+            m_addMenu = CreateAddMenuFromObjectTypes();
+        }
+
+        protected virtual void ValidateContainerContentFromObjectTypes()
+        {
+            for (int i = p_objects.arraySize - 1; i >= 0; i--)
+            {
+                var p_entry = p_objects.GetArrayElementAtIndex(i);
+                if (p_entry.objectReferenceValue != null)
+                {
+                    var entryType = p_entry.objectReferenceValue.GetType();
+                    if (!m_objectTypes.Contains(entryType))
+                    {
+                        p_objects.DeleteArrayElementAtIndex(i);
+                    }
+                }
+            }
+        }
+
+        protected virtual GenericMenu CreateAddMenuFromObjectTypes()
+        {
+            var menu = new GenericMenu();
+
+            menu.AddItem(new GUIContent("Find in project"), false, OnTryAddFromProject);
+            menu.AddSeparator(string.Empty);
+            
+            foreach (var type in m_objectTypes)
+            {
+                if (type != null)
+                {
+                    menu.AddItem(new GUIContent(type.Name), false, OnTryAddFromTypeButton, type);
+                }
+            }
+
+            return menu;
+        }
+
+        #endregion
 
         #region List Entries
 
@@ -724,6 +818,8 @@ namespace Dhs5.Utility.NewDatabase
             {
                 m_listHasFocus = false;
             }
+
+            HandleProjectObjectPicker();
         }
 
         #endregion
@@ -789,12 +885,105 @@ namespace Dhs5.Utility.NewDatabase
         
         protected virtual void OnToolbarRefreshButton()
         {
+            RefreshObjectTypes();
+            ValidateContainerContentFromObjectTypes();
             RefreshListEntries();
             RefreshListDisplayedProperties();
         }
+
         protected virtual void OnToolbarAddButton()
         {
+            m_addMenu.ShowAsContext();
+        }
+        protected virtual void OnTryAddFromProject()
+        {
+            // The picker is opened on the next GUI pass
+            m_projectObjectPickerRequested = true;
+            Repaint();
+        }
+        protected virtual bool OnAddFromProject(UnityEngine.Object obj)
+        {
+            if (m_container != null && obj != null)
+            {
+                if (!TryAddObjectToContainer(obj))
+                {
+                    Debug.LogError("Could not add object " + obj + " to " + m_container 
+                        + "\nThe type is probably incorrect, make sure the object inherits from IContainerElement " +
+                        "or is a GameObject with a component inheriting from IContainerElement on the root");
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+        protected virtual void OnTryAddFromTypeButton(object typeObj)
+        {
+            if (typeObj is Type type && !type.IsAbstract)
+            {
+                var extension = typeof(Component).IsAssignableFrom(type) || type == typeof(GameObject) ? "prefab" : "asset";
 
+                var folder = p_lastCreateFolderPath != null && AssetDatabase.IsValidFolder(p_lastCreateFolderPath.stringValue)
+                    ? p_lastCreateFolderPath.stringValue
+                    : Path.GetDirectoryName(AssetDatabase.GetAssetPath(m_container)).Replace('\\', '/');
+
+                var path = EditorUtility.SaveFilePanelInProject("Create " + type.Name, "New " + type.Name, extension,
+                    "Choose the name and location of the new " + type.Name, folder);
+
+                // Empty when cancelled
+                if (!string.IsNullOrEmpty(path))
+                {
+                    if (p_lastCreateFolderPath != null)
+                    {
+                        serializedObject.Update();
+                        p_lastCreateFolderPath.stringValue = Path.GetDirectoryName(path).Replace('\\', '/');
+                        serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                    }
+
+                    OnAddFromTypeButton(type, path);
+                }
+            }
+        }
+        protected virtual void OnAddFromTypeButton(Type type, string path)
+        {
+            if (m_container != null)
+            {
+                var newAsset = EditorDataUtility.CreateAssetOfType(type, path);
+
+                if (!TryAddObjectToContainer(newAsset))
+                {
+                    AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(newAsset));
+                    Debug.LogError("Could not create object of type " + type.FullName + " and add to " + m_container
+                        + "\nThe type is probably incorrect, make sure it inherits from IContainerElement");
+                }
+            }
+        }
+
+        protected virtual bool TryAddObjectToContainer(UnityEngine.Object obj)
+        {
+            var result = false;
+            if (obj is IContainerElement newElem)
+                result = m_container.Editor_OnBeforeNewObjectInContainer(obj, newElem);
+            else if (obj is GameObject go && go.TryGetComponent(out newElem))
+                result = m_container.Editor_OnBeforeNewObjectInContainer(obj, newElem);
+
+            if (result)
+            {
+                serializedObject.Update();
+                if (p_objects != null)
+                {
+                    var newIndex = p_objects.arraySize;
+                    p_objects.InsertArrayElementAtIndex(newIndex);
+                    var p_newEntry = p_objects.GetArrayElementAtIndex(newIndex);
+                    if (p_newEntry != null)
+                    {
+
+                        p_newEntry.objectReferenceValue = obj;
+                        serializedObject.ApplyModifiedProperties();
+                    }
+                }
+            }
+
+            return result;
         }
 
         #endregion
@@ -840,11 +1029,45 @@ namespace Dhs5.Utility.NewDatabase
         }
         protected virtual void HandleListAreaEvents(Rect rect)
         {
-            if (Event.current.type == EventType.MouseDown
-                && rect.Contains(Event.current.mousePosition))
+            if (rect.Contains(Event.current.mousePosition))
             {
-                Event.current.Use();
-                OnDeselectListEntry();
+                if (Event.current.type == EventType.MouseDown)
+                {
+                    Event.current.Use();
+                    OnDeselectListEntry();
+                }
+
+                else if (Event.current.type == EventType.DragUpdated)
+                {
+                    if (DragAndDrop.objectReferences != null
+                        && DragAndDrop.objectReferences.Length > 0)
+                    {
+                        foreach (var obj in DragAndDrop.objectReferences)
+                        {
+                            if (obj != null && (obj is IContainerElement || obj is GameObject go && go.TryGetComponent<IContainerElement>(out _)))
+                            {
+                                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                                break;
+                            }
+                        }
+                    }
+                    Event.current.Use();
+                }
+                else if (Event.current.type == EventType.DragPerform)
+                {
+                    if (DragAndDrop.objectReferences != null
+                        && DragAndDrop.objectReferences.Length > 0)
+                    {
+                        foreach (var obj in DragAndDrop.objectReferences)
+                        {
+                            if (obj != null && (obj is IContainerElement || obj is GameObject go && go.TryGetComponent<IContainerElement>(out _)))
+                            {
+                                OnAddFromProject(obj);
+                            }
+                        }
+                    }
+                    Event.current.Use();
+                }
             }
 
             if (m_listHasFocus)
@@ -860,7 +1083,7 @@ namespace Dhs5.Utility.NewDatabase
                                 OnTryDeleteListEntry(focusedEntry);
                             }
                             break;
-                        
+
                         case KeyCode.Return or KeyCode.KeypadEnter:
                             if (TryGetFocusedListEntry(out focusedEntry))
                             {
@@ -1146,6 +1369,59 @@ namespace Dhs5.Utility.NewDatabase
 
 
         // --- UTILITY ---
+
+        #region Project Object Picker
+
+        protected virtual string GetProjectObjectPickerSearchFilter()
+        {
+            // Several "t:" filters are combined with OR by the object picker
+            return string.Join(" ", m_objectTypes.Where(t => t != null).Select(t => "t:" + t.Name));
+        }
+
+        protected virtual void HandleProjectObjectPicker()
+        {
+            if (m_projectObjectPickerRequested)
+            {
+                m_projectObjectPickerRequested = false;
+                if (m_objectTypes != null && m_objectTypes.Count > 0)
+                {
+                    m_projectObjectPickerControlID = GUIUtility.GetControlID(FocusType.Passive);
+                    EditorGUIUtility.ShowObjectPicker<UnityEngine.Object>(null, false, GetProjectObjectPickerSearchFilter(), m_projectObjectPickerControlID);
+                }
+            }
+
+            if (m_projectObjectPickerControlID != -1
+                && Event.current.type == EventType.ExecuteCommand
+                && Event.current.commandName == "ObjectSelectorClosed"
+                && EditorGUIUtility.GetObjectPickerControlID() == m_projectObjectPickerControlID)
+            {
+                m_projectObjectPickerControlID = -1;
+                var foundObject = EditorGUIUtility.GetObjectPickerObject();
+                Event.current.Use();
+
+                // The search filter can be edited by the user inside the picker window
+                if (foundObject != null)
+                {
+                    var foundObjectType = foundObject.GetType();
+                    if (m_objectTypes.Contains(foundObjectType))
+                    {
+                        OnAddFromProject(foundObject);
+                    }
+                    else if (foundObject is GameObject go)
+                    {
+                        foreach (var type in m_objectTypes)
+                        {
+                            if (type != null && go.TryGetComponent(type, out var component))
+                            {
+                                OnAddFromProject(component);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
 
         #region Type Fields
 

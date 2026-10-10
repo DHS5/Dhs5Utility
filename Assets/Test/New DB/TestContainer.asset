@@ -23,4 +23,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cfffce1faf96e664283836f26faeca2a, type: 2}
   - {fileID: 11400000, guid: 54e5659658433fd4ca5eec1ef265a05d, type: 2}
   - {fileID: 11400000, guid: ded8aab960888844b83a04716f1a16ed, type: 2}
-  m_lastCreateFolderPath: 
+  - {fileID: 11400000, guid: 67671007ad6379845b2010428abd2e18, type: 2}
+  m_lastCreateFolderPath: Assets/Test/New DB
