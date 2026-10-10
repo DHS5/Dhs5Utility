@@ -363,6 +363,7 @@ namespace Dhs5.Utility.NewDatabase
 
         protected int m_focusedIndex;
         protected UnityEngine.Object m_focusedObject;
+        protected ListEntry m_contextEntry;
 
         protected Rect m_databaseWindowRect;
         protected string m_searchString;
@@ -372,8 +373,8 @@ namespace Dhs5.Utility.NewDatabase
         protected float m_listScrollX;
         protected bool m_isResizing;
         protected Vector2 m_inspectorScrollPosition;
-        protected double m_lastListSelectionTime;
         protected bool m_listHasFocus;
+        protected GenericMenu m_entryContextMenu;
         protected GenericMenu m_addMenu;
         protected bool m_projectObjectPickerRequested;
         protected int m_projectObjectPickerControlID = -1;
@@ -415,7 +416,31 @@ namespace Dhs5.Utility.NewDatabase
 
         #region STATIC Members
 
-        protected static float _listAreaHeight = 300f;
+        /// <summary>
+        /// List area height, saved per project and per user (EditorUserSettings, in the UserSettings folder)
+        /// </summary>
+        private const string ListAreaHeightConfigKey = "Dhs5.ContainerEditor.ListAreaHeight";
+        private const float DefaultListAreaHeight = 300f;
+
+        private static float? _listAreaHeight;
+        protected static float ListAreaHeight
+        {
+            get
+            {
+                if (!_listAreaHeight.HasValue)
+                {
+                    _listAreaHeight = float.TryParse(EditorUserSettings.GetConfigValue(ListAreaHeightConfigKey),
+                        System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var height)
+                        ? height : DefaultListAreaHeight;
+                }
+                return _listAreaHeight.Value;
+            }
+            set => _listAreaHeight = value;
+        }
+        protected static void SaveListAreaHeight()
+        {
+            EditorUserSettings.SetConfigValue(ListAreaHeightConfigKey, ListAreaHeight.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
 
         #endregion
 
@@ -434,6 +459,8 @@ namespace Dhs5.Utility.NewDatabase
             serializedObject.ApplyModifiedProperties();
             RefreshListEntries();
             RefreshListDisplayedProperties();
+
+            m_entryContextMenu = CreateEntryContextMenu();
         }
         protected virtual void OnDisable()
         {
@@ -550,6 +577,7 @@ namespace Dhs5.Utility.NewDatabase
 
             m_listSize = p_objects.arraySize;
             int index = 0;
+            int focusedIndex = -1;
             for (int i = 0; i < m_listSize; i++)
             {
                 var p_entry = p_objects.GetArrayElementAtIndex(i);
@@ -558,15 +586,20 @@ namespace Dhs5.Utility.NewDatabase
                     if (!isSearching
                         || p_entry.objectReferenceValue.name.Contains(m_searchString, System.StringComparison.InvariantCultureIgnoreCase))
                     {
+                        // Keeps the focus on the focused object if still in the list
+                        if (m_focusedObject != null && p_entry.objectReferenceValue == m_focusedObject)
+                            focusedIndex = index;
+
                         m_listEntries.Add(new ListEntry(index, i, p_entry));
                         index++;
                     }
                 }
             }
 
-            PruneSerializedObjects();
+            PruneObjectsCaches();
 
-            OnDeselectListEntry();
+            if (focusedIndex != -1) m_focusedIndex = focusedIndex;
+            else OnDeselectListEntry();
         }
         protected virtual void RefreshListEntriesOnlyIfNecessary()
         {
@@ -771,11 +804,11 @@ namespace Dhs5.Utility.NewDatabase
             return so;
         }
         /// <summary>
-        /// Disposes the SerializedObjects of objects that are no longer in the container
+        /// Disposes the SerializedObjects and destroys the Editors of objects that are no longer in the container
         /// </summary>
-        protected void PruneSerializedObjects()
+        protected void PruneObjectsCaches()
         {
-            if (m_serializedObjects == null) return;
+            if (m_serializedObjects == null && m_editors == null) return;
 
             HashSet<UnityEngine.Object> alive = new();
             for (int i = 0; i < p_objects.arraySize; i++)
@@ -785,17 +818,93 @@ namespace Dhs5.Utility.NewDatabase
             }
 
             List<UnityEngine.Object> toRemove = new();
-            foreach (var kvp in m_serializedObjects)
+
+            if (m_serializedObjects != null)
             {
-                if (kvp.Key == null || !alive.Contains(kvp.Key))
+                foreach (var kvp in m_serializedObjects)
                 {
-                    kvp.Value?.Dispose();
-                    toRemove.Add(kvp.Key);
+                    if (kvp.Key == null || !alive.Contains(kvp.Key))
+                    {
+                        kvp.Value?.Dispose();
+                        toRemove.Add(kvp.Key);
+                    }
+                }
+                foreach (var key in toRemove)
+                {
+                    m_serializedObjects.Remove(key);
                 }
             }
-            foreach (var key in toRemove)
+
+            if (m_editors != null)
             {
-                m_serializedObjects.Remove(key);
+                toRemove.Clear();
+                foreach (var kvp in m_editors)
+                {
+                    if (kvp.Key == null || !alive.Contains(kvp.Key))
+                    {
+                        if (kvp.Value != null) DestroyImmediate(kvp.Value);
+                        toRemove.Add(kvp.Key);
+                    }
+                }
+                foreach (var key in toRemove)
+                {
+                    m_editors.Remove(key);
+                }
+            }
+        }
+
+        #endregion
+
+        #region Entry Context Menu
+
+        protected virtual GenericMenu CreateEntryContextMenu()
+        {
+            var menu = new GenericMenu();
+
+            menu.AddItem(new GUIContent("Ping"), false, OnContextObjectPing);
+            menu.AddItem(new GUIContent("Open Asset"), false, OnContextObjectOpenAsset);
+            menu.AddItem(new GUIContent("Remove"), false, OnContextObjectRemove);
+            menu.AddItem(new GUIContent("Delete Asset"), false, OnContextObjectDeleteAsset);
+
+            return menu;
+        }
+
+        protected virtual void OnContextObjectPing()
+        {
+            if (m_contextEntry.property.objectReferenceValue != null)
+            {
+                EditorUtils.FullPingObject(m_contextEntry.property.objectReferenceValue);
+            }
+        }
+        protected virtual void OnContextObjectOpenAsset()
+        {
+            if (m_contextEntry.property.objectReferenceValue != null)
+            {
+                AssetDatabase.OpenAsset(m_contextEntry.property.objectReferenceValue);
+            }
+        }
+        protected virtual void OnContextObjectRemove()
+        {
+            serializedObject.Update();
+            OnTryDeleteListEntry(m_contextEntry);
+            serializedObject.ApplyModifiedProperties();
+        }
+        protected virtual void OnContextObjectDeleteAsset()
+        {
+            var obj = m_contextEntry.property.objectReferenceValue;
+            if (obj != null)
+            {
+                var path = AssetDatabase.GetAssetPath(obj);
+                if (EditorUtility.DisplayDialog("Delete Asset",
+                    "Are you sure you want to delete the asset " + obj.name + " ?\n\n" + path
+                    + "\n\nThe file will be deleted from the project. You cannot undo this action.",
+                    "Delete", "Cancel"))
+                {
+                    serializedObject.Update();
+                    OnTryDeleteListEntry(m_contextEntry);
+                    serializedObject.ApplyModifiedProperties();
+                    AssetDatabase.DeleteAsset(path);
+                }
             }
         }
 
@@ -1030,7 +1139,7 @@ namespace Dhs5.Utility.NewDatabase
 
         protected virtual void OnListGUI()
         {
-            var rect = EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.Height(_listAreaHeight));
+            var rect = EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.Height(ListAreaHeight));
 
             EditorGUI.DrawRect(rect, Color.gray1);
 
@@ -1072,6 +1181,7 @@ namespace Dhs5.Utility.NewDatabase
                 {
                     Event.current.Use();
                     OnDeselectListEntry();
+                    GUI.FocusControl(null);
                 }
 
                 else if (Event.current.type == EventType.DragUpdated)
@@ -1292,25 +1402,33 @@ namespace Dhs5.Utility.NewDatabase
             {
                 Event.current.Use();
 
-                if (EditorApplication.timeSinceStartup - m_lastListSelectionTime < 0.5f)
+                if (Event.current.button == 0)
                 {
-                    OnDoubleClickListEntry(entry);
-                    if (m_focusedIndex != entry.displayIndex)
+                    // Unity's double-click detection : OS delay, same position
+                    if (Event.current.clickCount == 2)
                     {
-                        OnSelectListEntry(entry);
-                    }
-                }
-                else
-                {
-                    m_lastListSelectionTime = EditorApplication.timeSinceStartup;
-                    if (m_focusedIndex == entry.displayIndex)
-                    {
-                        OnDeselectListEntry();
+                        OnDoubleClickListEntry(entry);
+                        if (m_focusedIndex != entry.displayIndex)
+                        {
+                            OnSelectListEntry(entry);
+                        }
                     }
                     else
                     {
-                        OnSelectListEntry(entry);
+                        if (m_focusedIndex == entry.displayIndex)
+                        {
+                            OnDeselectListEntry();
+                            GUI.FocusControl(null);
+                        }
+                        else
+                        {
+                            OnSelectListEntry(entry);
+                        }
                     }
+                }
+                else if (Event.current.button == 1)
+                {
+                    OnListEntryContextButton(entry);
                 }
             }
         }
@@ -1321,7 +1439,12 @@ namespace Dhs5.Utility.NewDatabase
 
         protected virtual void OnListEntryContextButton(ListEntry entry)
         {
+            m_contextEntry = entry;
 
+            if (m_entryContextMenu != null)
+            {
+                m_entryContextMenu.ShowAsContext();
+            }
         }
 
         protected virtual void OnSelectListEntry(ListEntry entry)
@@ -1339,7 +1462,6 @@ namespace Dhs5.Utility.NewDatabase
             m_focusedIndex = -1;
             m_focusedObject = null;
             m_listHasFocus = false;
-            GUI.FocusControl(null);
         }
         protected virtual void OnDoubleClickListEntry(ListEntry entry)
         {
@@ -1384,12 +1506,13 @@ namespace Dhs5.Utility.NewDatabase
             else if (m_isResizing
                 && Event.current.type == EventType.MouseDrag)
             {
-                _listAreaHeight = Mathf.Clamp(_listAreaHeight + Event.current.delta.y, 100f, m_databaseWindowRect.height - 200f);
+                ListAreaHeight = Mathf.Clamp(ListAreaHeight + Event.current.delta.y, 100f, m_databaseWindowRect.height - 200f);
                 Event.current.Use();
             }
             else if (m_isResizing && Event.current.rawType == EventType.MouseUp)
             {
                 m_isResizing = false;
+                SaveListAreaHeight();
             }
         }
 

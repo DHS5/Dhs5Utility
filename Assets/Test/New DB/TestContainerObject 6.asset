@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ffb22b7be5b7bf4192b3fad2a1520bd, type: 3}
   m_Name: TestContainerObject 6
   m_EditorClassIdentifier: Assembly-CSharp::TestContainerObject
-  m_uid: 0
+  m_uid: 204460975
   m_alias: 
   m_mat: {fileID: 0}
+  m_obj: {fileID: 0}
+  m_obj2: {fileID: 0}
+  m_obj3: {fileID: 0}
+  m_obj4: {fileID: 0}

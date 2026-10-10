@@ -9,7 +9,7 @@ public class TestContainerObject : ScriptableObject, IContainerElement
     [Header("blabla")]
     [SerializeField, ContainerDisplay(priority = 5, width = 150f)] private Material m_mat;
     [Space(12f)]
-    [SerializeField, ContainerDisplay(priority = 6, width = 200f)] private GameObject m_obj;
+    [SerializeField, ContainerDisplay(priority = 6, width = 200f)] private TestContainerObject m_obj;
     [SerializeField, ContainerDisplay(priority = 7, width = 200f)] private GameObject m_obj2;
     [SerializeField, ContainerDisplay(priority = 8, width = 200f)] private GameObject m_obj3;
     [SerializeField, ContainerDisplay(priority = 9, width = 200f)] private GameObject m_obj4;
