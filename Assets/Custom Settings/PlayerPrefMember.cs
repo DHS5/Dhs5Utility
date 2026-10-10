@@ -89,11 +89,18 @@ namespace Dhs5.Utility.Settings
 
         public static implicit operator T(PlayerPrefMember<T> member)
         {
+            if (member == null)
+            {
+                // Happens with a settings object created by code (CreateInstance) : declare the field with "= new()"
+                Debug.LogError("PlayerPrefMember<" + typeof(T).Name + "> is null : declare the field with \"= new()\"");
+                return default;
+            }
             return member.Value;
         }
         public override string ToString()
         {
-            return Value.ToString();
+            var value = Value;
+            return value != null ? value.ToString() : "null";
         }
 
         #endregion

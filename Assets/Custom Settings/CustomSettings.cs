@@ -62,6 +62,8 @@ namespace Dhs5.Utility.Settings
             {
                 instance = Database.CreateAssetOfType(mostDerivedType, "Assets/Resources/Settings/" + mostDerivedType.Name + ".asset") as BaseSettings;
                 AssetDatabase.SaveAssets();
+                // Can happen from game code in play mode, or when opening the Settings window : made visible
+                Debug.Log("Settings asset created for " + mostDerivedType.Name + " : " + AssetDatabase.GetAssetPath(instance), instance);
             }
 #else
             // In builds, the asset of the most derived type among the loaded ones
@@ -715,15 +717,20 @@ namespace Dhs5.Utility.Settings
             m_subSettingsFields = new();
             try
             {
-                var fields = target.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                for (int i = 0; i < fields.Length; i++)
+                // DeclaredOnly on each type of the hierarchy : GetFields on the type itself doesn't return the private fields of its base classes
+                var bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+                for (var type = target.GetType(); type != null && type != typeof(BaseSettings); type = type.BaseType)
                 {
-                    var attribute = fields[i].GetCustomAttribute<SubSettingsAttribute>();
-                    if (attribute != null
-                        && typeof(ScriptableObject).IsAssignableFrom(fields[i].FieldType))
+                    foreach (var field in type.GetFields(bindingFlags))
                     {
-                        m_subSettingsFields.Add(fields[i], attribute);
-                        m_excludedProperties.Add(fields[i].Name);
+                        var attribute = field.GetCustomAttribute<SubSettingsAttribute>();
+                        if (attribute != null
+                            && typeof(ScriptableObject).IsAssignableFrom(field.FieldType)
+                            && !m_subSettingsFields.ContainsKey(field))
+                        {
+                            m_subSettingsFields.Add(field, attribute);
+                            m_excludedProperties.Add(field.Name);
+                        }
                     }
                 }
             }

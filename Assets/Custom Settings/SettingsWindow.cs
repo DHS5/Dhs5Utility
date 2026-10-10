@@ -46,15 +46,40 @@ namespace Dhs5.Utility.Settings
 
         #region Core Behaviour
 
+        /// <summary>
+        /// Selected settings type, saved per project and per user (EditorUserSettings, in the UserSettings folder)
+        /// </summary>
+        private const string SelectionConfigKey = "Dhs5.SettingsWindow.SelectedType";
+
         private void OnEnable()
         {
-            m_currentSelection = EditorPrefs.GetInt("SW_selection");
             GetSettings();
+            m_currentSelection = GetSettingsIndex(EditorUserSettings.GetConfigValue(SelectionConfigKey));
         }
         private void OnDisable()
         {
-            EditorPrefs.SetInt("SW_selection", m_currentSelection);
+            SaveSelection();
             ClearEditors();
+        }
+
+        private void SaveSelection()
+        {
+            if (m_settings != null && m_currentSelection >= 0 && m_currentSelection < m_settings.Length && m_settings[m_currentSelection] != null)
+            {
+                EditorUserSettings.SetConfigValue(SelectionConfigKey, m_settings[m_currentSelection].GetType().FullName);
+            }
+        }
+        /// <returns>Index of the settings of type <paramref name="typeName"/>, 0 if not found</returns>
+        private int GetSettingsIndex(string typeName)
+        {
+            if (m_settings != null && !string.IsNullOrEmpty(typeName))
+            {
+                for (int i = 0; i < m_settings.Length; i++)
+                {
+                    if (m_settings[i] != null && m_settings[i].GetType().FullName == typeName) return i;
+                }
+            }
+            return 0;
         }
 
         #endregion
@@ -105,7 +130,12 @@ namespace Dhs5.Utility.Settings
             int buttonsCount = 2;
 
             var popupRect = new Rect(rect.x, rect.y, rect.width - buttonsWidth * buttonsCount, rect.height);
-            m_currentSelection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
+            var selection = EditorGUI.IntPopup(popupRect, m_currentSelection, m_paths, m_options, EditorStyles.toolbarDropDown);
+            if (selection != m_currentSelection)
+            {
+                m_currentSelection = selection;
+                SaveSelection();
+            }
 
             var subSettingsButtonRect = new Rect(popupRect.x + popupRect.width, rect.y, buttonsWidth, rect.height);
             ShowSubSettingsReferences = EditorGUIHelper.ToolbarToggle(subSettingsButtonRect, EditorGUIHelper.HierarchyIcon, ShowSubSettingsReferences);
@@ -113,7 +143,10 @@ namespace Dhs5.Utility.Settings
             var refreshButtonRect = new Rect(popupRect.x + popupRect.width + buttonsWidth, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
             {
+                // The list can change : the same settings type stays selected
+                SaveSelection();
                 GetSettings();
+                m_currentSelection = GetSettingsIndex(EditorUserSettings.GetConfigValue(SelectionConfigKey));
             }
         }
 

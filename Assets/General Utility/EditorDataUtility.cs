@@ -13,11 +13,13 @@ namespace Dhs5.Utility.Editors
     {
         #region Type Queries
 
+        /// <summary>
+        /// Every type deriving from <paramref name="type"/> (or implementing it, for an interface), <paramref name="type"/> excluded.<br></br>
+        /// Uses Unity's TypeCache : instant, no scan of the assemblies.
+        /// </summary>
         public static IEnumerable<Type> GetAllChildTypes(Type type)
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                        .SelectMany(a => a.GetTypes())
-                        .Where(t => t.IsSubclassOf(type));
+            return TypeCache.GetTypesDerivedFrom(type);
         }
         public static IEnumerable<Type> GetAllChildTypes(Type type, Func<Type, bool> predicate)
         {
