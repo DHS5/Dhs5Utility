@@ -426,10 +426,8 @@ namespace Dhs5.Utility.Databases
                 DataType = dataType;
                 if (DataType.IsAbstract)
                 {
-                    ChildDataTypes = AppDomain.CurrentDomain.GetAssemblies()
-                        .SelectMany(a => a.GetTypes())
-                        .Where(t => t.IsSubclassOf(DataType))
-                        .ToArray();
+                    // TypeCache : instant, no scan of every type of every assembly
+                    ChildDataTypes = TypeCache.GetTypesDerivedFrom(DataType).ToArray();
                 }
                 else
                 {

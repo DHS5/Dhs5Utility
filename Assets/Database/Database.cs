@@ -205,24 +205,22 @@ namespace Dhs5.Utility.Databases
 
         #region Database Types
 
+        // TypeCache : instant, no scan of every type of every assembly
         private static Type[] GetDatabaseTypes()
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
+            return TypeCache.GetTypesDerivedFrom<BaseDataContainer>()
                 .Where(t => IsTypeDatabase(t, out _))
                 .ToArray();
         }
         private static Type[] GetDatabaseTypes(Func<Type, bool> predicate)
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
+            return TypeCache.GetTypesDerivedFrom<BaseDataContainer>()
                 .Where(t => IsTypeDatabase(t, out _) && predicate.Invoke(t))
                 .ToArray();
         }
         private static Type[] GetDatabaseTypes(Func<DatabaseAttribute, bool> predicate)
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
+            return TypeCache.GetTypesDerivedFrom<BaseDataContainer>()
                 .Where(t => IsTypeDatabase(t, out var att) && predicate.Invoke(att))
                 .ToArray();
         }

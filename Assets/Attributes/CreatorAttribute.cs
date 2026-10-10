@@ -73,9 +73,9 @@ public class CreatorAttributeDrawer : PropertyDrawer
         content.text = "Create";
         if (GUI.Button(rect, content))
         {
-            var childTypes = AppDomain.CurrentDomain.GetAssemblies()
-                            .SelectMany(a => a.GetTypes())
-                            .Where(t => t.IsSubclassOf(type) && !t.IsAbstract)
+            // TypeCache : instant, no scan of every type of every assembly on each click
+            var childTypes = TypeCache.GetTypesDerivedFrom(type)
+                            .Where(t => !t.IsAbstract)
                             .ToArray();
             if (childTypes.Length > 0)
             {
