@@ -227,9 +227,12 @@ namespace Dhs5.Utility.NewDatabase
 
         protected virtual void Editor_EnsureNewObjectValidUID(UnityEngine.Object newObj, IContainerElement newElem)
         {
+            var dirty = false;
+
             if (newElem.UID == 0)
             {
                 newElem.Editor_SetUID(IContainerElement.ComputeContainerElementUID(newObj));
+                dirty = true;
             }
 
             var conflict = false;
@@ -247,11 +250,18 @@ namespace Dhs5.Utility.NewDatabase
                             conflict = true;
                             offset++;
                             newElem.Editor_SetUID(IContainerElement.ComputeContainerElementUID(newObj, offset));
+                            dirty = true;
                             break;
                         }
                     }
                 }
             } while (conflict);
+
+            if (dirty)
+            {
+                EditorUtility.SetDirty(newObj);
+                AssetDatabase.SaveAssetIfDirty(newObj);
+            }
         }
 
         #endregion
@@ -418,8 +428,10 @@ namespace Dhs5.Utility.NewDatabase
 
             FindSerializedProperties();
 
+            serializedObject.Update();
             RefreshObjectTypes();
             ValidateContainerContentFromObjectTypes();
+            serializedObject.ApplyModifiedProperties();
             RefreshListEntries();
             RefreshListDisplayedProperties();
         }
@@ -455,10 +467,11 @@ namespace Dhs5.Utility.NewDatabase
                                 && containerElementType.IsAssignableFrom(type)
                                 && unityObjType.IsAssignableFrom(type))
                             {
-                                if (type.IsAbstract)
-                                    m_objectTypes.AddRange(TypeCache.GetTypesDerivedFrom(type));
-                                else
+                                if (!type.IsAbstract && !m_objectTypes.Contains(type))
                                     m_objectTypes.Add(type);
+                                foreach (var subType in TypeCache.GetTypesDerivedFrom(type))
+                                    if (!subType.IsAbstract && !m_objectTypes.Contains(subType))
+                                        m_objectTypes.Add(subType);
                             }
                         }
                     }
@@ -479,9 +492,27 @@ namespace Dhs5.Utility.NewDatabase
                     if (!m_objectTypes.Contains(entryType))
                     {
                         p_objects.DeleteArrayElementAtIndex(i);
+                        Debug.Log("Auto remove entry " + i + " from " + m_container + " : type " + entryType + " invalid");
                     }
                 }
+                else
+                {
+                    p_objects.DeleteArrayElementAtIndex(i);
+                    Debug.Log("Auto remove entry " + i + " from " + m_container + " : null element");
+                }
             }
+        }
+        protected virtual bool IsObjectTypeValid(UnityEngine.Object obj)
+        {
+            if (obj is IContainerElement)
+            {
+                return m_objectTypes.Contains(obj.GetType());
+            }
+            if (obj is GameObject go && go.TryGetComponent<IContainerElement>(out var elem))
+            {
+                return m_objectTypes.Contains(elem.GetType());
+            }
+            return false;
         }
 
         protected virtual GenericMenu CreateAddMenuFromObjectTypes()
@@ -961,10 +992,16 @@ namespace Dhs5.Utility.NewDatabase
         protected virtual bool TryAddObjectToContainer(UnityEngine.Object obj)
         {
             var result = false;
+            var objToAdd = obj;
             if (obj is IContainerElement newElem)
-                result = m_container.Editor_OnBeforeNewObjectInContainer(obj, newElem);
+            {
+                result = m_container.Editor_OnBeforeNewObjectInContainer(objToAdd, newElem);
+            }
             else if (obj is GameObject go && go.TryGetComponent(out newElem))
-                result = m_container.Editor_OnBeforeNewObjectInContainer(obj, newElem);
+            {
+                objToAdd = newElem as UnityEngine.Object;
+                result = m_container.Editor_OnBeforeNewObjectInContainer(objToAdd, newElem);
+            }
 
             if (result)
             {
@@ -977,7 +1014,7 @@ namespace Dhs5.Utility.NewDatabase
                     if (p_newEntry != null)
                     {
 
-                        p_newEntry.objectReferenceValue = obj;
+                        p_newEntry.objectReferenceValue = objToAdd;
                         serializedObject.ApplyModifiedProperties();
                     }
                 }
@@ -1044,7 +1081,7 @@ namespace Dhs5.Utility.NewDatabase
                     {
                         foreach (var obj in DragAndDrop.objectReferences)
                         {
-                            if (obj != null && (obj is IContainerElement || obj is GameObject go && go.TryGetComponent<IContainerElement>(out _)))
+                            if (obj != null && IsObjectTypeValid(obj))
                             {
                                 DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
                                 break;
@@ -1058,15 +1095,23 @@ namespace Dhs5.Utility.NewDatabase
                     if (DragAndDrop.objectReferences != null
                         && DragAndDrop.objectReferences.Length > 0)
                     {
+                        var valid = false;
                         foreach (var obj in DragAndDrop.objectReferences)
                         {
-                            if (obj != null && (obj is IContainerElement || obj is GameObject go && go.TryGetComponent<IContainerElement>(out _)))
+                            if (obj != null && IsObjectTypeValid(obj))
                             {
                                 OnAddFromProject(obj);
+                                valid = true;
                             }
                         }
+
+                        if (valid)
+                        {
+                            DragAndDrop.AcceptDrag();
+                            Event.current.Use();
+                        }
                     }
-                    Event.current.Use();
+
                 }
             }
 
@@ -1414,6 +1459,7 @@ namespace Dhs5.Utility.NewDatabase
                             if (type != null && go.TryGetComponent(type, out var component))
                             {
                                 OnAddFromProject(component);
+                                break;
                             }
                         }
                     }

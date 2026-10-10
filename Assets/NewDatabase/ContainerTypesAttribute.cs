@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Dhs5.Utility.NewDatabase
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
     public class ContainerTypesAttribute : Attribute
     {
         public ContainerTypesAttribute(params Type[] types)
