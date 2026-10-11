@@ -1,5 +1,4 @@
 using UnityEngine;
-using Dhs5.Utility.Databases;
 using System.Collections.Generic;
 using System;
 using System.IO;
@@ -537,7 +536,7 @@ namespace Dhs5.Utility.SaveLoad
                 {
                     if (p_saveCategoriesTextAsset.objectReferenceValue is TextAsset textAsset)
                     {
-                        Database.CreateOrOverwriteTextAsset(textAsset, GetSaveCategoriesScriptContent());
+                        EditorDataUtility.CreateOrOverwriteTextAsset(textAsset, GetSaveCategoriesScriptContent());
                     }
                     else
                     {
@@ -712,7 +711,7 @@ namespace Dhs5.Utility.SaveLoad
 
                     void Callback(Type type)
                     {
-                        var newModifier = Database.CreateScriptableAsset(type, GetModifierAssetPath(ObjectNames.NicifyVariableName(type.Name)));
+                        var newModifier = EditorDataUtility.CreateScriptableAsset(type, GetModifierAssetPath(ObjectNames.NicifyVariableName(type.Name)));
                         if (serializedObject != null)
                         {
                             serializedObject.FindProperty("m_modifier").objectReferenceValue = newModifier;
@@ -754,7 +753,7 @@ namespace Dhs5.Utility.SaveLoad
                     if (p_saveCategoriesTextAsset.objectReferenceValue == null)
                     {
                         path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/ESaveCategory.cs";
-                        p_saveCategoriesTextAsset.objectReferenceValue = Database.CreateOrLoadTextAsset(path);
+                        p_saveCategoriesTextAsset.objectReferenceValue = EditorDataUtility.CreateOrLoadTextAsset(path);
                     }
                 }
             }

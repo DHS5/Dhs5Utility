@@ -122,7 +122,7 @@ namespace Dhs5.Utility.Databases
                 var elem = GetObjectAsDataContainerElement(m_folderContent[i]);
                 if (elem.UID == uid)
                 {
-                    Database.DeleteAsset(m_folderContent[i], true);
+                    EditorDataUtility.DeleteAsset(m_folderContent[i], true);
                     return true;
                 }
             }
@@ -208,7 +208,7 @@ namespace Dhs5.Utility.Databases
         {
             base.DrawDefault();
 
-            if (Database.DebugModeEnabled)
+            if (false)
             {
                 EditorGUILayout.PropertyField(p_folderContent, true);
             }
@@ -284,7 +284,7 @@ namespace Dhs5.Utility.Databases
         protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
             if (EditorUtils.GetAssetContainingFolder(obj) == FolderName
-                || Database.MoveAssetToFolder(obj, FolderName))
+                || EditorDataUtility.MoveAssetToFolder(obj, FolderName))
             {
                 base.OnAddNewDataToContainer(obj);
             }

@@ -138,7 +138,7 @@ namespace Dhs5.Utility.Databases
             if (isDatabaseDataPicker)
             {
                 // CONTAINER
-                p_container.objectReferenceValue = Database.Get(databaseType);
+                p_container.objectReferenceValue = null;
                 // PICKER
                 if (p_container.objectReferenceValue is BaseDataContainer database)
                 {

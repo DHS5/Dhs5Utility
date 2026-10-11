@@ -7,6 +7,7 @@ using System.Linq;
 #if UNITY_EDITOR
 using UnityEditor;
 using System.IO;
+using Dhs5.Utility.Editors;
 #endif
 
 namespace Dhs5.Utility.Databases
@@ -129,7 +130,7 @@ namespace Dhs5.Utility.Databases
                 if (m_content[i] is IDataContainerElement elem
                     && elem.UID == uid)
                 {
-                    Database.DeleteAsset(m_content[i], true);
+                    EditorDataUtility.DeleteAsset(m_content[i], true);
                     return true;
                 }
             }
@@ -194,7 +195,7 @@ namespace Dhs5.Utility.Databases
         {
             base.DrawDefault();
 
-            if (Database.DebugModeEnabled)
+            if (false)
             {
                 EditorGUILayout.PropertyField(p_content, true);
             }
@@ -222,14 +223,14 @@ namespace Dhs5.Utility.Databases
 
         protected override bool OnCreateNewDataOfType(Type type, out UnityEngine.Object obj)
         {
-            obj = Database.CreateScriptableAndAddToAsset(type, m_container);
+            obj = EditorDataUtility.CreateScriptableAndAddToAsset(type, m_container);
             return obj != null;
         }
         protected override void OnAddNewDataToContainer(UnityEngine.Object obj)
         {
             if (AssetDatabase.IsMainAsset(obj))
             {
-                Database.AddAssetToOtherAsset(obj, m_container);
+                EditorDataUtility.AddAssetToOtherAsset(obj, m_container);
             }
 
             base.OnAddNewDataToContainer(obj);

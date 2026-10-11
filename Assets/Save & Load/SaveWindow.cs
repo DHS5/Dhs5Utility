@@ -1,6 +1,5 @@
 using UnityEngine;
 using Dhs5.Utility.GUIs;
-using Dhs5.Utility.Databases;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -171,7 +170,7 @@ namespace Dhs5.Utility.SaveLoad
                         var path = EditorUtility.SaveFilePanelInProject("New asset location", "TestSaveObject", "asset", "Choose location to create the instance");
                         if (!string.IsNullOrWhiteSpace(path))
                         {
-                            m_debugSave_SaveObject = Database.CreateScriptableAsset<SaveObject>(path, triggerRename:false);
+                            m_debugSave_SaveObject = EditorDataUtility.CreateScriptableAsset<SaveObject>(path, triggerRename:false);
                         }
                     }
                 }
@@ -188,7 +187,7 @@ namespace Dhs5.Utility.SaveLoad
                             var path = EditorUtility.SaveFilePanelInProject("New asset location", "TestTextAsset", "txt", "Choose location to create the instance");
                             if (!string.IsNullOrWhiteSpace(path))
                             {
-                                m_debugSave_TextAsset = Database.CreateEmptyTextAsset(path);
+                                m_debugSave_TextAsset = EditorDataUtility.CreateEmptyTextAsset(path);
                             }
                         }
                     }
@@ -198,7 +197,7 @@ namespace Dhs5.Utility.SaveLoad
                     {
                         m_debugSave_SaveObject.Editor_RefreshDictionaryFromArray();
                         var content = m_debugSave_SaveObject.GetSaveContent();
-                        Database.CreateOrOverwriteTextAsset(m_debugSave_TextAsset, content);
+                        EditorDataUtility.CreateOrOverwriteTextAsset(m_debugSave_TextAsset, content);
                     }
                 }
             }
@@ -221,7 +220,7 @@ namespace Dhs5.Utility.SaveLoad
                             var path = EditorUtility.SaveFilePanelInProject("New asset location", "TestSaveObject", "asset", "Choose location to create the instance");
                             if (!string.IsNullOrWhiteSpace(path))
                             {
-                                m_debugLoad_SaveObject = Database.CreateScriptableAsset<SaveObject>(path, triggerRename: false);
+                                m_debugLoad_SaveObject = EditorDataUtility.CreateScriptableAsset<SaveObject>(path, triggerRename: false);
                             }
                         }
                     }
@@ -271,7 +270,7 @@ namespace Dhs5.Utility.SaveLoad
                         {
                             if (GUI.Button(usedButtonRect, EditorGUIHelper.DeleteIcon))
                             {
-                                Database.DeleteAsset(array[i], true);
+                                EditorDataUtility.DeleteAsset(array[i], true);
                                 AssetDatabase.SaveAssets();
                             }
                         }
@@ -286,7 +285,7 @@ namespace Dhs5.Utility.SaveLoad
                 // Create asset button
                 if (GUILayout.Button("Create new asset"))
                 {
-                    Database.CreateAssetOfType(typeof(SaveAsset), "Assets/Resources/Save/SaveAsset.asset");
+                    EditorDataUtility.CreateAssetOfType(typeof(SaveAsset), "Assets/Resources/Save/SaveAsset.asset");
                     AssetDatabase.SaveAssets();
                 }
             }

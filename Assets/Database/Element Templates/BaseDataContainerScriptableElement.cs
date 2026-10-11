@@ -77,7 +77,7 @@ namespace Dhs5.Utility.Databases
 
             DrawPropertiesExcluding(serializedObject, m_excludedProperties.ToArray());
 
-            if (Database.DebugModeEnabled)
+            if (false)
             {
                 OnDatabaseDebugModeGUI();
             }

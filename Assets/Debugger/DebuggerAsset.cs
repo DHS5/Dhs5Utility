@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Dhs5.Utility.Databases;
 using Dhs5.Utility.GUIs;
 using System;
 using UnityEngine.InputSystem;
@@ -337,7 +336,7 @@ namespace Dhs5.Utility.Debugger
                                 "Once the category script is updated, every category after it shifts down by one, " +
                                 "so serialized EDebugCategory values pointing to them will change.",
                                 "Delete", "Cancel")
-                            && Database.DeleteAsset(element, false))
+                            && EditorDataUtility.DeleteAsset(element, false))
                         {
                             p_debugCategories.DeleteArrayElementAtIndex(index);
                             AssetDatabase.SaveAssetIfDirty(m_debuggerAsset);
@@ -408,7 +407,7 @@ namespace Dhs5.Utility.Debugger
                 {
                     var first = p_debugCategories.arraySize == 0;
                     var newElementName = first ? BASE_CATEGORY_NAME : GetUniqueCategoryEnumName("NEW_CATEGORY");
-                    var newElement = Database.CreateScriptableAsset<DebugCategoryObject>(GetCategoryAssetPath(newElementName));
+                    var newElement = EditorDataUtility.CreateScriptableAsset<DebugCategoryObject>(GetCategoryAssetPath(newElementName));
                     if (first)
                     {
                         newElement.Editor_SetColor(Color.white);
@@ -432,7 +431,7 @@ namespace Dhs5.Utility.Debugger
                     }
                     else if (p_debugCategoriesTextAsset.objectReferenceValue is TextAsset textAsset)
                     {
-                        Database.CreateOrOverwriteTextAsset(textAsset, GetDebugCategoriesScriptContent());
+                        EditorDataUtility.CreateOrOverwriteTextAsset(textAsset, GetDebugCategoriesScriptContent());
                     }
                     else
                     {
@@ -536,7 +535,7 @@ namespace Dhs5.Utility.Debugger
                     if (p_debugCategoriesTextAsset.objectReferenceValue == null)
                     {
                         path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/EDebugCategory.cs";
-                        p_debugCategoriesTextAsset.objectReferenceValue = Database.CreateOrLoadTextAsset(path);
+                        p_debugCategoriesTextAsset.objectReferenceValue = EditorDataUtility.CreateOrLoadTextAsset(path);
                     }
                 }
             }

@@ -200,7 +200,7 @@ namespace Dhs5.Utility.Tags
             m_folderStructure.Clear();
 
             Dictionary<string, object> folderStructureDatas = new();
-            foreach (var (uid, obj) in Database.Get<GameplayTagsDatabase>().Editor_GetContainerDicoContent())
+            foreach (var (uid, obj) in GameplayTagsDatabase.I.Editor_GetContainerDicoContent())
             {
                 if (!folderStructureDatas.TryAdd(GetObjectDisplayName(obj), uid))
                 {

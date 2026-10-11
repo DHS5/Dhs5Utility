@@ -33,7 +33,9 @@ namespace Dhs5.Utility.Editors
 
         #endregion
 
-        #region Data Creation
+        #region Data Handling
+
+        #region Creation
 
         public static UnityEngine.Object CreateAssetOfType(Type type, string path, bool triggerRename = false)
         {
@@ -169,6 +171,173 @@ namespace Dhs5.Utility.Editors
             AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<TextAsset>(path);
         }
+
+        #endregion
+
+        #region Duplication
+
+        public static UnityEngine.Object Duplicate(UnityEngine.Object obj)
+        {
+            if (AssetDatabase.IsMainAsset(obj)) return DuplicateMainAsset(obj);
+            else if (AssetDatabase.IsSubAsset(obj)) return DuplicateSubAsset(obj);
+            return null;
+        }
+
+        private static UnityEngine.Object DuplicateMainAsset(UnityEngine.Object obj)
+        {
+            UnityEngine.Object duplicate = null;
+            string path = AssetDatabase.GetAssetPath(obj);
+            string newPath = path.Replace(obj.name, obj.name + "Copy");
+
+            if (AssetDatabase.CopyAsset(path, newPath))
+            {
+                duplicate = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(newPath);
+                AssetDatabase.Refresh();
+                AssetDatabase.SaveAssets();
+            }
+
+            return duplicate;
+        }
+        private static UnityEngine.Object DuplicateSubAsset(UnityEngine.Object obj)
+        {
+            UnityEngine.Object mainAsset = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GetAssetPath(obj));
+
+            UnityEngine.Object duplicate = null;
+
+            if (obj is ScriptableObject so)
+            {
+                duplicate = ScriptableObject.Instantiate(so);
+                duplicate.name = so.name + "Copy";
+            }
+
+            if (duplicate != null)
+            {
+                AssetDatabase.AddObjectToAsset(duplicate, mainAsset);
+            }
+            return duplicate;
+        }
+
+        #endregion
+
+        #region Deletion
+
+        public static bool IsAssetDeletableFromCode(UnityEngine.Object obj)
+        {
+            return obj != null;
+        }
+
+        /// <summary>
+        /// Deletes an asset<br></br>
+        /// If it's a main asset, deletes permanently and CAN'T UNDO<br></br>
+        /// If it's not, delete the nested asset and CAN UNDO
+        /// </summary>
+        public static bool DeleteAsset(UnityEngine.Object obj, bool needValidation)
+        {
+            if (obj == null) return false;
+
+            if (!AssetDatabase.IsMainAsset(obj))
+            {
+                return DeleteNestedAsset(obj, needValidation);
+            }
+
+            if (!needValidation
+                    || EditorUtility.DisplayDialog(
+                        "Delete asset permanently ?",
+                        "Are you sure you want to delete " + obj.name + " permanently ?",
+                        "Yes", "Cancel"))
+            {
+                AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(obj));
+                return true;
+            }
+            return false;
+        }
+        /// <summary>
+        /// Deletes a nested asset, records undo operation
+        /// </summary>
+        /// <param name="obj">Object to delete</param>
+        /// <param name="asset">Asset in which the object is nested</param>
+        /// <param name="needValidation"></param>
+        public static bool DeleteNestedAsset(UnityEngine.Object obj, bool needValidation)
+        {
+            if (obj == null || AssetDatabase.IsMainAsset(obj)) return false;
+
+            UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GetAssetPath(obj));
+
+            if (!needValidation
+                    || EditorUtility.DisplayDialog(
+                        "Delete nested asset ?",
+                        "Are you sure you want to delete " + obj.name + " ?",
+                        "Yes", "Cancel"))
+            {
+                Undo.SetCurrentGroupName("Delete asset " + obj.name);
+                int undoGroup = Undo.GetCurrentGroup();
+
+                Undo.RecordObject(asset, "Remove nested asset from " + asset.name);
+                AssetDatabase.RemoveObjectFromAsset(obj);
+
+                Undo.DestroyObjectImmediate(obj);
+
+                Undo.CollapseUndoOperations(undoGroup);
+
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
+
+        #region Renaming
+
+        public static void RenameAsset(UnityEngine.Object obj, string newName)
+        {
+            if (AssetDatabase.IsMainAsset(obj))
+            {
+                AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(obj), newName);
+                AssetDatabase.SaveAssetIfDirty(obj);
+            }
+            else
+            {
+                obj.name = newName;
+                AssetDatabase.SaveAssets();
+            }
+        }
+
+        #endregion
+
+        #region Moving
+
+        public static bool MoveAssetToFolder(UnityEngine.Object obj, string folder)
+        {
+            string oldPath = AssetDatabase.GetAssetPath(obj);
+            string newPath;
+            int num = oldPath.LastIndexOf("/", StringComparison.Ordinal);
+            if (num == -1)
+            {
+                return false;
+            }
+            newPath = folder + oldPath.Substring(num, oldPath.Length - num);
+            if (AssetDatabase.ValidateMoveAsset(oldPath, newPath) == string.Empty)
+            {
+                return AssetDatabase.MoveAsset(oldPath, newPath) == string.Empty;
+            }
+            return false;
+        }
+
+        public static void AddAssetToOtherAsset(UnityEngine.Object objToAdd, UnityEngine.Object asset)
+        {
+            var duplicate = UnityEngine.Object.Instantiate(objToAdd);
+            if (AssetDatabase.MoveAssetToTrash(AssetDatabase.GetAssetPath(objToAdd))
+                && duplicate != null)
+            {
+                AssetDatabase.AddObjectToAsset(duplicate, asset);
+            }
+            else
+            {
+                Debug.Log("of course the object is null");
+            }
+        }
+
+        #endregion
 
         #endregion
 

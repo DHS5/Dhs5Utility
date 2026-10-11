@@ -7,7 +7,6 @@ using UnityEngine;
 using UnityEditor;
 using System.Text;
 using System.Linq;
-using Dhs5.Utility.Databases;
 #endif
 
 namespace Dhs5.Utility.Tags
@@ -126,7 +125,7 @@ namespace Dhs5.Utility.Tags
             var arraySize = p_tags.arraySize;
             List<int> tags = new();
             StringBuilder sb = new();
-            var db = Database.Get<GameplayTagsDatabase>();
+            var db = GameplayTagsDatabase.I;
             if (arraySize > 0)
             {
                 for (int i = 0; i < arraySize; i++)

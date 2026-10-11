@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.IO;
-using Dhs5.Utility.Databases;
 using System.Collections.Generic;
 using System;
 using Dhs5.Utility.GUIs;
@@ -255,7 +254,7 @@ namespace Dhs5.Utility.Updates
                             "Once the channel script is updated, every channel after it shifts down by one, " +
                             "so serialized EUpdateChannel values pointing to them will change.",
                             "Delete", "Cancel")
-                        && Database.DeleteAsset(element, false))
+                        && EditorDataUtility.DeleteAsset(element, false))
                     {
                         p_updateChannels.DeleteArrayElementAtIndex(index);
                         AssetDatabase.SaveAssetIfDirty(m_updaterAsset);
@@ -358,7 +357,7 @@ namespace Dhs5.Utility.Updates
                 if (GUILayout.Button("ADD NEW CHANNEL", GUILayout.Height(25f)))
                 {
                     var newElementName = p_updateChannels.arraySize == 0 ? CLASSIC_CHANNEL_NAME : GetUniqueChannelEnumName("NEW_CHANNEL");
-                    var newElement = Database.CreateScriptableAsset<UpdateChannelObject>(GetChannelAssetPath(newElementName));
+                    var newElement = EditorDataUtility.CreateScriptableAsset<UpdateChannelObject>(GetChannelAssetPath(newElementName));
                     p_updateChannels.InsertArrayElementAtIndex(p_updateChannels.arraySize);
                     p_updateChannels.GetArrayElementAtIndex(p_updateChannels.arraySize - 1).objectReferenceValue = newElement;
                     AssetDatabase.SaveAssetIfDirty(newElement);
@@ -376,7 +375,7 @@ namespace Dhs5.Utility.Updates
                     }
                     else if (p_updateChannelsTextAsset.objectReferenceValue is TextAsset textAsset)
                     {
-                        Database.CreateOrOverwriteTextAsset(textAsset, GetUpdateChannelScriptContent());
+                        EditorDataUtility.CreateOrOverwriteTextAsset(textAsset, GetUpdateChannelScriptContent());
                     }
                     else
                     {
@@ -623,7 +622,7 @@ namespace Dhs5.Utility.Updates
                     {
                         // Remap channels before the script changes, while their values still match the compiled enum
                         RemapChannelsConditions();
-                        Database.CreateOrOverwriteTextAsset(textAsset, GetUpdateConditionScriptContent());
+                        EditorDataUtility.CreateOrOverwriteTextAsset(textAsset, GetUpdateConditionScriptContent());
                     }
                     else
                     {
@@ -655,12 +654,12 @@ namespace Dhs5.Utility.Updates
                     if (p_updateChannelsTextAsset.objectReferenceValue == null)
                     {
                         path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/EUpdateChannel.cs";
-                        p_updateChannelsTextAsset.objectReferenceValue = Database.CreateOrLoadTextAsset(path);
+                        p_updateChannelsTextAsset.objectReferenceValue = EditorDataUtility.CreateOrLoadTextAsset(path);
                     }
                     if (p_updateConditionsTextAsset.objectReferenceValue == null)
                     {
                         path = ProjectWindowUtil.GetContainingFolder(AssetDatabase.GetAssetPath(scriptObj)) + "/EUpdateCondition.cs";
-                        p_updateConditionsTextAsset.objectReferenceValue = Database.CreateOrLoadTextAsset(path);
+                        p_updateConditionsTextAsset.objectReferenceValue = EditorDataUtility.CreateOrLoadTextAsset(path);
                     }
                 }
             }

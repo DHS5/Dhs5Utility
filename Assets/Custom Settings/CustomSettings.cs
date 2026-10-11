@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
-using Dhs5.Utility.Databases;
 using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
@@ -61,7 +60,7 @@ namespace Dhs5.Utility.Settings
             }
             if (instance == null && createIfMissing)
             {
-                instance = Database.CreateAssetOfType(mostDerivedType, "Assets/Resources/Settings/" + mostDerivedType.Name + ".asset") as BaseSettings;
+                instance = EditorDataUtility.CreateAssetOfType(mostDerivedType, "Assets/Resources/Settings/" + mostDerivedType.Name + ".asset") as BaseSettings;
                 AssetDatabase.SaveAssets();
                 Debug.Log("Settings asset created for " + mostDerivedType.Name + " : " + AssetDatabase.GetAssetPath(instance), instance);
             }
@@ -633,7 +632,7 @@ namespace Dhs5.Utility.Settings
 
         protected ScriptableObject CreateSubSettings(Type type, FieldInfo field)
         {
-            var newSubSettings = Database.CreateScriptableAsset(type, GetNewSubSettingsAssetPath(field));
+            var newSubSettings = EditorDataUtility.CreateScriptableAsset(type, GetNewSubSettingsAssetPath(field));
             AssetDatabase.SaveAssetIfDirty(newSubSettings);
             return newSubSettings;
         }

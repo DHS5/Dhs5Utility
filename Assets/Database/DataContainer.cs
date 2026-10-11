@@ -989,7 +989,7 @@ namespace Dhs5.Utility.Databases
         {
             if (obj.name != RenamingString)
             {
-                Database.RenameAsset(obj, RenamingString);
+                EditorDataUtility.RenameAsset(obj, RenamingString);
                 GetEntryAtIndex(index).content = RenamingString;
                 return true;
             }
@@ -1505,7 +1505,7 @@ namespace Dhs5.Utility.Databases
 
         protected bool DuplicateElement(UnityEngine.Object element)
         {
-            var duplicate = Database.Duplicate(element);
+            var duplicate = EditorDataUtility.Duplicate(element);
             if (duplicate != null)
             {
                 if (duplicate is IDataContainerElement)
@@ -1524,15 +1524,15 @@ namespace Dhs5.Utility.Databases
 
         protected virtual GameObject OnCreateNewEmptyPrefab(string path)
         {
-            return Database.CreateEmptyPrefab(path);
+            return EditorDataUtility.CreateEmptyPrefab(path);
         }
         protected virtual Component OnCreateNewPrefabWithComponent(string path, Type componentType)
         {
-            return Database.CreatePrefabWithComponent(componentType, path);
+            return EditorDataUtility.CreatePrefabWithComponent(componentType, path);
         }
         protected virtual ScriptableObject OnCreateNewScriptableObject(string path, Type scriptableType)
         {
-            return Database.CreateScriptableAsset(scriptableType, path);
+            return EditorDataUtility.CreateScriptableAsset(scriptableType, path);
         }
 
         protected void AddNewDataToContainer(UnityEngine.Object obj)

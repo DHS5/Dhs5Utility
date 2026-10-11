@@ -15,15 +15,15 @@ namespace Dhs5.Utility.Databases
         #region Constructor
 
         /// <summary>
-        /// Use this constructor to implement your own database that will be shown in the <see cref="DatabaseWindow"/>
+        /// Use this constructor to implement your own database that will be shown in the Database window
         /// </summary>
-        /// <param name="path">Path of your database in the <see cref="DatabaseWindow"/></param>
+        /// <param name="path">Path of your database in the Database window</param>
         public DatabaseAttribute(string path) : base()
         {
             this.path = path;
         }
         /// <summary>
-        /// Use this constructor to implement a database with out-of-the-box editor features that will be shown in the <see cref="DatabaseWindow"/>
+        /// Use this constructor to implement a database with out-of-the-box editor features that will be shown in the Database window
         /// </summary>
         /// <param name="path"></param>
         /// <param name="dataType"></param>
@@ -37,7 +37,7 @@ namespace Dhs5.Utility.Databases
         #region Members
 
         /// <summary>
-        /// Path of your database in the <see cref="DatabaseWindow"/>
+        /// Path of your database in the Database window
         /// </summary>
         public readonly string path;
 

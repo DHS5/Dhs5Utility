@@ -1,6 +1,5 @@
 using UnityEngine;
 using Dhs5.Utility.GUIs;
-using Dhs5.Utility.Databases;
 using System.Collections.Generic;
 using System;
 using System.Linq;
@@ -632,7 +631,7 @@ namespace Dhs5.Utility.Debugger
                         {
                             if (GUI.Button(deleteButtonRect, EditorGUIHelper.DeleteIcon))
                             {
-                                Database.DeleteAsset(array[i], true);
+                                EditorDataUtility.DeleteAsset(array[i], true);
                                 AssetDatabase.SaveAssets();
                             }
                         }
@@ -647,7 +646,7 @@ namespace Dhs5.Utility.Debugger
                 // Create asset button
                 if (GUILayout.Button("Create new asset"))
                 {
-                    Database.CreateAssetOfType(typeof(DebuggerAsset), "Assets/Resources/Debugger/Debugger.asset");
+                    EditorDataUtility.CreateAssetOfType(typeof(DebuggerAsset), "Assets/Resources/Debugger/Debugger.asset");
                     AssetDatabase.SaveAssets();
                 }
             }
