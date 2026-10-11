@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
@@ -32,6 +33,7 @@ namespace Dhs5.Utility.Settings
 
         private Editor m_editor;
         private BaseSettings[] m_settings;
+        private Type[] m_types;
         private string[] m_names;
         private string[] m_paths;
         private int[] m_options;
@@ -53,7 +55,7 @@ namespace Dhs5.Utility.Settings
 
         private void OnEnable()
         {
-            GetSettings();
+            GetSettings(false);
             m_currentSelection = GetSettingsIndex(EditorUserSettings.GetConfigValue(SelectionConfigKey));
         }
         private void OnDisable()
@@ -64,19 +66,19 @@ namespace Dhs5.Utility.Settings
 
         private void SaveSelection()
         {
-            if (m_settings != null && m_currentSelection >= 0 && m_currentSelection < m_settings.Length && m_settings[m_currentSelection] != null)
+            if (m_types != null && m_currentSelection >= 0 && m_currentSelection < m_types.Length)
             {
-                EditorUserSettings.SetConfigValue(SelectionConfigKey, m_settings[m_currentSelection].GetType().FullName);
+                EditorUserSettings.SetConfigValue(SelectionConfigKey, m_types[m_currentSelection].FullName);
             }
         }
         /// <returns>Index of the settings of type <paramref name="typeName"/>, 0 if not found</returns>
         private int GetSettingsIndex(string typeName)
         {
-            if (m_settings != null && !string.IsNullOrEmpty(typeName))
+            if (m_types != null && !string.IsNullOrEmpty(typeName))
             {
-                for (int i = 0; i < m_settings.Length; i++)
+                for (int i = 0; i < m_types.Length; i++)
                 {
-                    if (m_settings[i] != null && m_settings[i].GetType().FullName == typeName) return i;
+                    if (m_types[i].FullName == typeName) return i;
                 }
             }
             return 0;
@@ -144,8 +146,9 @@ namespace Dhs5.Utility.Settings
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
             {
                 // The list can change : the same settings type stays selected
+                // Missing settings assets are only created here
                 SaveSelection();
-                GetSettings();
+                GetSettings(true);
                 m_currentSelection = GetSettingsIndex(EditorUserSettings.GetConfigValue(SelectionConfigKey));
             }
         }
@@ -164,7 +167,7 @@ namespace Dhs5.Utility.Settings
                 EditorGUILayout.HelpBox("This Settings editor is null", MessageType.Error);
                 return;
             }
-            EditorGUILayout.HelpBox("This Settings is null", MessageType.Error);
+            EditorGUILayout.HelpBox("No asset exists for these settings : press Refresh to create it", MessageType.Info);
         }
 
         #endregion
@@ -172,14 +175,14 @@ namespace Dhs5.Utility.Settings
 
         #region Utility
 
-        private void GetSettings()
+        private void GetSettings(bool createIfMissing)
         {
             // Destroyed, not just dropped : it owns the sub settings editors
             ClearEditors();
             m_editor = null;
 
             // Settings
-            m_settings = BaseSettings.GetAllInstances();// t => BaseSettings.GetScope(t) == SettingsScope.Project);
+            m_settings = BaseSettings.GetAllInstances(createIfMissing, out m_types);// t => BaseSettings.GetScope(t) == SettingsScope.Project);
 
             // Paths, names & options
             m_names = new string[m_settings.Length];
@@ -187,8 +190,10 @@ namespace Dhs5.Utility.Settings
             m_options = new int[m_settings.Length];
             for (int i = 0; i < m_settings.Length; i++)
             {
-                m_names[i] = m_settings[i].name.Contains("Settings") ? m_settings[i].name.Replace("Settings", "") : m_settings[i].name;
-                var path = m_settings[i].Editor_GetPath();
+                // Missing assets are named after their type
+                var name = m_settings[i] != null ? m_settings[i].name : m_types[i].Name;
+                m_names[i] = name.Contains("Settings") ? name.Replace("Settings", "") : name;
+                var path = BaseSettings.GetPath(m_types[i]);
                 if (path.Contains("Project")) path = path.Replace("Project/", "");
                 else if (path.Contains("Preferences")) path = path.Replace("Preferences/", "");
                 m_paths[i] = path;

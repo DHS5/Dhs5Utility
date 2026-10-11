@@ -17,7 +17,8 @@ namespace Dhs5.Utility.Databases
         #region Instance
 
         private static Dictionary<Type, BaseDataContainer> _instances = new();
-        private static BaseDataContainer GetInstance(Type type)
+        /// <param name="createIfMissing">Editor only : creates the asset if it doesn't exist, otherwise null is returned</param>
+        private static BaseDataContainer GetInstance(Type type, bool createIfMissing = false)
         {
             if (!IsTypeDatabase(type)) return null;
 
@@ -37,7 +38,7 @@ namespace Dhs5.Utility.Databases
                     _instances[type] = instance;
                 }
 #if UNITY_EDITOR
-                else if (!type.IsAbstract) // CREATION
+                else if (createIfMissing && !type.IsAbstract) // CREATION
                 {
                     instance = Database.CreateAssetOfType(type, "Assets/Resources/Databases/" + type.Name + ".asset") as BaseDataContainer;
                     AssetDatabase.SaveAssets();
@@ -186,16 +187,31 @@ namespace Dhs5.Utility.Databases
 
         #region Database Instances
 
-        internal static BaseDataContainer[] GetAllDatabaseInstances() => GetAllDatabaseInstances(GetDatabaseTypes());
-        internal static BaseDataContainer[] GetAllDatabaseInstances(Func<Type, bool> predicate) => GetAllDatabaseInstances(GetDatabaseTypes(t => predicate.Invoke(t)));
-        internal static BaseDataContainer[] GetAllDatabaseInstances(Func<DatabaseAttribute, bool> predicate) => GetAllDatabaseInstances(GetDatabaseTypes(da => predicate.Invoke(da)));
-        private static BaseDataContainer[] GetAllDatabaseInstances(Type[] types)
+        /// <param name="types">Database type of each instance : an instance is null when its asset is missing and not created</param>
+        internal static BaseDataContainer[] GetAllDatabaseInstances(bool createIfMissing, out Type[] types)
+        {
+            types = GetDatabaseTypes();
+            return GetAllDatabaseInstances(types, createIfMissing);
+        }
+        /// <param name="types">Database type of each instance : an instance is null when its asset is missing and not created</param>
+        internal static BaseDataContainer[] GetAllDatabaseInstances(Func<Type, bool> predicate, bool createIfMissing, out Type[] types)
+        {
+            types = GetDatabaseTypes(t => predicate.Invoke(t));
+            return GetAllDatabaseInstances(types, createIfMissing);
+        }
+        /// <param name="types">Database type of each instance : an instance is null when its asset is missing and not created</param>
+        internal static BaseDataContainer[] GetAllDatabaseInstances(Func<DatabaseAttribute, bool> predicate, bool createIfMissing, out Type[] types)
+        {
+            types = GetDatabaseTypes(da => predicate.Invoke(da));
+            return GetAllDatabaseInstances(types, createIfMissing);
+        }
+        private static BaseDataContainer[] GetAllDatabaseInstances(Type[] types, bool createIfMissing)
         {
             BaseDataContainer[] databases = new BaseDataContainer[types.Length];
 
             for (int i = 0; i < databases.Length; i++)
             {
-                databases[i] = GetInstance(types[i]);
+                databases[i] = GetInstance(types[i], createIfMissing);
             }
 
             return databases;

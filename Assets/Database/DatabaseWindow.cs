@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 using Dhs5.Utility.GUIs;
 
 #if UNITY_EDITOR
@@ -25,6 +26,7 @@ namespace Dhs5.Utility.Databases
 
         private Editor m_editor;
         private BaseDataContainer[] m_databases;
+        private Type[] m_types;
         private string[] m_names;
         private string[] m_paths;
         private int[] m_options;
@@ -54,7 +56,7 @@ namespace Dhs5.Utility.Databases
         private void OnEnable()
         {
             m_currentSelection = EditorPrefs.GetInt("DW_selection");
-            GetDatabases();
+            GetDatabases(false);
         }
         private void OnDisable()
         {
@@ -158,8 +160,9 @@ namespace Dhs5.Utility.Databases
             var refreshButtonRect = new Rect(rect.x + rect.width - buttonsWidth, rect.y, buttonsWidth, rect.height);
             if (GUI.Button(refreshButtonRect, EditorGUIHelper.RefreshIcon, EditorStyles.toolbarButton))
             {
+                // Missing database assets are only created here
                 Database.ClearInstances();
-                GetDatabases();
+                GetDatabases(true);
             }
         }
 
@@ -182,12 +185,12 @@ namespace Dhs5.Utility.Databases
 
         #region Utility
 
-        private void GetDatabases()
+        private void GetDatabases(bool createIfMissing)
         {
             m_editor = null;
 
             // Settings
-            m_databases = Database.GetAllDatabaseInstances((da) => da.showInDatabaseWindow);
+            m_databases = Database.GetAllDatabaseInstances((da) => da.showInDatabaseWindow, createIfMissing, out m_types);
 
             // Paths, names & options
             m_names = new string[m_databases.Length];
@@ -195,8 +198,10 @@ namespace Dhs5.Utility.Databases
             m_options = new int[m_databases.Length];
             for (int i = 0; i < m_databases.Length; i++)
             {
-                m_names[i] = m_databases[i].name.Contains("Database") ? m_databases[i].name.Replace("Database", "") : m_databases[i].name;
-                m_paths[i] = m_databases[i].Editor_GetPath();
+                // Missing assets are named after their type
+                var name = m_databases[i] != null ? m_databases[i].name : m_types[i].Name;
+                m_names[i] = name.Contains("Database") ? name.Replace("Database", "") : name;
+                m_paths[i] = BaseDataContainer.Editor_GetPath(m_types[i]);
                 m_options[i] = i;
             }
         }
@@ -235,7 +240,7 @@ namespace Dhs5.Utility.Databases
                 EditorGUILayout.HelpBox("This Database's editor is null", MessageType.Error);
                 return false;
             }
-            EditorGUILayout.HelpBox("This Database is null", MessageType.Error);
+            EditorGUILayout.HelpBox("No asset exists for this Database : press Refresh to create it", MessageType.Info);
             editor = null;
             return false;
         }

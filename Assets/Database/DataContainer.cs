@@ -275,6 +275,13 @@ namespace Dhs5.Utility.Databases
         {
             return GetPath(GetType());
         }
+        /// <summary>
+        /// The path will be null if <paramref name="type"/> doesn't have the DatabaseAttribute
+        /// </summary>
+        internal static string Editor_GetPath(Type type)
+        {
+            return GetPath(type);
+        }
 
         #endregion
 

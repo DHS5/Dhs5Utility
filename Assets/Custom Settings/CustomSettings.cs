@@ -24,7 +24,8 @@ namespace Dhs5.Utility.Settings
         /// Gets the settings of <paramref name="type"/> : the asset of its most derived non-abstract type
         /// (a settings class with a non-abstract subclass is replaced by it)
         /// </summary>
-        internal static BaseSettings GetInstance(Type type)
+        /// <param name="createIfMissing">Editor only : creates the asset if it doesn't exist, otherwise null is returned</param>
+        internal static BaseSettings GetInstance(Type type, bool createIfMissing = false)
         {
             if (!type.IsSubclassOf(typeof(BaseSettings))) return null;
 
@@ -37,7 +38,7 @@ namespace Dhs5.Utility.Settings
             var assets = Resources.LoadAll("Settings", type);
 
 #if UNITY_EDITOR
-            // In the editor, the most derived type is known : its asset is loaded, or created if missing
+            // In the editor, the most derived type is known : its asset is loaded, or created if missing and asked to
             var mostDerivedType = GetMostDerivedType(type);
             if (mostDerivedType == null) return null; // Abstract without non-abstract subclass
 
@@ -58,11 +59,10 @@ namespace Dhs5.Utility.Settings
                     break;
                 }
             }
-            if (instance == null)
+            if (instance == null && createIfMissing)
             {
                 instance = Database.CreateAssetOfType(mostDerivedType, "Assets/Resources/Settings/" + mostDerivedType.Name + ".asset") as BaseSettings;
                 AssetDatabase.SaveAssets();
-                // Can happen from game code in play mode, or when opening the Settings window : made visible
                 Debug.Log("Settings asset created for " + mostDerivedType.Name + " : " + AssetDatabase.GetAssetPath(instance), instance);
             }
 #else
@@ -107,15 +107,25 @@ namespace Dhs5.Utility.Settings
 
 #if UNITY_EDITOR
 
-        internal static BaseSettings[] GetAllInstances() => GetAllInstances(GetAllChildTypes());
-        internal static BaseSettings[] GetAllInstances(Func<Type, bool> predicate) => GetAllInstances(GetAllChildTypes(t => predicate.Invoke(t)));
-        private static BaseSettings[] GetAllInstances(Type[] childTypes)
+        /// <param name="types">Settings type of each instance : an instance is null when its asset is missing and not created</param>
+        internal static BaseSettings[] GetAllInstances(bool createIfMissing, out Type[] types)
+        {
+            types = GetAllChildTypes();
+            return GetAllInstances(types, createIfMissing);
+        }
+        /// <param name="types">Settings type of each instance : an instance is null when its asset is missing and not created</param>
+        internal static BaseSettings[] GetAllInstances(Func<Type, bool> predicate, bool createIfMissing, out Type[] types)
+        {
+            types = GetAllChildTypes(t => predicate.Invoke(t));
+            return GetAllInstances(types, createIfMissing);
+        }
+        private static BaseSettings[] GetAllInstances(Type[] childTypes, bool createIfMissing)
         {
             BaseSettings[] settings = new BaseSettings[childTypes.Length];
 
             for (int i = 0; i < settings.Length; i++)
             {
-                settings[i] = GetInstance(childTypes[i]);
+                settings[i] = GetInstance(childTypes[i], createIfMissing);
             }
 
             return settings;
@@ -429,7 +439,11 @@ namespace Dhs5.Utility.Settings
 
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
-            m_settings = BaseSettings.GetInstance(m_type);
+            LoadSettings(false);
+        }
+        private void LoadSettings(bool createIfMissing)
+        {
+            m_settings = BaseSettings.GetInstance(m_type, createIfMissing);
             if (m_settings != null)
             {
                 m_editor = Editor.CreateEditor(m_settings);
@@ -457,6 +471,15 @@ namespace Dhs5.Utility.Settings
                 //EditorGUILayout.Space(10f);
 
                 m_editor.OnInspectorGUI();
+            }
+            else
+            {
+                // Assets are only created on demand
+                EditorGUILayout.HelpBox("No asset exists for these settings", MessageType.Info);
+                if (GUILayout.Button("Create"))
+                {
+                    LoadSettings(true);
+                }
             }
         }
 
