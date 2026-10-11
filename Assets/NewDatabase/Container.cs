@@ -326,12 +326,14 @@ namespace Dhs5.Utility.NewDatabase
 
         protected struct ListEntry
         {
-            public ListEntry(int index, int propertyIndex, SerializedProperty property)
+            public ListEntry(int index, int propertyIndex, SerializedProperty property, bool isValid)
             {
                 this.displayIndex = index;
                 this.propertyIndex = propertyIndex;
                 this.property = property;
-                if (property.objectReferenceValue is IContainerElement elem)
+                this.isValid = isValid;
+                var obj = property.objectReferenceValue;
+                if (obj is IContainerElement elem)
                 {
                     this.element = elem;
                 }
@@ -339,12 +341,18 @@ namespace Dhs5.Utility.NewDatabase
                 {
                     this.element = null;
                 }
-                this.g_name = new GUIContent(property.objectReferenceValue.name, property.objectReferenceValue.name);
+                this.g_name = obj != null ? new GUIContent(obj.name, obj.name) : new GUIContent(MissingEntryName, "The referenced object doesn't exist anymore");
             }
+
+            public const string MissingEntryName = "Missing";
 
             public int displayIndex;
             public int propertyIndex;
             public SerializedProperty property;
+            /// <summary>
+            /// False if the object is missing or its type isn't accepted by the container anymore
+            /// </summary>
+            public bool isValid;
             public IContainerElement element;
             public GUIContent g_name;
         }
@@ -444,6 +452,41 @@ namespace Dhs5.Utility.NewDatabase
         protected GUIContent g_name = new GUIContent("Name", "Actual object's name");
 
         protected Color m_focusedListEntryBackgroundColor = Color.gray2;
+        protected Color m_invalidListEntryTextColor = new Color(1f, 0.35f, 0.35f);
+
+        protected GUIStyle m_invalidEntryNameStyle;
+        protected GUIStyle InvalidEntryNameStyle
+        {
+            get
+            {
+                if (m_invalidEntryNameStyle == null)
+                {
+                    m_invalidEntryNameStyle = new GUIStyle(EditorStyles.boldLabel);
+                    SetStyleTextColor(m_invalidEntryNameStyle, m_invalidListEntryTextColor);
+                }
+                return m_invalidEntryNameStyle;
+            }
+        }
+        protected GUIStyle m_invalidEntryUIDStyle;
+        protected GUIStyle InvalidEntryUIDStyle
+        {
+            get
+            {
+                if (m_invalidEntryUIDStyle == null)
+                {
+                    m_invalidEntryUIDStyle = new GUIStyle(EditorStyles.miniLabel);
+                    SetStyleTextColor(m_invalidEntryUIDStyle, m_invalidListEntryTextColor);
+                }
+                return m_invalidEntryUIDStyle;
+            }
+        }
+        private static void SetStyleTextColor(GUIStyle style, Color color)
+        {
+            style.normal.textColor = color;
+            style.hover.textColor = color;
+            style.active.textColor = color;
+            style.focused.textColor = color;
+        }
 
         #endregion
 
@@ -499,10 +542,9 @@ namespace Dhs5.Utility.NewDatabase
 
             FindSerializedProperties();
 
+            // Invalid entries are only shown : their removal is offered by the refresh button
             serializedObject.Update();
             RefreshObjectTypes();
-            ValidateContainerContentFromObjectTypes();
-            serializedObject.ApplyModifiedProperties();
             RefreshListEntries();
             RefreshListDisplayedProperties();
 
@@ -554,24 +596,57 @@ namespace Dhs5.Utility.NewDatabase
             m_addMenu = CreateAddMenuFromObjectTypes();
         }
 
-        protected virtual void ValidateContainerContentFromObjectTypes()
+        /// <returns>False if <paramref name="obj"/> is missing or its type isn't accepted by the container anymore</returns>
+        protected virtual bool IsEntryValid(UnityEngine.Object obj)
+        {
+            return obj != null && m_objectTypes.Contains(obj.GetType());
+        }
+
+        /// <summary>
+        /// Shows a dialog listing the invalid entries and removes them if accepted (can be undone)
+        /// </summary>
+        protected virtual void OfferInvalidEntriesRemoval()
+        {
+            // Called after the GUI pass : the editor can be gone
+            if (this == null || target == null || p_objects == null) return;
+
+            serializedObject.Update();
+
+            List<string> invalidEntries = new();
+            for (int i = 0; i < p_objects.arraySize; i++)
+            {
+                var obj = p_objects.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (!IsEntryValid(obj))
+                {
+                    var name = obj != null ? obj.name + " (" + obj.GetType().Name + ")" : ListEntry.MissingEntryName;
+                    invalidEntries.Add("- " + name + (obj is IContainerElement elem ? " [UID " + elem.UID + "]" : string.Empty));
+                }
+            }
+            if (invalidEntries.Count == 0) return;
+
+            const int maxListed = 15;
+            var list = string.Join("\n", invalidEntries.Take(maxListed));
+            if (invalidEntries.Count > maxListed) list += "\n... and " + (invalidEntries.Count - maxListed) + " more";
+
+            if (EditorUtility.DisplayDialog("Invalid entries in " + target.name,
+                invalidEntries.Count + " entries are missing or have a type this container doesn't accept anymore :\n\n" + list
+                + "\n\nRemove them from the container ? The assets themselves are kept.",
+                "Remove", "Keep"))
+            {
+                RemoveInvalidEntries();
+                serializedObject.ApplyModifiedProperties();
+                RefreshListEntries();
+                RefreshListDisplayedProperties();
+                Repaint();
+            }
+        }
+        protected virtual void RemoveInvalidEntries()
         {
             for (int i = p_objects.arraySize - 1; i >= 0; i--)
             {
-                var p_entry = p_objects.GetArrayElementAtIndex(i);
-                if (p_entry.objectReferenceValue != null)
-                {
-                    var entryType = p_entry.objectReferenceValue.GetType();
-                    if (!m_objectTypes.Contains(entryType))
-                    {
-                        p_objects.DeleteArrayElementAtIndex(i);
-                        Debug.Log("Auto remove entry " + i + " from " + m_container + " : type " + entryType + " invalid");
-                    }
-                }
-                else
+                if (!IsEntryValid(p_objects.GetArrayElementAtIndex(i).objectReferenceValue))
                 {
                     p_objects.DeleteArrayElementAtIndex(i);
-                    Debug.Log("Auto remove entry " + i + " from " + m_container + " : null element");
                 }
             }
         }
@@ -626,19 +701,19 @@ namespace Dhs5.Utility.NewDatabase
             int focusedIndex = -1;
             for (int i = 0; i < m_listSize; i++)
             {
+                // Invalid entries (missing object or type not accepted) are listed too
                 var p_entry = p_objects.GetArrayElementAtIndex(i);
-                if (p_entry.objectReferenceValue != null)
+                var obj = p_entry.objectReferenceValue;
+                var name = obj != null ? obj.name : ListEntry.MissingEntryName;
+                if (!isSearching
+                    || name.Contains(m_searchString, System.StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (!isSearching
-                        || p_entry.objectReferenceValue.name.Contains(m_searchString, System.StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        // Keeps the focus on the focused object if still in the list
-                        if (m_focusedObject != null && p_entry.objectReferenceValue == m_focusedObject)
-                            focusedIndex = index;
+                    // Keeps the focus on the focused object if still in the list
+                    if (m_focusedObject != null && obj == m_focusedObject)
+                        focusedIndex = index;
 
-                        m_listEntries.Add(new ListEntry(index, i, p_entry));
-                        index++;
-                    }
+                    m_listEntries.Add(new ListEntry(index, i, p_entry, IsEntryValid(obj)));
+                    index++;
                 }
             }
 
@@ -998,7 +1073,7 @@ namespace Dhs5.Utility.NewDatabase
 
             OnResizeGUI();
 
-            OnDatabaseInpsectorGUI();
+            OnDatabaseInspectorGUI();
         }
 
         #endregion
@@ -1079,9 +1154,12 @@ namespace Dhs5.Utility.NewDatabase
         protected virtual void OnToolbarRefreshButton()
         {
             RefreshObjectTypes();
-            ValidateContainerContentFromObjectTypes();
             RefreshListEntries();
             RefreshListDisplayedProperties();
+
+            // A modal dialog during the GUI pass breaks the layout : shown right after
+            EditorApplication.delayCall -= OfferInvalidEntriesRemoval;
+            EditorApplication.delayCall += OfferInvalidEntriesRemoval;
         }
 
         protected virtual void OnToolbarAddButton()
@@ -1409,10 +1487,10 @@ namespace Dhs5.Utility.NewDatabase
             }
         }
 
-        protected virtual bool CanDrawListEntryName(ListEntry entry) => entry.property != null && entry.property.objectReferenceValue != null;
-        protected virtual void DrawListEntryName(Rect rect, ListEntry entry) => GUI.Label(rect, entry.g_name, EditorStyles.boldLabel);
+        protected virtual bool CanDrawListEntryName(ListEntry entry) => entry.property != null;
+        protected virtual void DrawListEntryName(Rect rect, ListEntry entry) => GUI.Label(rect, entry.g_name, entry.isValid ? EditorStyles.boldLabel : InvalidEntryNameStyle);
         protected virtual bool CanDrawListEntryUID(ListEntry entry) => entry.element != null;
-        protected virtual void DrawListEntryUID(Rect rect, ListEntry entry) => EditorGUI.LabelField(rect, entry.element.UID.ToString(), EditorStyles.miniLabel);
+        protected virtual void DrawListEntryUID(Rect rect, ListEntry entry) => EditorGUI.LabelField(rect, entry.element.UID.ToString(), entry.isValid ? EditorStyles.miniLabel : InvalidEntryUIDStyle);
         protected virtual void DrawListEntryBottomSeparator(Rect rect) => EditorGUI.DrawRect(new Rect(rect.x, rect.y + rect.height - 1f, rect.width, 1f), Color.gray5);
 
         protected virtual void DrawListEntryDisplayedProperties(Rect movingRect, ListEntry entry)
@@ -1505,10 +1583,8 @@ namespace Dhs5.Utility.NewDatabase
             m_focusedIndex = entry.displayIndex;
             GUI.FocusControl(null);
             m_listHasFocus = true;
-            if (entry.property != null && entry.property.objectReferenceValue != null)
-            {
-                m_focusedObject = entry.property.objectReferenceValue;
-            }
+            // Null for a missing entry : no inspector shown
+            m_focusedObject = entry.property != null ? entry.property.objectReferenceValue : null;
         }
         protected virtual void OnDeselectListEntry()
         {
@@ -1574,7 +1650,7 @@ namespace Dhs5.Utility.NewDatabase
 
         #region Inspector GUI
 
-        protected virtual void OnDatabaseInpsectorGUI()
+        protected virtual void OnDatabaseInspectorGUI()
         {
             if (m_focusedObject != null)
             {
