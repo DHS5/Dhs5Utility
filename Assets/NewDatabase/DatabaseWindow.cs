@@ -7,7 +7,7 @@ using Dhs5.Utility.GUIs;
 using UnityEditor;
 using Dhs5.Utility.Editors;
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.NewDatabase
 {
     public class DatabaseWindow : EditorWindow
     {
@@ -24,8 +24,8 @@ namespace Dhs5.Utility.Databases
 
         #region Members
 
-        private Editor m_editor;
-        private BaseDataContainer[] m_databases;
+        private ContainerEditor m_editor;
+        private Container[] m_databases;
         private Type[] m_types;
         private string[] m_names;
         private string[] m_paths;
@@ -34,20 +34,12 @@ namespace Dhs5.Utility.Databases
         // --- GUI Members ---
 
         private Vector2 m_scrollPosition;
-        private bool m_previewOpen;
-        private bool m_previewWasOpen;
         private float m_inspectorHeight;
         private float m_inspectorY;
 
         // --- STATIC Members ---
 
         private int m_currentSelection;
-
-        // --- Parameters ---
-
-        private float m_previewWindowHeight = 200f;
-        private float m_previewButtonHeight = 20f;
-        private float m_previewMargin = 8f;
 
         #endregion
 
@@ -88,48 +80,27 @@ namespace Dhs5.Utility.Databases
                 rect.x = 0f; rect.width = position.width;
                 EditorGUI.DrawRect(rect, Color.white);
 
-                if (TryGetEditorAtIndex(m_currentSelection, out Editor editor))
+                if (TryGetEditorAtIndex(m_currentSelection, out var editor))
                 {
-                    bool hasPreview = editor.HasPreviewGUI();
-                    float previewHeight = m_previewOpen ? m_previewWindowHeight + m_previewButtonHeight : m_previewButtonHeight;
-
+                    // Area left below the separator
                     if (Event.current.type != EventType.Layout)
                     {
-                        m_inspectorY = GUILayoutUtility.GetLastRect().y;
-                        m_inspectorHeight = position.height - m_inspectorY - previewHeight - m_previewMargin;
+                        m_inspectorY = GUILayoutUtility.GetLastRect().yMax;
+                        m_inspectorHeight = position.height - m_inspectorY;
                     }
 
-                    m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition, GUILayout.Height(m_inspectorHeight));
-
-                    editor.OnInspectorGUI();
-
-                    EditorGUILayout.EndScrollView();
-
-                    if (hasPreview)
+                    if (Database.DebugModeEnabled)
                     {
-                        Rect previewRect = new Rect(0, m_inspectorY + m_inspectorHeight + m_previewMargin, position.width, previewHeight);
-                        
-                        if (m_previewOpen)
-                        {
-                            OnPreviewButtonGUI(new Rect(previewRect.x, previewRect.y, previewRect.width, m_previewButtonHeight));
-                            editor.DrawPreview(new Rect(previewRect.x, previewRect.y + m_previewButtonHeight, previewRect.width, m_previewWindowHeight));
-                            if (!m_previewWasOpen)
-                            {
-                                GUI.changed = true;
-                                m_previewWasOpen = true;
-                            }
-                        }
-                        else
-                        {
-                            OnPreviewButtonGUI(previewRect);
-                            if (m_previewWasOpen)
-                            {
-                                GUI.changed = true;
-                                m_previewWasOpen = false;
-                            }
-                        }
+                        m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition, GUILayout.Height(m_inspectorHeight));
+                        editor.OnDefaultInspectorGUI();
+                        EditorGUILayout.EndScrollView();
                     }
-                }               
+                    else
+                    {
+                        // Not inside a scroll view : the container GUI handles its own scroll views
+                        editor.OnDatabaseCoreGUI(new Rect(0f, m_inspectorY, position.width, m_inspectorHeight));
+                    }
+                }
             }
         }
 
@@ -166,20 +137,6 @@ namespace Dhs5.Utility.Databases
             }
         }
 
-        private void OnPreviewButtonGUI(Rect rect)
-        {
-            EditorGUI.DrawRect(rect, GUIHelper.grey015);
-            EditorGUI.LabelField(rect, "Preview", GUIHelper.centeredBoldLabel);
-
-            if (Event.current.type == EventType.MouseDown
-                && rect.Contains(Event.current.mousePosition))
-            {
-                m_previewOpen = !m_previewOpen;
-                Event.current.Use();
-                GUI.changed = true;
-            }
-        }
-
         #endregion
 
 
@@ -187,9 +144,9 @@ namespace Dhs5.Utility.Databases
 
         private void GetDatabases(bool createIfMissing)
         {
-            m_editor = null;
+            // Destroyed, not just dropped
+            ClearEditors();
 
-            // Settings
             m_databases = Database.GetAllDatabaseInstances((da) => da.showInDatabaseWindow, createIfMissing, out m_types);
 
             // Paths, names & options
@@ -201,12 +158,12 @@ namespace Dhs5.Utility.Databases
                 // Missing assets are named after their type
                 var name = m_databases[i] != null ? m_databases[i].name : m_types[i].Name;
                 m_names[i] = name.Contains("Database") ? name.Replace("Database", "") : name;
-                m_paths[i] = BaseDataContainer.Editor_GetPath(m_types[i]);
+                m_paths[i] = Database.Editor_GetDatabaseWindowPath(m_types[i]);
                 m_options[i] = i;
             }
         }
 
-        private Editor GetOrCreateEditor(BaseDataContainer database)
+        private ContainerEditor GetOrCreateEditor(Container database)
         {
             if (m_editor != null && m_editor.target == database) return m_editor;
 
@@ -216,7 +173,17 @@ namespace Dhs5.Utility.Databases
                 DestroyImmediate(m_editor);
             }
 
-            m_editor = Editor.CreateEditor(database);
+            var editor = Editor.CreateEditor(database);
+            if (editor is ContainerEditor containerEditor)
+            {
+                m_editor = containerEditor;
+            }
+            else
+            {
+                // Custom editor not deriving from ContainerEditor : destroyed, the window always uses a ContainerEditor
+                if (editor != null) DestroyImmediate(editor);
+                m_editor = Editor.CreateEditor(database, typeof(ContainerEditor)) as ContainerEditor;
+            }
             return m_editor;
         }
         private void ClearEditors()
@@ -225,11 +192,12 @@ namespace Dhs5.Utility.Databases
             {
                 DestroyImmediate(m_editor);
             }
+            m_editor = null;
         }
 
-        private bool TryGetEditorAtIndex(int index, out Editor editor)
+        private bool TryGetEditorAtIndex(int index, out ContainerEditor editor)
         {
-            BaseDataContainer database = m_databases[index];
+            Container database = m_databases[index];
             if (database != null)
             {
                 editor = GetOrCreateEditor(database);

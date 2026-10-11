@@ -12,7 +12,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.NewDatabase
 {
-    public class Container : ScriptableObject
+    public class Container : ScriptableObject, ISerializationCallbackReceiver
     {
         #region STRUCT MappedObject
 
@@ -35,7 +35,20 @@ namespace Dhs5.Utility.NewDatabase
 
         [SerializeField] protected List<UnityEngine.Object> m_objects = new();
 
-        protected Dictionary<int, MappedObject> m_mappedObjects;
+        [NonSerialized] protected Dictionary<int, MappedObject> m_mappedObjects;
+
+        #endregion
+
+        #region Serialization Callbacks
+
+        public virtual void OnBeforeSerialize() { }
+        /// <summary>
+        /// m_objects is only changed through serialization (editor changes, undo, reimport) : the mapped objects are rebuilt on next access
+        /// </summary>
+        public virtual void OnAfterDeserialize()
+        {
+            m_mappedObjects = null;
+        }
 
         #endregion
 
@@ -120,6 +133,8 @@ namespace Dhs5.Utility.NewDatabase
 
         #region Public Accessors
 
+        public virtual int Count => m_objects.Count;
+
         // GETTERS
         public virtual UnityEngine.Object GetByUID(int uid)
         {
@@ -153,12 +168,43 @@ namespace Dhs5.Utility.NewDatabase
             return false;
         }
 
+        // INDEXED GETTERS
+        public virtual UnityEngine.Object GetAtIndex(int index)
+        {
+            if (TryGetAtIndex(index, out var obj))
+            {
+                return obj;
+            }
+            return null;
+        }
+        public virtual bool TryGetAtIndex(int index, out UnityEngine.Object obj)
+        {
+            return m_objects.IsIndexValid(index, out obj);
+        }
+        public virtual T GetAtIndex<T>(int index) where T : UnityEngine.Object, IContainerElement
+        {
+            if (TryGetAtIndex<T>(index, out var obj))
+            {
+                return obj;
+            }
+            return null;
+        }
+        public virtual bool TryGetAtIndex<T>(int index, out T result) where T : UnityEngine.Object, IContainerElement
+        {
+            if (m_objects.IsIndexValid(index, out var obj) && obj is T t)
+            {
+                result = t; 
+                return true;
+            }
+            result = null;
+            return false;
+        }
+
         // ITERATORS
         public virtual IEnumerable<UnityEngine.Object> GetObjects()
         {
             return m_objects;
         }
-
         public virtual IEnumerable<T> GetObjectsOfType<T>() where T : UnityEngine.Object, IContainerElement
         {
             foreach (var obj in m_objects)
@@ -913,11 +959,18 @@ namespace Dhs5.Utility.NewDatabase
 
         // --- GUI ---
 
-        #region Temp
+        #region Core GUI
 
         public override void OnInspectorGUI()
         {
-            OnDatabaseCoreGUI(new Rect(0f, 0f, Screen.width, Screen.height));
+            if (Database.DebugModeEnabled)
+                OnDefaultInspectorGUI();
+            else
+                OnDatabaseCoreGUI(new Rect(0f, 0f, Screen.width, Screen.height));
+        }
+        public virtual void OnDefaultInspectorGUI()
+        {
+            base.OnInspectorGUI();
         }
 
         #endregion
