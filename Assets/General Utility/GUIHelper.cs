@@ -1,9 +1,11 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Dhs5.Utility.GUIs
 {
+    [NoAutoStaticsCleanup]
     public class GUIHelper
     {
         #region GUI Color

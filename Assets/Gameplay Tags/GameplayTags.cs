@@ -1,10 +1,12 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Dhs5.Utility.Tags
 {
-    public static class GameplayTags
+    [AutoStaticsCleanup]
+    public static partial class GameplayTags
     {
         #region Engine Callbacks
 

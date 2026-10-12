@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +7,7 @@ using UnityEngine.LowLevel;
 
 namespace Dhs5.Utility.PlayerLoops
 {
+    [NoAutoStaticsCleanup]
     public static class PlayerLoopManager
     {
         #region Engine Callbacks

@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ namespace Dhs5.Utility.Settings
     /// <summary>
     /// Counts play sessions : PlayerPrefMembers load their value again in each session (needed when domain reload is disabled)
     /// </summary>
+    [NoAutoStaticsCleanup]
     internal static class PlayerPrefMemberSession
     {
         internal static int Current { get; private set; }

@@ -1,6 +1,8 @@
+using Unity.Scripting.LifecycleManagement;
 using Dhs5.Utility.Updates;
 using UnityEngine;
 
+[NoAutoStaticsCleanup]
 public struct DelayedCallHandle
 {
     #region Constructors

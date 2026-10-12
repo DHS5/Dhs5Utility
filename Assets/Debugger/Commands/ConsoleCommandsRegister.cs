@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Reflection;
@@ -5,6 +6,7 @@ using System;
 
 namespace Dhs5.Utility.Debugger
 {
+    [NoAutoStaticsCleanup]
     public static class ConsoleCommandsRegister
     {
         #region Members

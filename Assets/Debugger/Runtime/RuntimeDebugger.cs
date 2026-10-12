@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +10,7 @@ using System.Reflection;
 
 namespace Dhs5.Utility.Debugger
 {
+    [NoAutoStaticsCleanup]
     public static class RuntimeDebugger
     {
 #if UNITY_EDITOR

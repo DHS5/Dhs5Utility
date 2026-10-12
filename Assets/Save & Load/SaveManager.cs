@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,6 +6,7 @@ using UnityEngine;
 
 namespace Dhs5.Utility.SaveLoad
 {
+    [NoAutoStaticsCleanup]
     public static class SaveManager
     {
         #region Engine Callbacks

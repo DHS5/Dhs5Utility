@@ -177,7 +177,7 @@ public static class Logger
 
     // --- ON SCREEN ---
     [HideInCallstack]
-    [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+    [System.Diagnostics.Conditional("DEBUG")]
     public static void LogOnScreen(EDebugCategory category, object message, LogType logType = LogType.Log, int level = DebuggerAsset.MAX_DEBUGGER_LEVEL, float duration = DebuggerAsset.DEFAULT_SCREEN_LOG_DURATION)
     {
         if (!Application.isPlaying) return;

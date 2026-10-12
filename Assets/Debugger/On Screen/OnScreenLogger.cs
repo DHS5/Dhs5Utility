@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,9 +11,10 @@ namespace Dhs5.Utility.Debugger
     /// Displays logs on screen for a few seconds.<br></br>
     /// Only compiled in the editor and development builds : in release builds, <see cref="Log"/> does nothing.
     /// </summary>
-    public class OnScreenLogger : MonoBehaviour
+    [AutoStaticsCleanup]
+    public partial class OnScreenLogger : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if DEBUG
         #region STRUCT : ScreenLog
 
         private readonly struct ScreenLog
@@ -170,7 +172,7 @@ namespace Dhs5.Utility.Debugger
 
         #region STATIC
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if DEBUG
         #region Instance Creation
 
         private static OnScreenLogger Instance { get; set; }
@@ -205,7 +207,7 @@ namespace Dhs5.Utility.Debugger
         /// </summary>
         public static void Log(DebuggerLog log, float duration = DebuggerAsset.DEFAULT_SCREEN_LOG_DURATION)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if DEBUG
             GetInstance().AddScreenLog(log, duration);
 #endif
         }

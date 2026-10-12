@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using Dhs5.Utility.GUIs;
 using UnityEngine;
@@ -11,9 +12,10 @@ namespace Dhs5.Utility.Debugger
     /// (<see cref="IsOpened"/> is always false, <see cref="Opened"/>/<see cref="Closed"/> never fire, <see cref="Open"/> does nothing)
     /// so that game code using it still compiles.
     /// </summary>
-    public class OnScreenConsole : MonoBehaviour
+    [AutoStaticsCleanup]
+    public partial class OnScreenConsole : MonoBehaviour
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if DEBUG
         #region INSTANCE
 
         #region Consts
@@ -371,7 +373,7 @@ namespace Dhs5.Utility.Debugger
 
         #region Events & State
 
-#if !(UNITY_EDITOR || DEVELOPMENT_BUILD)
+#if !DEBUG
 #pragma warning disable CS0414 // Never fired in release builds
 #endif
         /// <summary>
@@ -382,7 +384,7 @@ namespace Dhs5.Utility.Debugger
         /// Triggered when the on screen console closes
         /// </summary>
         public static event Action Closed;
-#if !(UNITY_EDITOR || DEVELOPMENT_BUILD)
+#if !DEBUG
 #pragma warning restore CS0414
 #endif
 
@@ -390,7 +392,7 @@ namespace Dhs5.Utility.Debugger
         /// Whether the on screen console is currently opened
         /// </summary>
         public static bool IsOpened =>
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if DEBUG
             Instance != null && Instance.IsActive;
 #else
             false;
@@ -398,7 +400,7 @@ namespace Dhs5.Utility.Debugger
 
         #endregion
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if DEBUG
         #region Instance Creation
 
         private static OnScreenConsole Instance { get; set; }

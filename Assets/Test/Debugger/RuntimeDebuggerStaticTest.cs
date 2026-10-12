@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using Dhs5.Utility.Debugger;
 using UnityEngine;
 
@@ -5,6 +6,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+[NoAutoStaticsCleanup]
 public static class RuntimeDebuggerStaticTest
 {
     public static void Register(bool register)

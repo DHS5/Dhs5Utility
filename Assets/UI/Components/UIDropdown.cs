@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections.Generic;
 using System;
 using TMPro;
@@ -10,6 +11,7 @@ using System.Collections;
 namespace Dhs5.Utility.UI
 {
     [RequireComponent(typeof(RectTransform))]
+    [NoAutoStaticsCleanup]
     public class UIDropdown : UISelectable, IPointerClickHandler, ISubmitHandler, ICancelHandler
     {
         #region CLASS OptionData

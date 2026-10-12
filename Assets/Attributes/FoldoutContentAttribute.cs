@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ public class FoldoutContentAttribute : PropertyAttribute
 #if UNITY_EDITOR
 
 [CustomPropertyDrawer(typeof(FoldoutContentAttribute))]
+[NoAutoStaticsCleanup]
 public class FoldoutContentAttributeDrawer : PropertyDrawer
 {
     #region GUI

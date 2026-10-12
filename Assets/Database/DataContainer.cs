@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Databases
 {
+    [NoAutoStaticsCleanup]
     public abstract class BaseDataContainer : ScriptableObject, IEnumerable
     {
         #region Accessors

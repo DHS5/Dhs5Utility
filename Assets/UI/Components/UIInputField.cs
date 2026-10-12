@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System;
@@ -14,6 +15,7 @@ using TMPro.EditorUtilities;
 
 namespace Dhs5.Utility.UI
 {
+    [NoAutoStaticsCleanup]
     public class UIInputField : UISelectable, IUpdateSelectedHandler,
         IBeginDragHandler, IDragHandler, IEndDragHandler, IScrollHandler,
         IPointerClickHandler, ISubmitHandler, ICancelHandler,
@@ -4912,6 +4914,7 @@ namespace Dhs5.Utility.UI
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(UIInputField))]
+    [NoAutoStaticsCleanup]
     public class UIInputFieldEditor : UISelectableEditor
     {
         #region Members

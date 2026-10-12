@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -31,7 +32,8 @@ namespace Dhs5.Utility.UI
 
     #endregion
 
-    public class UISelectable : Selectable, IUIBoxable
+    [AutoStaticsCleanup]
+    public partial class UISelectable : Selectable, IUIBoxable
     {
         #region Members
 

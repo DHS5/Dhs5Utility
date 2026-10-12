@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using System.Collections.Generic;
 using Dhs5.Utility.GUIs;
@@ -13,6 +14,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Debugger
 {
+    [NoAutoStaticsCleanup]
     public class DebuggerAsset : ScriptableObject
     {
         #region CLASS OnScreenGUISettings

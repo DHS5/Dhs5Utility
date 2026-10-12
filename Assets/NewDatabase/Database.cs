@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,6 +13,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.NewDatabase
 {
+    [NoAutoStaticsCleanup]
     public static class Database
     {
         #region Instance

@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -573,6 +574,7 @@ namespace Dhs5.Utility.UI
     #region TransitionStateOrder
 
     [Serializable]
+    [NoAutoStaticsCleanup]
     public class UITransitionStateOrder : IEnumerable<int>
     {
         #region Members

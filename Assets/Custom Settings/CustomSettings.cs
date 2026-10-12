@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,6 +15,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Settings
 {
+    [NoAutoStaticsCleanup]
     public abstract class BaseSettings : ScriptableObject 
     {
         #region Instance
@@ -388,6 +390,7 @@ namespace Dhs5.Utility.Settings
 
         #endregion
     }
+    [NoAutoStaticsCleanup]
     public abstract class CustomSettings<T> : BaseSettings where T : CustomSettings<T>
     {
         #region Instance

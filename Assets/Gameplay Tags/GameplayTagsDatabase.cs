@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using Dhs5.Utility.Databases;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using UnityEngine;
 namespace Dhs5.Utility.Tags
 {
     [Database("Gameplay Tags", dataType:typeof(GameplayTag))]
+    [NoAutoStaticsCleanup]
     public class GameplayTagsDatabase : ScriptableDataContainer
     {
         #region Instance

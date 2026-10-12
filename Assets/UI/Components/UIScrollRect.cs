@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -1289,6 +1290,7 @@ namespace Dhs5.Utility.UI
 
     [CustomEditor(typeof(UIScrollRect), editorForChildClasses:true)]
     [CanEditMultipleObjects]
+    [NoAutoStaticsCleanup]
     public class UIScrollRectEditor : Editor
     {
         #region Members

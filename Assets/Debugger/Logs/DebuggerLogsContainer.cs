@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,6 +12,7 @@ namespace Dhs5.Utility.Debugger
     /// Logs are identified by an ID that stays valid when the oldest logs are removed :
     /// IDs are consecutive, from <see cref="FirstLogId"/> (oldest log kept) to <see cref="NextLogId"/> - 1 (newest log).
     /// </summary>
+    [NoAutoStaticsCleanup]
     public static class DebuggerLogsContainer
     {
         #region Engine Callbacks

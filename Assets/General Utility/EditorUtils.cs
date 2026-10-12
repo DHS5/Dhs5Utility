@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,6 +11,7 @@ using System.IO;
 
 namespace Dhs5.Utility.Editors
 {
+    [NoAutoStaticsCleanup]
     public static class EditorUtils
     {
         #region Editor Events

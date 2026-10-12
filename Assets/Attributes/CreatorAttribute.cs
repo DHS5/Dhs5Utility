@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,6 +20,7 @@ public class CreatorAttribute : PropertyAttribute
 #if UNITY_EDITOR
 
 [CustomPropertyDrawer(typeof(CreatorAttribute))]
+[NoAutoStaticsCleanup]
 public class CreatorAttributeDrawer : PropertyDrawer
 {
     #region GUI

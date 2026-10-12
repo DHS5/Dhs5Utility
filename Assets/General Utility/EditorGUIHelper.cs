@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +10,7 @@ using UnityEditor;
 
 namespace Dhs5.Utility.Editors
 {
+    [NoAutoStaticsCleanup]
     public static class EditorGUIHelper
     {
         #region GUI Icons

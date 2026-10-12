@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
@@ -12,6 +13,7 @@ using UnityEditorInternal;
 
 namespace Dhs5.Utility.SaveLoad
 {
+    [NoAutoStaticsCleanup]
     public class SaveAsset : ScriptableObject
     {
         #region STRUCT CategoryRename

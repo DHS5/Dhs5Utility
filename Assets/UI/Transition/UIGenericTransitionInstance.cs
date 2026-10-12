@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using UnityEngine;
 using System.Collections.Generic;
@@ -58,6 +59,7 @@ namespace Dhs5.Utility.UI
 #if UNITY_EDITOR
 
     [CustomPropertyDrawer(typeof(UIGenericTransitionInstance))]
+    [NoAutoStaticsCleanup]
     public class UIGenericTransitionInstanceDrawer : PropertyDrawer
     {
         #region Members

@@ -1,8 +1,10 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Dhs5.Utility.UI
 {
+    [NoAutoStaticsCleanup]
     public static class UIListPool<T>
     {
         // Object pool to avoid allocations.

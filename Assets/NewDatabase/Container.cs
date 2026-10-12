@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
@@ -279,6 +280,7 @@ namespace Dhs5.Utility.NewDatabase
 #if UNITY_EDITOR
 
     [CustomEditor(typeof(Container), editorForChildClasses: true)]
+    [NoAutoStaticsCleanup]
     public class ContainerEditor : Editor
     {
         #region STRUCT ListEntry

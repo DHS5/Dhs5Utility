@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System.Linq;
 using UnityEngine.LowLevel;
 using UnityEngine;
@@ -8,6 +9,7 @@ using Dhs5.Utility.PlayerLoops;
 
 namespace Dhs5.Utility.Updates
 {
+    [NoAutoStaticsCleanup]
     public sealed class Updater : IPlayerLoopModifier
     {
         #region Instance

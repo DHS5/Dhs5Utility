@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -411,6 +412,7 @@ namespace Dhs5.Utility.Updates
         #endregion
     }
 
+    [NoAutoStaticsCleanup]
     public struct UpdateTimelineInstanceHandle
     {
         #region Constructors

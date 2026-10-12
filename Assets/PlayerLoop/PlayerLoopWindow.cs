@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using UnityEngine.LowLevel;
 using UnityEngine.Profiling;
@@ -6,6 +7,7 @@ using UnityEditor;
 
 namespace Dhs5.Utility.PlayerLoops
 {
+    [NoAutoStaticsCleanup]
     public class PlayerLoopWindow : EditorWindow
     {
         #region Static Constructor

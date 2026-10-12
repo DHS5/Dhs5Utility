@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using Unity.Scripting.LifecycleManagement;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +10,7 @@ using System.Text;
 
 namespace Dhs5.Utility.Tags
 {
+    [NoAutoStaticsCleanup]
     public class GameplayTagsSelector : EditorWindow
     {
         public const string CommandName = "GameplayTagsSelected";

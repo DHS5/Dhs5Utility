@@ -1,3 +1,4 @@
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ using Dhs5.Utility.Editors;
 
 namespace Dhs5.Utility.Updates
 {
+    [NoAutoStaticsCleanup]
     public class UpdaterAsset : ScriptableObject
     {
         #region STRUCT UpdateConditionElement
