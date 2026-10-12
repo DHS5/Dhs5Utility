@@ -258,57 +258,16 @@ namespace Dhs5.Utility.NewDatabase
 
         #region List Callbacks
 
-        public virtual bool Editor_OnBeforeNewObjectInContainer(UnityEngine.Object newObj, IContainerElement newElem)
+        public virtual bool Editor_CanAddNewObjectInContainer(UnityEngine.Object newObj, IContainerElement newElem)
         {
             if (newObj == null || newElem == null || m_objects.Contains(newObj)) return false;
 
-            Editor_EnsureNewObjectValidUID(newObj, newElem);
-
             return true;
         }
-
-        #endregion
-
-        #region Utility
-
-        protected virtual void Editor_EnsureNewObjectValidUID(UnityEngine.Object newObj, IContainerElement newElem)
-        {
-            var dirty = false;
-
-            if (newElem.UID == 0)
-            {
-                newElem.Editor_SetUID(IContainerElement.ComputeContainerElementUID(newObj));
-                dirty = true;
-            }
-
-            var conflict = false;
-            var offset = 0;
-            do
-            {
-                conflict = false;
-
-                foreach (var obj in m_objects)
-                {
-                    if (obj != null && obj != newObj && obj is IContainerElement elem)
-                    {
-                        if (elem.UID == newElem.UID)
-                        {
-                            conflict = true;
-                            offset++;
-                            newElem.Editor_SetUID(IContainerElement.ComputeContainerElementUID(newObj, offset));
-                            dirty = true;
-                            break;
-                        }
-                    }
-                }
-            } while (conflict);
-
-            if (dirty)
-            {
-                EditorUtility.SetDirty(newObj);
-                AssetDatabase.SaveAssetIfDirty(newObj);
-            }
-        }
+        public virtual void Editor_OnNewObjectAddedInContainer(UnityEngine.Object newObj, IContainerElement newElem) { }
+        /// <param name="obj">May be null</param>
+        /// <param name="elem">May be null</param>
+        public virtual void Editor_OnObjectRemovedFromContainer(UnityEngine.Object obj, IContainerElement elem) { }
 
         #endregion
 
@@ -596,10 +555,20 @@ namespace Dhs5.Utility.NewDatabase
             m_addMenu = CreateAddMenuFromObjectTypes();
         }
 
-        /// <returns>False if <paramref name="obj"/> is missing or its type isn't accepted by the container anymore</returns>
+        /// <returns>False if <paramref name="obj"/> is missing or its type isn't accepted by the container anymore, or if it has no UID</returns>
         protected virtual bool IsEntryValid(UnityEngine.Object obj)
         {
+            return IsEntryTypeValid(obj) && HasEntryValidUID(obj);
+        }
+        /// <returns>False if <paramref name="obj"/> is missing or its type isn't accepted by the container anymore : the entry can only be removed</returns>
+        protected virtual bool IsEntryTypeValid(UnityEngine.Object obj)
+        {
             return obj != null && m_objectTypes.Contains(obj.GetType());
+        }
+        /// <returns>False if <paramref name="obj"/> is an element with a UID of 0 : the entry is kept, its UID can be recomputed</returns>
+        protected virtual bool HasEntryValidUID(UnityEngine.Object obj)
+        {
+            return obj is not IContainerElement elem || elem.UID != 0;
         }
 
         /// <summary>
@@ -616,7 +585,7 @@ namespace Dhs5.Utility.NewDatabase
             for (int i = 0; i < p_objects.arraySize; i++)
             {
                 var obj = p_objects.GetArrayElementAtIndex(i).objectReferenceValue;
-                if (!IsEntryValid(obj))
+                if (!IsEntryTypeValid(obj))
                 {
                     var name = obj != null ? obj.name + " (" + obj.GetType().Name + ")" : ListEntry.MissingEntryName;
                     invalidEntries.Add("- " + name + (obj is IContainerElement elem ? " [UID " + elem.UID + "]" : string.Empty));
@@ -642,12 +611,67 @@ namespace Dhs5.Utility.NewDatabase
         }
         protected virtual void RemoveInvalidEntries()
         {
+            List<UnityEngine.Object> removedObjects = new();
+            bool removed = false;
+
             for (int i = p_objects.arraySize - 1; i >= 0; i--)
             {
-                if (!IsEntryValid(p_objects.GetArrayElementAtIndex(i).objectReferenceValue))
+                var obj = p_objects.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (!IsEntryTypeValid(obj))
                 {
-                    p_objects.DeleteArrayElementAtIndex(i);
+                    removed = true;
+                    if (obj != null) removedObjects.Add(obj);
+                    p_objects.DeleteArrayElementAtIndex(i);                    
                 }
+            }
+
+            if (removed) serializedObject.ApplyModifiedProperties();
+            if (removedObjects.Count > 0)
+            {
+                foreach (var obj in removedObjects)
+                {
+                    if (obj != null) m_container.Editor_OnObjectRemovedFromContainer(obj, obj as IContainerElement);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shows a dialog listing the elements with a UID of 0 and recomputes their UID if accepted
+        /// </summary>
+        protected virtual void OfferMissingUIDsRecomputation()
+        {
+            // Called after the GUI pass : the editor can be gone
+            if (this == null || target == null || p_objects == null) return;
+
+            serializedObject.Update();
+
+            List<(UnityEngine.Object, IContainerElement)> missingUIDs = new();
+            for (int i = 0; i < p_objects.arraySize; i++)
+            {
+                var obj = p_objects.GetArrayElementAtIndex(i).objectReferenceValue;
+                // Entries to remove are left to the removal dialog
+                if (IsEntryTypeValid(obj) && !HasEntryValidUID(obj))
+                {
+                    missingUIDs.Add((obj, obj as IContainerElement));
+                }
+            }
+            if (missingUIDs.Count == 0) return;
+
+            const int maxListed = 15;
+            var list = string.Join("\n", missingUIDs.Take(maxListed).Select(e => "- " + e.Item1.name));
+            if (missingUIDs.Count > maxListed) list += "\n... and " + (missingUIDs.Count - maxListed) + " more";
+
+            if (EditorUtility.DisplayDialog("Missing UIDs in " + target.name,
+                missingUIDs.Count + " elements have no UID (0) :\n\n" + list
+                + "\n\nRecompute their UID ?",
+                "Recompute", "Keep"))
+            {
+                foreach (var (obj, elem) in missingUIDs)
+                {
+                    EnsureNewObjectValidUID(obj, elem);
+                }
+                RefreshListEntries();
+                Repaint();
             }
         }
         protected virtual bool IsObjectTypeValid(UnityEngine.Object obj)
@@ -1006,9 +1030,7 @@ namespace Dhs5.Utility.NewDatabase
         }
         protected virtual void OnContextObjectRemove()
         {
-            serializedObject.Update();
             OnTryDeleteListEntry(m_contextEntry);
-            serializedObject.ApplyModifiedProperties();
         }
         protected virtual void OnContextObjectDeleteAsset()
         {
@@ -1021,9 +1043,7 @@ namespace Dhs5.Utility.NewDatabase
                     + "\n\nThe file will be deleted from the project. You cannot undo this action.",
                     "Delete", "Cancel"))
                 {
-                    serializedObject.Update();
                     OnTryDeleteListEntry(m_contextEntry);
-                    serializedObject.ApplyModifiedProperties();
                     AssetDatabase.DeleteAsset(path);
                 }
             }
@@ -1160,6 +1180,8 @@ namespace Dhs5.Utility.NewDatabase
             // A modal dialog during the GUI pass breaks the layout : shown right after
             EditorApplication.delayCall -= OfferInvalidEntriesRemoval;
             EditorApplication.delayCall += OfferInvalidEntriesRemoval;
+            EditorApplication.delayCall -= OfferMissingUIDsRecomputation;
+            EditorApplication.delayCall += OfferMissingUIDsRecomputation;
         }
 
         protected virtual void OnToolbarAddButton()
@@ -1233,19 +1255,24 @@ namespace Dhs5.Utility.NewDatabase
         {
             var result = false;
             var objToAdd = obj;
-            if (obj is IContainerElement newElem)
+            IContainerElement newElem = null;
+            if (obj is IContainerElement elem)
             {
-                result = m_container.Editor_OnBeforeNewObjectInContainer(objToAdd, newElem);
+                newElem = elem;
+                result = m_container.Editor_CanAddNewObjectInContainer(objToAdd, newElem);
             }
             else if (obj is GameObject go && go.TryGetComponent(out newElem))
             {
                 objToAdd = newElem as UnityEngine.Object;
-                result = m_container.Editor_OnBeforeNewObjectInContainer(objToAdd, newElem);
+                result = m_container.Editor_CanAddNewObjectInContainer(objToAdd, newElem);
             }
 
             if (result)
             {
                 serializedObject.Update();
+
+                EnsureNewObjectValidUID(objToAdd, newElem);
+
                 if (p_objects != null)
                 {
                     var newIndex = p_objects.arraySize;
@@ -1253,14 +1280,71 @@ namespace Dhs5.Utility.NewDatabase
                     var p_newEntry = p_objects.GetArrayElementAtIndex(newIndex);
                     if (p_newEntry != null)
                     {
-
                         p_newEntry.objectReferenceValue = objToAdd;
                         serializedObject.ApplyModifiedProperties();
+
+                        m_container.Editor_OnNewObjectAddedInContainer(objToAdd, newElem);
                     }
                 }
             }
 
             return result;
+        }
+
+        protected virtual void EnsureNewObjectValidUID(UnityEngine.Object newObj, IContainerElement newElem)
+        {
+            var dirty = false;
+
+            if (newElem.UID == 0)
+            {
+                var newUID = IContainerElement.Editor_ComputeContainerElementUID(newObj);
+                if (newUID == 0)
+                {
+                    Debug.LogError("Computed new UID for " + newObj + " is 0", newObj);
+                    return;
+                }
+
+                newElem.Editor_SetUID(newUID);
+                dirty = true;
+            }
+
+            var conflict = false;
+            var offset = 0;
+            do
+            {
+                conflict = false;
+
+                for (int i = 0; i < p_objects.arraySize; i++)
+                {
+                    var p_entry = p_objects.GetArrayElementAtIndex(i);
+                    var obj = p_entry != null ? p_entry.objectReferenceValue : null;
+                    if (obj != null && obj != newObj && obj is IContainerElement elem)
+                    {
+                        if (elem.UID == newElem.UID)
+                        {
+                            conflict = true;
+                            offset++;
+                            var newUID = IContainerElement.Editor_ComputeContainerElementUID(newObj, offset);
+                            if (newUID == 0)
+                            {
+                                Debug.LogError("Computed new UID for " + newObj + " is 0", newObj);
+                                return;
+                            }
+
+                            newElem.Editor_SetUID(newUID);
+                            dirty = true;
+                            break; 
+                        }
+                    }
+                }
+            } while (conflict);
+
+            if (dirty)
+            {
+                Debug.Log("Set " + newObj.name + " UID to " + newElem.UID, newObj);
+                EditorUtility.SetDirty(newObj);
+                AssetDatabase.SaveAssetIfDirty(newObj);
+            }
         }
 
         #endregion
@@ -1310,49 +1394,16 @@ namespace Dhs5.Utility.NewDatabase
             {
                 if (Event.current.type == EventType.MouseDown)
                 {
-                    Event.current.Use();
-                    OnDeselectListEntry();
-                    GUI.FocusControl(null);
+                    OnClickOnListArea();
                 }
 
                 else if (Event.current.type == EventType.DragUpdated)
                 {
-                    if (DragAndDrop.objectReferences != null
-                        && DragAndDrop.objectReferences.Length > 0)
-                    {
-                        foreach (var obj in DragAndDrop.objectReferences)
-                        {
-                            if (obj != null && IsObjectTypeValid(obj))
-                            {
-                                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-                                break;
-                            }
-                        }
-                    }
-                    Event.current.Use();
+                    OnDragUpdatedOverListArea();
                 }
                 else if (Event.current.type == EventType.DragPerform)
                 {
-                    if (DragAndDrop.objectReferences != null
-                        && DragAndDrop.objectReferences.Length > 0)
-                    {
-                        var valid = false;
-                        foreach (var obj in DragAndDrop.objectReferences)
-                        {
-                            if (obj != null && IsObjectTypeValid(obj))
-                            {
-                                OnAddFromProject(obj);
-                                valid = true;
-                            }
-                        }
-
-                        if (valid)
-                        {
-                            DragAndDrop.AcceptDrag();
-                            Event.current.Use();
-                        }
-                    }
-
+                    OnDragPerformedOverListArea();
                 }
             }
 
@@ -1363,22 +1414,75 @@ namespace Dhs5.Utility.NewDatabase
                     switch (Event.current.keyCode)
                     {
                         case KeyCode.Backspace or KeyCode.Delete:
-                            if (TryGetFocusedListEntry(out var focusedEntry))
-                            {
-                                Event.current.Use();
-                                OnTryDeleteListEntry(focusedEntry);
-                            }
+                            OnTryDeleteEntryFromKeyboard();
                             break;
 
                         case KeyCode.Return or KeyCode.KeypadEnter:
-                            if (TryGetFocusedListEntry(out focusedEntry))
-                            {
-                                Event.current.Use();
-                                OnDoubleClickListEntry(focusedEntry);
-                            }
+                            OnTryFocusEntryFromKeyboard();
                             break;
                     }
                 }
+            }
+        }
+
+        protected virtual void OnClickOnListArea()
+        {
+            Event.current.Use();
+            OnDeselectListEntry();
+            GUI.FocusControl(null);
+        }
+        protected virtual void OnDragUpdatedOverListArea()
+        {
+            if (DragAndDrop.objectReferences != null
+                && DragAndDrop.objectReferences.Length > 0)
+            {
+                foreach (var obj in DragAndDrop.objectReferences)
+                {
+                    if (obj != null && IsObjectTypeValid(obj))
+                    {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                        break;
+                    }
+                }
+            }
+            Event.current.Use();
+        }
+        protected virtual void OnDragPerformedOverListArea()
+        {
+            if (DragAndDrop.objectReferences != null
+                && DragAndDrop.objectReferences.Length > 0)
+            {
+                var valid = false;
+                foreach (var obj in DragAndDrop.objectReferences)
+                {
+                    if (obj != null && IsObjectTypeValid(obj))
+                    {
+                        OnAddFromProject(obj);
+                        valid = true;
+                    }
+                }
+
+                if (valid)
+                {
+                    DragAndDrop.AcceptDrag();
+                    Event.current.Use();
+                }
+            }
+        }
+        protected virtual void OnTryDeleteEntryFromKeyboard()
+        {
+            if (TryGetFocusedListEntry(out var focusedEntry))
+            {
+                Event.current.Use();
+                OnTryDeleteListEntry(focusedEntry);
+            }
+        }
+        protected virtual void OnTryFocusEntryFromKeyboard()
+        {
+            if (TryGetFocusedListEntry(out var focusedEntry))
+            {
+                Event.current.Use();
+                OnDoubleClickListEntry(focusedEntry);
             }
         }
 
@@ -1601,10 +1705,16 @@ namespace Dhs5.Utility.NewDatabase
         }
         protected virtual void OnTryDeleteListEntry(ListEntry entry)
         {
+            serializedObject.Update();
             if (p_objects != null && p_objects.arraySize > entry.propertyIndex)
             {
-                Undo.RecordObject(target, "Delete list entry");
+                var obj = entry.property.objectReferenceValue;
                 p_objects.DeleteArrayElementAtIndex(entry.propertyIndex);
+                serializedObject.ApplyModifiedProperties();
+                if (m_container != null && obj != null)
+                {
+                    m_container.Editor_OnObjectRemovedFromContainer(obj, entry.element);
+                }
             }
             else
             {

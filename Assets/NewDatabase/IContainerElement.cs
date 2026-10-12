@@ -30,7 +30,7 @@ namespace Dhs5.Utility.NewDatabase
 
 #if UNITY_EDITOR
 
-        public static int ComputeContainerElementUID(UnityEngine.Object obj, int offset = 0)
+        public static int Editor_ComputeContainerElementUID(UnityEngine.Object obj, int offset = 0)
         {
             if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(obj, out var guid, out _))
             {
