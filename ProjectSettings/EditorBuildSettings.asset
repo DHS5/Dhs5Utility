@@ -14,10 +14,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Folder 2/TestScene 2.unity
     guid: c0f94021da583834eb6cb7a67f645c66
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Folder 2/NewTestScene.unity
     guid: 2d181c668bea579438eed48153b36fba
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Folder 1/SaveLoad Test.unity
     guid: 3ca56715e56eb3f4387bc690b851e602
   - enabled: 1
