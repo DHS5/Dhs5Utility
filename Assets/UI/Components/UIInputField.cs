@@ -4791,6 +4791,13 @@ namespace Dhs5.Utility.UI
         /// </summary>
         public virtual float flexibleWidth => -1f;
 
+#if UNITY_6000_7_OR_NEWER
+        /// <summary>
+        /// See ILayoutElement.maxWidth.
+        /// </summary>
+        public virtual float maxWidth => LayoutUtility.DefaultMaxSize;
+#endif
+
         /// <summary>
         /// See ILayoutElement.minHeight.
         /// </summary>
@@ -4822,6 +4829,13 @@ namespace Dhs5.Utility.UI
         /// See ILayoutElement.flexibleHeight.
         /// </summary>
         public virtual float flexibleHeight => -1f;
+
+#if UNITY_6000_7_OR_NEWER
+        /// <summary>
+        /// See ILayoutElement.maxHeight.
+        /// </summary>
+        public virtual float maxHeight => LayoutUtility.DefaultMaxSize;
+#endif
 
         /// <summary>
         /// See ILayoutElement.layoutPriority.

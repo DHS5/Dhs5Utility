@@ -880,6 +880,12 @@ namespace Dhs5.Utility.UI
         /// Called by the layout system.
         /// </summary>
         public virtual float flexibleWidth { get { return -1; } }
+#if UNITY_6000_7_OR_NEWER
+        /// <summary>
+        /// Called by the layout system.
+        /// </summary>
+        public virtual float maxWidth { get { return LayoutUtility.DefaultMaxSize; } }
+#endif
 
         /// <summary>
         /// Called by the layout system.
@@ -893,6 +899,12 @@ namespace Dhs5.Utility.UI
         /// Called by the layout system.
         /// </summary>
         public virtual float flexibleHeight { get { return -1; } }
+#if UNITY_6000_7_OR_NEWER
+        /// <summary>
+        /// Called by the layout system.
+        /// </summary>
+        public virtual float maxHeight { get { return LayoutUtility.DefaultMaxSize; } }
+#endif
 
         /// <summary>
         /// Called by the layout system.

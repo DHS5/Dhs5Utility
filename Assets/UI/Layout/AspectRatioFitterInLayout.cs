@@ -170,13 +170,21 @@ namespace Dhs5.Utility.UI
         public virtual float preferredWidth => m_aspectMode == EAspectMode.HeightControlsWidth ? m_value : -1f;
                
         public virtual float flexibleWidth => -1f;
-               
+
+#if UNITY_6000_7_OR_NEWER
+        public virtual float maxWidth => LayoutUtility.DefaultMaxSize;
+#endif
+
         public virtual float minHeight => m_aspectMode == EAspectMode.WidthControlsHeight ? m_value : -1f;
                
         public virtual float preferredHeight => m_aspectMode == EAspectMode.WidthControlsHeight ? m_value : -1f;
                
         public virtual float flexibleHeight => -1f;
-               
+
+#if UNITY_6000_7_OR_NEWER
+        public virtual float maxHeight => LayoutUtility.DefaultMaxSize;
+#endif
+
         public virtual int layoutPriority => m_layoutPriority;
 
         public virtual void CalculateLayoutInputHorizontal()
