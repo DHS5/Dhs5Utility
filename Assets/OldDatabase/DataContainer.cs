@@ -13,7 +13,7 @@ using UnityEditor;
 using Dhs5.Utility.Editors;
 #endif
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.OldDatabase
 {
     [NoAutoStaticsCleanup]
     public abstract class BaseDataContainer : ScriptableObject, IEnumerable

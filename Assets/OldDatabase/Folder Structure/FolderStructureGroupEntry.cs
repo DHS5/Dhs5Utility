@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.OldDatabase
 {
     public class FolderStructureGroupEntry : FolderStructureEntry
     {

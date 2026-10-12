@@ -7,7 +7,7 @@ using Dhs5.Utility.GUIs;
 using UnityEditor;
 using Dhs5.Utility.Editors;
 
-namespace Dhs5.Utility.NewDatabase
+namespace Dhs5.Utility.Databases
 {
     public class DatabaseWindow : EditorWindow
     {

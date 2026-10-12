@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.OldDatabase
 {
     public abstract class BaseEnumDatabaseElement : BaseDataContainerScriptableElement, IEnumDatabaseElement
     {

@@ -11,7 +11,7 @@ using UnityEditor;
 using Dhs5.Utility.Editors;
 #endif
 
-namespace Dhs5.Utility.NewDatabase
+namespace Dhs5.Utility.Databases
 {
     [NoAutoStaticsCleanup]
     public static class Database

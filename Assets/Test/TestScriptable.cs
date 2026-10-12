@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Dhs5.Utility.Databases;
+using Dhs5.Utility.OldDatabase;
 using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "TS", menuName = "TestScriptable")]

@@ -11,7 +11,7 @@ using System.IO;
 using Dhs5.Utility.Editors;
 #endif
 
-namespace Dhs5.Utility.NewDatabase
+namespace Dhs5.Utility.Databases
 {
     public class Container : ScriptableObject, ISerializationCallbackReceiver
     {

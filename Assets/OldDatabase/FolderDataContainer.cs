@@ -9,7 +9,7 @@ using System.IO;
 using Dhs5.Utility.Editors;
 #endif
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.OldDatabase
 {
     public abstract class FolderDataContainer : BaseDataContainer
     {

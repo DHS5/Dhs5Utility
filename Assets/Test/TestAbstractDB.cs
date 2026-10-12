@@ -1,4 +1,4 @@
-using Dhs5.Utility.Databases;
+using Dhs5.Utility.OldDatabase;
 using UnityEngine;
 
 [Database("Test/Abstract", typeof(BaseDataContainerScriptableElement))]

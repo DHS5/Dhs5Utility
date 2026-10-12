@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Dhs5.Utility.NewDatabase
+namespace Dhs5.Utility.Databases
 {
     public interface IContainerElement
     {

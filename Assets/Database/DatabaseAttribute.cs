@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Dhs5.Utility.NewDatabase
+namespace Dhs5.Utility.Databases
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class DatabaseAttribute : ContainerTypesAttribute

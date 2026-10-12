@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.OldDatabase
 {
     public interface IDataContainerElement
     {
