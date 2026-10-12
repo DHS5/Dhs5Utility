@@ -204,16 +204,6 @@ namespace Dhs5.Utility.Databases
             base.OnContainerInformationsContentGUI();
         }
 
-        protected override void DrawDefault()
-        {
-            base.DrawDefault();
-
-            if (false)
-            {
-                EditorGUILayout.PropertyField(p_folderContent, true);
-            }
-        }
-
         protected override string ContainerInvalidDataTypeMessage()
         {
             return "The data type of this Database is not valid.\n\n" +
