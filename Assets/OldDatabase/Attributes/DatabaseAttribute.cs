@@ -1,6 +1,6 @@
 using System;
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.OldDatabase
 {
     /// <summary>
     /// Attribute used to specify the type of the objects contained in a Database

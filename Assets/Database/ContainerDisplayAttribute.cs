@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Dhs5.Utility.NewDatabase
+namespace Dhs5.Utility.Databases
 {
     public class ContainerDisplayAttribute : PropertyAttribute
     {

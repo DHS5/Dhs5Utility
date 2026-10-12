@@ -11,7 +11,7 @@ using Dhs5.Utility.Editors;
 using Dhs5.Utility.GUIs;
 #endif
 
-namespace Dhs5.Utility.Databases
+namespace Dhs5.Utility.OldDatabase
 {
     /// <summary>
     /// Base class for a database managed by an auto-generated ENUM
