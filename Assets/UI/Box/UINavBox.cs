@@ -49,7 +49,8 @@ namespace Dhs5.Utility.UI
         {
             base.Start();
 
-            if (m_setupOnStart)
+            // Selectable executes in edit mode : the setup is runtime only, to avoid modifying scenes and prefabs
+            if (m_setupOnStart && Application.isPlaying)
             {
                 SetupChildren();
             }
@@ -133,6 +134,8 @@ namespace Dhs5.Utility.UI
 
         protected virtual void SetupChild(Selectable selectable, Navigation navigation)
         {
+            if (!Application.isPlaying) return;
+
             selectable.navigation = navigation;
 
             if (selectable is IUIBoxable boxable)
@@ -146,7 +149,7 @@ namespace Dhs5.Utility.UI
         /// </summary>
         protected virtual void ReleaseChild(Selectable selectable)
         {
-            if (selectable == null) return;
+            if (selectable == null || !Application.isPlaying) return;
 
             if (selectable is IUIBoxable boxable && boxable.Box == this)
             {
