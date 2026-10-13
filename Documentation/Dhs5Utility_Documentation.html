@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dhs5 Utility Documentation</title>
+<style>
+@page { size: A4; margin: 13mm 14mm 12mm 14mm; }
+:root { --ink:#1d2330; --mute:#5b6476; --accent:#2457c5; --soft:#eef2fa; --line:#d9deea; --code:#f5f6f9; --warn:#b4541a; }
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; background:#fff; color:var(--ink); }
+body { font: 8.7pt/1.38 "Segoe UI", Arial, sans-serif; }
+section { page-break-after: always; break-after: page; }
+section:last-child { page-break-after: auto; break-after: auto; }
+.head { display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid var(--accent); padding-bottom:3px; margin-bottom:6px; }
+.head h1 { font-size:17pt; margin:0; letter-spacing:-.2px; }
+.head h1 .n { color:var(--accent); font-weight:600; margin-right:6px; }
+.head .ns { font: 8pt Consolas, monospace; color:var(--mute); }
+.lede { font-size:9.3pt; margin:0 0 7px; }
+h2 { font-size:9.6pt; text-transform:uppercase; letter-spacing:.6px; color:var(--accent); margin:9px 0 3px; }
+ul, ol { margin:0; padding-left:16px; }
+li { margin:1.5px 0; }
+code, .t { font-family: Consolas, "Cascadia Mono", monospace; font-size:8.1pt; }
+code { background:var(--soft); padding:0 2px; border-radius:2px; }
+dl.types { display:grid; grid-template-columns: max-content 1fr; gap:2px 10px; margin:0; }
+dl.types dt { font: 600 8.1pt Consolas, monospace; color:#16357a; }
+dl.types dd { margin:0; }
+pre { background:var(--code); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:3px; padding:5px 8px; margin:3px 0 0; font: 7.8pt/1.32 Consolas, "Cascadia Mono", monospace; white-space:pre; overflow:hidden; }
+pre .c { color:#6a7385; } pre .k { color:#7a2ea0; } pre .s { color:#a33a1a; }
+.notes li::marker { color:var(--warn); }
+.menu { font-weight:600; }
+.cols { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+/* Cover */
+.cover h1 { font-size:28pt; margin:40mm 0 4px; }
+.cover .sub { color:var(--mute); font-size:11pt; margin-bottom:14mm; }
+.toc { width:100%; border-collapse:collapse; font-size:10pt; }
+.toc td { padding:5px 4px; border-bottom:1px solid var(--line); }
+.toc td.p { text-align:right; color:var(--mute); width:40px; }
+.toc td.i { color:var(--accent); font-weight:600; width:28px; }
+.toc td.d { color:var(--mute); font-size:8.7pt; }
+.conv { margin-top:12mm; font-size:9pt; }
+.conv h2 { margin-top:0; }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER ================= -->
+<section class="cover">
+  <h1>Dhs5 Utility</h1>
+  <div class="sub">Short reference for the main systems: one page per system.</div>
+  <table class="toc">
+    <tr><td class="i">01</td><td>Custom Settings</td><td class="d">Singleton settings in Project Settings / Preferences, PlayerPrefs-backed values</td><td class="p">2</td></tr>
+    <tr><td class="i">02</td><td>Database</td><td class="d">UID-indexed asset containers with a dedicated editor window</td><td class="p">3</td></tr>
+    <tr><td class="i">03</td><td>Debugger</td><td class="d">Category logger, console window, on-screen console &amp; commands, runtime inspector</td><td class="p">4</td></tr>
+    <tr><td class="i">04</td><td>Updater</td><td class="d">Update channels, delayed calls, timelines, update conditions</td><td class="p">5</td></tr>
+    <tr><td class="i">05</td><td>Save &amp; Load</td><td class="d">Category-based JSON save files and ordered coroutine loading</td><td class="p">6</td></tr>
+    <tr><td class="i">06</td><td>UI</td><td class="d">uGUI controls with C# events, stackable transitions, navigation boxes</td><td class="p">7</td></tr>
+    <tr><td class="i">07</td><td>Scene Management</td><td class="d"><code>SceneReference</code> field and the Scenes browser window</td><td class="p">8</td></tr>
+    <tr><td class="i">08</td><td>Player Loop</td><td class="d">Shared, prioritised and restorable PlayerLoop modification</td><td class="p">9</td></tr>
+    <tr><td class="i">09</td><td>Ticket System</td><td class="d">Lightweight unique handles for cancellable registrations</td><td class="p">10</td></tr>
+    <tr><td class="i">10</td><td>Attributes</td><td class="d">Inspector attributes: ReadOnly, Show, HelpBox, pickers, Creator…</td><td class="p">11</td></tr>
+    <tr><td class="i">11</td><td>Custom Properties</td><td class="d">Serializable wrappers: EnabledValue, EnumValues, dates, types</td><td class="p">12</td></tr>
+    <tr><td class="i">12</td><td>General Utility</td><td class="d">Extension methods, editor asset &amp; GUI helpers, reflection, script generation</td><td class="p">13</td></tr>
+  </table>
+  <div class="conv">
+    <h2>Common conventions</h2>
+    <ul>
+      <li>Every editor window lives under <span class="menu">Window &gt; Dhs5 Utility</span>.</li>
+      <li>Systems configured from an asset (Settings, Databases, Debugger, Updater, Save) load it from a <code>Resources/&lt;System&gt;</code> folder. The asset is created from the system's window ("Create new asset" or Refresh).</li>
+      <li>Enum-driven systems (debug categories, update channels and conditions, save categories) <b>generate a C# enum</b> from the asset. After any change, press <b>UPDATE … SCRIPT</b>. Deleting or reordering entries shifts serialized enum values.</li>
+      <li><b>ENSURE ASSET SANITY</b> (Settings tab of each window) repairs a system's asset list and folder.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 1. CUSTOM SETTINGS ================= -->
+<section>
+  <div class="head"><h1><span class="n">01</span>Custom Settings</h1><span class="ns">Dhs5.Utility.Settings</span></div>
+  <p class="lede">Singleton settings <code>ScriptableObject</code>s, reached from anywhere with <code>MySettings.I</code>. Each one gets a page in <b>Project Settings</b> or <b>Preferences</b> and in the Settings window. They can hold <b>PlayerPrefs-backed values</b> (a default set in the editor, the player's value persisted at runtime) and inline <b>sub settings</b> assets.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>CustomSettings&lt;T&gt;</dt><dd>Base class to inherit (<code>where T : CustomSettings&lt;T&gt;</code>). <code>static T I</code> lazily loads the asset.</dd>
+    <dt>[Settings(path, Scope)]</dt><dd>Required class attribute. <code>Scope.Project</code> → Project Settings, asset in <code>Assets/Resources/Settings/</code>, ships in builds. <code>Scope.User</code> → Preferences, asset in <code>UserSettings/</code>, editor only.</dd>
+    <dt>PlayerPrefMember&lt;T&gt;</dt><dd>Serialized key + default. <code>Value</code> get/set reads and writes PlayerPrefs in play mode; implicit conversion to <code>T</code>.</dd>
+    <dt>PlayerPref…</dt><dd><code>Int, Float, Bool, String, Vector2, Vector2Int, Vector3, Vector3Int</code>. Vectors use one key per component.</dd>
+    <dt>[SubSettings]</dt><dd>On a ScriptableObject field: the asset is drawn inline. Created next to the settings as <code>SUBS_&lt;Field&gt;</code>.</dd>
+    <dt>ISubSettingsEditor</dt><dd>Implement on a custom Editor to control how a sub settings asset is drawn inline.</dd>
+    <dt>BaseSettingsEditor</dt><dd>Inspector for all settings. Override <code>OnTitleBarGUI</code> / <code>OnFooterBarGUI</code> to customise the page.</dd>
+  </dl>
+
+  <h2>Setup</h2>
+  <ol>
+    <li>Declare <code>class MySettings : CustomSettings&lt;MySettings&gt;</code> with <code>[Settings("My/Path", Scope.Project)]</code>.</li>
+    <li>Open <span class="menu">Window &gt; Dhs5 Utility &gt; Settings</span> and press <b>Refresh</b>, or press <b>Create</b> on its Project Settings page. Assets are only created this way.</li>
+    <li>Add serialized fields as usual. Use <code>PlayerPrefXxx</code> fields for player-persisted values; keys default to <code>&lt;Type&gt;.&lt;propertyPath&gt;</code>.</li>
+    <li>A non-abstract subclass of a settings class replaces it, at the same path unless the subclass has its own <code>[Settings]</code>.</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre><span class="k">using</span> Dhs5.Utility.Settings;
+<span class="k">using</span> UnityEngine;
+
+[Settings(<span class="s">"Game/Audio"</span>, Scope.Project)]
+<span class="k">public class</span> AudioSettings : CustomSettings&lt;AudioSettings&gt;
+{
+    [SerializeField] <span class="k">private float</span> m_fadeDuration = 0.5f;
+    [SerializeField] <span class="k">private</span> PlayerPrefFloat m_masterVolume = <span class="k">new</span>();
+    [SerializeField] <span class="k">private</span> PlayerPrefBool m_muted = <span class="k">new</span>();
+
+    <span class="k">public static float</span> FadeDuration =&gt; I.m_fadeDuration;
+    <span class="k">public static</span> PlayerPrefFloat MasterVolume =&gt; I.m_masterVolume;
+    <span class="k">public static</span> PlayerPrefBool Muted =&gt; I.m_muted;
+}
+
+<span class="c">// Anywhere at runtime</span>
+<span class="k">float</span> vol = AudioSettings.MasterVolume.Value;   <span class="c">// PlayerPrefs value, or the default</span>
+AudioSettings.MasterVolume.Value = 0.8f;        <span class="c">// saved to PlayerPrefs immediately</span>
+<span class="k">bool</span> muted = AudioSettings.Muted;               <span class="c">// implicit conversion</span></pre>
+
+  <h2>Editor tooling</h2>
+  <ul>
+    <li><span class="menu">Window/Dhs5 Utility/Settings</span>: a dropdown of every settings type by path, a sub-settings references mode (create, place in folder, delete, ensure validity) and Refresh.</li>
+    <li>The PlayerPref drawer edits the default value and the key. In play mode it shows the live value read-only.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li>Outside play mode, <code>Value</code> returns the default. In play mode, the PlayerPrefs value is loaded once per session; this works with domain reload disabled.</li>
+    <li>Declare PlayerPref fields with <code>= new()</code>. Changing a key in the inspector deletes the old PlayerPrefs key.</li>
+    <li>User-scope settings are editor only (<code>I</code> is null in builds) and do not support <code>[SubSettings]</code>.</li>
+    <li>When overriding <code>OnValidate</code>, call <code>base.OnValidate()</code>.</li>
+  </ul>
+</section>
+
+<!-- ================= 2. DATABASE ================= -->
+<section>
+  <div class="head"><h1><span class="n">02</span>Database</h1><span class="ns">Dhs5.Utility.Databases</span></div>
+  <p class="lede">A database is a <b>Container</b> asset: a list of asset references (ScriptableObjects, or components on prefabs) that implement <code>IContainerElement</code>. Each element has a stable <b>int UID</b> and an optional <b>alias</b>. Databases are singletons found by type in <code>Resources/Databases</code> and are edited in a window with a searchable, column-based list.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>Container</dt><dd>Base ScriptableObject. <code>Count</code>, <code>GetByUID&lt;T&gt;</code> / <code>TryGetByUID</code>, <code>GetAtIndex</code>, <code>GetObjects()</code>, <code>GetObjectsOfType&lt;T&gt;()</code>, <code>TryFindObjectByAlias&lt;T&gt;</code> (case-insensitive).</dd>
+    <dt>[Database(path, types)]</dt><dd>Turns a Container into a database. <code>path</code> is its entry in the window; <code>types</code> are the allowed element types (subtypes included).</dd>
+    <dt>Database (static)</dt><dd><code>Get&lt;T&gt;()</code>, <code>Enumerate&lt;T,U&gt;()</code>, <code>GetDataAtIndex&lt;T,U&gt;()</code>, <code>GetDataByUID&lt;T,U&gt;(uid, out U)</code>, <code>ClearInstances()</code>.</dd>
+    <dt>IContainerElement</dt><dd><code>int UID</code>, <code>string Alias</code>, and an editor-only <code>Editor_SetUID(int)</code>.</dd>
+    <dt>[ContainerDisplay]</dt><dd>On an element field: shows the field as a column (<code>width</code>, <code>priority</code>).</dd>
+    <dt>ContainerEditor</dt><dd>The list inspector. Subclass it, or override the Container's <code>Editor_*</code> hooks, to customise it.</dd>
+  </dl>
+
+  <h2>Setup</h2>
+  <ol>
+    <li>Write the element: a ScriptableObject (or prefab MonoBehaviour) implementing <code>IContainerElement</code> with a serialized UID.</li>
+    <li>Write the database: <code>[Database("Game/Items", typeof(Item))] class ItemDatabase : Container {}</code>.</li>
+    <li>Open <span class="menu">Window &gt; Dhs5 Utility &gt; Databases</span> and press <b>Refresh</b>. This creates <code>Assets/Resources/Databases/ItemDatabase.asset</code>.</li>
+    <li>Add elements with <b>+</b> (find an existing asset or create a new one of an allowed type) or by drag and drop. The UID is computed from the asset GUID; collisions get an offset.</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre><span class="k">public class</span> Item : ScriptableObject, IContainerElement
+{
+    [SerializeField] <span class="k">private int</span> m_uid;
+    [SerializeField, ContainerDisplay(width = 120f, priority = 1)] <span class="k">private string</span> m_alias;
+    [SerializeField, ContainerDisplay(width = 60f, priority = 2)] <span class="k">private int</span> m_price;
+    <span class="k">public int</span> UID =&gt; m_uid;
+    <span class="k">public string</span> Alias =&gt; m_alias;
+    <span class="k">public int</span> Price =&gt; m_price;
+<span class="k">#if</span> UNITY_EDITOR
+    <span class="k">public void</span> Editor_SetUID(<span class="k">int</span> uid) =&gt; m_uid = uid;
+<span class="k">#endif</span>
+}
+
+[Database(<span class="s">"Game/Items"</span>, <span class="k">typeof</span>(Item))]
+<span class="k">public class</span> ItemDatabase : Container { }
+
+<span class="c">// Runtime</span>
+<span class="k">var</span> db = Database.Get&lt;ItemDatabase&gt;();
+<span class="k">if</span> (db.TryFindObjectByAlias&lt;Item&gt;(<span class="s">"sword"</span>, <span class="k">out var</span> sword)) Debug.Log(sword.Price);
+<span class="k">foreach</span> (<span class="k">var</span> item <span class="k">in</span> Database.Enumerate&lt;ItemDatabase, Item&gt;()) Debug.Log(item.name);
+Database.GetDataByUID&lt;ItemDatabase, Item&gt;(savedUid, <span class="k">out var</span> fromSave);</pre>
+
+  <h2>Editor tooling</h2>
+  <ul>
+    <li><span class="menu">Window/Dhs5 Utility/Databases</span>: a path dropdown, a Debug toggle (raw inspector) and Refresh.</li>
+    <li>Container list: search, resizable UID / Name / <code>[ContainerDisplay]</code> columns, and the focused element's inspector below. Right-click an entry for Ping, Open Asset, Remove or Delete Asset; <b>Delete</b> removes it; double-click opens it.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li><code>Database.Get&lt;T&gt;()</code> only looks in <code>Resources/Databases</code>. It returns null if the asset was never created.</li>
+    <li>UIDs are only assigned when an element is added through the editor UI. Elements with UID 0 are flagged invalid; the editor offers to fix them.</li>
+    <li>Duplicate UIDs log an error and only the first element is kept in the lookup.</li>
+    <li><code>Dhs5.Utility.OldDatabase</code> has its own <code>DatabaseAttribute</code>. Don't import both namespaces in the same file.</li>
+  </ul>
+</section>
+
+<!-- ================= 3. DEBUGGER ================= -->
+<section>
+  <div class="head"><h1><span class="n">03</span>Debugger</h1><span class="ns">Dhs5.Utility.Debugger · Logger / EDebugCategory: global</span></div>
+  <p class="lede">A <b>category-based logger</b>. Each category has a colour and a verbosity level, and log lines are prefixed with the coloured category name. It also provides an editor <b>log console</b> with per-category filters, an <b>on-screen log and command console</b> (editor and development builds), and a <b>Runtime</b> tab that inspects <code>[RuntimeDebug]</code> members live.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>Logger</dt><dd><code>Log(category, msg, level = 2, onScreen = false, context = null)</code>, <code>LogWarning</code>, <code>LogError</code>, <code>LogAlways</code>, <code>LogOnScreen(category, msg, type, level, duration)</code>.</dd>
+    <dt>EDebugCategory</dt><dd>Enum generated from the categories (plus <code>EDebugCategoryFlags</code> and <code>HasCategory()</code>).</dd>
+    <dt>DebuggerAsset</dt><dd><code>Resources/Debugger/Debugger.asset</code>: categories (<code>DC_&lt;NAME&gt;</code> assets), console settings, max logs and on-screen sizes.</dd>
+    <dt>[ConsoleCommand(name, scope)]</dt><dd>On a <b>static</b> method: makes it a console command. Scope is <code>RUNTIME</code> (default), <code>EDITOR</code> or <code>BOTH</code>.</dd>
+    <dt>[RuntimeDebug]</dt><dd>On fields, properties or parameterless void methods, which appear in the Runtime tab. Register objects with <code>RuntimeDebugger.Register(bool, category, obj)</code>.</dd>
+    <dt>OnScreenConsole</dt><dd>Created automatically if enabled: <code>Open()</code>, <code>IsOpened</code>, events <code>Opened</code> / <code>Closed</code>.</dd>
+  </dl>
+
+  <h2>Setup</h2>
+  <ol>
+    <li>Open <span class="menu">Window &gt; Dhs5 Utility &gt; Debugger</span>. In the <b>Settings</b> tab, click <b>Create new asset</b>.</li>
+    <li>In <b>Categories</b>, click <b>ADD NEW CATEGORY</b> (BASE is always first; up to 32), then set the name, colour and level (-1 = off, 0–2). Press <b>UPDATE CATEGORY SCRIPT</b>.</li>
+    <li>On-screen console: in Settings, tick <i>Enable On Screen Console</i> and assign the open/close <code>InputActionReference</code>s (Input System).</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre><span class="k">public class</span> Player : MonoBehaviour
+{
+    [RuntimeDebug] <span class="k">private int</span> m_health = 100;
+    [RuntimeDebug] <span class="k">public bool</span> IsDead =&gt; m_health &lt;= 0;
+
+    <span class="k">private void</span> OnEnable()  =&gt; RuntimeDebugger.Register(<span class="k">true</span>, EDebugCategory.GAME, <span class="k">this</span>);
+    <span class="k">private void</span> OnDisable() =&gt; RuntimeDebugger.Register(<span class="k">false</span>, EDebugCategory.GAME, <span class="k">this</span>);
+
+    <span class="k">public void</span> TakeDamage(<span class="k">int</span> dmg)
+    {
+        m_health -= dmg;
+        Logger.Log(EDebugCategory.GAME, <span class="s">"Took "</span> + dmg, level: 1, context: <span class="k">this</span>);
+        <span class="k">if</span> (IsDead) Logger.LogWarning(EDebugCategory.GAME, <span class="s">"Player died"</span>, onScreen: <span class="k">true</span>);
+    }
+
+    [RuntimeDebug] <span class="k">private void</span> Heal() =&gt; m_health = 100;   <span class="c">// button in the Runtime tab</span>
+
+    [ConsoleCommand(<span class="s">"god"</span>)]                                  <span class="c">// typed as: god true</span>
+    <span class="k">private static void</span> GodMode(<span class="k">bool</span> enabled = <span class="k">true</span>) =&gt; Logger.LogOnScreen(EDebugCategory.GAME, <span class="s">"God "</span> + enabled);
+}</pre>
+
+  <h2>Editor tooling</h2>
+  <ul>
+    <li><span class="menu">Window/Dhs5 Utility/Debugger</span>: <b>Categories</b>, <b>Runtime</b> (play mode; search objects by name or members with <code>m:</code>; category filter) and <b>Settings</b>.</li>
+    <li><span class="menu">Window/Dhs5 Utility/Console</span> ("D5 Console"): stored logs, Clear, per-category level filters and a command line. EDITOR and BOTH commands work outside play mode.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li>A lower level means more important. A log or warning prints if its category is active and the message level ≤ the category level. Errors and asserts always print.</li>
+    <li>The on-screen console, <code>LogOnScreen</code> and runtime inspection only exist in the editor and development builds (<code>DEBUG</code>).</li>
+    <li>Command arguments are split on spaces, so strings can't contain spaces. Vectors and colours are written <code>1,2,3</code>. Supported types: bool, int, float, string, enum, vectors, Color.</li>
+    <li>The built-in command <code>timescale FLOAT</code> is available out of the box.</li>
+  </ul>
+</section>
+
+<!-- ================= 4. UPDATER ================= -->
+<section>
+  <div class="head"><h1><span class="n">04</span>Updater</h1><span class="ns">Dhs5.Utility.Updates</span></div>
+  <p class="lede">A central update system that inserts its own stages into Unity's PlayerLoop. It provides configurable <b>update channels</b> (stage, order, condition, frequency, timescale, realtime), <b>delayed calls</b> (frames, seconds, realtime, predicate), <b>timelines</b> (fixed-duration updates with events) and per-frame time values: <code>Updater.Time</code>, <code>DeltaTime</code>, <code>RealTime</code>, <code>Frame</code>, <code>TimePaused</code>.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>Updater (static)</dt><dd><code>RegisterChannelCallback(bool, EUpdateChannel, UpdateCallback)</code>, <code>SetChannelEnable / Timescale / Frequency</code>, <code>PauseTime(bool)</code>. Per-stage events <code>OnUpdateClassic</code>, … and one-shots <code>OneShotClassicUpdate</code>, …</dd>
+    <dt>EUpdateChannel</dt><dd>Enum generated from the channel assets (<code>UC_&lt;NAME&gt;</code>). <code>CLASSIC</code> always exists.</dd>
+    <dt>EUpdatePass</dt><dd>Stages: <code>AFTER_EARLY_UPDATE</code>, <code>CLASSIC_UPDATE</code> (just before Update), <code>AFTER_UPDATE</code>, <code>AFTER_LATE_UPDATE</code>, <code>BEFORE_FIXED_UPDATE</code>, <code>AFTER_PHYSICS_FIXED_UPDATE</code>.</dd>
+    <dt>EUpdateCondition</dt><dd>Generated enum. Each value maps to an <code>UpdateConditionObject</code> (<code>bool CanUpdate()</code>). <code>ALWAYS</code> is built in.</dd>
+    <dt>Delayed calls</dt><dd><code>CallInXFrames</code>, <code>CallInXSeconds</code>, <code>CallInXRealtimeSeconds</code>, <code>CallWhenTrue / False</code>, each with <code>out DelayedCallHandle</code> (<code>Kill()</code>, <code>GetTimeLeft()</code>) and optional pass and condition.</dd>
+    <dt>Timelines</dt><dd><code>CreateTimelineInstance(channel, duration, out handle, loop, timescale, events)</code> or from an <code>IUpdateTimeline</code> / <code>ScriptedUpdateTimeline</code>. The handle has <code>Play</code>, <code>Pause</code>, <code>SetTime</code>, <code>Restart</code>, <code>Kill</code> and the events <code>Updated</code>, <code>Ended</code>, <code>CustomEventTriggered</code>.</dd>
+  </dl>
+
+  <h2>Setup</h2>
+  <ol>
+    <li><span class="menu">Window &gt; Dhs5 Utility &gt; Updater</span> → <b>Settings</b> → <b>Create new asset</b>. This creates <code>Resources/Updater/Updater.asset</code>.</li>
+    <li><b>Channels</b> tab: <b>ADD NEW CHANNEL</b>, set the pass, order, condition, frequency, timescale and realtime, then press <b>UPDATE CHANNEL SCRIPT</b>.</li>
+    <li><b>Conditions</b> tab: <b>ADD NEW CONDITION</b>, assign an <code>UpdateConditionObject</code> asset, then press <b>UPDATE CONDITION SCRIPT</b>. For a custom condition, subclass <code>UpdateConditionObject</code> and add <code>[CreateAssetMenu(menuName = UpdateConditionObject.MenuPath + "…")]</code>.</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre><span class="k">private</span> DelayedCallHandle m_delay;
+<span class="k">private</span> UpdateTimelineInstanceHandle m_pulse;
+
+<span class="k">private void</span> OnEnable()
+{
+    Updater.RegisterChannelCallback(<span class="k">true</span>, EUpdateChannel.CLASSIC, OnTick);
+    Updater.CallInXSeconds(2f, () =&gt; Debug.Log(<span class="s">"2 seconds later"</span>), <span class="k">out</span> m_delay);
+
+    <span class="k">if</span> (Updater.CreateTimelineInstance(EUpdateChannel.CLASSIC, 1.5f, <span class="k">out</span> m_pulse, loop: <span class="k">true</span>))
+    {
+        m_pulse.Updated += dt =&gt; transform.localScale = Vector3.one * (1f + m_pulse.NormalizedTime);
+        m_pulse.Play();                       <span class="c">// timelines are created stopped</span>
+    }
+}
+<span class="k">private void</span> OnDisable()
+{
+    Updater.RegisterChannelCallback(<span class="k">false</span>, EUpdateChannel.CLASSIC, OnTick);
+    m_delay.Kill(); m_pulse.Kill();
+}
+<span class="k">private void</span> OnTick(<span class="k">float</span> deltaTime) =&gt; transform.Rotate(0f, 90f * deltaTime, 0f);</pre>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li>Each non-<code>ALWAYS</code> condition needs an object assigned. Without one, the channel or delayed call never runs and a warning is logged.</li>
+    <li>Fixed-update channels always receive <code>Time.fixedDeltaTime</code> and ignore frequency and timescale. With a custom frequency, the callback receives the time accumulated since its last call.</li>
+    <li>A delayed call with a non-zero delay starts counting at the next frame. A zero delay fires this frame, or immediately if the stage has already run.</li>
+    <li>At most 32 channels. A timeline's duration must be &gt; 0.</li>
+  </ul>
+</section>
+
+<!-- ================= 5. SAVE & LOAD ================= -->
+<section>
+  <div class="head"><h1><span class="n">05</span>Save &amp; Load</h1><span class="ns">Dhs5.Utility.SaveLoad</span></div>
+  <p class="lede">Saves are split into <b>categories</b>. During a save, game code fills one data object (<code>BaseSaveSubObject</code>) per category, plus an optional save info. These are serialized to JSON and written to disk atomically. Loading reads the file and passes each category's data to the registered <code>ILoadable</code> objects, in a <b>configurable load order</b>, as a coroutine.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>SaveManager (static)</dt><dd>Save: <code>StartSaveProcess()</code>, <code>CreateCategoryData&lt;T&gt;(cat)</code>, <code>CreateSaveInfo&lt;T&gt;()</code>, <code>CompleteSaveProcess(param)</code>.<br>Load: <code>StartLoadProcess(param)</code>, events <code>LoadCompleted</code> / <code>LoadCancelled</code>, <code>Register(bool, ILoadable, cat)</code>, <code>TryGetSubObject&lt;T&gt;</code>, <code>GetSaveVersion()</code>.</dd>
+    <dt>ESaveCategory</dt><dd>Enum generated from the categories in <code>Resources/Save/SaveAsset.asset</code>.</dd>
+    <dt>BaseSaveSubObject</dt><dd>Subclass it for each category's data (serializable fields). <code>BaseSaveInfo</code> is the base for save info, such as a slot header.</dd>
+    <dt>ILoadable</dt><dd><code>LoadCoroutine(cat, iteration, subObject)</code>, <code>CanLoad(cat, iteration)</code>, <code>LoadDefault(cat)</code>.</dd>
+    <dt>SaveProcessModifier</dt><dd>Optional ScriptableObject that overrides save paths (slots), encryption, disk read/write, the serializer and error handling.</dd>
+    <dt>ISaveParameter</dt><dd>Gives the file extension and encoding for a save or load.</dd>
+  </dl>
+
+  <h2>Setup</h2>
+  <ol>
+    <li><span class="menu">Window &gt; Dhs5 Utility &gt; Save &amp; Load</span> → <b>Settings</b> → <b>Create new asset</b>.</li>
+    <li><b>Categories</b> tab: <b>ADD NEW CATEGORY</b>, then press <b>UPDATE CATEGORY SCRIPT</b>.</li>
+    <li><b>Load</b> tab: arrange the <b>LOAD ORDER</b>. Repeating a category loads it again, with <code>iteration</code> = 1, 2, …</li>
+    <li>Optional: in Settings, <b>CREATE</b> a modifier and set the <b>Version</b>.</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre><span class="k">public class</span> PlayerData : BaseSaveSubObject { <span class="k">public</span> Vector3 position; <span class="k">public int</span> gold; }
+
+<span class="k">public class</span> Player : MonoBehaviour, ILoadable
+{
+    <span class="k">public int</span> gold;
+    <span class="k">void</span> OnEnable()  =&gt; SaveManager.Register(<span class="k">true</span>, <span class="k">this</span>, ESaveCategory.PLAYER); <span class="c">// your category</span>
+    <span class="k">void</span> OnDisable() =&gt; SaveManager.Register(<span class="k">false</span>, <span class="k">this</span>, ESaveCategory.PLAYER);
+
+    <span class="k">public void</span> Save()
+    {
+        <span class="k">if</span> (!SaveManager.StartSaveProcess()) <span class="k">return</span>;
+        <span class="k">var</span> data = SaveManager.CreateCategoryData&lt;PlayerData&gt;(ESaveCategory.PLAYER);
+        data.position = transform.position; data.gold = gold;
+        SaveManager.CompleteSaveProcess();
+    }
+    <span class="k">public bool</span> CanLoad(ESaveCategory cat, <span class="k">uint</span> iteration) =&gt; iteration == 1;
+    <span class="k">public</span> IEnumerator LoadCoroutine(ESaveCategory cat, <span class="k">uint</span> iteration, BaseSaveSubObject sub)
+    {
+        <span class="k">var</span> data = (PlayerData)sub;          <span class="c">// copy the values, don't keep the object</span>
+        transform.position = data.position; gold = data.gold;
+        <span class="k">yield break</span>;
+    }
+    <span class="k">public void</span> LoadDefault(ESaveCategory cat) =&gt; gold = 0;
+}
+<span class="c">// Load: SaveManager.LoadCompleted += OnLoaded; SaveManager.StartLoadProcess();</span></pre>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li>Without a modifier there is one file, <code>persistentDataPath/Save/SAVE</code> + extension (<code>.txt</code> by default). Writes go to a <code>.tmp</code> file first, so a failed write keeps the previous save.</li>
+    <li><code>UnityEngine.Object</code> references can't be saved; store IDs (for example database UIDs). Loaded objects are destroyed on the next save or load.</li>
+    <li>Loading only works in play mode. An exception in a loadable cancels the load (<code>LoadCancelled</code>) unless the modifier handles it. <code>LoadDefault</code> is called for categories missing from the file.</li>
+    <li>Renamed categories still load from old saves. Bump <b>Version</b> when the data format changes and branch on <code>GetSaveVersion()</code>.</li>
+  </ul>
+</section>
+
+<!-- ================= 6. UI ================= -->
+<section>
+  <div class="head"><h1><span class="n">06</span>UI</h1><span class="ns">Dhs5.Utility.UI</span></div>
+  <p class="lede">Replacements for the uGUI controls, all built on <code>UISelectable</code>. They raise <b>plain C# events</b> and track hover, left/right press, selection and interactable state. Visual feedback comes from stackable <b>transitioners</b> driven by reusable <b>transition assets</b>. <b>Nav boxes</b> handle keyboard and gamepad navigation.</p>
+
+  <div class="cols">
+  <div>
+  <h2>Controls</h2>
+  <dl class="types">
+    <dt>UIButton</dt><dd><code>Clicked</code>, <code>TrySimulateClick()</code></dd>
+    <dt>UIToggle</dt><dd><code>IsOn</code>, <code>ValueChanged</code>, <code>SetIsOnWithoutNotify</code>. Grouped with <code>UIToggleGroup</code>.</dd>
+    <dt>UISlider / UIScrollbar</dt><dd><code>Value</code>, <code>ValueChanged</code>, <code>SetValueWithoutNotify</code></dd>
+    <dt>UIScrollRect</dt><dd>Scroll view with normalized positions</dd>
+    <dt>UIDropdown</dt><dd><code>AddOptions</code>, <code>ClearOptions</code>, <code>Show/Hide</code>, <code>MultiSelect</code> (bit-mask value)</dd>
+    <dt>UIScrollList</dt><dd>Carousel selector: <code>SetNext</code>, <code>AnimateNext</code>, <code>WrapAround</code></dd>
+    <dt>UIInputField</dt><dd>TMP field: <code>Text</code>, <code>ValueChanged</code>, <code>Submitted</code>, <code>EditEnded</code></dd>
+  </dl>
+  </div>
+  <div>
+  <h2>Transitions &amp; navigation</h2>
+  <dl class="types">
+    <dt>UIGenericTransitioner</dt><dd>Target graphics + a list of (asset, preset) instances</dd>
+    <dt>Transition assets</dt><dd>Active, Alpha, Color, Enable, Rect Anchor / Offset / Pivot / Size, Scale, Sprite, Text Size, Text Style. Each preset has a value and duration per state: Normal, Highlighted, Pressed, Selected, Disabled.</dd>
+    <dt>UIStandaloneTransitioner</dt><dd>Reacts to the pointer without a <code>UISelectable</code></dd>
+    <dt>UIListNavBox / UIGridNavBox</dt><dd>1D list (<code>Axis</code>) or grid, <code>WrapAround</code></dd>
+    <dt>UISelectionTransferer</dt><dd>Forwards selection to another object</dd>
+  </dl>
+  </div>
+  </div>
+
+  <h2>Setup</h2>
+  <ol>
+    <li>Under a Canvas, use <span class="menu">GameObject &gt; UI (Canvas) &gt;</span> UI Button (+ Text), UI Toggle (+ Text), UI Slider, UI Scrollbar, UI ScrollView/…, UI Dropdown, UI ScrollList or UI Input Field. Each creates the full hierarchy with a transitioner.</li>
+    <li>Create transition assets via <span class="menu">Create &gt; Dhs5 Utility &gt; UI &gt; Transition Asset &gt; …</span> and add presets with <b>+</b>.</li>
+    <li>On the transitioner, add an instance, pick the asset and preset, and list the target graphics.</li>
+    <li>Navigation: put controls inside a <code>UIListNavBox</code> / <code>UIGridNavBox</code>. Enable <i>Setup On Start</i> on the top-level box only.</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre>[SerializeField] UIButton m_back; [SerializeField] UIToggle m_music;
+[SerializeField] UISlider m_volume; [SerializeField] UIDropdown m_quality;
+
+<span class="k">void</span> Start()
+{
+    m_back.Clicked += () =&gt; gameObject.SetActive(<span class="k">false</span>);
+    m_music.ValueChanged += isOn =&gt; Debug.Log(<span class="s">$"Music: {isOn}"</span>);
+    m_volume.ValueChanged += v =&gt; AudioListener.volume = v;
+
+    m_quality.ClearOptions();
+    m_quality.AddOptions(<span class="s">"Low"</span>, <span class="s">"Medium"</span>, <span class="s">"High"</span>);
+    m_quality.SetValueWithoutNotify(1);
+    m_quality.ValueChanged += i =&gt; QualitySettings.SetQualityLevel(i);
+}</pre>
+
+  <h2>Extending</h2>
+  <ul>
+    <li><b>Control:</b> inherit <code>UISelectable</code> and override the <code>OnBefore…/OnAfter…</code> hooks; the pointer and select handlers are sealed.</li>
+    <li><b>Transition:</b> inherit <code>UIGenericTransitionAsset&lt;T, UITransitionPreset&lt;T&gt;&gt;</code> (<code>ApplyValue</code>, <code>ApplyValueInstant</code>, …) or <code>UITransitioner</code> (<code>UpdateState</code>).</li>
+    <li><b>Items:</b> <code>UIDropdownItem</code> / <code>UIScrollListItem</code>. <b>Box:</b> <code>UINavBox</code>.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li>Events are code-only (no UnityEvents). Controls created from the menus have built-in navigation and transition set to <i>None</i>; navigation comes from nav boxes.</li>
+    <li>A transitioner only runs if it is in the control's <i>Transitioners</i> list. Transitioners run by <code>Priority</code>, and tweens use unscaled time.</li>
+  </ul>
+</section>
+
+<!-- ================= 7. SCENE MANAGEMENT ================= -->
+<section>
+  <div class="head"><h1><span class="n">07</span>Scene Management</h1><span class="ns">Dhs5.Utility.Scenes</span></div>
+  <p class="lede"><code>SceneReference</code> is a serializable field you drag a scene asset onto. It stores the scene's <b>name, path and build index</b>, so they are available in builds where <code>SceneAsset</code> doesn't exist. The <b>Scenes window</b> is a browser for every scene in Build Settings, grouped by folder, with one-click open, load, play and build toggles.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>SceneReference</dt><dd><code>SceneIndex</code>, <code>SceneName</code>, <code>ScenePath</code>, <code>IsLoaded</code>, <code>LoadScene(LoadSceneMode = Single)</code>, <code>UnloadScene(UnloadSceneOptions)</code>. Both methods return <code>bool</code>.</dd>
+    <dt>SceneReferenceDrawer</dt><dd>Scene asset field and a Refresh button. When expanded, shows the path and build index.</dd>
+    <dt>ScenesWindow</dt><dd>Editor window, opened from <span class="menu">Window/Dhs5 Utility/Scenes</span>.</dd>
+  </dl>
+
+  <h2>Usage</h2>
+  <ol>
+    <li>Declare <code>[SerializeField] SceneReference m_scene;</code> and drag a scene onto it.</li>
+    <li>Make sure the scene is in Build Settings; <code>LoadScene</code> uses the build index.</li>
+    <li>The cached data refreshes when the object is serialized in the editor, or with the drawer's Refresh button.</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre><span class="k">using</span> Dhs5.Utility.Scenes;
+<span class="k">using</span> UnityEngine;
+<span class="k">using</span> UnityEngine.SceneManagement;
+
+<span class="k">public class</span> LevelFlow : MonoBehaviour
+{
+    [SerializeField] <span class="k">private</span> SceneReference m_menuScene;
+    [SerializeField] <span class="k">private</span> SceneReference m_hudScene;
+
+    <span class="k">public void</span> EnterLevel()
+    {
+        <span class="k">if</span> (!m_hudScene.IsLoaded) m_hudScene.LoadScene(LoadSceneMode.Additive);
+    }
+
+    <span class="k">public void</span> LeaveLevel()
+    {
+        m_hudScene.UnloadScene();
+        <span class="k">if</span> (!m_menuScene.LoadScene())
+            Debug.LogError(<span class="s">$"{m_menuScene.SceneName} is not in Build Settings"</span>);
+    }
+}</pre>
+
+  <h2>Scenes window</h2>
+  <ul>
+    <li><b>Active Scenes</b> panel (collapsible, resizable): the scenes currently open.</li>
+    <li><b>Scene Browser</b>: searchable and grouped by parent folder. Each row has:
+      <ul>
+        <li>a build toggle (writes <code>EditorBuildSettings</code>), the name (click to ping the asset) and the build index;</li>
+        <li><b>Add / Load / Unload</b> (additive), <b>Open / Remove</b> (single) and <b>Play</b> (opens the scene alone and enters Play Mode).</li>
+      </ul>
+    </li>
+    <li>Row colours: green = loaded, yellow = open but unloaded. Play and Open are disabled in Play Mode.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li><code>LoadScene</code> is synchronous and returns false when the build index is -1 (scene not in Build Settings). <code>UnloadScene</code> is async and doesn't return the operation.</li>
+    <li>If Build Settings are reordered or the scene is moved, the cached index and path can be stale until the next refresh or reserialization.</li>
+    <li>The window only lists scenes in Build Settings. Two scenes with the same name will clash in the active-scene tracking.</li>
+    <li><b>Open</b> and <b>Play</b> don't ask to save modified scenes first.</li>
+  </ul>
+</section>
+
+<!-- ================= 8. PLAYER LOOP ================= -->
+<section>
+  <div class="head"><h1><span class="n">08</span>Player Loop</h1><span class="ns">Dhs5.Utility.PlayerLoops</span></div>
+  <p class="lede">A safe, shared way to modify Unity's low-level <code>PlayerLoop</code>. Modifiers register at startup and are applied together, <b>in priority order</b>, after the first scene loads. Individual systems can be disabled and re-enabled at runtime, and the original loop is <b>restored</b> on quit and at the next play session. The Updater is built on this system.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>IPlayerLoopModifier</dt><dd><code>int Priority</code> (higher numbers are applied later; the Updater uses 0) and <code>PlayerLoopSystem ModifyPlayerLoop(PlayerLoopSystem)</code>.</dd>
+    <dt>PlayerLoopManager</dt><dd>
+      <ul>
+        <li><code>RegisterModifier(modifier)</code> and the <code>PlayerLoopInitialized</code> event.</li>
+        <li><code>DisableSystem(Type)</code>, <code>ReenableSystem(Type)</code>, <code>IsSystemEnabled(Type)</code>.</li>
+        <li><code>AddCustomMainSystemBefore/After/AtIndex</code> and <code>AddCustomSubSystemAtIndex/AtLast</code>.</li>
+        <li><code>ResetPlayerLoop()</code> restores the loop from before any changes; <code>ResetPlayerLoopToDefault()</code> applies Unity's default loop.</li>
+      </ul>
+    </dd>
+  </dl>
+
+  <h2>Usage</h2>
+  <ol>
+    <li>Implement <code>IPlayerLoopModifier</code>. Identify each inserted system with an empty marker <code>struct</code> type so it can be found and toggled by <code>Type</code>.</li>
+    <li>Register it from <code>[RuntimeInitializeOnLoadMethod]</code> with <code>SubsystemRegistration</code> or <code>BeforeSceneLoad</code>.</li>
+    <li>At <code>AfterSceneLoad</code>, the manager chains every modifier over the current loop (systems added by other packages are kept), applies the result and fires <code>PlayerLoopInitialized</code>.</li>
+  </ol>
+
+  <h2>Example</h2>
+<pre><span class="k">public class</span> NetTickModifier : IPlayerLoopModifier
+{
+    <span class="k">public struct</span> NetTick { }               <span class="c">// marker type for this system</span>
+    <span class="k">public int</span> Priority =&gt; 10;              <span class="c">// after the Updater (0)</span>
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    <span class="k">private static void</span> Init() =&gt; PlayerLoopManager.RegisterModifier(<span class="k">new</span> NetTickModifier());
+
+    <span class="k">public</span> PlayerLoopSystem ModifyPlayerLoop(PlayerLoopSystem loop)
+    {
+        <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; loop.subSystemList.Length; i++)
+            <span class="k">if</span> (loop.subSystemList[i].type == <span class="k">typeof</span>(PreLateUpdate))
+            {
+                <span class="k">var</span> subs = <span class="k">new</span> List&lt;PlayerLoopSystem&gt;(loop.subSystemList[i].subSystemList);
+                subs.Insert(0, <span class="k">new</span> PlayerLoopSystem { type = <span class="k">typeof</span>(NetTick), updateDelegate = Tick });
+                loop.subSystemList[i].subSystemList = subs.ToArray();
+            }
+        <span class="k">return</span> loop;
+    }
+    <span class="k">private static void</span> Tick() { <span class="c">/* ... */</span> }
+}
+<span class="c">// Later, at runtime:</span>
+PlayerLoopManager.DisableSystem(<span class="k">typeof</span>(NetTickModifier.NetTick));</pre>
+
+  <h2>Editor tooling</h2>
+  <ul>
+    <li><span class="menu">Window/Dhs5 Utility/Player Loop</span>: a visualizer in edit mode and a manager in play mode.
+      <ul>
+        <li>Toolbar: search by type name, a CPU profiler toggle (per-system ms) and Refresh.</li>
+        <li>Custom systems are drawn in cyan. In play mode, each system has an enable toggle.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li><code>RegisterModifier</code> returns false after <code>AfterSceneLoad</code>. After that, use the <code>AddCustom…</code> and <code>DisableSystem</code> methods instead.</li>
+    <li>The Updater inserts at fixed indexes in Unity's default loop. A modifier with a priority below 0 that adds or removes main systems can break it.</li>
+    <li><code>DisableSystem</code> only searches main systems and their direct sub systems. <code>ResetPlayerLoopToDefault()</code> also removes systems added by third-party packages.</li>
+  </ul>
+</section>
+
+<!-- ================= 9. TICKET SYSTEM ================= -->
+<section>
+  <div class="head"><h1><span class="n">09</span>Ticket System</h1><span class="ns">Dhs5.Utility.TicketSystem</span></div>
+  <p class="lede">Hands out lightweight unique IDs called <b>tickets</b>. The caller keeps the ticket and uses it later to remove or modify what it registered. Typical uses are cancellable modifiers, lock counters and handle-based registries, without exposing references or delegates. No setup or assets are needed; create a handler with <code>new</code>.</p>
+
+  <h2>Key types</h2>
+  <dl class="types">
+    <dt>Ticket</dt><dd>Serializable struct wrapping a <code>ulong</code> UID. <code>GetUID()</code>. Its drawer shows the UID read-only.</dd>
+    <dt>TicketHandler</dt><dd>Issues tickets in sequence starting at 1. <code>virtual GetTicket()</code>, <code>virtual Reset()</code>.</dd>
+    <dt>TicketHandlerList</dt><dd>Remembers the tickets it issued: <code>GetTicket()</code>, <code>Remove(t)</code>, <code>Contains(t)</code>, <code>HasContent()</code>, <code>Count</code>.</dd>
+    <dt>TicketHandlerDictionary&lt;T&gt;</dt><dd>Maps tickets to values:
+      <ul>
+        <li><code>Register(value)</code> → <code>Ticket</code>, <code>Unregister(t [, out value])</code>, <code>SetValue(t, v)</code></li>
+        <li><code>TryGetValue</code>, <code>GetValue</code> / <code>this[t]</code>, <code>Contains</code>, <code>HasContent()</code>, <code>Count</code></li>
+        <li>Enumerable as <code>KeyValuePair&lt;Ticket, T&gt;</code></li>
+      </ul>
+    </dd>
+  </dl>
+
+  <h2>Example: stackable speed modifiers and stun locks</h2>
+<pre><span class="k">using</span> Dhs5.Utility.TicketSystem;
+<span class="k">using</span> UnityEngine;
+
+<span class="k">public class</span> SpeedModifiers : MonoBehaviour
+{
+    <span class="k">private readonly</span> TicketHandlerDictionary&lt;<span class="k">float</span>&gt; m_multipliers = <span class="k">new</span>();
+    <span class="k">private readonly</span> TicketHandlerList m_stunLocks = <span class="k">new</span>();
+
+    <span class="k">public</span> Ticket AddMultiplier(<span class="k">float</span> mult) =&gt; m_multipliers.Register(mult);
+    <span class="k">public bool</span> RemoveMultiplier(Ticket ticket) =&gt; m_multipliers.Unregister(ticket);
+
+    <span class="k">public</span> Ticket Stun() =&gt; m_stunLocks.GetTicket();
+    <span class="k">public void</span> ReleaseStun(Ticket ticket) =&gt; m_stunLocks.Remove(ticket);
+
+    <span class="k">public float</span> GetSpeed(<span class="k">float</span> baseSpeed)
+    {
+        <span class="k">if</span> (m_stunLocks.HasContent()) <span class="k">return</span> 0f;
+        <span class="k">foreach</span> (<span class="k">var</span> kvp <span class="k">in</span> m_multipliers) baseSpeed *= kvp.Value;
+        <span class="k">return</span> baseSpeed;
+    }
+}
+
+<span class="c">// Caller side</span>
+Ticket slow = speed.AddMultiplier(0.5f);
+...
+speed.RemoveMultiplier(slow);</pre>
+
+  <h2>Extending</h2>
+  <ul>
+    <li>Subclass <code>TicketHandler</code> the way <code>TicketHandlerList</code> does: override <code>GetTicket()</code>, call <code>base.GetTicket()</code>, then store the result.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li>UIDs start at 1, so <code>default(Ticket)</code> (UID 0) works as "no ticket". <code>Reset()</code> restarts at 1, so old tickets can collide with new ones.</li>
+    <li><code>Ticket</code> doesn't define <code>==</code> or <code>Equals</code>. Compare tickets with <code>GetUID()</code>.</li>
+    <li><code>GetValue</code> and the indexer throw for unknown tickets; use <code>TryGetValue</code>. The indexer is read-only; use <code>SetValue</code> to change a value.</li>
+    <li>Handlers are not thread-safe.</li>
+  </ul>
+</section>
+
+<!-- ================= 10. ATTRIBUTES ================= -->
+<section>
+  <div class="head"><h1><span class="n">10</span>Attributes</h1><span class="ns">global namespace · editor drawers only</span></div>
+  <p class="lede">Inspector attributes for common editor needs. Put them on serialized fields; they have no effect at runtime. Each one is a <code>PropertyAttribute</code> with a matching drawer in the same file, inside <code>#if UNITY_EDITOR</code>.</p>
+
+  <h2>Reference</h2>
+  <dl class="types">
+    <dt>[ReadOnly]</dt><dd>Always read-only.</dd>
+    <dt>[ReadOnly(inEditor, atRuntime)]</dt><dd>Writable in edit mode if <code>canWriteInEditor</code>, and in play mode if <code>canWriteAtRuntime</code>.</dd>
+    <dt>[ReadOnly(param, inverse)]</dt><dd>Read-only while the named serialized bool is true (or false with <code>inverse</code>).</dd>
+    <dt>[Show(param, inverse)]</dt><dd>Shown only while the named bool is true (or false with <code>inverse</code>).</dd>
+    <dt>[HelpBox(text, EType)]</dt><dd>Help box above the field. <code>EType</code>: <code>NONE</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>.</dd>
+    <dt>[Tag]</dt><dd><code>string</code> → tag dropdown.</dd>
+    <dt>[Layer]</dt><dd><code>int</code> → layer dropdown.</dd>
+    <dt>[VectorRange(min, max)]</dt><dd><code>Vector2</code> / <code>Vector2Int</code> → min-max slider (x = min, y = max).</dd>
+    <dt>[FolderPicker(root?)]</dt><dd>On a <code>string</code> (stores "Assets/…") or an <code>Object</code> field: folder dialog button. Right-click: copy path, ping folder.</dd>
+    <dt>[Creator]</dt><dd>On a ScriptableObject field: <b>Create</b> button that saves a new asset and assigns it. For an abstract type it lists the concrete subtypes.</dd>
+    <dt>[FoldoutContent]</dt><dd>On a ScriptableObject field: edit the referenced asset's fields inline in a foldout.</dd>
+    <dt>[DateReadOnly]</dt><dd>On a <code>SerializableDate</code>: a formatted read-only label (see Custom Properties).</dd>
+  </dl>
+
+  <h2>Example</h2>
+<pre><span class="k">public class</span> EnemySpawner : MonoBehaviour
+{
+    [SerializeField, Tag] <span class="k">private string</span> m_targetTag;
+    [SerializeField, Layer] <span class="k">private int</span> m_projectileLayer;
+    [SerializeField, VectorRange(0f, 10f)] <span class="k">private</span> Vector2 m_spawnDelay;
+    [SerializeField, VectorRange(1, 20)] <span class="k">private</span> Vector2Int m_waveSize;
+
+    [HelpBox(<span class="s">"Enables the patrol settings below"</span>, HelpBoxAttribute.EType.INFO)]
+    [SerializeField] <span class="k">private bool</span> m_patrols;
+    [SerializeField, Show(<span class="k">nameof</span>(m_patrols))] <span class="k">private float</span> m_patrolSpeed;
+
+    [SerializeField, ReadOnly(<span class="k">true</span>)] <span class="k">private int</span> m_maxEnemies = 10;  <span class="c">// editable in edit mode only</span>
+    [SerializeField, ReadOnly] <span class="k">private int</span> m_aliveCount;             <span class="c">// always read-only</span>
+
+    [SerializeField, FolderPicker(<span class="s">"Assets"</span>)] <span class="k">private string</span> m_lootFolder;
+    [SerializeField, Creator] <span class="k">private</span> SpawnTable m_table;            <span class="c">// SpawnTable : ScriptableObject</span>
+    [SerializeField, FoldoutContent] <span class="k">private</span> SpawnTable m_bossTable;
+}</pre>
+
+  <h2>Extending</h2>
+  <ul><li>Same pattern as the existing attributes: a <code>PropertyAttribute</code> subclass plus a <code>[CustomPropertyDrawer]</code> inside <code>#if UNITY_EDITOR</code>.</li></ul>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li><code>Show</code> and <code>ReadOnly(param)</code> look up the bool from the root of the object, so they don't work inside nested classes or structs. An unknown param means "always shown".</li>
+    <li><code>Show</code> draws a single line, so arrays, lists and structs are clipped.</li>
+    <li>Unity uses one drawer per field, so don't combine drawer attributes (e.g. <code>[Show]</code> with <code>[ReadOnly]</code>).</li>
+    <li><code>ReadOnly</code> is ambiguous in files with <code>using Unity.Collections;</code>.</li>
+  </ul>
+</section>
+
+<!-- ================= 11. CUSTOM PROPERTIES ================= -->
+<section>
+  <div class="head"><h1><span class="n">11</span>Custom Properties</h1><span class="ns">global namespace</span></div>
+  <p class="lede">Serializable wrapper types, most with their own drawers, for data Unity can't serialize well on its own: per-enum tables, optional values, dates and <code>System.Type</code> references. Declare them as serialized fields; no setup is needed.</p>
+
+  <h2>Reference</h2>
+  <dl class="types">
+    <dt>EnabledValue&lt;T&gt;</dt><dd>An optional value with a toggle. <code>Value</code>, <code>IsEnabled(out T)</code>, <code>SetValue(enabled, value)</code>. The drawer shows the value only when the toggle is on.</dd>
+    <dt>EnumValues&lt;TEnum, U&gt;</dt><dd>One <code>U</code> per enum value. Indexer <code>this[TEnum]</code> (get and set) and a <code>KeyValuePair</code> enumerator. The drawer shows a row per enum name.</dd>
+    <dt>EnumFlagValues&lt;TE, TF, U&gt;</dt><dd>Like EnumValues, but the flags field <code>TF</code> (<code>Flag</code>) activates the entries (bit <code>1 &lt;&lt; (int)te</code>). <code>TryGet(te, out U)</code> returns false for inactive entries; the enumerator yields active entries only.</dd>
+    <dt>SerializableDate</dt><dd>Date struct with the same fields as <code>DateTime</code>, built from a <code>DateTime</code> or from day/month/year…; <code>Now</code>. <code>ToStringDate(us)</code> gives dd/MM/yyyy (MM/dd/yyyy if <code>us</code>); <code>ToFullStringNoSeparator(…)</code> gives yyyyMMddHHmm[ss][fff]. Show it with <code>[DateReadOnly]</code>.</dd>
+    <dt>SerializableMonoScript(&lt;T&gt;)</dt><dd>Drag a script asset; read <code>Type</code> at runtime. The generic version rejects scripts not assignable to <code>T</code>.</dd>
+    <dt>SerializableType&lt;T&gt;</dt><dd>Stores any <code>System.Type</code> (generic types included) as a string. Implicit conversions to and from <code>Type</code>. No drawer; assign it from code.</dd>
+  </dl>
+
+  <h2>Example</h2>
+<pre><span class="k">public enum</span> EDifficulty { EASY, NORMAL, HARD }
+[Flags] <span class="k">public enum</span> EDifficultyMask { EASY = 1 &lt;&lt; 0, NORMAL = 1 &lt;&lt; 1, HARD = 1 &lt;&lt; 2 }
+
+<span class="k">public class</span> DifficultyConfig : ScriptableObject
+{
+    [SerializeField] <span class="k">private</span> EnumValues&lt;EDifficulty, <span class="k">float</span>&gt; m_enemyHealthMult;
+    [SerializeField] <span class="k">private</span> EnumFlagValues&lt;EDifficulty, EDifficultyMask, <span class="k">int</span>&gt; m_bonusLives;
+    [SerializeField] <span class="k">private</span> EnabledValue&lt;<span class="k">float</span>&gt; m_timeLimit;
+    [SerializeField] <span class="k">private</span> SerializableMonoScript&lt;MonoBehaviour&gt; m_aiBrain;
+    [SerializeField, DateReadOnly] <span class="k">private</span> SerializableDate m_lastEdited;
+
+    <span class="k">public float</span> HealthMult(EDifficulty d) =&gt; m_enemyHealthMult[d];
+    <span class="k">public int</span> BonusLives(EDifficulty d) =&gt; m_bonusLives.TryGet(d, <span class="k">out var</span> lives) ? lives : 0;
+    <span class="k">public bool</span> HasTimeLimit(<span class="k">out float</span> seconds) =&gt; m_timeLimit.IsEnabled(<span class="k">out</span> seconds);
+    <span class="k">public</span> Type AIBrainType =&gt; m_aiBrain.Type;
+
+    <span class="k">private void</span> OnValidate() =&gt; m_lastEdited = SerializableDate.Now;
+}</pre>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li>The enum tables are indexed by the enum's int value. Use non-negative, dense enums. For <code>EnumFlagValues</code>, flag bit <i>i</i> must match enum value <i>i</i>.</li>
+    <li>The tables are only sized when the inspector draws them. Before that, reads return <code>default</code> and log "Enum Values … not complete".</li>
+    <li><code>EnumValues.GetSimpleEnumerator()</code> returns an <code>IEnumerator</code>, so it can't go directly in a <code>foreach</code>. The <code>EnumFlagValues</code> version returns an <code>IEnumerable</code>.</li>
+    <li>The drawers look up the private field names (<code>m_value</code>, <code>m_enumValues</code>, …). Renaming them breaks the drawers and existing data.</li>
+  </ul>
+</section>
+
+<!-- ================= 12. GENERAL UTILITY ================= -->
+<section>
+  <div class="head"><h1><span class="n">12</span>General Utility</h1><span class="ns">global · Dhs5.Utility · .GUIs · .Editors</span></div>
+  <p class="lede">The shared toolbox the other systems are built on: <b>extension methods</b> for vectors, collections, enums and components, small <b>runtime helpers</b>, and <b>editor-only</b> helpers for creating and managing assets, drawing IMGUI, reflection on serialized properties and <b>generating C# scripts</b>. Several systems depend on it (e.g. <code>IsValid()</code>), so it must ship with them.</p>
+
+  <h2>Runtime</h2>
+  <dl class="types">
+    <dt>ExtensionMethods</dt><dd>Global namespace, always available.
+      <ul>
+        <li><b>Vectors:</b> <code>ToVector2/3</code> (+<code>XZ</code>, <code>YZ</code>), <code>SetX/Y/Z</code>, <code>Min/Max</code>, <code>IsApproximatelyZero</code>. A <code>Vector2</code> used as a range: <code>Contains</code>, <code>Clamp</code>, <code>GetRandomInRange</code>.</li>
+        <li><b>Collections:</b> <code>IsValid()</code> (not null and not empty), <code>IsIndexValid(i [, out v])</code>, <code>Swap</code>, <code>Copy</code>, <code>Sum</code>, <code>Average</code>, <code>InitWithConstantValue</code>, <code>InitWithRange</code>, <code>ToString(separator, showIndex)</code>.</li>
+        <li><b>Random:</b> <code>GetRandom()</code>, <code>TryGetRandomWithPredicate</code>, <code>GetRandomWithExceptions</code>.</li>
+        <li><b>Misc:</b> <code>GetFlags&lt;T&gt;()</code>, <code>GetFlagsIndex()</code>, <code>Color.SetAlpha</code>, <code>LayerMask.Contains(layer)</code>, <code>TryParseFloat</code> (accepts "," or "."), <code>CopyToClipboard</code>, <code>TryGetComponentInParent/InChildren</code>, <code>bool.ToInt()</code> / <code>int.ToBool()</code>.</li>
+      </ul>
+    </dd>
+    <dt>UtilityMethods</dt><dd><code>FlatDistance(v1, v2)</code> (XZ plane), <code>EnsureDirectoryExistence</code>, <code>EnsureAssetParentDirectoryExistence</code>.</dd>
+    <dt>GUIHelper</dt><dd>IMGUI (runtime and editor): preset colours and styles, <code>DrawRect</code>, and <code>GUIColorScope</code> / <code>GUIContentColorScope</code> / <code>GUIBackgroundColorScope</code>.</dd>
+  </dl>
+
+  <h2>Editor only</h2>
+  <dl class="types">
+    <dt>EditorDataUtility</dt><dd><code>CreateScriptableAsset&lt;T&gt;(path)</code>, <code>CreatePrefabWithComponent</code>, <code>CreateOrOverwriteTextAsset</code>, <code>Duplicate</code>, <code>DeleteAsset</code>, <code>RenameAsset</code>, <code>MoveAssetToFolder</code>, sub assets (<code>AddAssetToOtherAsset</code>, <code>GetSubAssets</code>, <code>EnsureAssetValidity</code>), <code>GetAllChildTypes(type)</code>.</dd>
+    <dt>EditorUtils</dt><dd><code>FullPingObject</code>, <code>SelectAndFocusAsset</code>, <code>TriggerAssetRename</code>, copy / cut / paste asset, <code>DelayCall(seconds, cb)</code>, <code>OpenFolder</code>. Adds <span class="menu">Assets &gt; Add to build settings</span> for scenes.</dd>
+    <dt>EditorGUIHelper</dt><dd>~45 built-in icons (<code>RefreshIcon</code>, <code>AddIcon</code>…), <code>FolderPicker</code>, <code>ObjectList</code>, <code>ProgressBar</code>, <code>DrawChildTypeSelector</code>, <code>LabelWidthScope</code>.</dd>
+    <dt>SerializedPropertyExtensions</dt><dd><code>property.GetValue&lt;T&gt;()</code> / <code>SetValue&lt;T&gt;(v)</code> via reflection. <code>ReflectionUtility</code>: <code>GetFieldOrPropertyValue</code>, <code>SetFieldOrPropertyValue</code>, <code>GetBaseClassesAndInterfaces</code>.</dd>
+    <dt>ScriptWriter / EnumWriter</dt><dd>Generate C# source: <code>AppendUsing</code>, <code>AppendField</code>, <code>AppendMethod</code>, <code>ToString()</code>. <code>EnumWriter</code> is what produces the generated enums of the Debugger, Updater and Save systems.</dd>
+  </dl>
+
+  <h2>Example</h2>
+<pre><span class="k">public class</span> LootDropper : MonoBehaviour
+{
+    [SerializeField] <span class="k">private</span> List&lt;GameObject&gt; m_loot;
+    [SerializeField] <span class="k">private</span> Vector2Int m_count = <span class="k">new</span>(1, 4);    <span class="c">// used as a min/max range</span>
+
+    <span class="k">public void</span> Drop()
+    {
+        <span class="k">if</span> (!m_loot.IsValid()) <span class="k">return</span>;                    <span class="c">// null or empty</span>
+        <span class="k">int</span> count = m_count.GetRandomInRange(maxInclusive: <span class="k">true</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; count; i++)
+            Instantiate(m_loot.GetRandom(), transform.position.SetY(0f), Quaternion.identity);
+    }
+}
+
+<span class="k">#if</span> UNITY_EDITOR  <span class="c">// using Dhs5.Utility.Editors;</span>
+<span class="k">var</span> data = EditorDataUtility.CreateScriptableAsset&lt;LootTable&gt;(<span class="s">"Assets/Data/LootTable"</span>, triggerRename: <span class="k">true</span>);
+EditorUtils.FullPingObject(data);
+<span class="k">var</span> writer = <span class="k">new</span> EnumWriter(<span class="s">"Game"</span>, ScriptWriter.EProtection.PUBLIC, <span class="s">"ELoot"</span>,
+    <span class="k">new</span>[] { <span class="s">"COIN"</span>, <span class="s">"GEM"</span> }, EnumWriter.EEnumType.BYTE);
+EditorDataUtility.CreateOrOverwriteTextAsset(<span class="s">"Assets/Scripts/ELoot.cs"</span>, writer.ToString());
+<span class="k">#endif</span></pre>
+
+  <h2>Good to know</h2>
+  <ul class="notes">
+    <li><code>IsValid()</code> means <i>not null <b>and</b> not empty</i>; an empty list is "invalid".</li>
+    <li><code>CreateScriptableAsset</code> adds <code>.asset</code> if missing, creates missing folders and makes the path unique (it never overwrites).</li>
+    <li>Editor helpers are compiled under <code>#if UNITY_EDITOR</code>; guard any call to them the same way in runtime scripts.</li>
+    <li><code>LifecycleManagementCompatibility.cs</code> stubs Unity 6.6's statics-cleanup attributes so the project still compiles on older versions.</li>
+  </ul>
+</section>
+
+</body>
+</html>
