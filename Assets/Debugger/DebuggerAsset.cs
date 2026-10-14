@@ -222,6 +222,18 @@ namespace Dhs5.Utility.Debugger
 
         private Vector2 m_categoriesScrollPos;
 
+        /// <summary>
+        /// Whether the categories levels edited are the user levels or the project levels, saved per project and per user (EditorUserSettings, in the UserSettings folder)
+        /// </summary>
+        private const string EditProjectLevelsConfigKey = "Dhs5.Debugger.EditProjectLevels";
+        private bool m_editProjectLevels;
+
+        private readonly GUIContent[] g_levelsModeOptions = new GUIContent[]
+        {
+            new GUIContent("My Preference", "Levels used only by you in this project, saved in the UserSettings folder"),
+            new GUIContent("Project Default", "Levels saved in the categories assets, shared by the whole project and used in builds"),
+        };
+
         #endregion
 
         #region Serialized Properties
@@ -254,6 +266,8 @@ namespace Dhs5.Utility.Debugger
 
             p_debugCategoriesTextAsset = serializedObject.FindProperty("m_debugCategoriesTextAsset");
 
+            m_editProjectLevels = EditorUserSettings.GetConfigValue(EditProjectLevelsConfigKey) == bool.TrueString;
+
             EnsureCorrectChannelsIndexation();
         }
 
@@ -266,6 +280,9 @@ namespace Dhs5.Utility.Debugger
         {
             EditorGUILayout.BeginVertical();
 
+            // Levels mode
+            DrawLevelsModeToolbar();
+
             // List
             DrawCategoriesList();
 
@@ -273,6 +290,18 @@ namespace Dhs5.Utility.Debugger
             DrawCategoriesFooter();
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawLevelsModeToolbar()
+        {
+            EditorGUILayout.Space(3f);
+            EditorGUI.BeginChangeCheck();
+            m_editProjectLevels = GUILayout.Toolbar(m_editProjectLevels ? 1 : 0, g_levelsModeOptions) == 1;
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorUserSettings.SetConfigValue(EditProjectLevelsConfigKey, m_editProjectLevels.ToString());
+            }
+            EditorGUILayout.Space(3f);
         }
 
         private void DrawCategoriesList()
@@ -338,6 +367,8 @@ namespace Dhs5.Utility.Debugger
                                 "Delete", "Cancel")
                             && EditorDataUtility.DeleteAsset(element, false))
                         {
+                            // The config key is cached on the element, still readable once its asset is deleted
+                            element.Editor_ClearUserLevel();
                             p_debugCategories.DeleteArrayElementAtIndex(index);
                             AssetDatabase.SaveAssetIfDirty(m_debuggerAsset);
                             ret = true;
@@ -374,9 +405,43 @@ namespace Dhs5.Utility.Debugger
                 EditorGUI.LabelField(r_lightRim, element.Level > -1 ? EditorGUIHelper.GreenLightIcon : EditorGUIHelper.RedLightIcon);
 
                 // Level
-                var r_level = new Rect(marginedRect.x + 30f, marginedRect.y, marginedRect.width - 30f - 100f, 18f);
-                var p_level = so.FindProperty("m_level");
-                p_level.intValue = EditorGUI.IntSlider(r_level, p_level.intValue, -1, DebuggerAsset.MAX_DEBUGGER_LEVEL);
+                var r_level = new Rect(marginedRect.x + 30f, marginedRect.y, marginedRect.width - 30f - 100f - 26f, 18f);
+                var r_levelOption = new Rect(r_level.x + r_level.width + 4f, marginedRect.y - 1f, 22f, 20f);
+                if (m_editProjectLevels)
+                {
+                    var p_level = so.FindProperty("m_level");
+                    p_level.intValue = EditorGUI.IntSlider(r_level, p_level.intValue, -1, DebuggerAsset.MAX_DEBUGGER_LEVEL);
+
+                    // User level indicator
+                    if (element.Editor_HasUserLevel)
+                    {
+                        EditorGUI.LabelField(r_levelOption,
+                            new GUIContent(element.Editor_UserLevel.ToString(), "Your preference overrides this level with " + element.Editor_UserLevel),
+                            EditorStyles.centeredGreyMiniLabel);
+                    }
+                }
+                else
+                {
+                    // Without user level, show the project level faded : moving the slider creates the user level
+                    using (new GUIHelper.GUIColorScope(element.Editor_HasUserLevel ? GUI.color : new Color(1f, 1f, 1f, 0.5f)))
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        var userLevel = EditorGUI.IntSlider(r_level, element.Level, -1, DebuggerAsset.MAX_DEBUGGER_LEVEL);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            element.Editor_SetUserLevel(userLevel);
+                        }
+                    }
+
+                    // Reset to project level
+                    using (new EditorGUI.DisabledGroupScope(!element.Editor_HasUserLevel))
+                    {
+                        if (GUI.Button(r_levelOption, new GUIContent(EditorGUIHelper.RefreshIcon.image, "Reset to the project level (" + element.ProjectLevel + ")")))
+                        {
+                            element.Editor_ClearUserLevel();
+                        }
+                    }
+                }
 
                 // Color
                 EditorGUI.BeginDisabledGroup(index == 0);
