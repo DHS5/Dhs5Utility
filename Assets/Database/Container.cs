@@ -1140,7 +1140,12 @@ namespace Dhs5.Utility.Databases
                 OnSearchStringChanged(m_searchString);
             }
 
-            if (GUILayout.Button(EditorGUIHelper.CrossIcon, EditorStyles.iconButton))
+            // Aligned on the top of the search field, like the D5 Console (GetLastRect is a placeholder during the Layout event, where the rect is unused)
+            var r_searchField = GUILayoutUtility.GetLastRect();
+            var r_clearButton = GUILayoutUtility.GetRect(16f, 16f, EditorStyles.iconButton, GUILayout.Width(16f));
+            r_clearButton.y = r_searchField.y;
+            r_clearButton.height = 16f;
+            if (GUI.Button(r_clearButton, EditorGUIHelper.CrossIcon, EditorStyles.iconButton))
             {
                 GUI.FocusControl(null);
                 m_searchString = string.Empty;

@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Text.RegularExpressions;
 
 
 #if UNITY_EDITOR
@@ -28,6 +29,19 @@ namespace Dhs5.Utility.Debugger
         #region Consts
 
         private const string ConsoleCommandTextFieldControl = "ConsoleCommandTextField";
+        private const string LogTypesMaskConfigKey = "Dhs5.Utility.Debugger.ConsoleWindow.LogTypesMask";
+
+        private const int INFO_MASK = 1 << 0;
+        private const int WARNING_MASK = 1 << 1;
+        private const int ERROR_MASK = 1 << 2;
+        private const int ALL_LOG_TYPES_MASK = INFO_MASK | WARNING_MASK | ERROR_MASK;
+
+        private const string REGEX_SEARCH_PREFIX = "r:";
+        /// <summary>
+        /// Regex searches are applied once the user stopped typing for this long : each one rescans every log
+        /// </summary>
+        private const double REGEX_SEARCH_DEBOUNCE = 0.2;
+        private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromMilliseconds(5);
 
         #endregion
 
@@ -37,6 +51,22 @@ namespace Dhs5.Utility.Debugger
         private bool m_filtersOpen;
         private Vector2 m_filtersScrollPosition;
         private int[] m_filtersValues;
+        /// <summary>
+        /// Content of the search field : a regex if it starts with <see cref="REGEX_SEARCH_PREFIX"/>
+        /// </summary>
+        private string m_searchString = "";
+        /// <summary>
+        /// Search the logs are filtered with : can lag behind <see cref="m_searchString"/> (regex debounce, invalid regex)
+        /// </summary>
+        private string m_appliedSearchString = "";
+        [NonSerialized] private Regex m_appliedSearchRegex;
+        [NonSerialized] private string m_searchRegexError;
+        [NonSerialized] private bool m_searchApplyPending;
+        [NonSerialized] private double m_searchEditTime;
+        /// <summary>
+        /// Log types shown, saved in the <see cref="EditorUserSettings"/>
+        /// </summary>
+        private int m_logTypesMask = ALL_LOG_TYPES_MASK;
 
         // LOGS
         private int m_selectedLogId = -1;
@@ -51,6 +81,8 @@ namespace Dhs5.Utility.Debugger
         private int m_cacheVersion = -1;
         private int m_cacheNextLogId;
         private int[] m_cacheFiltersValues;
+        private string m_cacheSearchString = "";
+        private int m_cacheLogTypesMask = ALL_LOG_TYPES_MASK;
 
         // AUTO REPAINT & SCROLL
         private int m_repaintVersion = -1;
@@ -71,6 +103,10 @@ namespace Dhs5.Utility.Debugger
 
         private GUIContent g_clearButton = new GUIContent("Clear");
         private GUIContent g_filtersButton = new GUIContent("Filters");
+        // Not serialized : the window would restore them as empty contents after a domain reload, instead of null
+        [NonSerialized] private GUIContent g_infoToggle;
+        [NonSerialized] private GUIContent g_warningToggle;
+        [NonSerialized] private GUIContent g_errorToggle;
 
         #endregion
 
@@ -115,11 +151,27 @@ namespace Dhs5.Utility.Debugger
 
         #region Core Behaviour
 
+        private void OnEnable()
+        {
+            var savedMask = EditorUserSettings.GetConfigValue(LogTypesMaskConfigKey);
+            m_logTypesMask = int.TryParse(savedMask, out var mask) ? mask & ALL_LOG_TYPES_MASK : ALL_LOG_TYPES_MASK;
+
+            // The regex isn't serialized : rebuilt from the search field
+            m_appliedSearchString = "";
+            ApplySearch();
+        }
+
         /// <summary>
-        /// Called ~10 times per second : repaints the window when logs are added or cleared
+        /// Called ~10 times per second : repaints the window when logs are added or cleared, applies the debounced regex search
         /// </summary>
         private void OnInspectorUpdate()
         {
+            if (m_searchApplyPending && EditorApplication.timeSinceStartup - m_searchEditTime >= REGEX_SEARCH_DEBOUNCE)
+            {
+                ApplySearch();
+                Repaint();
+            }
+
             if (m_repaintVersion != DebuggerLogsContainer.Version || m_repaintNextLogId != DebuggerLogsContainer.NextLogId)
             {
                 m_repaintVersion = DebuggerLogsContainer.Version;
@@ -197,9 +249,135 @@ namespace Dhs5.Utility.Debugger
                 DebuggerLogsContainer.ClearLogs();
             }
 
-            // Filters
             var r_filtersButton = new Rect(rect.x + rect.width - 250f, rect.y, 250f, rect.height);
+
+            // Log types : anchored to the right, next to the filters
+            // Contents created here and not in OnEnable : EditorGUIHelper's static initializer needs EditorStyles, not ready after a domain reload
+            g_infoToggle ??= new GUIContent(EditorGUIHelper.ConsoleInfoIcon) { tooltip = "Show infos" };
+            g_warningToggle ??= new GUIContent(EditorGUIHelper.ConsoleWarningIcon) { tooltip = "Show warnings" };
+            g_errorToggle ??= new GUIContent(EditorGUIHelper.ConsoleErrorIcon) { tooltip = "Show errors" };
+
+            var r_logTypeToggle = new Rect(r_filtersButton.x - 90f, rect.y, 30f, rect.height);
+            DrawLogTypeToggle(r_logTypeToggle, g_infoToggle, INFO_MASK);
+            r_logTypeToggle.x += r_logTypeToggle.width;
+            DrawLogTypeToggle(r_logTypeToggle, g_warningToggle, WARNING_MASK);
+            r_logTypeToggle.x += r_logTypeToggle.width;
+            DrawLogTypeToggle(r_logTypeToggle, g_errorToggle, ERROR_MASK);
+
+            // Search : next to the log types
+            var r_searchClearButton = new Rect(r_filtersButton.x - 90f - 20f, rect.y + 2f, 16f, 16f);
+            var searchWidth = Mathf.Clamp(rect.width - 446f, 50f, 300f);
+            var r_searchField = new Rect(r_searchClearButton.x - 2f - searchWidth, rect.y + 2f, searchWidth, rect.height - 2f);
+            var invalidRegex = m_searchRegexError != null;
+            EditorGUI.BeginChangeCheck();
+            using (new GUIHelper.GUIBackgroundColorScope(invalidRegex ? Color.softRed : GUI.backgroundColor))
+            {
+                m_searchString = EditorGUI.TextField(r_searchField, m_searchString, EditorStyles.toolbarSearchField) ?? "";
+            }
+            if (invalidRegex)
+            {
+                GUI.Label(r_searchField, new GUIContent(string.Empty, m_searchRegexError), GUIStyle.none);
+            }
+
+            if (GUI.Button(r_searchClearButton, EditorGUIHelper.CrossIcon, EditorStyles.iconButton))
+            {
+                GUI.FocusControl(null);
+                m_searchString = string.Empty;
+                GUI.changed = true;
+            }
+            if (EditorGUI.EndChangeCheck())
+            {
+                OnSearchStringChanged();
+            }
+
+            // Filters
             m_filtersOpen = EditorGUIHelper.ToolbarToggleDropdown(r_filtersButton, g_filtersButton, m_filtersOpen);
+        }
+
+        private void DrawLogTypeToggle(Rect rect, GUIContent content, int typeMask)
+        {
+            var shown = (m_logTypesMask & typeMask) != 0;
+            if (GUI.Toggle(rect, shown, content, EditorStyles.toolbarButton) != shown)
+            {
+                m_logTypesMask ^= typeMask;
+                EditorUserSettings.SetConfigValue(LogTypesMaskConfigKey, m_logTypesMask.ToString());
+            }
+        }
+
+        #endregion
+
+        #region SEARCH
+
+        private static bool IsRegexSearch(string search) => search.StartsWith(REGEX_SEARCH_PREFIX, StringComparison.Ordinal);
+
+        private void OnSearchStringChanged()
+        {
+            if (IsRegexSearch(m_searchString))
+            {
+                // Debounced : applied by OnInspectorUpdate once the user stopped typing
+                m_searchApplyPending = true;
+                m_searchEditTime = EditorApplication.timeSinceStartup;
+            }
+            else
+            {
+                ApplySearch();
+            }
+        }
+
+        /// <summary>
+        /// Makes <see cref="m_searchString"/> the search the logs are filtered with, unless it's an invalid regex :
+        /// the previous search is kept then, so that the list doesn't empty while a regex is being written
+        /// </summary>
+        private void ApplySearch()
+        {
+            m_searchApplyPending = false;
+            m_searchRegexError = null;
+
+            if (!IsRegexSearch(m_searchString))
+            {
+                m_appliedSearchString = m_searchString;
+                m_appliedSearchRegex = null;
+                return;
+            }
+
+            var pattern = m_searchString.Substring(REGEX_SEARCH_PREFIX.Length);
+            if (pattern.Length == 0)
+            {
+                m_appliedSearchString = m_searchString;
+                m_appliedSearchRegex = null;
+                return;
+            }
+
+            try
+            {
+                m_appliedSearchRegex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, RegexMatchTimeout);
+                m_appliedSearchString = m_searchString;
+            }
+            catch (ArgumentException e)
+            {
+                m_searchRegexError = e.Message;
+            }
+        }
+
+        private bool DoesLogMatchSearch(DebuggerLog log)
+        {
+            if (IsRegexSearch(m_appliedSearchString))
+            {
+                if (m_appliedSearchRegex == null) return true;
+                if (log.message == null) return false;
+                try
+                {
+                    return m_appliedSearchRegex.IsMatch(log.message);
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    // Pattern backtracking too much on this message : hidden rather than freezing the editor
+                    return false;
+                }
+            }
+
+            if (string.IsNullOrEmpty(m_appliedSearchString)) return true;
+            return log.message != null && log.message.IndexOf(m_appliedSearchString, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         #endregion
@@ -261,6 +439,9 @@ namespace Dhs5.Utility.Debugger
 
         private bool DoesLogPassFilters(DebuggerLog log)
         {
+            if (!DoesLogTypePass(log.type)) return false;
+            if (!DoesLogMatchSearch(log)) return false;
+
             var categoryIndex = (int)log.category;
 
             if (m_filtersValues.IsIndexValid(categoryIndex, out var level))
@@ -269,6 +450,16 @@ namespace Dhs5.Utility.Debugger
             }
 
             return true;
+        }
+        private bool DoesLogTypePass(LogType logType)
+        {
+            var typeMask = logType switch
+            {
+                LogType.Warning => WARNING_MASK,
+                LogType.Error or LogType.Exception or LogType.Assert => ERROR_MASK,
+                _ => INFO_MASK
+            };
+            return (m_logTypesMask & typeMask) != 0;
         }
 
         #endregion
@@ -280,20 +471,34 @@ namespace Dhs5.Utility.Debugger
 
         /// <summary>
         /// Keeps <see cref="m_visibleLogIds"/> up to date : only new and removed logs are processed,
-        /// the whole list is rebuilt only when the logs are cleared or the filters change
+        /// the whole list is rebuilt only when the logs are cleared, the filters or log types change, the search is widened or is a regex
         /// </summary>
         private void UpdateVisibleLogsCache()
         {
             var filtersChanged = m_filtersValues != null
                 && (m_cacheFiltersValues == null || !m_filtersValues.SequenceEqual(m_cacheFiltersValues));
+            var searchChanged = m_appliedSearchString != m_cacheSearchString;
+            // Plain search containing the previous plain search : can only hide logs (not true for regexes, e.g. "a" -> "a|b")
+            var searchNarrowed = searchChanged
+                && !IsRegexSearch(m_appliedSearchString) && !IsRegexSearch(m_cacheSearchString)
+                && m_appliedSearchString.IndexOf(m_cacheSearchString, StringComparison.OrdinalIgnoreCase) >= 0;
 
-            if (m_cacheVersion != DebuggerLogsContainer.Version || filtersChanged)
+            if (m_cacheVersion != DebuggerLogsContainer.Version || filtersChanged
+                || m_logTypesMask != m_cacheLogTypesMask
+                || (searchChanged && !searchNarrowed))
             {
                 m_visibleLogIds.Clear();
                 m_cacheVersion = DebuggerLogsContainer.Version;
                 m_cacheNextLogId = DebuggerLogsContainer.FirstLogId;
                 m_cacheFiltersValues = m_filtersValues != null ? (int[])m_filtersValues.Clone() : null;
+                m_cacheLogTypesMask = m_logTypesMask;
             }
+            else if (searchChanged)
+            {
+                // Narrowed search : only the logs already visible can still match
+                m_visibleLogIds.RemoveAll(id => !DebuggerLogsContainer.TryGetLog(id, out var log) || !DoesLogMatchSearch(log));
+            }
+            m_cacheSearchString = m_appliedSearchString;
 
             // Logs removed by the logs limit
             var firstLogId = DebuggerLogsContainer.FirstLogId;
