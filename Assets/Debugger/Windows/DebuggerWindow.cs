@@ -514,7 +514,10 @@ namespace Dhs5.Utility.Debugger
                     break;
 
                 case SerializedPropertyType.Enum:
-                    EditorGUILayout.EnumPopup(memberSnapshot.name, (Enum)memberSnapshot.value);
+                    if (memberSnapshot.value.GetType().IsDefined(typeof(FlagsAttribute), false))
+                        EditorGUILayout.EnumFlagsField(memberSnapshot.name, (Enum)memberSnapshot.value);
+                    else
+                        EditorGUILayout.EnumPopup(memberSnapshot.name, (Enum)memberSnapshot.value);
                     break;
 
                 case SerializedPropertyType.Vector2:

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
 
 namespace Dhs5.Utility.UI
 {
@@ -25,6 +26,13 @@ namespace Dhs5.Utility.UI
                 Undo.SetCurrentGroupName("Create " + name);
 
                 go = new GameObject(name, types);
+                if (parent == null)
+                {
+                    // Created without context : place in the current stage, under the prefab root when in Prefab Mode
+                    var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+                    if (prefabStage != null) parent = prefabStage.prefabContentsRoot;
+                    else StageUtility.PlaceGameObjectInCurrentStage(go);
+                }
                 GameObjectUtility.SetParentAndAlign(go, parent);
                 Undo.RegisterCreatedObjectUndo(go, go.name);
                 Selection.activeGameObject = go;
