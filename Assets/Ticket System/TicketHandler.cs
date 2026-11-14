@@ -108,6 +108,14 @@ namespace Dhs5.Utility.TicketSystem
             m_dictionary.Clear();
         }
 
+        /// <summary>
+        /// Removes all values but keeps the UID counter: outstanding tickets can't match a future registration
+        /// </summary>
+        public void Clear()
+        {
+            m_dictionary.Clear();
+        }
+
         public Ticket Register(T value)
         {
             var ticket = GetTicket();
