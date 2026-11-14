@@ -40,6 +40,10 @@ namespace Dhs5.Utility.Settings
 
         // --- GUI Members ---
         private Vector2 m_scrollPosition;
+        /// <summary>
+        /// Label width used by the settings editor, 0 for Unity's default
+        /// </summary>
+        private float m_labelWidth;
 
         // --- Members ---
         private int m_currentSelection;
@@ -52,11 +56,22 @@ namespace Dhs5.Utility.Settings
         /// Selected settings type, saved per project and per user (EditorUserSettings, in the UserSettings folder)
         /// </summary>
         private const string SelectionConfigKey = "Dhs5.SettingsWindow.SelectedType";
+        /// <summary>
+        /// Label width, saved per project and per user (EditorUserSettings, in the UserSettings folder)
+        /// </summary>
+        private const string LabelWidthConfigKey = "Dhs5.SettingsWindow.LabelWidth";
 
         private void OnEnable()
         {
             GetSettings(false);
             m_currentSelection = GetSettingsIndex(EditorUserSettings.GetConfigValue(SelectionConfigKey));
+            float.TryParse(EditorUserSettings.GetConfigValue(LabelWidthConfigKey), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out m_labelWidth);
+        }
+
+        private void SaveLabelWidth()
+        {
+            EditorUserSettings.SetConfigValue(LabelWidthConfigKey, m_labelWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
         private void OnDisable()
         {
@@ -108,11 +123,24 @@ namespace Dhs5.Utility.Settings
                 rect.x = 0f; rect.width = position.width;
                 EditorGUI.DrawRect(rect, Color.white);
 
+                var handleRect = EditorGUILayout.GetControlRect(false, LabelWidthHandleHeight);
+                bool dragging = OnLabelWidthHandleGUI(handleRect);
+
                 m_scrollPosition = EditorGUILayout.BeginScrollView(m_scrollPosition);
 
-                OnSettingsGUI(m_currentSelection);
+                using (new EditorGUIHelper.LabelWidthScope(GetLabelWidth()))
+                {
+                    OnSettingsGUI(m_currentSelection);
+                }
 
                 EditorGUILayout.EndScrollView();
+
+                // Guide line over the content while dragging
+                if (dragging && Event.current.type == EventType.Repaint)
+                {
+                    float x = handleRect.x + GetLabelWidth();
+                    EditorGUI.DrawRect(new Rect(x - 0.5f, handleRect.yMax, 1f, position.height - handleRect.yMax), new Color(0.3f, 0.6f, 1f, 0.6f));
+                }
             }
         }
 
@@ -151,6 +179,88 @@ namespace Dhs5.Utility.Settings
                 GetSettings(true);
                 m_currentSelection = GetSettingsIndex(EditorUserSettings.GetConfigValue(SelectionConfigKey));
             }
+        }
+
+        private const float LabelWidthHandleHeight = 8f;
+        private const float MinLabelWidth = 50f;
+
+        /// <returns>Label width to use, clamped to the window width</returns>
+        private float GetLabelWidth()
+        {
+            float labelWidth;
+            if (m_labelWidth > 0f)
+            {
+                labelWidth = m_labelWidth;
+            }
+            else
+            {
+                // 0 makes Unity compute its default width
+                using (new EditorGUIHelper.LabelWidthScope(0f))
+                {
+                    labelWidth = EditorGUIUtility.labelWidth;
+                }
+            }
+            return Mathf.Clamp(labelWidth, MinLabelWidth, Mathf.Max(MinLabelWidth, position.width - 60f));
+        }
+
+        /// <summary>
+        /// Handle to drag the label width, double click to reset it to Unity's default
+        /// </summary>
+        /// <returns>Whether the handle is being dragged</returns>
+        private bool OnLabelWidthHandleGUI(Rect rect)
+        {
+            int id = GUIUtility.GetControlID(FocusType.Passive);
+            float labelWidth = GetLabelWidth();
+            var handleRect = new Rect(rect.x + labelWidth - 5f, rect.y, 10f, rect.height);
+
+            EditorGUIUtility.AddCursorRect(handleRect, MouseCursor.ResizeHorizontal, id);
+
+            var current = Event.current;
+            switch (current.GetTypeForControl(id))
+            {
+                case EventType.MouseDown:
+                    if (current.button == 0 && handleRect.Contains(current.mousePosition))
+                    {
+                        if (current.clickCount == 2)
+                        {
+                            m_labelWidth = 0f;
+                            SaveLabelWidth();
+                        }
+                        else
+                        {
+                            m_labelWidth = labelWidth;
+                            GUIUtility.hotControl = id;
+                        }
+                        current.Use();
+                    }
+                    break;
+
+                case EventType.MouseDrag:
+                    if (GUIUtility.hotControl == id)
+                    {
+                        m_labelWidth = Mathf.Clamp(current.mousePosition.x - rect.x, MinLabelWidth, Mathf.Max(MinLabelWidth, position.width - 60f));
+                        current.Use();
+                    }
+                    break;
+
+                case EventType.MouseUp:
+                    if (GUIUtility.hotControl == id)
+                    {
+                        GUIUtility.hotControl = 0;
+                        SaveLabelWidth();
+                        current.Use();
+                    }
+                    break;
+
+                case EventType.Repaint:
+                    bool active = GUIUtility.hotControl == id;
+                    EditorGUI.DrawRect(new Rect(rect.x, rect.center.y - 0.5f, rect.width, 1f), new Color(0.5f, 0.5f, 0.5f, 0.25f));
+                    EditorGUI.DrawRect(new Rect(rect.x + labelWidth - 2f, rect.y, 4f, rect.height),
+                        active ? new Color(0.3f, 0.6f, 1f, 1f) : new Color(0.6f, 0.6f, 0.6f, 1f));
+                    break;
+            }
+
+            return GUIUtility.hotControl == id;
         }
 
         private void OnSettingsGUI(int settingsIndex)
